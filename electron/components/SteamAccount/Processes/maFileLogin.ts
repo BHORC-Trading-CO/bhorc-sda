@@ -22,6 +22,10 @@ type StepType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP | SteamAc
 
 export default async function maFileLogin(steamAccountParams: SteamAccountSetupInterface, options?: { abortChannel?: AbortChannelType, stepChannel?: StepType }, proxy?: ProxySetupInterface): Promise<SmaFileInterface> {
     return new Promise<SmaFileInterface>(async (resolve, reject) => {
+        // Защита приватности: вход без прокси запрещён (иначе логин уйдёт с реального IP).
+        if (!proxy) {
+            return reject(new Error('Прокси обязателен: вход без прокси запрещён (защита от утечки реального IP).'));
+        }
         const session = new LoginSession(EAuthTokenPlatformType.MobileApp, {
             httpProxy: proxy ? `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}` : undefined
         });

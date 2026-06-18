@@ -36,6 +36,10 @@ export default async function setupGuard(
   proxy?: ProxySetupInterface
 ): Promise<SmaFileInterface> {
   return new Promise(async (resolve, reject) => {
+    // Защита приватности: создание/подключение guard без прокси запрещено (иначе логин с реального IP).
+    if (!proxy) {
+      return reject(new Error('Прокси обязателен: создание аккаунта/подключение guard без прокси запрещено (защита от утечки реального IP).'));
+    }
     let community = new SteamCommunity();
     const session = new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxy ? `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}` : undefined });
     if (proxy) {

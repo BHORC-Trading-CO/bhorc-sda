@@ -36,6 +36,23 @@ const SteamAccountsFooter: FC = observer(() => {
                         size="large"
                         color="grey"
                         hoverColor="grey"
+                        className="footer__button"
+                        img="./assets/img/RefreshSession.svg"
+                        hoverImg="./assets/img/RefreshSessionHover.svg"
+                        text="Обновить сессию"
+                        onClick={() => {
+                            const selected = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected && !p.deleted);
+                            if (selected.length === 0) return;
+                            store.steamAccountsTable.refreshSessionSelected();
+                        }}
+                    />
+
+                    <Button
+                        disabled={false}
+                        view="default"
+                        size="large"
+                        color="grey"
+                        hoverColor="grey"
                         img="./assets/img/Trash.svg"
                         hoverImg="./assets/img/Trash_hov.svg"
                         text="Удалить"

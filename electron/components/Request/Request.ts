@@ -22,15 +22,6 @@ class RequestPromise {
             });
         });
     }
-
-    async getMyIp(): Promise<string> {
-        const { body, response } = await this.send({ url: 'http://ip-api.com/json' });
-        const data = JSON.parse(body);
-        if (!body || response.statusCode !== 200 || !data.query || data.status !== 'success'){
-            throw new Error('Не удалось получить ip! body: ' + body);
-        }
-        return `${data.query} country: ${data.country}; city: ${data.city}; timezone: ${data.timezone};`;
-    }
 }
 
 export default RequestPromise;

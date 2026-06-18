@@ -2,6 +2,8 @@ import ProxyStorage from "../newStorage/ProxyStorage";
 import Proxy from "./Proxy";
 import ProxyInterface from "../../interfaces/Proxy/ProxyInterface";
 import CompiledProxyInterface from '../../interfaces/Proxy/CompiledProxyInterface';
+import ProxySetupInterface from '../../interfaces/Proxy/ProxySetupInterface';
+import getProxyGeo, { ProxyGeo } from '../SteamAccount/Functions/getProxyGeo';
 import Manager from "../manager/manager";
 import application from "../application/application";
 
@@ -42,10 +44,36 @@ export class ProxyManager {
         try {
             const object = this.objects.find(object => object.params.id === id);
             if (!object) throw new Error(`#${id} - proxy is not exist`);
+            // При смене host/port кешированные гео-данные устаревают — сбрасываем.
+            if (typeof newProxyData.host !== 'undefined' || typeof newProxyData.port !== 'undefined') {
+                newProxyData = { ...newProxyData, timezone: "", countryCode: "" };
+            }
             object.editParams(newProxyData);
         } catch (err) {
             throw new Error(`Cant edit proxy: ${err}`);
         }
+    }
+    /** Возвращает гео прокси (таймзона + страна): из кеша, иначе запрашивает через прокси и кеширует. */
+    async getProxyGeo(proxyId: string): Promise<ProxyGeo> {
+        const proxy = this.getById(proxyId);
+        if (!proxy) return { timezone: null, countryCode: null };
+        if (proxy.params.timezone && proxy.params.countryCode) {
+            return { timezone: proxy.params.timezone, countryCode: proxy.params.countryCode };
+        }
+        const proxyUrl = `http://${proxy.params.username}:${proxy.params.password}@${proxy.params.host}:${proxy.params.port}`;
+        const geo = await getProxyGeo(proxyUrl);
+
+        // editParams обновляет только существующие ключи params, поэтому новые ключи
+        // проставляем в in-memory объект напрямую, а затем персистим только заполненные.
+        const updates: { [K in keyof typeof geo]?: string } = {};
+        if (geo.timezone) { proxy.params.timezone = geo.timezone; updates.timezone = geo.timezone; }
+        if (geo.countryCode) { proxy.params.countryCode = geo.countryCode; updates.countryCode = geo.countryCode; }
+        if (Object.keys(updates).length) proxy.editParams(updates as any);
+
+        return {
+            timezone: proxy.params.timezone || null,
+            countryCode: proxy.params.countryCode || null,
+        };
     }
     load() {
         try {
@@ -81,6 +109,21 @@ export class ProxyManager {
         const objects = this.objects.filter(obj => obj.params.id === id);
         if (objects.length === 0) return null;
         return objects[0];
+    }
+    /** Находит активный (не удалённый) прокси по host:port или создаёт новый. Возвращает прокси. */
+    getOrCreateBySetup(setup: ProxySetupInterface) {
+        const existing = this.objects.find(p =>
+            !p.params.deleted &&
+            p.params.host === setup.host &&
+            String(p.params.port) === String(setup.port)
+        );
+        if (existing) return existing;
+
+        const proxyData = Proxy.Generate(setup);
+        const proxyObject = new Proxy(proxyData);
+        this.addNew(proxyObject);
+        ProxyStorage.Save(proxyData.id, proxyData);
+        return proxyObject;
     }
     static CompileObject(object: Proxy) {
         try {

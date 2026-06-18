@@ -163,6 +163,14 @@ class SteamAccountsTableStore {
     this.steamAccounts[id].isLogining = true;
     window.Main.steamAccounts.refreshSession(id);
   }
+  refreshSessionSelected() {
+    const selected = Object.values(this.steamAccounts).filter(
+      (sa) => sa.isSelected && !sa.deleted
+    );
+    for (var sa of selected) {
+      this.refreshSession(sa.id);
+    }
+  }
   loadChangableSecondaries(id: string) {
     if (this.steamAccounts[id].deleted) return;
     const fields = this.getFields();

@@ -38,8 +38,11 @@ class Proxy {
         });
     }
     static Generate(proxy: ProxySetupInterface) {
-        const proxies = proxyManager.objects.map(p => p.params);
-        const proxiesArray = Object.values(proxies);
+        // Нумеруем относительно активных прокси: удалённые (архивные) не должны
+        // оставлять "дыры" в нумерации новых прокси.
+        const proxiesArray = proxyManager.objects
+            .map(p => p.params)
+            .filter(p => !p.deleted);
         proxiesArray.sort((a, b) => a.number < b.number ? 1 : -1);
 
         const params: ProxyInterface = {
@@ -50,6 +53,7 @@ class Proxy {
         }
         return params;
     }
+
     static Test(proxy: ProxySetupInterface){
         return new Promise((resolve, reject)=>{
             const newRequest = new RequestPromise(proxy);

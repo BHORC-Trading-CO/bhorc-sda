@@ -71,6 +71,19 @@ export default () => {
             event.reply('ERROR', err);
         }
     });
+    ipcMain.on('NEW_PROXIES', (event, proxies: ProxySetupInterface[]) => {
+        try {
+            for (var proxy of proxies) {
+                const proxyData = Proxy.Generate(proxy);
+                const proxyObject = new Proxy(proxyData);
+                proxyManager.addNew(proxyObject);
+                ProxyStorage.Save(proxyData.id, proxyData);
+            }
+            proxyManager.sendProxiesToFront();
+        } catch (err) {
+            event.reply('ERROR', err);
+        }
+    });
     ipcMain.on('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds: string[] } }) => {
         try {
             proxyManager.edit(params.id, params.proxy);
