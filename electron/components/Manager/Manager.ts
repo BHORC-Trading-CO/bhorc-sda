@@ -40,6 +40,13 @@ class Manager {
         for (var steamAccountId of Object.keys(links.steamAccounts)) {
             if (links.steamAccounts[steamAccountId] === proxyId) {
                 links.steamAccounts[steamAccountId] = null;
+                // Сбрасываем прокси и в живом объекте аккаунта, иначе in-memory .proxy
+                // останется указывать на удалённый прокси и guard'ы его пропустят.
+                const steamAccount = steamAccountManager.getById(steamAccountId);
+                if (steamAccount) {
+                    steamAccount.setProxy(null);
+                    application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_EDIT_PROXY, { id: steamAccountId, proxy: null });
+                }
             }
         }
 

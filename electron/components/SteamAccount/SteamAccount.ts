@@ -115,6 +115,8 @@ class SteamAccount {
     // иначе реальный IP свяжет ПК с аккаунтом (cookie аутентифицированы).
     private assertProxy(action: string) {
         if (!this.proxy) {
+            // Аудит: фиксируем заблокированную попытку сетевой операции без прокси.
+            console.warn(`[privacy] аккаунт #${this.params.number} (${this.params.id}): "${action}" заблокировано — нет прокси`);
             throw new Error(`Аккаунт #${this.params.number}: не привязан прокси. ${action} запрещено (защита от утечки реального IP).`);
         }
     }
@@ -127,6 +129,12 @@ class SteamAccount {
                 });
                 const proxyRequest = request.defaults({ proxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}` });
                 this.community = new SteamCommunity({ request: proxyRequest });
+            } else {
+                // Прокси сняли: пересоздаём сетевые клиенты без прокси, чтобы не остался
+                // старый/мёртвый прокси в request.defaults. Сами сетевые методы всё равно
+                // заблокированы assertProxy/guard'ами, пока прокси не привязан заново.
+                this.session = new LoginSession(EAuthTokenPlatformType.MobileApp);
+                this.community = new SteamCommunity();
             }
         } catch (err) {
             throw new Error(`Error in setProxy: ${err}`);

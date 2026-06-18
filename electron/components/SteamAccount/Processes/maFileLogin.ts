@@ -182,7 +182,9 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                             .then(session => {
                                 steamAccountParams.maFile.Session = session;
                                 console.log(session);
-                                maFileLogin(steamAccountParams, options)
+                                // Прокси обязателен и в рекурсивном ретрае, иначе он упрётся
+                                // в guard "прокси обязателен" уже после создания сессии.
+                                maFileLogin(steamAccountParams, options, proxy)
                                     .then(smaFile => {
                                         resolve(smaFile);
                                     })
