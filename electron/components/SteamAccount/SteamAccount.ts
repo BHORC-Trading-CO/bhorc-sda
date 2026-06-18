@@ -18,6 +18,7 @@ import askFamilyPin from "../application/askInfo/askFamilyPin";
 import Chrome from './Chrome/Chrome';
 import { EAuthSessionGuardType, EAuthTokenPlatformType, LoginSession } from "steam-session";
 import maFileLogin from "./Processes/maFileLogin";
+import getCommunityWebCookies from "./Functions/getCommunityWebCookies";
 import askMailCode from "../application/askInfo/askMailCode";
 import SessionInterface from "../../interfaces/SteamAccount/SessionInterface";
 const SteamTotp = require('steam-totp');
@@ -57,6 +58,12 @@ class SteamAccount {
     async initSession() {
         return new Promise(async (resolve, reject) => {
             try {
+                // Защита приватности: без привязанного прокси не выходим в сеть,
+                // чтобы не раскрыть реальный IP и не связать аккаунт с ПК.
+                if (!this.proxy) {
+                    console.log(`${this.params.id} - initSession пропущен: не привязан прокси`);
+                    return resolve(undefined);
+                }
                 if (this.params.maFile.Session && this.params.maFile.Session.AccessToken && this.params.maFile.Session.RefreshToken) {
                     this.session.accessToken = this.params.maFile.Session.AccessToken;
                     this.session.refreshToken = this.params.maFile.Session.RefreshToken;
@@ -71,6 +78,37 @@ class SteamAccount {
                 console.log(err);
             }
         });
+    }
+
+    async getBrowserCookies(): Promise<string[]> {
+        const refreshToken = this.params.maFile.Session ? this.params.maFile.Session.RefreshToken : undefined;
+        if (!refreshToken) return [];
+
+        // steamID нужен для settoken; берём из JWT refresh-токена
+        this.session.refreshToken = refreshToken;
+        const steamID = this.session.steamID ? this.session.steamID.getSteamID64() : null;
+
+        const proxyUrl = this.proxy
+            ? `http://${this.proxy.username}:${this.proxy.password}@${this.proxy.host}:${this.proxy.port}`
+            : null;
+
+        // Основной путь: получаем cookie именно для steamcommunity.com (aud: web:community)
+        if (steamID) {
+            try {
+                return await getCommunityWebCookies(refreshToken, steamID, proxyUrl);
+            } catch (err) {
+                console.log(`${this.params.id} - getCommunityWebCookies failed, fallback to getWebCookies: ${err}`);
+            }
+        }
+
+        // Фолбэк: старый путь (cookie случайного домена)
+        try {
+            await this.session.refreshAccessToken();
+            return await this.session.getWebCookies();
+        } catch (err) {
+            console.log(`${this.params.id} - cant get web cookies for browser: ${err}`);
+            return [];
+        }
     }
 
     setProxy(proxy: ProxyInterface | null) {

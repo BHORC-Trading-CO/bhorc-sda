@@ -547,7 +547,20 @@ const CellJSX: FC<{
             id={`exportSmaFile${steamAccount.id}`}
             href={
               "data:text/json;charset=utf-8," +
-              encodeURIComponent(JSON.stringify(steamAccount.smaFile))
+              encodeURIComponent(
+                JSON.stringify({
+                  ...steamAccount.smaFile,
+                  // round-trip: вкладываем привязанный прокси (только setup-поля, без локальных id/number/deleted)
+                  proxy: steamAccount.proxy
+                    ? {
+                        host: steamAccount.proxy.host,
+                        port: steamAccount.proxy.port,
+                        username: steamAccount.proxy.username,
+                        password: steamAccount.proxy.password,
+                      }
+                    : undefined,
+                })
+              )
             }
             download={`${steamAccount.accountName}.smaFile`}
           ></a>

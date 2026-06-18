@@ -145,6 +145,10 @@ const proxies = {
   new: (proxy: ProxySetupInterface, links: { steamAccountIds: string[] }) => {
     ipcRenderer.send('NEW_PROXY', { proxy, links });
   },
+  /** Массовое добавление прокси (bulk) */
+  bulkNew: (proxies: ProxySetupInterface[]) => {
+    ipcRenderer.send('NEW_PROXIES', proxies);
+  },
   edit: (id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[] }) => {
     console.log(id, proxy, links)
     ipcRenderer.send('EDIT_PROXY', { id, proxy, links });

@@ -64,6 +64,17 @@ const ProxiesPanel = observer(() => {
                     <Button
                         size="large"
                         img="./assets/img/Mark.svg"
+                        text="Bulk"
+                        className="headline-button_gradient"
+                        onClick={() => {
+                            store.proxiesTable.openBulkForm();
+                        }}
+                        altText="Массовое добавление прокси (один прокси на строку)"
+                    />
+
+                    <Button
+                        size="large"
+                        img="./assets/img/Mark.svg"
                         text="Добавить прокси"
                         className="headline-button_gradient"
                         onClick={() => {

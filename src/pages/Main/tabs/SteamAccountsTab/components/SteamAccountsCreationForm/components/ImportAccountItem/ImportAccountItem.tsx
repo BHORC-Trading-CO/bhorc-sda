@@ -57,6 +57,8 @@ const ImportAccountItem = observer(
             </button>
             {activeProxy
               ? `#${proxyId} ${activeProxy.host} : ${activeProxy.port}`
+              : smaFile.proxy
+              ? `${smaFile.proxy.host} : ${smaFile.proxy.port}`
               : ""}
           </div>
           <div className="imported-steam-account-cell-button">

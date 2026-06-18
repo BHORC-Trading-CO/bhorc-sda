@@ -6,6 +6,7 @@ import TableProxyInterface from "../../../electron/interfaces/Proxy/TableProxyIn
 import defaultProxiesTableFields from "../../../electron/interfaces/TableFields/defaults/proxiesTableFields";
 import ProxySetupInterface from "../../../electron/interfaces/Proxy/ProxySetupInterface";
 import testingResultJsx from "./testingResultJsx";
+import parseProxyString from "../../pages/Main/tabs/ProxiesTab/components/Funcs/parseProxyString";
 
 class ProxiesTableStore {
   root: Store;
@@ -18,6 +19,7 @@ class ProxiesTableStore {
   editingFormContent: TableProxyInterface;
   isSettingsFormOpen: boolean;
   isCreationFormOpen: boolean;
+  isBulkFormOpen: boolean;
   pageSize: number;
   activePage: number;
   isTestingEditingProxy: boolean;
@@ -34,6 +36,7 @@ class ProxiesTableStore {
     this.editingFormContent = {} as TableProxyInterface;
     this.isSettingsFormOpen = false;
     this.isCreationFormOpen = false;
+    this.isBulkFormOpen = false;
     this.proxies = [];
     this.hidenProxyId = [];
     this.searchString = "";
@@ -132,6 +135,12 @@ class ProxiesTableStore {
     if (!proxy[0]) throw new Error(`Прокси #${id} не существует`);
     proxy[0].isTesting = true;
     window.Main.proxies.test(id);
+  }
+  testSelected() {
+    const selected = this.proxies.filter((p) => p.isSelected && !p.deleted);
+    for (var proxy of selected) {
+      this.testProxy(proxy.id);
+    }
   }
   setFields(fields: Field[]) {
     this.fields = fields;
@@ -255,6 +264,55 @@ class ProxiesTableStore {
   }
   closeCreationForm() {
     this.isCreationFormOpen = false;
+  }
+  openBulkForm() {
+    this.isBulkFormOpen = true;
+  }
+  closeBulkForm() {
+    this.isBulkFormOpen = false;
+  }
+  createBulk(rawText: string) {
+    const lines = rawText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    // Дедуп только против активных прокси: удалённые (архивные, deleted: true)
+    // не должны блокировать повторное добавление.
+    const existingKeys = new Set(
+      this.proxies
+        .filter((p) => !p.deleted)
+        .map((p) => `${p.host}:${p.port}`.toLowerCase())
+    );
+    const batchKeys = new Set<string>();
+
+    const validProxies: ProxySetupInterface[] = [];
+    let invalidCount = 0;
+    let duplicateCount = 0;
+
+    for (var line of lines) {
+      const proxy = parseProxyString(line);
+      if (!proxy.host || !proxy.port || !proxy.username || !proxy.password) {
+        invalidCount += 1;
+        continue;
+      }
+      const key = `${proxy.host}:${proxy.port}`.toLowerCase();
+      if (existingKeys.has(key) || batchKeys.has(key)) {
+        duplicateCount += 1;
+        continue;
+      }
+      batchKeys.add(key);
+      validProxies.push(proxy);
+    }
+
+    if (validProxies.length > 0) {
+      window.Main.proxies.bulkNew(validProxies);
+    }
+
+    this.root.windows.openMiniNotification({
+      type: validProxies.length > 0 ? "success" : "error",
+      text: `Добавлено: ${validProxies.length}, пропущено невалидных: ${invalidCount}, дубликатов: ${duplicateCount}`,
+    });
   }
   setActivePage(n: number, save: boolean = false) {
     for (var i = n; i >= 1; i--) {

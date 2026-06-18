@@ -34,6 +34,22 @@ const ProxiesFooter: FC = observer(() => {
                         size="large"
                         color="grey"
                         hoverColor="grey"
+                        className="footer__button"
+                        img="./assets/img/testProxy.svg"
+                        text="Тест всех"
+                        onClick={() => {
+                            const selectedProxies = store.proxiesTable.getProxies().filter(p => p.isSelected && !p.deleted);
+                            if (selectedProxies.length === 0) return;
+                            store.proxiesTable.testSelected();
+                        }}
+                    />
+
+                    <Button
+                        disabled={false}
+                        view="default"
+                        size="large"
+                        color="grey"
+                        hoverColor="grey"
                         img="./assets/img/Trash.svg"
                         hoverImg="./assets/img/Trash_hov.svg"
                         text="Удалить"

@@ -7,6 +7,7 @@ import store from "../../../../store/store";
 import TableSettings from "../../../../globalComponents/TableSettings/TableSettings";
 import ProxiesEditingForm from "./components/ProxiesEditingForm/ProxiesEditingForm";
 import ProxiesCreationForm from "./components/ProxiesCreationForm/ProxiesCreationForm";
+import ProxiesBulkForm from "./components/ProxiesBulkForm/ProxiesBulkForm";
 
 const ProxiesTab: FC = observer(() => {
   return (
@@ -17,6 +18,7 @@ const ProxiesTab: FC = observer(() => {
         <ProxiesFooter />
       </div>
       <ProxiesCreationForm />
+      <ProxiesBulkForm />
       <ProxiesEditingForm />
       <TableSettings
         isOpen={store.proxiesTable.isSettingsFormOpen}
