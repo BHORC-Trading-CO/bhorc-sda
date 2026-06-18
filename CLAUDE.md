@@ -12,8 +12,9 @@ TradeManager — an Electron desktop app for managing multiple Steam accounts (S
 - `npm run make` — build/compile distributables (Squirrel for Windows, zip for darwin, deb/rpm for Linux).
 - `npm run package` — package the app without making installers.
 - `npm run release` — publish via electron-forge.
+- `npm test` — run Jest tests (`electron/**/__tests__/*.test.ts`, via babel-jest reusing `babel.config.js`). Heavy/native modules (puppeteer, sharp, electron, electron-store) are stubbed in the root `__mocks__/` and auto-applied. Privacy/fail-closed regression tests live alongside the code they cover.
 
-There is **no test runner, linter, or typecheck script** configured. `tsc` runs with `noEmit` (`tsconfig.json` covers `src/` only); types are stripped by Babel at build time, so type errors do not fail the build. After packaging, required modules must be placed in the `resources` folder (see README).
+There is **no linter or typecheck script** configured. `tsc` runs with `noEmit` (`tsconfig.json` covers `src/` only); types are stripped by Babel at build time, so type errors do not fail the build. After packaging, required modules must be placed in the `resources` folder (see README).
 
 ## Architecture
 
