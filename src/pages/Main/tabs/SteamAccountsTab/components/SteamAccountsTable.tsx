@@ -159,6 +159,19 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
                 ? 1
                 : -1
             );
+          case AvalibleTypes.linkedProxies:
+            return store.steamAccountsTable.sortSteamAccounts((a, b) => {
+              // аккаунты без прокси всегда в конце, независимо от направления
+              if (!a.proxy) return 1;
+              if (!b.proxy) return -1;
+              return direction === "UP"
+                ? a.proxy.number < b.proxy.number
+                  ? 1
+                  : -1
+                : a.proxy.number > b.proxy.number
+                ? 1
+                : -1;
+            });
         }
       }}
     ></Table>

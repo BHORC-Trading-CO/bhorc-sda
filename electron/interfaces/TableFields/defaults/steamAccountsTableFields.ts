@@ -127,7 +127,7 @@ const steamAccountsTableFields: Field[] = [
     {
         type: AvalibleFieldTypes.linkedProxies,
         title: "Подключенный прокси",
-        isSortable: false,
+        isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     }
