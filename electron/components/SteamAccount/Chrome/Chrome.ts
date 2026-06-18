@@ -25,6 +25,8 @@ export default class Chrome {
   isOpen: boolean;
   /** Локаль браузера под гео прокси (для --lang / Accept-Language). Задаётся в start(). */
   locale: string | null;
+  /** Таймзона под гео прокси. Задаётся в start(), нужна и для попапов. */
+  timezone: string | null;
 
   constructor(params: SteamAccountInterface) {
     this.isOpen = false;
@@ -37,6 +39,62 @@ export default class Chrome {
     this.page = null;
     this.proxy = undefined;
     this.locale = null;
+    this.timezone = null;
+  }
+
+  /**
+   * Стабильный per-account отпечаток "железа". Все профили на одном ПК делят
+   * реальные hardwareConcurrency/deviceMemory — это связывает аккаунты между собой
+   * и с ПК. Выдаём детерминированные (по id) правдоподобные значения, чтобы
+   * аккаунты не выглядели идентичными. Значение стабильно между запусками.
+   */
+  private accountFingerprint(): { hardwareConcurrency: number; deviceMemory: number } {
+    let hash = 0;
+    for (let i = 0; i < this.params.id.length; i++) {
+      hash = (hash * 31 + this.params.id.charCodeAt(i)) >>> 0;
+    }
+    const cores = [4, 8, 12, 16];
+    const memory = [8, 16];
+    return {
+      hardwareConcurrency: cores[hash % cores.length],
+      deviceMemory: memory[(hash >>> 3) % memory.length],
+    };
+  }
+
+  /**
+   * Приводит отпечаток страницы к гео прокси и per-account значениям:
+   * таймзона, Accept-Language, navigator.hardwareConcurrency/deviceMemory.
+   * Применяется и к главной странице, и к попапам/новым вкладкам, иначе
+   * на попапах остаётся системная TZ/локаль (нестыковка фингерпринта).
+   */
+  private async applyFingerprint(page: Page): Promise<void> {
+    const fp = this.accountFingerprint();
+    try {
+      await page.evaluateOnNewDocument((hc: number, dm: number) => {
+        // configurable: true — главная страница может получить init-скрипт дважды
+        // (явный вызов + targetcreated); без этого повторный defineProperty бросит.
+        Object.defineProperty(navigator, "hardwareConcurrency", { get: () => hc, configurable: true });
+        Object.defineProperty(navigator, "deviceMemory", { get: () => dm, configurable: true });
+      }, fp.hardwareConcurrency, fp.deviceMemory);
+    } catch (e) {
+      console.log(`${this.params.id} - не удалось задать navigator-отпечаток: ${e}`);
+    }
+    if (this.timezone) {
+      try {
+        await page.emulateTimezone(this.timezone);
+      } catch (tzErr) {
+        console.log(`${this.params.id} - ошибка установки таймзоны: ${tzErr}`);
+      }
+    }
+    if (this.locale) {
+      try {
+        await page.setExtraHTTPHeaders({
+          "Accept-Language": acceptLanguageFor(this.locale),
+        });
+      } catch (langErr) {
+        console.log(`${this.params.id} - ошибка установки локали: ${langErr}`);
+      }
+    }
   }
   createProfile(): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
@@ -97,7 +155,7 @@ export default class Chrome {
         console.log("path: ", chromium.path);
         // Локаль под гео прокси — нужна ДО запуска (флаг --lang), задаётся в generateChromeFlags.
         this.locale = geo && geo.countryCode ? localeForCountry(geo.countryCode) : null;
-        const timezone = geo ? geo.timezone : null;
+        this.timezone = geo ? geo.timezone : null;
         this.workStatus = "load";
         application.sendToMain(SteamAccountChannels.GET_BROWSER_STARTUS, {
           status: this.workStatus,
@@ -132,20 +190,24 @@ export default class Chrome {
           });
         });
 
-        // Новые вкладки/попапы тоже аутентифицируем на прокси (иначе их запросы упрутся в 407).
+        // Новые вкладки/попапы: аутентифицируем на прокси (иначе 407) и приводим
+        // отпечаток (TZ/локаль/navigator) к гео прокси, как у главной страницы.
         this.browser.on("targetcreated", async (target) => {
           try {
-            if (target.type() === "page" && this.proxy) {
+            if (target.type() === "page") {
               const newPage = await target.page();
               if (newPage) {
-                await newPage.authenticate({
-                  username: this.proxy.username,
-                  password: this.proxy.password,
-                });
+                if (this.proxy) {
+                  await newPage.authenticate({
+                    username: this.proxy.username,
+                    password: this.proxy.password,
+                  });
+                }
+                await this.applyFingerprint(newPage);
               }
             }
           } catch (e) {
-            console.log(`${this.params.id} - не удалось аутентифицировать новую вкладку: ${e}`);
+            console.log(`${this.params.id} - не удалось настроить новую вкладку: ${e}`);
           }
         });
 
@@ -155,27 +217,9 @@ export default class Chrome {
             username: this.proxy?.username,
             password: this.proxy?.password,
           });
-        // Подгоняем таймзону браузера под гео прокси (защита от фингерпринт-нестыковки с ПК).
-        // timezone приходит уже разрешённым (с кешем) из proxyManager.
-        if (timezone) {
-          try {
-            await this.page.emulateTimezone(timezone);
-            console.log(`${this.params.id} - таймзона браузера: ${timezone}`);
-          } catch (tzErr) {
-            console.log(`${this.params.id} - ошибка установки таймзоны: ${tzErr}`);
-          }
-        }
-        // Accept-Language под гео прокси (уменьшает фингерпринт-нестыковку с ПК).
-        if (this.locale) {
-          try {
-            await this.page.setExtraHTTPHeaders({
-              "Accept-Language": acceptLanguageFor(this.locale),
-            });
-            console.log(`${this.params.id} - локаль браузера: ${this.locale}`);
-          } catch (langErr) {
-            console.log(`${this.params.id} - ошибка установки локали: ${langErr}`);
-          }
-        }
+        // Приводим отпечаток главной страницы к гео прокси и per-account значениям
+        // (таймзона, Accept-Language, navigator.hardwareConcurrency/deviceMemory).
+        await this.applyFingerprint(this.page);
         if (this.params.useSteamCookies) await this.addSteamCookies(webCookies);
         await this.page.goto("https://steamcommunity.com/my/");
       } catch (err) {
@@ -197,6 +241,17 @@ export default class Chrome {
     args.push(`--enforce-webrtc-ip-permission-check`);
     // QUIC (HTTP/3) идёт по UDP и обходит HTTP-прокси -> отключаем, чтобы весь трафик шёл по TCP через прокси.
     args.push(`--disable-quic`);
+    // Фоновый трафик Chromium (safe-browsing, update-ping, metrics, DNS-prefetch и т.п.)
+    // может уходить в обход прокси/с реального IP. Глушим всё лишнее (defense-in-depth).
+    args.push(`--disable-background-networking`);
+    args.push(`--disable-component-update`);
+    args.push(`--disable-domain-reliability`);
+    args.push(`--disable-client-side-phishing-detection`);
+    args.push(`--disable-sync`);
+    args.push(`--disable-breakpad`);
+    args.push(`--metrics-recording-only`);
+    args.push(`--no-pings`);
+    args.push(`--dns-prefetch-disable`);
     // Локаль браузера под гео прокси (синхронно с Accept-Language и таймзоной).
     if (this.locale) args.push(`--lang=${this.locale}`);
 
@@ -206,8 +261,10 @@ export default class Chrome {
   }
   async focus() {
     try {
+      // Локальная пустая страница: трюк для фокуса окна не должен делать
+      // сетевой запрос на сторонний домен (раньше открывался pinkest.dev).
       const newPage = await this.browser?.newPage();
-      await newPage?.goto("https://pinkest.dev");
+      await newPage?.goto("about:blank");
       await (newPage as any).minimize();
       await (newPage as any).maximize();
     } catch (err) {
