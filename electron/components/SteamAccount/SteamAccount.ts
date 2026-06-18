@@ -111,6 +111,13 @@ class SteamAccount {
         }
     }
 
+    // Защита приватности: ни одна сетевая операция не должна уходить без прокси,
+    // иначе реальный IP свяжет ПК с аккаунтом (cookie аутентифицированы).
+    private assertProxy(action: string) {
+        if (!this.proxy) {
+            throw new Error(`Аккаунт #${this.params.number}: не привязан прокси. ${action} запрещено (защита от утечки реального IP).`);
+        }
+    }
     setProxy(proxy: ProxyInterface | null) {
         try {
             this.proxy = proxy;
@@ -212,6 +219,11 @@ class SteamAccount {
     }
     getSecondary(): Promise<SecondaryInterface> {
         return new Promise((resolve, reject) => {
+            try {
+                this.assertProxy("Получение данных аккаунта");
+            } catch (err) {
+                return reject(err);
+            }
             getSecondaries(this.community)
                 .then((data) => {
                     try {
@@ -228,6 +240,11 @@ class SteamAccount {
     }
     getChangableSecondary(): Promise<ChangableSecondaryInterface> {
         return new Promise((resolve, reject) => {
+            try {
+                this.assertProxy("Получение балансов");
+            } catch (err) {
+                return reject(err);
+            }
             getChangableSecondaries(this.community, this.params.tmApiKey ? this.params.tmApiKey : "")
                 .then(data => {
                     try {
@@ -280,6 +297,11 @@ class SteamAccount {
     }
     getConfirmations(): Promise<CConfirmation[]> {
         return new Promise((resolve, reject) => {
+            try {
+                this.assertProxy("Получение подтверждений");
+            } catch (err) {
+                return reject(err);
+            }
             const time = Number((Number(new Date()) / 1000).toFixed(0));
             const key = SteamTotp.generateConfirmationKey(this.params.maFile.identity_secret, time, "conf");
             this.community.getConfirmations(time, key, (err, confirmations) => {
@@ -290,6 +312,11 @@ class SteamAccount {
     }
     confirmItems(ids: number[], keys: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
+            try {
+                this.assertProxy("Подтверждение");
+            } catch (err) {
+                return reject(err);
+            }
             const time = Math.floor(Number(new Date()) / 1000);
             const key = SteamTotp.getConfirmationKey(this.params.maFile.identity_secret, time, 'allow');
             this.community.respondToConfirmation(ids, keys, time, key, true, (err) => {
@@ -300,6 +327,11 @@ class SteamAccount {
     }
     cancelItems(ids: number[], keys: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
+            try {
+                this.assertProxy("Отмена");
+            } catch (err) {
+                return reject(err);
+            }
             const time = Math.floor(Number(new Date()) / 1000);
             const key = SteamTotp.getConfirmationKey(this.params.maFile.identity_secret, time, 'cancel');
             this.community.respondToConfirmation(ids, keys, time, key, false, (err) => {

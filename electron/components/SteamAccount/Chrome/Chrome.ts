@@ -48,11 +48,10 @@ export default class Chrome {
           LocalState(this.params.secondary.nickname)
         );
         // Аватар — косметика профиля. Если URL пустой/недоступен, профиль всё равно создаём.
-        if (this.params.secondary.avatarUrl) {
+        // Без прокси аватар НЕ качаем: иначе запрос к CDN Steam уйдёт с реального IP.
+        if (this.params.secondary.avatarUrl && this.proxy) {
           try {
-            const proxyUrl = this.proxy
-              ? `http://${this.proxy.username}:${this.proxy.password}@${this.proxy.server}`
-              : null;
+            const proxyUrl = `http://${this.proxy.username}:${this.proxy.password}@${this.proxy.server}`;
             await downloadImage(
               this.params.secondary.avatarUrl,
               `${this.profileDir}/Avatars/avatar_generic_small.png`,
@@ -104,11 +103,13 @@ export default class Chrome {
           status: this.workStatus,
           id: this.params.id,
         });
+        // Прокси нужен ДО createProfile: иначе аватар качается с CDN Steam
+        // напрямую с реального IP (downloadImage получает proxyUrl=null).
+        await this.setupProxy();
         await fs.access(this.profileDir).catch(async (err) => {
           if (err.code == "ENOENT") await this.createProfile();
           else return reject(err);
         });
-        await this.setupProxy();
 
         this.browser = await puppeteer.launch({
           userDataDir: this.profileDir,
