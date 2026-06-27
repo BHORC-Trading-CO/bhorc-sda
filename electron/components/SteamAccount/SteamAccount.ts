@@ -68,9 +68,11 @@ class SteamAccount {
                     this.session.accessToken = this.params.maFile.Session.AccessToken;
                     this.session.refreshToken = this.params.maFile.Session.RefreshToken;
                     await this.session.refreshAccessToken();
-                    const cookies = await this.session.getWebCookies();
+                    await this.setCommunityCookies(
+                        this.session.refreshToken,
+                        this.session.steamID ? this.session.steamID.getSteamID64() : null
+                    );
                     console.log(`${this.params.id} - cookies loaded`);
-                    this.community.setCookies(cookies);
                     resolve(undefined);
                 }
 
@@ -111,6 +113,27 @@ class SteamAccount {
         }
     }
 
+    // Устанавливает в this.community cookie именно для steamcommunity.com (aud: web:community).
+    // steamLoginSecure доменно-специфичен. session.getWebCookies() возвращает cookie СЛУЧАЙНОГО
+    // домена (promiseAny — кто первый ответил), и через прокси гонка чаще выигрывается не-community
+    // доменом → getConfirmations()/loggedIn() = "Not Logged In". Поэтому повторяем целевой поток
+    // finalizelogin -> settoken через getCommunityWebCookies, с фолбэком на старый путь.
+    private async setCommunityCookies(refreshToken?: string, steamID64?: string | null): Promise<void> {
+        const proxyUrl = this.proxy
+            ? `http://${this.proxy.username}:${this.proxy.password}@${this.proxy.host}:${this.proxy.port}`
+            : null;
+        if (refreshToken && steamID64) {
+            try {
+                const cookies = await getCommunityWebCookies(refreshToken, steamID64, proxyUrl);
+                this.community.setCookies(cookies);
+                return;
+            } catch (err) {
+                console.log(`${this.params.id} - getCommunityWebCookies failed, fallback to getWebCookies: ${err}`);
+            }
+        }
+        const cookies = await this.session.getWebCookies();
+        this.community.setCookies(cookies);
+    }
     // Защита приватности: ни одна сетевая операция не должна уходить без прокси,
     // иначе реальный IP свяжет ПК с аккаунтом (cookie аутентифицированы).
     private assertProxy(action: string) {
@@ -166,9 +189,9 @@ class SteamAccount {
                 const accessToken = this.session.accessToken;
                 const refreshToken = this.session.refreshToken;
                 const steamID = this.session.steamID;
-                const cookies = await this.session.getWebCookies();
-                console.log(cookies);
-                this.community.setCookies(cookies);
+                // Берём cookie именно для steamcommunity.com (aud: web:community), иначе confirmations
+                // упадут с "Not Logged In" (особенно через прокси). См. setCommunityCookies.
+                await this.setCommunityCookies(refreshToken, steamID ? steamID.getSteamID64() : null);
                 //const oldSession = convertCookiesToSession(cookies);
                 const newSession: SessionInterface = {
                     AccessToken: accessToken,
