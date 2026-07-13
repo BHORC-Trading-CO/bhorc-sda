@@ -19,6 +19,7 @@ import {
   EAuthTokenPlatformType,
   EAuthSessionGuardType,
 } from "steam-session";
+import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
 
 type AbortChannelType =
   | SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT
@@ -40,14 +41,15 @@ export default async function setupGuard(
     if (!proxy) {
       return reject(new Error('Прокси обязателен: создание аккаунта/подключение guard без прокси запрещено (защита от утечки реального IP).'));
     }
-    let community = new SteamCommunity();
+    let community = new SteamCommunity({ request: request.defaults({ headers: STEAM_WEB_HEADERS }), userAgent: STEAM_MOBILE_USER_AGENT });
     const session = new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxy ? `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}` : undefined });
     if (proxy) {
       const proxyRequest = request.defaults({
         proxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`,
+        headers: STEAM_WEB_HEADERS,
       });
       //@ts-ignore
-      community = new SteamCommunity({ request: proxyRequest });
+      community = new SteamCommunity({ request: proxyRequest, userAgent: STEAM_MOBILE_USER_AGENT });
     }
     const EResult = SteamCommunity.EResult;
 

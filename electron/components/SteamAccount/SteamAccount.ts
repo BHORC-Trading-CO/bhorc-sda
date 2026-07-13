@@ -19,6 +19,7 @@ import Chrome from './Chrome/Chrome';
 import { EAuthSessionGuardType, EAuthTokenPlatformType, LoginSession } from "steam-session";
 import maFileLogin from "./Processes/maFileLogin";
 import getCommunityWebCookies from "./Functions/getCommunityWebCookies";
+import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "./Functions/steamUserAgent";
 import askMailCode from "../application/askInfo/askMailCode";
 import SessionInterface from "../../interfaces/SteamAccount/SessionInterface";
 const SteamTotp = require('steam-totp');
@@ -42,7 +43,7 @@ class SteamAccount {
         };
         this.chrome = new Chrome(params);
         this.params = params;
-        this.community = new SteamCommunity();
+        this.community = new SteamCommunity({ request: request.defaults({ headers: STEAM_WEB_HEADERS }), userAgent: STEAM_MOBILE_USER_AGENT });
         this.session = new LoginSession(EAuthTokenPlatformType.MobileApp);
 
         this.isAskingFamilyPin = false;
@@ -150,14 +151,14 @@ class SteamAccount {
                 this.session = new LoginSession(EAuthTokenPlatformType.MobileApp, {
                     httpProxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`
                 });
-                const proxyRequest = request.defaults({ proxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}` });
-                this.community = new SteamCommunity({ request: proxyRequest });
+                const proxyRequest = request.defaults({ proxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`, headers: STEAM_WEB_HEADERS });
+                this.community = new SteamCommunity({ request: proxyRequest, userAgent: STEAM_MOBILE_USER_AGENT });
             } else {
                 // Прокси сняли: пересоздаём сетевые клиенты без прокси, чтобы не остался
                 // старый/мёртвый прокси в request.defaults. Сами сетевые методы всё равно
                 // заблокированы assertProxy/guard'ами, пока прокси не привязан заново.
                 this.session = new LoginSession(EAuthTokenPlatformType.MobileApp);
-                this.community = new SteamCommunity();
+                this.community = new SteamCommunity({ request: request.defaults({ headers: STEAM_WEB_HEADERS }), userAgent: STEAM_MOBILE_USER_AGENT });
             }
         } catch (err) {
             throw new Error(`Error in setProxy: ${err}`);
@@ -255,7 +256,7 @@ class SteamAccount {
             } catch (err) {
                 return reject(err);
             }
-            getSecondaries(this.community)
+            getSecondaries(this.community, this.params.secondary)
                 .then((data) => {
                     try {
                         this.editParams({ secondary: data });
@@ -380,11 +381,15 @@ class SteamAccount {
         SteamAccountStorage.EditData(this.params.id, newParams);
     }
     static Generate(smaFile: SmaFile, changableSecondary: ChangableSecondaryInterface | null) {
-        const steamAccounts = steamAccountManager.objects;
-        steamAccounts.sort((a, b) => a.params.number < b.params.number ? 1 : -1);
+        // Нумеруем относительно активных аккаунтов: удалённые (архивные) не должны
+        // оставлять "дыры" в нумерации. Массив менеджера не мутируем (sort in-place
+        // ломал порядок отображения — новые аккаунты оказывались "с хвоста").
+        const steamAccountsArray = steamAccountManager.objects
+            .map(sa => sa.params)
+            .filter(sa => !sa.deleted);
+        steamAccountsArray.sort((a, b) => a.number < b.number ? 1 : -1);
 
-        const maxNumber = steamAccounts.length === 0 ? 1 : steamAccounts[0].params.number + 1;
-        //console.log(`max number: ${maxNumber}`);
+        const maxNumber = steamAccountsArray.length === 0 ? 1 : steamAccountsArray[0].number + 1;
 
         const params: SteamAccountInterface = {
             id: uuidv4(),

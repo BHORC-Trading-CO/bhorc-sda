@@ -16,6 +16,7 @@ import request from "request";
 import askFamilyPin from "../../application/askInfo/askFamilyPin";
 import { EAuthSessionGuardType, EAuthTokenPlatformType, LoginSession } from "steam-session";
 import askMailCode from "../../application/askInfo/askMailCode";
+import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
 
 type AbortChannelType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT | SteamAccountChannels.GUARD_SETUP_PROCESS_ABORT;
 type StepType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP | SteamAccountChannels.GUARD_SETUP_PROCESS_STEP;
@@ -29,7 +30,7 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
         const session = new LoginSession(EAuthTokenPlatformType.MobileApp, {
             httpProxy: proxy ? `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}` : undefined
         });
-        const community = new SteamCommunity({ request: proxy ? request.defaults({ proxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}` }) : undefined });
+        const community = new SteamCommunity({ request: proxy ? request.defaults({ proxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`, headers: STEAM_WEB_HEADERS }) : undefined, userAgent: STEAM_MOBILE_USER_AGENT });
 
         const nextStep = (step: CreationStepType) => options && options.stepChannel ? application.sendToMain(options.stepChannel, step) : () => { };
         if (options && options.abortChannel)
