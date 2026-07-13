@@ -72,11 +72,26 @@ function parseUsername(body: string): string {
     return "";
 }
 
+const DEFAULT_AVATAR_URL = "https://avatars.akamai.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg";
+
 function parseAvatarURL(body: string): string {
+    // Актуальная разметка Steam: аватар в хедере профиля лежит в
+    // <div class="playerAvatar profile_header_size ..."> ... <picture>
+    //   <source srcset="https://avatars.fastly.steamstatic.com/..._full.jpg"> ...
+    // Берём первый srcset после маркера хедера.
+    const headerIdx = body.indexOf("playerAvatar profile_header_size");
+    if (headerIdx >= 0) {
+        const srcset = /srcset="([^"]+)"/.exec(body.slice(headerIdx));
+        if (srcset) {
+            // srcset может содержать несколько URL через запятую с дескрипторами — берём первый URL
+            return srcset[1].split(",")[0].trim().split(/\s+/)[0];
+        }
+    }
+    // Фолбэк на старую разметку (на случай, если где-то ещё встретится)
     if (body.includes("user_avatar playerAvatar offline")) {
         return body.split('user_avatar playerAvatar offline">')[1].split('"')[1].split(">")[0];
     }
-    return "https://avatars.akamai.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg";
+    return DEFAULT_AVATAR_URL;
 }
 
 export async function getChangableSecondaries(community: SteamCommunity, marketApiKey: string): Promise<ChangableSecondaryInterface> {
