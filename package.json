@@ -70,6 +70,13 @@
     "uuid": "^9.0.0",
     "yarn": "^1.22.19"
   },
+  "//forge": "Конфигурация electron-forge вынесена в forge.config.js (там хук packageAfterCopy копирует externals из webpack/main.webpack.js в node_modules сборки).",
+  "//overrides": "yauzl@2 (через extract-zip в electron-packager) молча роняет процесс на Node >= 26 при распаковке Electron — npm run make завершался с кодом 0 без ошибки. yauzl@3 чинит это; override ограничен поддеревом electron-packager.",
+  "overrides": {
+    "electron-packager": {
+      "yauzl": "^3.2.0"
+    }
+  },
   "devDependencies": {
     "@babel/core": "^7.17.8",
     "@babel/plugin-transform-runtime": "^7.17.0",
@@ -111,85 +118,5 @@
     "typescript": "^4.6.2",
     "wait-on": "^6.0.1",
     "webpack": "^5.70.0"
-  },
-  "config": {
-    "forge": {
-      "packagerConfig": {
-        "name": "Trademanager",
-        "executableName": "trademanager",
-        "icon": "assets/icon",
-        "extraResource": [
-          "assets"
-        ]
-      },
-      "plugins": [
-        [
-          "@electron-forge/plugin-webpack",
-          {
-            "devContentSecurityPolicy": "default-src * self blob: data: gap:; style-src * self 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * self 'unsafe-inline' blob: data: gap:; connect-src self * 'unsafe-inline' blob: data: gap:; frame-src * self blob: data: gap:;",
-            "mainConfig": "./webpack/main.webpack.js",
-            "renderer": {
-              "config": "./webpack/renderer.webpack.js",
-              "entryPoints": [
-                {
-                  "html": "./public/index.html",
-                  "js": "./src/index.tsx",
-                  "name": "main_window",
-                  "preload": {
-                    "js": "./electron/bridges/mainBridge.ts"
-                  }
-                },
-                {
-                  "html": "./public/index.html",
-                  "js": "./src/index.tsx",
-                  "name": "ask_family_pin_window",
-                  "preload": {
-                    "js": "./electron/bridges/askFamilyPinBridge.ts"
-                  }
-                },
-                {
-                  "html": "./public/index.html",
-                  "js": "./src/index.tsx",
-                  "name": "confirmations_window",
-                  "preload": {
-                    "js": "./electron/bridges/confirmationsBridge.ts"
-                  }
-                },
-                {
-                  "html": "./public/index.html",
-                  "js": "./src/index.tsx",
-                  "name": "error_window",
-                  "preload": {
-                    "js": "./electron/bridges/errorWindowBridge.ts"
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      ],
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "ElectronStarter"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "darwin"
-          ]
-        },
-        {
-          "name": "@electron-forge/maker-deb",
-          "config": {}
-        },
-        {
-          "name": "@electron-forge/maker-rpm",
-          "config": {}
-        }
-      ]
-    }
   }
 }
