@@ -87,6 +87,30 @@ const DataFillingForm: FC = observer(() => {
                   }
                 );
                 window.Main.steamAccounts.import(importedAccounts);
+
+                // Подгоняем размер страницы, чтобы все импортированные аккаунты
+                // были видны сразу, а не только первые pageSize штук.
+                const activeAccountsCount = Object.values(
+                  store.steamAccountsTable.getSteamAccounts()
+                ).filter((sa) => !sa.deleted).length;
+                store.steamAccountsTable.ensurePageSizeFits(
+                  activeAccountsCount + importedAccounts.length
+                );
+
+                // Прокси из .smaFile создаются при импорте — таблицу прокси тоже подгоняем
+                // (оценка сверху: дедуп в main-процессе может создать меньше).
+                const importedProxiesCount = importedAccounts.filter(
+                  (a) => a.smaFile.proxy && a.smaFile.proxy.host
+                ).length;
+                if (importedProxiesCount > 0) {
+                  const activeProxiesCount = store.proxiesTable
+                    .getProxies()
+                    .filter((p) => !p.deleted).length;
+                  store.proxiesTable.ensurePageSizeFits(
+                    activeProxiesCount + importedProxiesCount
+                  );
+                }
+
                 store.steamAccountsTable.creationForm.editContent({
                   importedAccounts: [],
                 });

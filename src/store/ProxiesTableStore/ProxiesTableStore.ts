@@ -307,6 +307,9 @@ class ProxiesTableStore {
 
     if (validProxies.length > 0) {
       window.Main.proxies.bulkNew(validProxies);
+      // Показываем все добавленные прокси сразу, не пряча их за пагинацией
+      const activeProxiesCount = this.proxies.filter((p) => !p.deleted).length;
+      this.ensurePageSizeFits(activeProxiesCount + validProxies.length);
     }
 
     this.root.windows.openMiniNotification({
@@ -338,6 +341,16 @@ class ProxiesTableStore {
       });
     this.activePage = 1;
     this.pageSize = n;
+  }
+  // Увеличивает размер страницы так, чтобы totalCount элементов было видно без
+  // пагинации (напр. после массового добавления). Только увеличивает.
+  // Держать список в синхроне с options.avalible у TablePageSwitcher в футерах.
+  ensurePageSizeFits(totalCount: number) {
+    if (this.pageSize >= totalCount) return;
+    const avaliblePageSizes = [5, 10, 15, 20, 40, 100];
+    const fitted = avaliblePageSizes.find((size) => size >= totalCount) ||
+      avaliblePageSizes[avaliblePageSizes.length - 1];
+    this.setPageSize(fitted);
   }
 }
 
