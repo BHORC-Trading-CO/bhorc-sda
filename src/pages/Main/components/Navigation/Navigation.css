@@ -82,11 +82,9 @@
   margin-bottom: 6px;
   padding-left: 34px;
 }
-.navigation-group-marker {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #7c5cbf;
+.navigation-group-icon {
+  color: #b79ce0;
+  opacity: 0.85;
   flex-shrink: 0;
 }
 .navigation-group-name {

@@ -91,7 +91,19 @@ const Navigation = observer(() => {
                     hoverTab === group.id || isActive ? "#372447" : "",
                 }}
               >
-                <div className="navigation-group-marker"></div>
+                <svg
+                  className="navigation-group-icon"
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2c.4 0 .78.16 1.06.44L11 6.7c.28.28.66.44 1.06.44h6.44A1.5 1.5 0 0 1 20 8.64V17.5A1.5 1.5 0 0 1 18.5 19h-14A1.5 1.5 0 0 1 3 17.5v-11z"
+                    fill="currentColor"
+                  />
+                </svg>
                 {isCompress ? (
                   ""
                 ) : (

@@ -429,8 +429,11 @@ class SteamAccountsTableStore {
           break;
         }
       }
+      // Страницы по старому activePage может уже не быть (напр. фильтр по группе
+      // сократил число страниц) — иначе for-of по undefined кидает и activePage
+      // не обновляется, а таблица показывает несуществующую пустую страницу.
       const steamAccountsInPage =
-        this.getSteamAccountsByPages()[this.activePage - 1];
+        this.getSteamAccountsByPages()[this.activePage - 1] || [];
       for (var sa of steamAccountsInPage) {
         this.selectSteamAccount(sa.id, false);
       }
