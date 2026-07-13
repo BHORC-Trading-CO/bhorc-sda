@@ -8,6 +8,8 @@ import store from '../../../../store/store';
 import TableSettings from '../../../../globalComponents/TableSettings/TableSettings';
 import SteamAccountsEditForm from './components/SteamAccountsEditForm/SteamAccountsEditForm';
 import SteamAccountsCreationForm from './components/SteamAccountsCreationForm/SteamAccountsCreationForm';
+import GroupAssignForm from './components/GroupForms/GroupAssignForm';
+import GroupEditForm from './components/GroupForms/GroupEditForm';
 import steamAccountsTableFields from '../../../../../electron/interfaces/TableFields/defaults/steamAccountsTableFields';
 
 const SteamAccountsTab: FC = observer(() => {
@@ -20,6 +22,8 @@ const SteamAccountsTab: FC = observer(() => {
             </div>
             <SteamAccountsCreationForm />
             <SteamAccountsEditForm />
+            <GroupAssignForm />
+            <GroupEditForm />
             <TableSettings
                 isOpen={store.steamAccountsTable.settingsForm.isOpen}
                 fields={steamAccountsTableFields}

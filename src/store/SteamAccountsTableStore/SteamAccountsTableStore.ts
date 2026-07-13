@@ -335,8 +335,11 @@ class SteamAccountsTableStore {
     const sa: TableSteamAccountInterface[][] = [];
     let count = 0;
     let bufAccounts: TableSteamAccountInterface[] = [];
+    const activeGroupId = this.root.groups.activeGroupId;
     for (var i of Object.values(this.getSteamAccounts()).filter(sa => !this.hidenSteamAccountsId.includes(sa.id))) {
       if (i.deleted && !this.showDeleted) continue;
+      // Фильтр по активной группе (в навигации выбран пункт группы)
+      if (activeGroupId && (!i.group || i.group.id !== activeGroupId)) continue;
 
       if (count === this.pageSize) {
         sa.push(bufAccounts);

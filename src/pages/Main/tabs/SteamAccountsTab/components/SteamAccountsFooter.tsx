@@ -54,6 +54,23 @@ const SteamAccountsFooter: FC = observer(() => {
                         size="large"
                         color="grey"
                         hoverColor="grey"
+                        className="footer__button"
+                        text="В группу"
+                        onClick={() => {
+                            const selected = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected && !p.deleted);
+                            if (selected.length === 0) {
+                                return store.windows.openMiniNotification({ type: 'error', text: 'Не выбрано ни одного аккаунта' });
+                            }
+                            store.groups.openAssignForm();
+                        }}
+                    />
+
+                    <Button
+                        disabled={false}
+                        view="default"
+                        size="large"
+                        color="grey"
+                        hoverColor="grey"
                         img="./assets/img/Trash.svg"
                         hoverImg="./assets/img/Trash_hov.svg"
                         text="Удалить"

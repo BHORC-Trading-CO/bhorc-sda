@@ -75,3 +75,45 @@
   align-items: center;
   justify-content: center;
 }
+
+/* --- Группы аккаунтов в навигации --- */
+.navigation-group-button {
+  min-height: 36px;
+  margin-bottom: 6px;
+  padding-left: 34px;
+}
+.navigation-group-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7c5cbf;
+  flex-shrink: 0;
+}
+.navigation-group-name {
+  margin-left: 12px;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  font-size: 15px;
+}
+.navigation-group-count {
+  opacity: 0.5;
+  margin-left: 6px;
+  font-size: 13px;
+}
+.navigation-group-edit {
+  margin-left: auto;
+  opacity: 0;
+  cursor: pointer;
+  padding: 0 6px;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.navigation-group-button:hover .navigation-group-edit {
+  opacity: 0.6;
+}
+.navigation-group-edit:hover {
+  opacity: 1;
+}

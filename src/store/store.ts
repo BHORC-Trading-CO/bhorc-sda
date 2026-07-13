@@ -3,16 +3,19 @@ import ProxiesTableStore from './ProxiesTableStore/ProxiesTableStore';
 import WindowStore from './WindowStore';
 import TabsStore from './TabStore';
 import SteamAccountsTableStore from './SteamAccountsTableStore/SteamAccountsTableStore';
+import GroupsStore from './GroupsStore';
 
 export class Store {
     steamAccountsTable: SteamAccountsTableStore;
     proxiesTable: ProxiesTableStore;
+    groups: GroupsStore;
     windows: WindowStore;
     tabs: TabsStore;
 
     constructor() {
         this.steamAccountsTable = new SteamAccountsTableStore(this);
         this.proxiesTable = new ProxiesTableStore(this);
+        this.groups = new GroupsStore(this);
         this.windows = new WindowStore(this);
         this.tabs = new TabsStore(this);
         makeAutoObservable(this);

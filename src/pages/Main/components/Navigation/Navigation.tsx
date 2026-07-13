@@ -36,6 +36,7 @@ const Navigation = observer(() => {
             className={buttonsClass}
             onClick={() => {
               store.tabs.setActive("steamAccounts");
+              store.groups.setActiveGroup(null);
             }}
             onMouseEnter={() => {
               setHoverTab("steamAccounts");
@@ -45,7 +46,9 @@ const Navigation = observer(() => {
             }}
             style={{
               backgroundColor:
-                hoverTab === "steamAccounts" || store.tabs.active === "steamAccounts"
+                hoverTab === "steamAccounts" ||
+                (store.tabs.active === "steamAccounts" &&
+                  store.groups.activeGroupId === null)
                   ? "#372447"
                   : "",
             }}
@@ -53,7 +56,8 @@ const Navigation = observer(() => {
             <div
               className="navigation-img"
               id={
-                store.tabs.active === "steamAccounts"
+                store.tabs.active === "steamAccounts" &&
+                store.groups.activeGroupId === null
                   ? "navigation-steam-accounts-hover"
                   : "navigation-steam-accounts"
               }
@@ -66,6 +70,53 @@ const Navigation = observer(() => {
               </div>
             )}
           </div>
+
+          {/* Группы аккаунтов — фильтруют таблицу Steam аккаунтов по группе */}
+          {store.groups.getGroups().map((group) => {
+            const isActive =
+              store.tabs.active === "steamAccounts" &&
+              store.groups.activeGroupId === group.id;
+            return (
+              <div
+                key={group.id}
+                className={`${buttonsClass}${isCompress ? "" : " navigation-group-button"}`}
+                onClick={() => {
+                  store.tabs.setActive("steamAccounts");
+                  store.groups.setActiveGroup(group.id);
+                }}
+                onMouseEnter={() => setHoverTab(group.id)}
+                onMouseLeave={() => setHoverTab("")}
+                style={{
+                  backgroundColor:
+                    hoverTab === group.id || isActive ? "#372447" : "",
+                }}
+              >
+                <div className="navigation-group-marker"></div>
+                {isCompress ? (
+                  ""
+                ) : (
+                  <>
+                    <div className="navigation-group-name text-white-large">
+                      {group.name}
+                      <span className="navigation-group-count">
+                        {group.steamAccountIds.length}
+                      </span>
+                    </div>
+                    <div
+                      className="navigation-group-edit text-white-large"
+                      title="Редактировать группу"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        store.groups.openEditForm(group.id);
+                      }}
+                    >
+                      ✎
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
           <div
             className={buttonsClass}
             onClick={() => {

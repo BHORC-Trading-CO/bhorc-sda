@@ -1,5 +1,6 @@
 import proxyManager, { ProxyManager } from "../Proxy/proxyManager";
 import steamAccountManager, { SteamAccountManager } from "../SteamAccount/steamAccountManager";
+import groupManager from "../Group/groupManager";
 import LinksStorage from "../newStorage/LinksStorage";
 import SteamAccountInterface from "../../interfaces/SteamAccount/SteamAccountInterface";
 import application from "../application/application";
@@ -72,7 +73,48 @@ class Manager {
         proxyManager.sendProxiesToFront();
     }
 
+    // --- Группы аккаунтов (одна группа на аккаунт, хранится в links.groups) ---
+
+    // Группа аккаунта или null. Аналог GetSteamAccountLinkedData для прокси.
+    static GetSteamAccountGroup(steamAccountId: string) {
+        const links = LinksStorage.Get();
+        const groupId = links.groups[steamAccountId];
+        if (!groupId) return null;
+        const group = groupManager.getById(groupId);
+        return group ? group.params : null;
+    }
+
+    // Id аккаунтов, входящих в группу. Аналог GetProxyLinkedData (обратный поиск).
+    static GetGroupSteamAccountIds(groupId: string): string[] {
+        const links = LinksStorage.Get();
+        const ids: string[] = [];
+        for (var saId of Object.keys(links.groups)) {
+            if (links.groups[saId] === groupId) ids.push(saId);
+        }
+        return ids;
+    }
+
+    // Привязать аккаунт к группе (groupId=null — убрать из группы). Аналог LinkProxyToSteamAccount.
+    static LinkGroupToSteamAccount(steamAccountId: string, groupId: string | null) {
+        const links = LinksStorage.Get();
+        links.groups[steamAccountId] = groupId;
+        LinksStorage.Save(links);
+    }
+
+    // При удалении группы обнуляем все ссылки на неё. Аналог ResetProxy.
+    static ResetGroup(groupId: string) {
+        const links = LinksStorage.Get();
+        for (var steamAccountId of Object.keys(links.groups)) {
+            if (links.groups[steamAccountId] === groupId) {
+                links.groups[steamAccountId] = null;
+            }
+        }
+        LinksStorage.Save(links);
+    }
+
     static Load() {
+        // Группы грузим первыми: CompileObject аккаунта подмешивает группу через getById.
+        groupManager.load();
         proxyManager.load();
         steamAccountManager.load();
     }
