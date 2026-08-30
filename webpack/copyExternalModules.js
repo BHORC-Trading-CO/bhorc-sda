@@ -67,6 +67,17 @@ function collectPackageDirs(projectDir) {
 }
 
 /**
+ * Папки .bin в сборку не попадают: фордж сам вычищает их сразу после
+ * копирования приложения. Это осознанно — там симлинки, которые ломают подпись
+ * бандла на macOS и требуют привилегий при создании на Windows. Раз фордж их
+ * убирает, возвращать их обратно нельзя, а рантайму они и не нужны: Electron
+ * грузит модули через require, а не через шимы из .bin.
+ */
+function notBinDir(source) {
+  return path.basename(source) !== ".bin";
+}
+
+/**
  * Кладёт внешние модули в собранное приложение.
  *
  * plugin-webpack форджа обнуляет dependencies в package.json собранного
@@ -83,7 +94,9 @@ function copyExternalModules(projectDir, buildPath) {
     const destination = path.join(buildPath, relative);
 
     fs.mkdirSync(path.dirname(destination), { recursive: true });
-    fs.cpSync(source, destination, { recursive: true, force: true });
+    // Симлинки копируем как симлинки (dereference: false по умолчанию) — иначе
+    // разъедется .framework внутри chromium, он на них держится.
+    fs.cpSync(source, destination, { recursive: true, force: true, filter: notBinDir });
   }
 
   return packageDirs.length;
