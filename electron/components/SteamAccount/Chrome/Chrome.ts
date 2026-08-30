@@ -12,7 +12,7 @@ import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountCh
 import path from "path";
 import LocalState from "./LocalState";
 import { ProxyGeo, localeForCountry, acceptLanguageFor } from "../Functions/getProxyGeo";
-const chromium = require('chromium');
+import resolveBrowserPath from "./resolveBrowserPath";
 const sharp = require("sharp");
 
 export default class Chrome {
@@ -152,7 +152,8 @@ export default class Chrome {
   start(webCookies: string[] = [], geo?: ProxyGeo | null): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
       try {
-        console.log("path: ", chromium.path);
+        const executablePath = await resolveBrowserPath();
+        console.log("path: ", executablePath);
         // Локаль под гео прокси — нужна ДО запуска (флаг --lang), задаётся в generateChromeFlags.
         this.locale = geo && geo.countryCode ? localeForCountry(geo.countryCode) : null;
         this.timezone = geo ? geo.timezone : null;
@@ -172,7 +173,7 @@ export default class Chrome {
         this.browser = await puppeteer.launch({
           userDataDir: this.profileDir,
           headless: false,
-          executablePath: chromium.path,
+          executablePath,
           args: this.generateChromeFlags(),
         });
 
