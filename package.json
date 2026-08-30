@@ -7,6 +7,7 @@
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
+    "verify:package": "node scripts/verifyPackagedApp.js",
     "make": "electron-forge make",
     "release": "electron-forge publish",
     "test": "jest"
@@ -111,85 +112,5 @@
     "typescript": "^4.6.2",
     "wait-on": "^6.0.1",
     "webpack": "^5.70.0"
-  },
-  "config": {
-    "forge": {
-      "packagerConfig": {
-        "name": "Trademanager",
-        "executableName": "trademanager",
-        "icon": "assets/icon",
-        "extraResource": [
-          "assets"
-        ]
-      },
-      "plugins": [
-        [
-          "@electron-forge/plugin-webpack",
-          {
-            "devContentSecurityPolicy": "default-src * self blob: data: gap:; style-src * self 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * self 'unsafe-inline' blob: data: gap:; connect-src self * 'unsafe-inline' blob: data: gap:; frame-src * self blob: data: gap:;",
-            "mainConfig": "./webpack/main.webpack.js",
-            "renderer": {
-              "config": "./webpack/renderer.webpack.js",
-              "entryPoints": [
-                {
-                  "html": "./public/index.html",
-                  "js": "./src/index.tsx",
-                  "name": "main_window",
-                  "preload": {
-                    "js": "./electron/bridges/mainBridge.ts"
-                  }
-                },
-                {
-                  "html": "./public/index.html",
-                  "js": "./src/index.tsx",
-                  "name": "ask_family_pin_window",
-                  "preload": {
-                    "js": "./electron/bridges/askFamilyPinBridge.ts"
-                  }
-                },
-                {
-                  "html": "./public/index.html",
-                  "js": "./src/index.tsx",
-                  "name": "confirmations_window",
-                  "preload": {
-                    "js": "./electron/bridges/confirmationsBridge.ts"
-                  }
-                },
-                {
-                  "html": "./public/index.html",
-                  "js": "./src/index.tsx",
-                  "name": "error_window",
-                  "preload": {
-                    "js": "./electron/bridges/errorWindowBridge.ts"
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      ],
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "ElectronStarter"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "darwin"
-          ]
-        },
-        {
-          "name": "@electron-forge/maker-deb",
-          "config": {}
-        },
-        {
-          "name": "@electron-forge/maker-rpm",
-          "config": {}
-        }
-      ]
-    }
   }
 }

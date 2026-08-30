@@ -1,0 +1,53 @@
+# Сборка и проверка на Windows и macOS.
+#
+# Смысл матрицы: почти вся логика упаковки одинакова на обеих платформах, но
+# копирование node_modules в собранное приложение — самое расходящееся по ОС
+# место (симлинки, права, длина путей). Поэтому пакуем на обеих и проверяем
+# результат одинаковым скриптом.
+name: build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # node-gyp 8 (тянется из electron-rebuild) импортирует distutils, которого
+      # нет в Python 3.12+. Фиксируем 3.11, чтобы сборка не зависела от того,
+      # какой Python оказался в образе раннера.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Именно install, а не ci: package-lock.json в репозитории отстал от
+      # package.json (в нём нет jest-зависимостей), и ci на нём падает.
+      - name: Install dependencies
+        run: npm install
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Package app
+        run: npm run package
+
+      # Ловит "Cannot find module 'steamcommunity'" до того, как это увидит
+      # пользователь: проверяет, что все webpack externals разрешаются из
+      # раскладки собранного приложения и что в нём нет лишних .bin.
+      - name: Verify packaged app
+        run: npm run verify:package
