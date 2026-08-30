@@ -14,7 +14,9 @@ TradeManager — an Electron desktop app for managing multiple Steam accounts (S
 - `npm run release` — publish via electron-forge.
 - `npm test` — run Jest tests (`electron/**/__tests__/*.test.ts`, via babel-jest reusing `babel.config.js`). Heavy/native modules (puppeteer, sharp, electron, electron-store) are stubbed in the root `__mocks__/` and auto-applied. Privacy/fail-closed regression tests live alongside the code they cover.
 
-There is **no linter or typecheck script** configured. `tsc` runs with `noEmit` (`tsconfig.json` covers `src/` only); types are stripped by Babel at build time, so type errors do not fail the build. After packaging, required modules must be placed in the `resources` folder (see README).
+There is **no linter or typecheck script** configured. `tsc` runs with `noEmit` (`tsconfig.json` covers `src/` only); types are stripped by Babel at build time, so type errors do not fail the build.
+
+**Packaging gotcha.** Forge config lives in `forge.config.js` (not `package.json`) because it needs a hook function. `plugin-webpack` blanks out `dependencies` in the packaged `package.json` and packager then prunes `node_modules` empty, so everything in the webpack `externals` list disappears from a packaged build and the app dies on startup with `Cannot find module 'steamcommunity'`. The `packageAfterPrune` hook copies those modules (plus their transitive deps) back in — it must run *after* prune, not after copy. `webpack/externals.js` is the single source of truth for both `webpack/main.webpack.js` and the hook; add new external modules only there.
 
 ## Architecture
 

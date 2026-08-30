@@ -13,4 +13,15 @@
 2. Устанавливаем бибилотеки (npm install)
 3. npm start - для запуска в режиме разработчика
 4. npm run make - для компиляции
-5. Установить требуемые модули в папке resourses
+
+Внешние модули (puppeteer, sharp, chromium, steamcommunity и т.д.) forge теперь
+кладёт в сборку сам, вручную копировать их в resources больше не нужно. Список
+модулей — в `webpack/externals.js`, копирование — в хуке `packageAfterPrune`
+(`forge.config.js`).
+
+Если сборка падает на node-gyp с `No module named 'distutils'`, значит node-gyp
+запустился на Python 3.12+, где distutils удалён. Соберите с Python 3.11:
+
+    PYTHON=/путь/до/python3.11 npm run make
+
+либо поставьте setuptools в активный Python.

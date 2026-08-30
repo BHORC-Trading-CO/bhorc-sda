@@ -1,3 +1,5 @@
+const externals = require("./externals");
+
 module.exports = {
   resolve: {
     extensions: [".ts", ".js"],
@@ -6,14 +8,7 @@ module.exports = {
   module: {
     rules: require("./rules.webpack"),
   },
-  externals: {
-    puppeteer: 'puppeteer',
-    'puppeteer-extra': 'puppeteer-extra',
-    'puppeteer-extra-plugin-stealth': 'puppeteer-extra-plugin-stealth',
-    'sharp': 'sharp',
-    'puppeteer-extra-plugin-minmax': 'puppeteer-extra-plugin-minmax',
-    'chromium': 'chromium',
-    'steam-session': 'steam-session',
-    'steamcommunity': 'steamcommunity'
-  },
+  // externals задаются одним списком в webpack/externals.js — тот же список
+  // forge.config.js копирует в собранное приложение.
+  externals: Object.fromEntries(externals.map((name) => [name, name])),
 };
