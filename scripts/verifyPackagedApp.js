@@ -52,6 +52,39 @@ function findPackagedAppDirs() {
   return found;
 }
 
+/**
+ * Ищем модуль ТОЛЬКО внутри node_modules собранного приложения.
+ *
+ * require.resolve({ paths }) здесь не годится: node всё равно поднимается вверх
+ * по дереву каталогов, а собранное приложение лежит внутри репозитория — и
+ * модуль находится в node_modules самого проекта. Проверка при этом проходит
+ * даже на пустой сборке, то есть даёт ложный зелёный.
+ */
+function resolveInsideApp(nodeModules, name) {
+  const packageDir = path.join(nodeModules, name);
+  const manifestPath = path.join(packageDir, "package.json");
+
+  if (!fs.existsSync(manifestPath)) {
+    return `модуля "${name}" нет в сборке (${path.join("node_modules", name)})`;
+  }
+
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  } catch (err) {
+    return `битый package.json у "${name}": ${err.message}`;
+  }
+
+  // Точка входа: main, либо index.js рядом. main может указывать и на папку.
+  const entry = path.join(packageDir, manifest.main || "index.js");
+  const candidates = [entry, `${entry}.js`, path.join(entry, "index.js")];
+  if (!candidates.some((candidate) => fs.existsSync(candidate))) {
+    return `у "${name}" нет точки входа (${manifest.main || "index.js"})`;
+  }
+
+  return null;
+}
+
 /** Все папки .bin внутри node_modules — фордж их вычищает, возвращать нельзя. */
 function findBinDirs(root) {
   const found = [];
@@ -85,13 +118,8 @@ function verify(appDir) {
   const nodeModules = path.join(appDir, "node_modules");
 
   for (const name of externals) {
-    try {
-      // require.resolve, а не existsSync: проверяем, что модуль реально
-      // разрешается из раскладки собранного приложения, как это сделает Electron.
-      require.resolve(name, { paths: [appDir] });
-    } catch (err) {
-      problems.push(`не разрешается модуль "${name}": ${err.message.split("\n")[0]}`);
-    }
+    const problem = resolveInsideApp(nodeModules, name);
+    if (problem) problems.push(problem);
   }
 
   const bins = findBinDirs(nodeModules);
@@ -121,4 +149,6 @@ function main() {
   if (failed) process.exit(1);
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { findPackagedAppDirs, findBinDirs, verify };
