@@ -13,6 +13,8 @@ import TwoFactorResponseInterface from "../../../interfaces/SteamAccount/TwoFact
 import ProxySetupInterface from "../../../interfaces/Proxy/ProxySetupInterface";
 import buildProxyUrl from "../../Proxy/proxyUrl";
 import applyCommunityCookies from "../Functions/applyCommunityCookies";
+import finalizeAddAuthenticator from "../Functions/finalizeAddAuthenticator";
+import savePendingAuthenticator from "../Functions/savePendingAuthenticator";
 import request from "request";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import SteamAccountSetupInterface from "../../../interfaces/SteamAccount/SteamAccountSetupInterface";
@@ -158,37 +160,58 @@ export default async function setupGuard(
               }
               //@ts-ignore
               const rawMaFile: TwoFactorResponseInterface = response;
+              // Секреты на диск ПЕРВЫМ делом: Steam отдаёт shared_secret и revocation_code
+              // ровно один раз, и всё, что идёт ниже (ввод кода, finalize), может оборваться.
+              const backupFile = savePendingAuthenticator(
+                steamAccountParams.accountName,
+                rawMaFile,
+                session.steamID.getSteamID64()
+              );
+              console.log(
+                backupFile
+                  ? `${steamAccountParams.accountName} - секреты аутентификатора сохранены: ${backupFile}`
+                  : `${steamAccountParams.accountName} - ВНИМАНИЕ: секреты НЕ сохранены на диск, они только в логе ниже`
+              );
               console.log(rawMaFile);
-              const promtSmsCode = async (
-                rawMaFile: TwoFactorResponseInterface
-              ) => {
+
+              // Код подтверждения приходит на ПОЧТУ, если телефон к аккаунту не привязан,
+              // и в SMS, если привязан. Эндпоинт и поле activation_code одни и те же,
+              // поэтому спрашиваем код одинаково — различается только источник.
+              console.log(
+                `${steamAccountParams.accountName} - код подтверждения придёт ` +
+                (rawMaFile.phone_number_hint ? `в SMS (${rawMaFile.phone_number_hint})` : "на почту (телефон не привязан)")
+              );
+
+              const promtActivationCode = async () => {
                 nextStep("askSmsCode");
                 const code = await askSmsCode(
                   uuidv4(),
                   steamAccountParams.accountName
                 );
                 nextStep("trySmsCode");
-                console.log("try sms: " + code);
                 try {
-                  await new Promise<void>((resolve, reject) => {
-                    community.finalizeTwoFactor(
-                      response.shared_secret,
-                      code,
-                      (error) => {
-                        if (error) return reject(error);
-                        resolve();
-                      }
-                    );
+                  await finalizeAddAuthenticator({
+                    accessToken: session.accessToken,
+                    steamID64: session.steamID.getSteamID64(),
+                    sharedSecret: rawMaFile.shared_secret,
+                    activationCode: code,
+                    serverTime: Number(rawMaFile.server_time),
+                    proxyUrl,
                   });
                 } catch (error) {
                   if (error.message == "Invalid activation code") {
-                    await promtSmsCode(rawMaFile);
+                    await promtActivationCode();
                   } else {
-                    return reject(error);
+                    throw error;
                   }
                 }
               };
-              await promtSmsCode(rawMaFile);
+
+              try {
+                await promtActivationCode();
+              } catch (error) {
+                return reject(error);
+              }
               const maFile: MaFileInterface = {
                 ...rawMaFile,
                 Session: {

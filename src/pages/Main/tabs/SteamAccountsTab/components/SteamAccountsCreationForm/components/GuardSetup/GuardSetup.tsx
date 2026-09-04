@@ -18,9 +18,9 @@ const Page: FC<{ step: CreationStepType }> = observer(({ step }) => {
         case "enableTwoFactor":
             return <Step title='Первый этап подключения Guard' text='Запрашиваем у Steam всю нужную информацию и сохраняем ее' />;
         case "askSmsCode":
-            return <Step title='Введите код из смс' text='На подключенный к вашему аккаунту номер должен был прийти код. Пожалуйста впишите его в появившееся окно' />;
+            return <Step title='Введите код подтверждения' text='Steam прислал код подтверждения: на почту, если к аккаунту не привязан телефон, или в смс, если привязан. Пожалуйста впишите его в появившееся окно' />;
         case "trySmsCode":
-            return <Step title='Отправляем код из смс Steam' text='' />;
+            return <Step title='Отправляем код подтверждения Steam' text='' />;
         case "finalizeTwoFactor":
             return <Step title='Второй этап подключения Guard' text='Отправляем финальный запрос на подключение' />
         case "loadData":

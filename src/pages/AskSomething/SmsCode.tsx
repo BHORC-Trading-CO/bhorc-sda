@@ -11,7 +11,7 @@ const SmsCode: FC<{ steamAccountName: string, id: string }> = (props) => {
             <Attic title={steamAccountName} windowName="askSomething" id={props.id} ></Attic>
             <div className="ask-family-pin-container">
                 <div className="">
-                    <span className="text-white-large">Введите код из смс:</span>
+                    <span className="text-white-large">Введите код подтверждения (с почты или из смс):</span>
                     <input
                         type="text"
                         className="ask-family-pin-input text-white-medium"
