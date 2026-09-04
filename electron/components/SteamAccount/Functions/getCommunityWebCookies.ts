@@ -1,5 +1,6 @@
 import request from "request";
 import { randomBytes } from "crypto";
+import { STEAM_MOBILE_USER_AGENT, STEAM_ACCEPT_ENCODING } from "./steamUserAgent";
 
 /**
  * steam-session's getWebCookies() возвращает cookie случайного домена (promiseAny),
@@ -15,6 +16,17 @@ const API_HEADERS = {
   "sec-fetch-dest": "empty",
 };
 
+// Без User-Agent Steam отвечает 429, как и с усечённым Accept-Encoding (см. комментарий
+// в steamUserAgent.ts). gzip: true распаковывает ответ (Steam фактически шлёт gzip),
+// а заголовок Accept-Encoding задаём явно хромовский — gzip:true его не перетирает.
+const REQUEST_DEFAULTS = {
+  gzip: true,
+  headers: {
+    "user-agent": STEAM_MOBILE_USER_AGENT,
+    "accept-encoding": STEAM_ACCEPT_ENCODING,
+  },
+};
+
 interface TransferInfo {
   url: string;
   params: { [key: string]: any };
@@ -25,7 +37,9 @@ export default function getCommunityWebCookies(
   steamID: string,
   proxyUrl?: string | null
 ): Promise<string[]> {
-  const req = proxyUrl ? request.defaults({ proxy: proxyUrl }) : request;
+  const req = proxyUrl
+    ? request.defaults({ proxy: proxyUrl, ...REQUEST_DEFAULTS })
+    : request.defaults(REQUEST_DEFAULTS);
 
   return new Promise<string[]>((resolve, reject) => {
     req.post(

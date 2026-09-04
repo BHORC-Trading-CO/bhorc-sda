@@ -17,19 +17,25 @@ type Table = 'steamAccounts' | 'proxies';
 
 class TableStorage {
     static GetFields(type: Table) {
-        const fields = store.get(`${type}TableFields`);
+        const defaults = type === 'steamAccounts' ? defaultSteamAccountTableFields
+            : type === 'proxies' ? defaultProxyTableFields
+            : null;
+        if (!defaults) throw new Error(`${type} - fields is undefined`);
+
+        const fields = store.get(`${type}TableFields`) as Field[] | undefined;
         if (!fields) {
-            if (type === 'steamAccounts') {
-                store.set(`${type}TableFields`, defaultSteamAccountTableFields);
-                return defaultSteamAccountTableFields;
-            }
-            if (type === 'proxies') {
-                store.set(`${type}TableFields`, defaultProxyTableFields);
-                return defaultProxyTableFields;
-            }
-            throw new Error(`${type} - fields is undefined`);
+            store.set(`${type}TableFields`, defaults);
+            return defaults;
         }
-        return fields as Field[];
+        // Бэкфилл новых колонок, добавленных в defaults после того как пользователь
+        // уже сохранил свой набор полей (иначе новые колонки, напр. "Группа", не
+        // появятся в настройках отображения у существующих пользователей).
+        const existingTypes = new Set(fields.map(f => f.type));
+        const merged = [...fields, ...defaults.filter(f => !existingTypes.has(f.type))];
+        if (merged.length !== fields.length) {
+            store.set(`${type}TableFields`, merged);
+        }
+        return merged;
     }
     static GetOptions(type: Table) {
         const options = store.get(`${type}TableOptions`);

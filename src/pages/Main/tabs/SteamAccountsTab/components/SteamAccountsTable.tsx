@@ -172,6 +172,19 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
                 ? 1
                 : -1;
             });
+          case AvalibleTypes.group:
+            return store.steamAccountsTable.sortSteamAccounts((a, b) => {
+              // аккаунты без группы всегда в конце
+              if (!a.group) return 1;
+              if (!b.group) return -1;
+              return direction === "UP"
+                ? a.group.name < b.group.name
+                  ? 1
+                  : -1
+                : a.group.name > b.group.name
+                ? 1
+                : -1;
+            });
         }
       }}
     ></Table>
@@ -515,6 +528,8 @@ const CellJSX: FC<{
       } else {
         return <>нет</>;
       }
+    case AvalibleTypes.group:
+      return <>{steamAccount.group ? steamAccount.group.name : "—"}</>;
     case AvalibleTypes.checkbox:
       if (steamAccount.deleted) {
         return (

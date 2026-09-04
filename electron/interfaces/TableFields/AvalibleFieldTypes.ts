@@ -33,7 +33,8 @@ enum AvalibleFieldTypes {
     linkedProxies = "linkedProxies",
     testProxyButton = "testProxyButton",
     chromeStartButton = "chromeStartButton",
-    
+    group = "group",
+
 }
 
 export default AvalibleFieldTypes;

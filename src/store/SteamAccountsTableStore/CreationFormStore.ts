@@ -1,4 +1,5 @@
 import CreationStepType from "../../../electron/interfaces/SteamAccount/CreationStepType";
+import GuardSetupResultInterface from '../../../electron/interfaces/SteamAccount/GuardSetupResultInterface';
 import ProxySetupInterface from "../../../electron/interfaces/Proxy/ProxySetupInterface";
 import SteamAccountsTableStore from "./SteamAccountsTableStore"
 import MaFileInterface from "../../../electron/interfaces/SteamAccount/MaFileInterface";
@@ -16,6 +17,7 @@ class CreationFormStore {
     currentProcess: 'creation' | 'guardConnecting' | 'dataFilling';
     guardSetupProcessError: string;
     guardSetupProcessStep: CreationStepType;
+    guardSetupResult: GuardSetupResultInterface | null;
     creationProcessError: string;
     creationProcessStep: CreationStepType;
     isOpen: boolean;
@@ -46,6 +48,7 @@ class CreationFormStore {
         this.isOpen = false;
         this.guardSetupProcessError = '';
         this.guardSetupProcessStep = 'start';
+        this.guardSetupResult = null;
         this.creationProcessError = '';
         this.creationProcessStep = 'start'
         this.content = {
@@ -73,6 +76,9 @@ class CreationFormStore {
         });
         window.Main.guardConnection.onSetupStep((event, step) => {
             this.setGuardSetupProcessStep(step);
+        });
+        window.Main.guardConnection.onSetupResult((event, result) => {
+            this.setGuardSetupResult(result);
         });
         window.Main.guardConnection.onSetupError((event, error) => {
             this.setGuardSetupProcessStep('error');
@@ -125,6 +131,7 @@ class CreationFormStore {
     setCreationProcessStep(step: CreationStepType) { this.creationProcessStep = step; }
     setGuardSetupProcessError(error: string) { this.guardSetupProcessError = error; }
     setGuardSetupProcessStep(step: CreationStepType) { this.guardSetupProcessStep = step; }
+    setGuardSetupResult(result: GuardSetupResultInterface | null) { this.guardSetupResult = result; }
 
     runCreationProcess() {
         const content = this.getContent();
@@ -184,6 +191,7 @@ class CreationFormStore {
         this.currentProcess = 'guardConnecting';
         this.guardSetupProcessStep = 'start';
         this.guardSetupProcessError = '';
+        this.guardSetupResult = null;
     }
     runDataFillingProcess() { this.currentProcess = 'dataFilling'; }
     editContent(newContent: { [K in keyof typeof this.content]?: typeof this.content[K] }) { this.content = { ...this.content, ...newContent }; }

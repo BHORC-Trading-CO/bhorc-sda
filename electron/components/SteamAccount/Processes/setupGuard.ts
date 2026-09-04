@@ -11,6 +11,10 @@ import { getSecondaries } from "./loadSteamAccountData";
 import { v4 as uuidv4 } from "uuid";
 import TwoFactorResponseInterface from "../../../interfaces/SteamAccount/TwoFactorResponseInterface";
 import ProxySetupInterface from "../../../interfaces/Proxy/ProxySetupInterface";
+import buildProxyUrl from "../../Proxy/proxyUrl";
+import applyCommunityCookies from "../Functions/applyCommunityCookies";
+import finalizeAddAuthenticator from "../Functions/finalizeAddAuthenticator";
+import savePendingAuthenticator from "../Functions/savePendingAuthenticator";
 import request from "request";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import SteamAccountSetupInterface from "../../../interfaces/SteamAccount/SteamAccountSetupInterface";
@@ -19,6 +23,7 @@ import {
   EAuthTokenPlatformType,
   EAuthSessionGuardType,
 } from "steam-session";
+import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
 
 type AbortChannelType =
   | SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT
@@ -36,19 +41,14 @@ export default async function setupGuard(
   proxy?: ProxySetupInterface
 ): Promise<SmaFileInterface> {
   return new Promise(async (resolve, reject) => {
-    // Защита приватности: создание/подключение guard без прокси запрещено (иначе логин с реального IP).
-    if (!proxy) {
-      return reject(new Error('Прокси обязателен: создание аккаунта/подключение guard без прокси запрещено (защита от утечки реального IP).'));
-    }
-    let community = new SteamCommunity();
-    const session = new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxy ? `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}` : undefined });
-    if (proxy) {
-      const proxyRequest = request.defaults({
-        proxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`,
-      });
-      //@ts-ignore
-      community = new SteamCommunity({ request: proxyRequest });
-    }
+    // Прокси опционален: если передан — весь трафик идёт через него, если нет —
+    // напрямую с реального IP (осознанный выбор пользователя).
+    const proxyUrl = buildProxyUrl(proxy);
+    const session = new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxyUrl ? proxyUrl : undefined });
+    const communityRequest = proxyUrl
+      ? request.defaults({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS })
+      : request.defaults({ headers: STEAM_WEB_HEADERS });
+    const community = new SteamCommunity({ request: communityRequest, userAgent: STEAM_MOBILE_USER_AGENT });
     const EResult = SteamCommunity.EResult;
 
     ipcMain.on("ABORT_SETUP_GUARD", () => {
@@ -56,7 +56,7 @@ export default async function setupGuard(
     });
 
     const nextStep = (step: CreationStepType) => {
-      application.sendToMain("GUARD_SETUP_STEP", step);
+      application.sendToMain(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, step);
     };
 
     const doLogin = (
@@ -123,12 +123,19 @@ export default async function setupGuard(
             return reject(error);
           });
         session.on("authenticated", async () => {
-          const cookies = await session.getWebCookies();
-          community.setCookies(cookies);
+          try {
+            // Cookie берём именно для steamcommunity.com: getWebCookies() отдаёт cookie
+            // случайного домена, и тогда loggedIn() ниже вернёт false. См. applyCommunityCookies.
+            await applyCommunityCookies(community, session, proxyUrl, steamAccountParams.accountName);
+          } catch (err) {
+            return reject(err);
+          }
           community.loggedIn((error, loggedIn, familyView) => {
-            if (error) throw error;
-            if (!loggedIn) throw new Error("Not logged in");
-            if (familyView) throw new Error("Family view");
+            // reject, а не throw: throw из колбэка request'а не реджектит промис,
+            // а улетает необработанным исключением — процесс подключения guard'а зависал.
+            if (error) return reject(error);
+            if (!loggedIn) return reject(new Error("Not logged in"));
+            if (familyView) return reject(new Error("Family view"));
             //@ts-ignore
             community.setMobileAppAccessToken(session.accessToken);
             community.enableTwoFactor(async (err, response) => {
@@ -153,37 +160,58 @@ export default async function setupGuard(
               }
               //@ts-ignore
               const rawMaFile: TwoFactorResponseInterface = response;
+              // Секреты на диск ПЕРВЫМ делом: Steam отдаёт shared_secret и revocation_code
+              // ровно один раз, и всё, что идёт ниже (ввод кода, finalize), может оборваться.
+              const backupFile = savePendingAuthenticator(
+                steamAccountParams.accountName,
+                rawMaFile,
+                session.steamID.getSteamID64()
+              );
+              console.log(
+                backupFile
+                  ? `${steamAccountParams.accountName} - секреты аутентификатора сохранены: ${backupFile}`
+                  : `${steamAccountParams.accountName} - ВНИМАНИЕ: секреты НЕ сохранены на диск, они только в логе ниже`
+              );
               console.log(rawMaFile);
-              const promtSmsCode = async (
-                rawMaFile: TwoFactorResponseInterface
-              ) => {
+
+              // Код подтверждения приходит на ПОЧТУ, если телефон к аккаунту не привязан,
+              // и в SMS, если привязан. Эндпоинт и поле activation_code одни и те же,
+              // поэтому спрашиваем код одинаково — различается только источник.
+              console.log(
+                `${steamAccountParams.accountName} - код подтверждения придёт ` +
+                (rawMaFile.phone_number_hint ? `в SMS (${rawMaFile.phone_number_hint})` : "на почту (телефон не привязан)")
+              );
+
+              const promtActivationCode = async () => {
                 nextStep("askSmsCode");
                 const code = await askSmsCode(
                   uuidv4(),
                   steamAccountParams.accountName
                 );
                 nextStep("trySmsCode");
-                console.log("try sms: " + code);
                 try {
-                  await new Promise<void>((resolve, reject) => {
-                    community.finalizeTwoFactor(
-                      response.shared_secret,
-                      code,
-                      (error) => {
-                        if (error) return reject(error);
-                        resolve();
-                      }
-                    );
+                  await finalizeAddAuthenticator({
+                    accessToken: session.accessToken,
+                    steamID64: session.steamID.getSteamID64(),
+                    sharedSecret: rawMaFile.shared_secret,
+                    activationCode: code,
+                    serverTime: Number(rawMaFile.server_time),
+                    proxyUrl,
                   });
                 } catch (error) {
                   if (error.message == "Invalid activation code") {
-                    await promtSmsCode(rawMaFile);
+                    await promtActivationCode();
                   } else {
-                    return reject(error);
+                    throw error;
                   }
                 }
               };
-              await promtSmsCode(rawMaFile);
+
+              try {
+                await promtActivationCode();
+              } catch (error) {
+                return reject(error);
+              }
               const maFile: MaFileInterface = {
                 ...rawMaFile,
                 Session: {

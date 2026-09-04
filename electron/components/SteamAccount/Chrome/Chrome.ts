@@ -5,8 +5,10 @@ import puppeteer from "puppeteer-extra";
 import puppeteerStealth from "puppeteer-extra-plugin-stealth";
 puppeteer.use(require("puppeteer-extra-plugin-minmax")());
 puppeteer.use(puppeteerStealth());
+import { app } from "electron";
 import SteamAccountInterface from "../../../interfaces/SteamAccount/SteamAccountInterface";
 import Manager from "../../manager/manager";
+import buildProxyUrl from "../../Proxy/proxyUrl";
 import application from "../../application/application";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import path from "path";
@@ -32,8 +34,12 @@ export default class Chrome {
     this.isOpen = false;
     this.workStatus = "notworking";
     this.params = params;
+    // Профили живут в userData, а НЕ рядом с бандлом (__dirname): в сборке это
+    // папка установки Squirrel — путь слишком длинный (Chrome не может перенести
+    // распакованное расширение в Default/Extensions, MAX_PATH), и при обновлении
+    // приложения профили стирались вместе со старой app-x.y.z.
     this.profileDir = path
-      .join(__dirname, `./browser_profiles/${params.id}`)
+      .join(app.getPath("userData"), `browser_profiles/${params.id}`)
       .replaceAll("\\", "/");
     this.browser = null;
     this.page = null;
@@ -96,6 +102,38 @@ export default class Chrome {
       }
     }
   }
+  /**
+   * Одноразовая миграция профиля со старого места (рядом с бандлом, __dirname)
+   * в userData. Best effort: rename в пределах диска, иначе рекурсивная копия;
+   * при неудаче профиль просто создастся заново (куки Steam подставляются на старте).
+   */
+  private async migrateLegacyProfile(): Promise<void> {
+    const legacyDir = path
+      .join(__dirname, `./browser_profiles/${this.params.id}`)
+      .replaceAll("\\", "/");
+    if (legacyDir === this.profileDir) return;
+    try {
+      await fs.access(this.profileDir);
+      return; // профиль на новом месте уже есть
+    } catch {}
+    try {
+      await fs.access(legacyDir);
+    } catch {
+      return; // старого профиля нет — мигрировать нечего
+    }
+    try {
+      await fs.mkdir(path.dirname(this.profileDir), { recursive: true });
+      await fs.rename(legacyDir, this.profileDir);
+      console.log(`${this.params.id} - профиль перенесён из ${legacyDir}`);
+    } catch {
+      try {
+        await fs.cp(legacyDir, this.profileDir, { recursive: true });
+        console.log(`${this.params.id} - профиль скопирован из ${legacyDir}`);
+      } catch (copyErr) {
+        console.log(`${this.params.id} - не удалось перенести старый профиль: ${copyErr}`);
+      }
+    }
+  }
   createProfile(): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
       try {
@@ -106,10 +144,10 @@ export default class Chrome {
           LocalState(this.params.secondary.nickname)
         );
         // Аватар — косметика профиля. Если URL пустой/недоступен, профиль всё равно создаём.
-        // Без прокси аватар НЕ качаем: иначе запрос к CDN Steam уйдёт с реального IP.
-        if (this.params.secondary.avatarUrl && this.proxy) {
+        // С прокси качаем через него; без прокси — напрямую.
+        if (this.params.secondary.avatarUrl) {
           try {
-            const proxyUrl = `http://${this.proxy.username}:${this.proxy.password}@${this.proxy.server}`;
+            const proxyUrl = this.proxyUrl();
             await downloadImage(
               this.params.secondary.avatarUrl,
               `${this.profileDir}/Avatars/avatar_generic_small.png`,
@@ -132,17 +170,25 @@ export default class Chrome {
       }
     });
   }
+  /** URL прокси для сетевых запросов профиля (аватар). null — прокси не привязан. */
+  private proxyUrl(): string | null {
+    if (!this.proxy) return null;
+    const [host, port] = this.proxy.server.split(":");
+    return buildProxyUrl({ host, port, username: this.proxy.username, password: this.proxy.password });
+  }
   setupProxy(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       try {
         const links = Manager.GetSteamAccountLinkedData(this.params.id);
-        if (links.proxy) {
-          this.proxy = {
+        // Присваиваем всегда, в т.ч. undefined: иначе после отвязки прокси в объекте
+        // остался бы прошлый и браузер стартовал бы через уже не привязанный прокси.
+        this.proxy = links.proxy
+          ? {
             server: `${links.proxy.host}:${links.proxy.port}`,
             username: links.proxy.username,
             password: links.proxy.password,
-          };
-        }
+          }
+          : undefined;
         resolve();
       } catch (err) {
         return reject(err);
@@ -162,9 +208,10 @@ export default class Chrome {
           status: this.workStatus,
           id: this.params.id,
         });
-        // Прокси нужен ДО createProfile: иначе аватар качается с CDN Steam
-        // напрямую с реального IP (downloadImage получает proxyUrl=null).
+        // Прокси резолвим ДО createProfile: если он привязан, аватар должен
+        // качаться через него, а не напрямую (downloadImage получает proxyUrl).
         await this.setupProxy();
+        await this.migrateLegacyProfile();
         await fs.access(this.profileDir).catch(async (err) => {
           if (err.code == "ENOENT") await this.createProfile();
           else return reject(err);

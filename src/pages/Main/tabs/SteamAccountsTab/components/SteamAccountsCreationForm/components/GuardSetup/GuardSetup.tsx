@@ -18,9 +18,9 @@ const Page: FC<{ step: CreationStepType }> = observer(({ step }) => {
         case "enableTwoFactor":
             return <Step title='Первый этап подключения Guard' text='Запрашиваем у Steam всю нужную информацию и сохраняем ее' />;
         case "askSmsCode":
-            return <Step title='Введите код из смс' text='На подключенный к вашему аккаунту номер должен был прийти код. Пожалуйста впишите его в появившееся окно' />;
+            return <Step title='Введите код подтверждения' text='Steam прислал код подтверждения: на почту, если к аккаунту не привязан телефон, или в смс, если привязан. Пожалуйста впишите его в появившееся окно' />;
         case "trySmsCode":
-            return <Step title='Отправляем код из смс Steam' text='' />;
+            return <Step title='Отправляем код подтверждения Steam' text='' />;
         case "finalizeTwoFactor":
             return <Step title='Второй этап подключения Guard' text='Отправляем финальный запрос на подключение' />
         case "loadData":
@@ -30,10 +30,7 @@ const Page: FC<{ step: CreationStepType }> = observer(({ step }) => {
         case "link":
             return <Step title='Привязываем указанный прокси и профиль' text='' />;
         case "end":
-            return <div className='account-creation_step'>
-                <div className='title'>Аккаунт создан 😍</div>
-                <div className='text'>Можно закрыть окно</div>
-            </div>;
+            return <Result />;
         case "error":
             return <div className='account-creation_step'>
                 <div className='title'>Ошибка 😒</div>
@@ -51,6 +48,40 @@ const GuardSetup: FC = observer(() => {
             <Page step={store.steamAccountsTable.creationForm.guardSetupProcessStep} />
         </>
     );
+});
+
+// Финальный экран. Главное здесь — revocation code: Steam выдаёт его ровно один
+// раз, и без него аутентификатор с аккаунта уже не снять. Поэтому окно нельзя
+// закрыть "мимо" кода — он показан крупно и рядом с кнопкой копирования.
+const Result: FC = observer(() => {
+    const result = store.steamAccountsTable.creationForm.guardSetupResult;
+
+    return <div className='account-creation_step'>
+        <div className='title'>Аккаунт создан 😍</div>
+        {result
+            ? <>
+                <div className='text'>Аккаунт: {result.accountName}</div>
+                <div className='text'>SteamId: {result.steamId}</div>
+                {result.proxy ? <div className='text'>Прокси: {result.proxy}</div> : null}
+                <div className='text' style={{ marginTop: '15px' }}>
+                    Код отзыва Guard (revocation code):
+                </div>
+                <div className='title' style={{ userSelect: 'text', letterSpacing: '2px' }}>
+                    {result.revocationCode}
+                </div>
+                <div className='text' style={{ maxWidth: '420px', textAlign: 'center' }}>
+                    Сохраните его. Steam выдаёт этот код один раз — без него отключить
+                    аутентификатор от аккаунта будет невозможно.
+                </div>
+                <Button size='medium' text='Скопировать код' color='grey' hoverColor='light-grey' onClick={() => {
+                    navigator.clipboard.writeText(result.revocationCode);
+                }} />
+            </>
+            : <div className='text'>Можно закрыть окно</div>}
+        <Button size='medium' text='Закрыть' color='grey' hoverColor='light-grey' onClick={() => {
+            store.steamAccountsTable.creationForm.close();
+        }} />
+    </div>;
 });
 
 const Step: FC<{ title: string, text: string }> = (props) => {

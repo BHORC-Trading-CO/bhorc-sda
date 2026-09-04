@@ -7,12 +7,15 @@ import TableSteamAccountInterface from '../interfaces/SteamAccount/TableSteamAcc
 import CompiledSteamAccountInterface from '../interfaces/SteamAccount/CompiledSteamAccountInterface';
 import SmaFileInterface from '../interfaces/SteamAccount/SmaFileInterface';
 import CreationStepType from '../interfaces/SteamAccount/CreationStepType';
+import GuardSetupResultInterface from '../interfaces/SteamAccount/GuardSetupResultInterface';
 import ProxySetupInterface from '../interfaces/Proxy/ProxySetupInterface';
 import ChangableSecondaryInterface from '../interfaces/SteamAccount/ChangableSecondaryInterface';
 import SecondaryInterface from '../interfaces/SteamAccount/SecondaryInterface';
 import { exec } from 'child_process';
 import SteamAccountChannels from '../interfaces/IpcChannels/SteamAccountChannels';
 import ProxyChannels from '../interfaces/IpcChannels/ProxyChannels';
+import GroupChannels from '../interfaces/IpcChannels/GroupChannels';
+import CompiledGroupInterface from '../interfaces/Group/CompiledGroupInterface';
 import TableOptions from '../interfaces/TableOptions/TableOptions';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import path from "path";
@@ -198,6 +201,32 @@ const proxies = {
   }
 }
 
+const groups = {
+  /** Получить все группы (запрос) */
+  get: () => {
+    ipcRenderer.send(GroupChannels.GET_GROUPS);
+  },
+  /** Получить все группы (слушатель) */
+  onGet: (listener: (event: IpcRendererEvent, groups: CompiledGroupInterface[]) => void) => {
+    ipcRenderer.on(GroupChannels.GET_GROUPS, listener);
+  },
+  /** Создать группу и (опционально) привязать к ней выбранные аккаунты */
+  create: (name: string, steamAccountIds: string[] = []) => {
+    ipcRenderer.send(GroupChannels.NEW_GROUP, { setup: { name }, steamAccountIds });
+  },
+  /** Привязать аккаунты к существующей группе (groupId=null — убрать из группы) */
+  assign: (groupId: string | null, steamAccountIds: string[]) => {
+    ipcRenderer.send(GroupChannels.ASSIGN_GROUP, { groupId, steamAccountIds });
+  },
+  /** Переименовать группу */
+  rename: (id: string, name: string) => {
+    ipcRenderer.send(GroupChannels.EDIT_GROUP, { id, name });
+  },
+  delete: (id: string) => {
+    ipcRenderer.send(GroupChannels.DELETE_GROUP, id);
+  }
+}
+
 const window = {
   openAppdata: () => {
     const store = new Store();
@@ -255,6 +284,9 @@ const guardConnection = {
   onSetupStep: (listener: (event: IpcRendererEvent, step: CreationStepType) => void) => {
     ipcRenderer.on(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, listener);
   },
+  onSetupResult: (listener: (event: IpcRendererEvent, result: GuardSetupResultInterface) => void) => {
+    ipcRenderer.on(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT, listener);
+  },
   abortSetup: () => {
     ipcRenderer.send('ABORT_SETUP_GUARD');
   },
@@ -272,6 +304,8 @@ const mainApi = {
   steamAccounts,
   /** Методы для прокси */
   proxies,
+  /** Методы для групп аккаунтов */
+  groups,
   /**Методы для подключения гуарда */
   guardConnection,
 

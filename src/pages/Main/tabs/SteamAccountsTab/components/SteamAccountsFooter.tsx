@@ -8,13 +8,14 @@ import TablePageSwitcher from '../../../../../globalComponents/TablePageSwitcher
 const SteamAccountsFooter: FC = observer(() => {
     const steamAccounts = store.steamAccountsTable.getSteamAccounts();
     const steamAccountsByPage = store.steamAccountsTable.getSteamAccountsByPages();
-    const selectedSteamAccounts = Object.values(steamAccounts).filter(p => p.isSelected);
+    const visibleSteamAccounts = Object.values(steamAccounts).filter(p => !p.deleted || store.steamAccountsTable.showDeleted);
+    const selectedSteamAccounts = visibleSteamAccounts.filter(p => p.isSelected);
 
     return (
         <>
             <div className="footer">
                 <div className="footer__accounts-number">
-                    <TablePageSwitcher numberOfElements={Object.keys(steamAccounts).length} numberOfPages={steamAccountsByPage.length} options={{ avalible: [5, 10, 15, 20, 40, 100] }} pageSize={store.steamAccountsTable.pageSize} activePageNumber={store.steamAccountsTable.activePage} onChangeActivePage={(activePage) => {
+                    <TablePageSwitcher numberOfElements={visibleSteamAccounts.length} numberOfPages={steamAccountsByPage.length} options={{ avalible: [5, 10, 15, 20, 40, 100] }} pageSize={store.steamAccountsTable.pageSize} activePageNumber={store.steamAccountsTable.activePage} onChangeActivePage={(activePage) => {
                         store.steamAccountsTable.setActivePage(activePage, true);
                     }}
                         onChangePageSize={(newPageSize) => {
@@ -44,6 +45,23 @@ const SteamAccountsFooter: FC = observer(() => {
                             const selected = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected && !p.deleted);
                             if (selected.length === 0) return;
                             store.steamAccountsTable.refreshSessionSelected();
+                        }}
+                    />
+
+                    <Button
+                        disabled={false}
+                        view="default"
+                        size="large"
+                        color="grey"
+                        hoverColor="grey"
+                        className="footer__button"
+                        text="В группу"
+                        onClick={() => {
+                            const selected = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected && !p.deleted);
+                            if (selected.length === 0) {
+                                return store.windows.openMiniNotification({ type: 'error', text: 'Не выбрано ни одного аккаунта' });
+                            }
+                            store.groups.openAssignForm();
                         }}
                     />
 

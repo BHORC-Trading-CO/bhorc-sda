@@ -14,5 +14,12 @@ export default interface TwoFactorResponseInteface {
     server_time: string,
     account_name: string,
     token_gid: string,
-    secret_1: string
+    secret_1: string,
+    /** Последние цифры привязанного телефона; отсутствует, если телефон не привязан.
+     *  Только для диагностики: код подтверждения в обоих случаях отправляется
+     *  одинаково, меняется лишь источник — почта или SMS. */
+    phone_number_hint?: string,
+    /** Способ подтверждения, выбранный Steam. Значения не задокументированы,
+     *  поэтому используется только в логах. */
+    confirm_type?: number
 }

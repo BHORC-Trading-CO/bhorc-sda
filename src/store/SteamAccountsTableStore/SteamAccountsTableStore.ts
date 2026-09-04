@@ -335,8 +335,11 @@ class SteamAccountsTableStore {
     const sa: TableSteamAccountInterface[][] = [];
     let count = 0;
     let bufAccounts: TableSteamAccountInterface[] = [];
+    const activeGroupId = this.root.groups.activeGroupId;
     for (var i of Object.values(this.getSteamAccounts()).filter(sa => !this.hidenSteamAccountsId.includes(sa.id))) {
       if (i.deleted && !this.showDeleted) continue;
+      // Фильтр по активной группе (в навигации выбран пункт группы)
+      if (activeGroupId && (!i.group || i.group.id !== activeGroupId)) continue;
 
       if (count === this.pageSize) {
         sa.push(bufAccounts);
@@ -426,8 +429,11 @@ class SteamAccountsTableStore {
           break;
         }
       }
+      // Страницы по старому activePage может уже не быть (напр. фильтр по группе
+      // сократил число страниц) — иначе for-of по undefined кидает и activePage
+      // не обновляется, а таблица показывает несуществующую пустую страницу.
       const steamAccountsInPage =
-        this.getSteamAccountsByPages()[this.activePage - 1];
+        this.getSteamAccountsByPages()[this.activePage - 1] || [];
       for (var sa of steamAccountsInPage) {
         this.selectSteamAccount(sa.id, false);
       }
@@ -468,6 +474,16 @@ class SteamAccountsTableStore {
       });
     this.activePage = 1;
     this.pageSize = n;
+  }
+  // Увеличивает размер страницы так, чтобы totalCount элементов было видно без
+  // пагинации (напр. после импорта). Только увеличивает, никогда не уменьшает.
+  // Держать список в синхроне с options.avalible у TablePageSwitcher в футерах.
+  ensurePageSizeFits(totalCount: number) {
+    if (this.pageSize >= totalCount) return;
+    const avaliblePageSizes = [5, 10, 15, 20, 40, 100];
+    const fitted = avaliblePageSizes.find((size) => size >= totalCount) ||
+      avaliblePageSizes[avaliblePageSizes.length - 1];
+    this.setPageSize(fitted, true);
   }
 }
 

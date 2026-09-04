@@ -1,0 +1,62 @@
+.group-form {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 22px 22px;
+  box-sizing: border-box;
+}
+
+.group-form__caption {
+  margin-bottom: 18px;
+}
+
+.group-form__section-title {
+  margin-bottom: 10px;
+  margin-top: 2px;
+}
+
+.group-form__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.group-form__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #2c1935;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.group-form__item:hover {
+  background: #372447;
+}
+
+.group-form__item_active {
+  border-color: #7c5cbf;
+  background: #372447;
+}
+
+.group-form__item-name {
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-form__item-count {
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.group-form__buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 22px;
+}

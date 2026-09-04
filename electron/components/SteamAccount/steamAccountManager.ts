@@ -90,7 +90,8 @@ export class SteamAccountManager {
         const compiledObject: CompiledSteamAccountInterface = {
             ...object.params,
             smaFile: object.getSmaFile(),
-            proxy: linkedData.proxy
+            proxy: linkedData.proxy,
+            group: Manager.GetSteamAccountGroup(object.params.id)
         }
        
         return compiledObject;

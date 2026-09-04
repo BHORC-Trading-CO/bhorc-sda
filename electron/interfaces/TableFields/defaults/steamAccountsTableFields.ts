@@ -130,6 +130,13 @@ const steamAccountsTableFields: Field[] = [
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
+    },
+    {
+        type: AvalibleFieldTypes.group,
+        title: "Группа",
+        isSortable: true,
+        isVisible: true,
+        showTtitleInTable: true
     }
 ];
 

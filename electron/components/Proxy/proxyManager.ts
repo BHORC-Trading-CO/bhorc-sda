@@ -4,6 +4,7 @@ import ProxyInterface from "../../interfaces/Proxy/ProxyInterface";
 import CompiledProxyInterface from '../../interfaces/Proxy/CompiledProxyInterface';
 import ProxySetupInterface from '../../interfaces/Proxy/ProxySetupInterface';
 import getProxyGeo, { ProxyGeo } from '../SteamAccount/Functions/getProxyGeo';
+import buildProxyUrl from './proxyUrl';
 import Manager from "../manager/manager";
 import application from "../application/application";
 
@@ -60,8 +61,7 @@ export class ProxyManager {
         if (proxy.params.timezone && proxy.params.countryCode) {
             return { timezone: proxy.params.timezone, countryCode: proxy.params.countryCode };
         }
-        const proxyUrl = `http://${proxy.params.username}:${proxy.params.password}@${proxy.params.host}:${proxy.params.port}`;
-        const geo = await getProxyGeo(proxyUrl);
+        const geo = await getProxyGeo(buildProxyUrl(proxy.params));
 
         // editParams обновляет только существующие ключи params, поэтому новые ключи
         // проставляем в in-memory объект напрямую, а затем персистим только заполненные.

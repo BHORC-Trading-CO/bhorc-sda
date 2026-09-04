@@ -75,3 +75,46 @@
   align-items: center;
   justify-content: center;
 }
+
+/* --- Группы аккаунтов в навигации --- */
+/* Пункт группы выравнивается так же, как обычные пункты (Steam аккаунты/Прокси):
+   иконка 24px в том же слоте, текст с margin-left 12px, тот же левый padding. */
+.navigation-group-button {
+  min-height: 38px;
+  margin-bottom: 6px;
+}
+.navigation-group-icon {
+  width: 24px;
+  height: 24px;
+  color: #b79ce0;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+.navigation-group-name {
+  margin-left: 12px;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  font-size: 15px;
+}
+.navigation-group-count {
+  opacity: 0.5;
+  margin-left: 6px;
+  font-size: 13px;
+}
+.navigation-group-edit {
+  margin-left: auto;
+  opacity: 0;
+  cursor: pointer;
+  padding: 0 6px;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.navigation-group-button:hover .navigation-group-edit {
+  opacity: 0.6;
+}
+.navigation-group-edit:hover {
+  opacity: 1;
+}
