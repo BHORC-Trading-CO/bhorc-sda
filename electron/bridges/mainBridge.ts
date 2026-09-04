@@ -7,6 +7,7 @@ import TableSteamAccountInterface from '../interfaces/SteamAccount/TableSteamAcc
 import CompiledSteamAccountInterface from '../interfaces/SteamAccount/CompiledSteamAccountInterface';
 import SmaFileInterface from '../interfaces/SteamAccount/SmaFileInterface';
 import CreationStepType from '../interfaces/SteamAccount/CreationStepType';
+import GuardSetupResultInterface from '../interfaces/SteamAccount/GuardSetupResultInterface';
 import ProxySetupInterface from '../interfaces/Proxy/ProxySetupInterface';
 import ChangableSecondaryInterface from '../interfaces/SteamAccount/ChangableSecondaryInterface';
 import SecondaryInterface from '../interfaces/SteamAccount/SecondaryInterface';
@@ -282,6 +283,9 @@ const guardConnection = {
   },
   onSetupStep: (listener: (event: IpcRendererEvent, step: CreationStepType) => void) => {
     ipcRenderer.on(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, listener);
+  },
+  onSetupResult: (listener: (event: IpcRendererEvent, result: GuardSetupResultInterface) => void) => {
+    ipcRenderer.on(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT, listener);
   },
   abortSetup: () => {
     ipcRenderer.send('ABORT_SETUP_GUARD');
