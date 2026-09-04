@@ -11,6 +11,8 @@ import { getSecondaries } from "./loadSteamAccountData";
 import { v4 as uuidv4 } from "uuid";
 import TwoFactorResponseInterface from "../../../interfaces/SteamAccount/TwoFactorResponseInterface";
 import ProxySetupInterface from "../../../interfaces/Proxy/ProxySetupInterface";
+import buildProxyUrl from "../../Proxy/proxyUrl";
+import applyCommunityCookies from "../Functions/applyCommunityCookies";
 import request from "request";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import SteamAccountSetupInterface from "../../../interfaces/SteamAccount/SteamAccountSetupInterface";
@@ -37,20 +39,14 @@ export default async function setupGuard(
   proxy?: ProxySetupInterface
 ): Promise<SmaFileInterface> {
   return new Promise(async (resolve, reject) => {
-    // Защита приватности: создание/подключение guard без прокси запрещено (иначе логин с реального IP).
-    if (!proxy) {
-      return reject(new Error('Прокси обязателен: создание аккаунта/подключение guard без прокси запрещено (защита от утечки реального IP).'));
-    }
-    let community = new SteamCommunity({ request: request.defaults({ headers: STEAM_WEB_HEADERS }), userAgent: STEAM_MOBILE_USER_AGENT });
-    const session = new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxy ? `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}` : undefined });
-    if (proxy) {
-      const proxyRequest = request.defaults({
-        proxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`,
-        headers: STEAM_WEB_HEADERS,
-      });
-      //@ts-ignore
-      community = new SteamCommunity({ request: proxyRequest, userAgent: STEAM_MOBILE_USER_AGENT });
-    }
+    // Прокси опционален: если передан — весь трафик идёт через него, если нет —
+    // напрямую с реального IP (осознанный выбор пользователя).
+    const proxyUrl = buildProxyUrl(proxy);
+    const session = new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxyUrl ? proxyUrl : undefined });
+    const communityRequest = proxyUrl
+      ? request.defaults({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS })
+      : request.defaults({ headers: STEAM_WEB_HEADERS });
+    const community = new SteamCommunity({ request: communityRequest, userAgent: STEAM_MOBILE_USER_AGENT });
     const EResult = SteamCommunity.EResult;
 
     ipcMain.on("ABORT_SETUP_GUARD", () => {
@@ -58,7 +54,7 @@ export default async function setupGuard(
     });
 
     const nextStep = (step: CreationStepType) => {
-      application.sendToMain("GUARD_SETUP_STEP", step);
+      application.sendToMain(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, step);
     };
 
     const doLogin = (
@@ -125,12 +121,19 @@ export default async function setupGuard(
             return reject(error);
           });
         session.on("authenticated", async () => {
-          const cookies = await session.getWebCookies();
-          community.setCookies(cookies);
+          try {
+            // Cookie берём именно для steamcommunity.com: getWebCookies() отдаёт cookie
+            // случайного домена, и тогда loggedIn() ниже вернёт false. См. applyCommunityCookies.
+            await applyCommunityCookies(community, session, proxyUrl, steamAccountParams.accountName);
+          } catch (err) {
+            return reject(err);
+          }
           community.loggedIn((error, loggedIn, familyView) => {
-            if (error) throw error;
-            if (!loggedIn) throw new Error("Not logged in");
-            if (familyView) throw new Error("Family view");
+            // reject, а не throw: throw из колбэка request'а не реджектит промис,
+            // а улетает необработанным исключением — процесс подключения guard'а зависал.
+            if (error) return reject(error);
+            if (!loggedIn) return reject(new Error("Not logged in"));
+            if (familyView) return reject(new Error("Family view"));
             //@ts-ignore
             community.setMobileAppAccessToken(session.accessToken);
             community.enableTwoFactor(async (err, response) => {

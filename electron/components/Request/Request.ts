@@ -1,5 +1,6 @@
 import request, { RequestAPI, Request, CoreOptions, RequiredUriUrl, Options, Response, UriOptions, UrlOptions } from 'request';
 import ProxySetupInterface from '../../interfaces/Proxy/ProxySetupInterface';
+import buildProxyUrl from '../Proxy/proxyUrl';
 import { STEAM_MOBILE_USER_AGENT, STEAM_ACCEPT_ENCODING } from '../SteamAccount/Functions/steamUserAgent';
 
 class RequestPromise {
@@ -12,8 +13,9 @@ class RequestPromise {
         // Без User-Agent или с усечённым Accept-Encoding Steam отвечает 429 (тест прокси
         // выглядел бы как "прокси не работает"). См. комментарий в steamUserAgent.ts.
         const commonDefaults = { gzip: true, headers: { 'user-agent': STEAM_MOBILE_USER_AGENT, 'accept-encoding': STEAM_ACCEPT_ENCODING } };
-        if (proxy) {
-            this.object = request.defaults({ proxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`, timeout: 3000, ...commonDefaults });
+        const proxyUrl = buildProxyUrl(proxy);
+        if (proxyUrl) {
+            this.object = request.defaults({ proxy: proxyUrl, timeout: 3000, ...commonDefaults });
         } else if (allowDirect) {
             this.object = request.defaults(commonDefaults);
         } else {

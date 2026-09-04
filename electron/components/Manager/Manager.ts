@@ -55,16 +55,22 @@ class Manager {
     }
     static LinkProxyToSteamAccount(steamAccountId: string, proxyId: string | null) {
         const links = LinksStorage.Get();
-        links.steamAccounts[steamAccountId] = proxyId;
-        LinksStorage.Save(links);
         if (proxyId) {
             const proxies = proxyManager.getCompiledObjects();
             const proxy = proxies.filter(p => p.id === proxyId)[0];
             const steamAccount = steamAccountManager.getById(steamAccountId);
             if (!steamAccount) throw new Error(`steam account #${steamAccountId} is not exist`);
+            // Прокси привязан, но объекта нет — раньше уходили в setProxy(undefined),
+            // т.е. связь сохранялась, а трафик шёл НАПРЯМУЮ с реального IP. Падаем явно
+            // и связь не сохраняем: лучше видимая ошибка, чем тихая утечка IP.
+            if (!proxy) throw new Error(`proxy #${proxyId} is not exist: связь с аккаунтом #${steamAccountId} не установлена (запросы шли бы напрямую)`);
+            links.steamAccounts[steamAccountId] = proxyId;
+            LinksStorage.Save(links);
             steamAccount.setProxy(proxy);
-            application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_EDIT_PROXY, { id: steamAccountId, proxy: proxy ? proxy : null });
+            application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_EDIT_PROXY, { id: steamAccountId, proxy });
         } else {
+            links.steamAccounts[steamAccountId] = proxyId;
+            LinksStorage.Save(links);
             const steamAccount = steamAccountManager.getById(steamAccountId);
             if (!steamAccount) throw new Error(`steam account #${steamAccountId} is not exist`);
             steamAccount.setProxy(null);

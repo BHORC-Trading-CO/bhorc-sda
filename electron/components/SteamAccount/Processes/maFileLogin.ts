@@ -12,6 +12,8 @@ import { getSecondaries } from "./loadSteamAccountData";
 import SteamAccountChannels from '../../../interfaces/IpcChannels/SteamAccountChannels';
 import CreationStepType from '../../../interfaces/SteamAccount/CreationStepType';
 import ProxySetupInterface from "../../../interfaces/Proxy/ProxySetupInterface";
+import buildProxyUrl from "../../Proxy/proxyUrl";
+import applyCommunityCookies from "../Functions/applyCommunityCookies";
 import request from "request";
 import askFamilyPin from "../../application/askInfo/askFamilyPin";
 import { EAuthSessionGuardType, EAuthTokenPlatformType, LoginSession } from "steam-session";
@@ -23,14 +25,16 @@ type StepType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP | SteamAc
 
 export default async function maFileLogin(steamAccountParams: SteamAccountSetupInterface, options?: { abortChannel?: AbortChannelType, stepChannel?: StepType }, proxy?: ProxySetupInterface): Promise<SmaFileInterface> {
     return new Promise<SmaFileInterface>(async (resolve, reject) => {
-        // Защита приватности: вход без прокси запрещён (иначе логин уйдёт с реального IP).
-        if (!proxy) {
-            return reject(new Error('Прокси обязателен: вход без прокси запрещён (защита от утечки реального IP).'));
-        }
+        // Прокси опционален: если передан — весь трафик идёт через него, если нет —
+        // напрямую с реального IP (осознанный выбор пользователя).
+        const proxyUrl = buildProxyUrl(proxy);
         const session = new LoginSession(EAuthTokenPlatformType.MobileApp, {
-            httpProxy: proxy ? `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}` : undefined
+            httpProxy: proxyUrl ? proxyUrl : undefined
         });
-        const community = new SteamCommunity({ request: proxy ? request.defaults({ proxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`, headers: STEAM_WEB_HEADERS }) : undefined, userAgent: STEAM_MOBILE_USER_AGENT });
+        const community = new SteamCommunity({
+            request: proxyUrl ? request.defaults({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS }) : request.defaults({ headers: STEAM_WEB_HEADERS }),
+            userAgent: STEAM_MOBILE_USER_AGENT
+        });
 
         const nextStep = (step: CreationStepType) => options && options.stepChannel ? application.sendToMain(options.stepChannel, step) : () => { };
         if (options && options.abortChannel)
@@ -51,8 +55,9 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                             session.accessToken = maFile.Session.AccessToken;
                             session.refreshToken = maFile.Session.RefreshToken;
                             await session.refreshAccessToken();
-                            const cookies = await session.getWebCookies();
-                            community.setCookies(cookies);
+                            // Cookie именно для steamcommunity.com, иначе loggedIn() ниже = false
+                            // на валидной сессии. См. applyCommunityCookies.
+                            await applyCommunityCookies(community, session, proxyUrl, accountId);
                             community.loggedIn(async (err, loggedIn, familyView) => {
                                 if (err) return reject(err);
                                 if (!loggedIn) return reject(new Error("Not logged in"));
@@ -100,19 +105,23 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                         reject("timeout");
                     });
                     session.on("authenticated", async () => {
-                        const accessToken = session.accessToken;
-                        const refreshToken = session.refreshToken;
-                        const steamID = session.steamID;
-                        const cookies = await session.getWebCookies();
-                        console.log(cookies);
-                        //const oldSession = convertCookiesToSession(cookies);
-                        const newSession: SessionInterface = {
-                            AccessToken: accessToken,
-                            RefreshToken: refreshToken,
-                            SteamID: steamID.toString(),
-                            SessionID: ""
+                        // try/catch обязателен: reject из async-колбэка события иначе
+                        // превращается в необработанный rejection, и логин висит вечно.
+                        try {
+                            const accessToken = session.accessToken;
+                            const refreshToken = session.refreshToken;
+                            const steamID = session.steamID;
+                            await applyCommunityCookies(community, session, proxyUrl, accountName);
+                            const newSession: SessionInterface = {
+                                AccessToken: accessToken,
+                                RefreshToken: refreshToken,
+                                SteamID: steamID.toString(),
+                                SessionID: ""
+                            }
+                            resolve(newSession);
+                        } catch (err) {
+                            reject(err);
                         }
-                        resolve(newSession);
                     });
                 } catch (err) {
                     reject(err);
@@ -183,8 +192,8 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                             .then(session => {
                                 steamAccountParams.maFile.Session = session;
                                 console.log(session);
-                                // Прокси обязателен и в рекурсивном ретрае, иначе он упрётся
-                                // в guard "прокси обязателен" уже после создания сессии.
+                                // Прокидываем прокси и в рекурсивный ретрай, чтобы повторный
+                                // логин шёл через тот же прокси (или напрямую, если его нет).
                                 maFileLogin(steamAccountParams, options, proxy)
                                     .then(smaFile => {
                                         resolve(smaFile);

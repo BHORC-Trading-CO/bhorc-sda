@@ -12,6 +12,7 @@ import { getSecondaries, getChangableSecondaries } from './Processes/loadSteamAc
 import CConfirmation from "steamcommunity/classes/CConfirmation";
 import SecondaryInterface from "../../interfaces/SteamAccount/SecondaryInterface";
 import ProxyInterface from "../../interfaces/Proxy/ProxyInterface";
+import buildProxyUrl from "../Proxy/proxyUrl";
 import request from "request";
 import Manager from "../manager/manager";
 import askFamilyPin from "../application/askInfo/askFamilyPin";
@@ -43,28 +44,20 @@ class SteamAccount {
         };
         this.chrome = new Chrome(params);
         this.params = params;
-        this.community = new SteamCommunity({ request: request.defaults({ headers: STEAM_WEB_HEADERS }), userAgent: STEAM_MOBILE_USER_AGENT });
-        this.session = new LoginSession(EAuthTokenPlatformType.MobileApp);
 
         this.isAskingFamilyPin = false;
+        // Прокси резолвим ДО создания сетевых клиентов: если он привязан, ни один
+        // клиент не должен ни на мгновение существовать в "прямом" виде.
         const links = Manager.GetSteamAccountLinkedData(this.params.id);
-        this.proxy = null;
-        if (links.proxy) {
-            this.proxy = links.proxy;
-            this.setProxy(links.proxy)
-        }
+        this.proxy = links.proxy ? links.proxy : null;
+        this.session = this.buildSession();
+        this.community = this.buildCommunity();
     }
 
 
     async initSession() {
         return new Promise(async (resolve, reject) => {
             try {
-                // Защита приватности: без привязанного прокси не выходим в сеть,
-                // чтобы не раскрыть реальный IP и не связать аккаунт с ПК.
-                if (!this.proxy) {
-                    console.log(`${this.params.id} - initSession пропущен: не привязан прокси`);
-                    return resolve(undefined);
-                }
                 if (this.params.maFile.Session && this.params.maFile.Session.AccessToken && this.params.maFile.Session.RefreshToken) {
                     this.session.accessToken = this.params.maFile.Session.AccessToken;
                     this.session.refreshToken = this.params.maFile.Session.RefreshToken;
@@ -91,14 +84,10 @@ class SteamAccount {
         this.session.refreshToken = refreshToken;
         const steamID = this.session.steamID ? this.session.steamID.getSteamID64() : null;
 
-        const proxyUrl = this.proxy
-            ? `http://${this.proxy.username}:${this.proxy.password}@${this.proxy.host}:${this.proxy.port}`
-            : null;
-
         // Основной путь: получаем cookie именно для steamcommunity.com (aud: web:community)
         if (steamID) {
             try {
-                return await getCommunityWebCookies(refreshToken, steamID, proxyUrl);
+                return await getCommunityWebCookies(refreshToken, steamID, this.proxyUrl());
             } catch (err) {
                 console.log(`${this.params.id} - getCommunityWebCookies failed, fallback to getWebCookies: ${err}`);
             }
@@ -120,12 +109,9 @@ class SteamAccount {
     // доменом → getConfirmations()/loggedIn() = "Not Logged In". Поэтому повторяем целевой поток
     // finalizelogin -> settoken через getCommunityWebCookies, с фолбэком на старый путь.
     private async setCommunityCookies(refreshToken?: string, steamID64?: string | null): Promise<void> {
-        const proxyUrl = this.proxy
-            ? `http://${this.proxy.username}:${this.proxy.password}@${this.proxy.host}:${this.proxy.port}`
-            : null;
         if (refreshToken && steamID64) {
             try {
-                const cookies = await getCommunityWebCookies(refreshToken, steamID64, proxyUrl);
+                const cookies = await getCommunityWebCookies(refreshToken, steamID64, this.proxyUrl());
                 this.community.setCookies(cookies);
                 return;
             } catch (err) {
@@ -135,31 +121,36 @@ class SteamAccount {
         const cookies = await this.session.getWebCookies();
         this.community.setCookies(cookies);
     }
-    // Защита приватности: ни одна сетевая операция не должна уходить без прокси,
-    // иначе реальный IP свяжет ПК с аккаунтом (cookie аутентифицированы).
-    private assertProxy(action: string) {
-        if (!this.proxy) {
-            // Аудит: фиксируем заблокированную попытку сетевой операции без прокси.
-            console.warn(`[privacy] аккаунт #${this.params.number} (${this.params.id}): "${action}" заблокировано — нет прокси`);
-            throw new Error(`Аккаунт #${this.params.number}: не привязан прокси. ${action} запрещено (защита от утечки реального IP).`);
+    /** URL привязанного прокси или null. Единственный источник для всех клиентов аккаунта. */
+    proxyUrl(): string | null {
+        return buildProxyUrl(this.proxy);
+    }
+    // steam-session запрещает повторный запуск логина на одном и том же LoginSession
+    // ("A session has already been started on this LoginSession object"), поэтому
+    // перед каждым логином нужен свежий объект — с текущим прокси, если он привязан.
+    private buildSession(): LoginSession {
+        const proxyUrl = this.proxyUrl();
+        if (proxyUrl) {
+            return new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxyUrl });
         }
+        return new LoginSession(EAuthTokenPlatformType.MobileApp);
+    }
+    private buildCommunity(): SteamCommunity {
+        const proxyUrl = this.proxyUrl();
+        const req = proxyUrl
+            ? request.defaults({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS })
+            : request.defaults({ headers: STEAM_WEB_HEADERS });
+        return new SteamCommunity({ request: req, userAgent: STEAM_MOBILE_USER_AGENT });
     }
     setProxy(proxy: ProxyInterface | null) {
         try {
-            this.proxy = proxy;
-            if (proxy) {
-                this.session = new LoginSession(EAuthTokenPlatformType.MobileApp, {
-                    httpProxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`
-                });
-                const proxyRequest = request.defaults({ proxy: `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`, headers: STEAM_WEB_HEADERS });
-                this.community = new SteamCommunity({ request: proxyRequest, userAgent: STEAM_MOBILE_USER_AGENT });
-            } else {
-                // Прокси сняли: пересоздаём сетевые клиенты без прокси, чтобы не остался
-                // старый/мёртвый прокси в request.defaults. Сами сетевые методы всё равно
-                // заблокированы assertProxy/guard'ами, пока прокси не привязан заново.
-                this.session = new LoginSession(EAuthTokenPlatformType.MobileApp);
-                this.community = new SteamCommunity({ request: request.defaults({ headers: STEAM_WEB_HEADERS }), userAgent: STEAM_MOBILE_USER_AGENT });
-            }
+            // undefined (прокси не нашёлся) приводим к null, иначе состояние
+            // "прокси вроде привязан, а клиенты прямые" пройдёт незамеченным.
+            this.proxy = proxy ? proxy : null;
+            // Оба клиента пересоздаём всегда: и при привязке прокси, и при снятии
+            // (иначе в request.defaults остался бы старый/мёртвый прокси).
+            this.session = this.buildSession();
+            this.community = this.buildCommunity();
         } catch (err) {
             throw new Error(`Error in setProxy: ${err}`);
         }
@@ -167,43 +158,60 @@ class SteamAccount {
 
     loginByPassword(): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            const result = await this.session.startWithCredentials({
-                accountName: this.params.accountName,
-                password: this.params.password,
-                steamGuardCode: SteamTotp.generateAuthCode(this.params.maFile.shared_secret)
-            });
+            // Весь блок в try/catch: без него ошибка внутри async-исполнителя (мёртвый прокси,
+            // 429, битый shared_secret) не реджектит промис, и обновление сессии висит вечно.
+            try {
+                // Свежий LoginSession на каждый логин: старый после первой попытки больше
+                // не принимает startWithCredentials, см. buildSession.
+                const session = this.buildSession();
+                this.session = session;
 
-            if (result.actionRequired && result.validActions) {
-                if (result.validActions.map(el => el.type).includes(EAuthSessionGuardType.EmailCode)) {
-                    const code = await askMailCode(this.params.accountName, this.params.accountName);
-                    await this.session.submitSteamGuardCode(code);
+                // Листенеры вешаем ДО startWithCredentials: событие может прийти сразу.
+                // once — чтобы они не накапливались на повторных логинах.
+                session.once("error", (err) => {
+                    reject(err);
+                });
+                session.once("timeout", () => {
+                    reject("timeout");
+                });
+                session.once("authenticated", async () => {
+                    try {
+                        const accessToken = session.accessToken;
+                        const refreshToken = session.refreshToken;
+                        const steamID = session.steamID;
+                        // Берём cookie именно для steamcommunity.com (aud: web:community), иначе confirmations
+                        // упадут с "Not Logged In" (особенно через прокси). См. setCommunityCookies.
+                        await this.setCommunityCookies(refreshToken, steamID ? steamID.getSteamID64() : null);
+                        //const oldSession = convertCookiesToSession(cookies);
+                        const newSession: SessionInterface = {
+                            AccessToken: accessToken,
+                            RefreshToken: refreshToken,
+                            SteamID: steamID.toString(),
+                            SessionID: ""
+                        }
+                        console.log(newSession);
+                        this.saveSession(newSession);
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                    }
+                });
+
+                const result = await session.startWithCredentials({
+                    accountName: this.params.accountName,
+                    password: this.params.password,
+                    steamGuardCode: SteamTotp.generateAuthCode(this.params.maFile.shared_secret)
+                });
+
+                if (result.actionRequired && result.validActions) {
+                    if (result.validActions.map(el => el.type).includes(EAuthSessionGuardType.EmailCode)) {
+                        const code = await askMailCode(this.params.accountName, this.params.accountName);
+                        await session.submitSteamGuardCode(code);
+                    }
                 }
-            }
-
-            this.session.on("error", (err) => {
+            } catch (err) {
                 reject(err);
-            });
-            this.session.on("timeout", () => {
-                reject("timeout");
-            });
-            this.session.on("authenticated", async () => {
-                const accessToken = this.session.accessToken;
-                const refreshToken = this.session.refreshToken;
-                const steamID = this.session.steamID;
-                // Берём cookie именно для steamcommunity.com (aud: web:community), иначе confirmations
-                // упадут с "Not Logged In" (особенно через прокси). См. setCommunityCookies.
-                await this.setCommunityCookies(refreshToken, steamID ? steamID.getSteamID64() : null);
-                //const oldSession = convertCookiesToSession(cookies);
-                const newSession: SessionInterface = {
-                    AccessToken: accessToken,
-                    RefreshToken: refreshToken,
-                    SteamID: steamID.toString(),
-                    SessionID: ""
-                }
-                console.log(newSession);
-                this.saveSession(newSession);
-                resolve();
-            });
+            }
         });
     }
     isLogin(): Promise<boolean> {
@@ -251,11 +259,6 @@ class SteamAccount {
     }
     getSecondary(): Promise<SecondaryInterface> {
         return new Promise((resolve, reject) => {
-            try {
-                this.assertProxy("Получение данных аккаунта");
-            } catch (err) {
-                return reject(err);
-            }
             getSecondaries(this.community, this.params.secondary)
                 .then((data) => {
                     try {
@@ -272,11 +275,6 @@ class SteamAccount {
     }
     getChangableSecondary(): Promise<ChangableSecondaryInterface> {
         return new Promise((resolve, reject) => {
-            try {
-                this.assertProxy("Получение балансов");
-            } catch (err) {
-                return reject(err);
-            }
             getChangableSecondaries(this.community, this.params.tmApiKey ? this.params.tmApiKey : "")
                 .then(data => {
                     try {
@@ -329,11 +327,6 @@ class SteamAccount {
     }
     getConfirmations(): Promise<CConfirmation[]> {
         return new Promise((resolve, reject) => {
-            try {
-                this.assertProxy("Получение подтверждений");
-            } catch (err) {
-                return reject(err);
-            }
             const time = Number((Number(new Date()) / 1000).toFixed(0));
             const key = SteamTotp.generateConfirmationKey(this.params.maFile.identity_secret, time, "conf");
             this.community.getConfirmations(time, key, (err, confirmations) => {
@@ -344,11 +337,6 @@ class SteamAccount {
     }
     confirmItems(ids: number[], keys: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            try {
-                this.assertProxy("Подтверждение");
-            } catch (err) {
-                return reject(err);
-            }
             const time = Math.floor(Number(new Date()) / 1000);
             const key = SteamTotp.getConfirmationKey(this.params.maFile.identity_secret, time, 'allow');
             this.community.respondToConfirmation(ids, keys, time, key, true, (err) => {
@@ -359,11 +347,6 @@ class SteamAccount {
     }
     cancelItems(ids: number[], keys: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            try {
-                this.assertProxy("Отмена");
-            } catch (err) {
-                return reject(err);
-            }
             const time = Math.floor(Number(new Date()) / 1000);
             const key = SteamTotp.getConfirmationKey(this.params.maFile.identity_secret, time, 'cancel');
             this.community.respondToConfirmation(ids, keys, time, key, false, (err) => {
