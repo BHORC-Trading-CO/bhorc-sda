@@ -65,11 +65,37 @@ function httpGetBody(community: SteamCommunity, uri: string): Promise<string> {
     });
 }
 
-function parseUsername(body: string): string {
-    if (body.includes("data-miniprofile")) {
-        return body.split("data-miniprofile")[1].split(">")[1].split("<")[0];
+export function parseUsername(body: string): string {
+    // Актуальная разметка Steam: <span class="actual_persona_name">Ник</span> в хедере профиля.
+    // Раньше ник брался после первого data-miniprofile, но теперь этот атрибут висит на
+    // блоке аватара, и парсер возвращал пробелы/табы вместо ника.
+    const span = /class="actual_persona_name">([^<]*)</.exec(body);
+    if (span) {
+        const nickname = decodeHtmlEntities(span[1]).trim();
+        if (nickname) return nickname;
+    }
+    // Фолбэк: g_rgProfileData = {"personaname":"..."} (JSON-экранирование)
+    const json = /"personaname":"((?:[^"\\]|\\.)*)"/.exec(body);
+    if (json) {
+        try {
+            return JSON.parse(`"${json[1]}"`).trim();
+        } catch (err) {
+            console.log(`parseUsername: не удалось разобрать personaname (${err})`);
+        }
     }
     return "";
+}
+
+function decodeHtmlEntities(text: string): string {
+    return text
+        .replace(/&#x([0-9a-f]+);/gi, (_m, hex) => String.fromCodePoint(parseInt(hex, 16)))
+        .replace(/&#(\d+);/g, (_m, dec) => String.fromCodePoint(parseInt(dec, 10)))
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;|&apos;/g, "'")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&");
 }
 
 const DEFAULT_AVATAR_URL = "https://avatars.akamai.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg";
