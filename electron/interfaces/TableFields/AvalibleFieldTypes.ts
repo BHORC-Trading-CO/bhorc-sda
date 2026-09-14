@@ -11,6 +11,7 @@ enum AvalibleFieldTypes {
     steamAccountAvatar = "steamAccountAvatar",
     steamAccountButtons = "steamAccountButtons",
     steamAccountNickname = "steamAccountNickname",
+    steamId = "steamId",
     steamAccountLevel = "steamAccountLevel",
     steamAccountBalance = "steamAccountBalance",
     csgoTmBalance = "csgoTmBalance",

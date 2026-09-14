@@ -8,6 +8,7 @@ import SettingsFormStore from "./SettingsFormStore";
 import CreationFormStore from "./CreationFormStore";
 import EditingFormStore from "./EditingFormStore";
 import ChangableSecondaryInterface from "../../../electron/interfaces/SteamAccount/ChangableSecondaryInterface";
+import { matchesSteamAccountSearch } from "../../../electron/components/Functions/steamAccountSearch";
 
 class SteamAccountsTableStore {
   root: Store;
@@ -36,12 +37,10 @@ class SteamAccountsTableStore {
   };
   authCodes: { [id: string]: string };
   searchString: string;
-  hidenSteamAccountsId: string[];
 
   constructor(root: Store) {
     this.root = root;
     this.fields = [];
-    this.hidenSteamAccountsId = [];
     this.isAllSelected = false;
     this.showDeleted = false;
     this.activeIds = [];
@@ -139,10 +138,11 @@ class SteamAccountsTableStore {
   }
 
   search(newSearchString: string) {
+    // Фильтр живой (см. getSteamAccountsByPages): раньше тут один раз считался список
+    // скрытых id по initialSteamAccounts и только по логину — ник туда не попадал
+    // (secondary подгружается позже и в initialSteamAccounts не обновляется).
     this.searchString = newSearchString;
-    this.hidenSteamAccountsId = this.initialSteamAccounts
-      .filter((sa) => !(sa.accountName.includes(newSearchString)))
-      .map((sa) => sa.id);
+    this.setActivePage(1);
   }
   sortSteamAccounts(
     func: (
@@ -336,7 +336,7 @@ class SteamAccountsTableStore {
     let count = 0;
     let bufAccounts: TableSteamAccountInterface[] = [];
     const activeGroupId = this.root.groups.activeGroupId;
-    for (var i of Object.values(this.getSteamAccounts()).filter(sa => !this.hidenSteamAccountsId.includes(sa.id))) {
+    for (var i of Object.values(this.getSteamAccounts()).filter(sa => matchesSteamAccountSearch(sa, this.searchString))) {
       if (i.deleted && !this.showDeleted) continue;
       // Фильтр по активной группе (в навигации выбран пункт группы)
       if (activeGroupId && (!i.group || i.group.id !== activeGroupId)) continue;
@@ -448,7 +448,8 @@ class SteamAccountsTableStore {
       const balanceTableField = this.fields.filter(
         (field) => field.type === AvalibleTypes.steamAccountBalance
       )[0];
-      const steamAccountInThisPage = this.getSteamAccountsByPages()[n - 1];
+      // Под поиском без совпадений страницы может не быть вовсе
+      const steamAccountInThisPage = this.getSteamAccountsByPages()[n - 1] || [];
 
       if (balanceTableField && balanceTableField.isVisible)
         for (let sa of steamAccountInThisPage) {

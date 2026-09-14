@@ -49,6 +49,8 @@ const getAltText = (field: Field) => {
             return <div className='alt-text-container'>Это номер в системе. Его нельзя изменить. По сути это просто цифра для более удобной работы</div>
         case AvalibleFieldTypes.steamAccountNickname:
             return <div className='alt-text-container'>Тут отображаются никнеймы из Steam (из профиля)</div>;
+        case AvalibleFieldTypes.steamId:
+            return <div className='alt-text-container'>SteamID64 аккаунта (из maFile). По нему тоже работает поиск</div>;
         case AvalibleFieldTypes.tmApiKey:
             return <div className='alt-text-container'>Api ключ от сайта https://market.csgo.com Нужен для получения баланса оттуда. Если вы не работаете с маркетом, то вполне можно оставить это поле пустым</div>;
 
