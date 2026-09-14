@@ -9,6 +9,7 @@ import Password from "../../../../../globalComponents/Password/Password";
 import { observer, useLocalObservable } from "mobx-react";
 import TableSteamAccountInterface from "../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface";
 import convertMaFileToStr from "../../../../../../electron/components/Functions/converMaFileToStr";
+import { getSteamID64 } from "../../../../../../electron/components/Functions/steamAccountSearch";
 import Guard from "../../../components/Guard/Guard";
 import LoadingIcons from "react-loading-icons";
 import ReactTooltip from "react-tooltip";
@@ -67,6 +68,17 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
                 ? 1
                 : -1
             );
+          case AvalibleTypes.steamId:
+            return store.steamAccountsTable.sortSteamAccounts((a, b) => {
+              const aId = getSteamID64(a.maFile);
+              const bId = getSteamID64(b.maFile);
+              // аккаунты без SteamID всегда в конце
+              if (!aId) return 1;
+              if (!bId) return -1;
+              // SteamID64 — числа одной длины, но сравниваем с учётом длины на всякий случай
+              const aGreater = aId.length !== bId.length ? aId.length > bId.length : aId > bId;
+              return direction === "UP" ? (aGreater ? -1 : 1) : (aGreater ? 1 : -1);
+            });
           case AvalibleTypes.steamAccountBalance:
             return store.steamAccountsTable.sortSteamAccounts((a, b) =>
               direction === "UP"
@@ -491,6 +503,8 @@ const CellJSX: FC<{
           )}
         </>
       );
+    case AvalibleTypes.steamId:
+      return <>{getSteamID64(steamAccount.maFile) || "—"}</>;
     case AvalibleTypes.steamAccountLevel:
       return (
         <>

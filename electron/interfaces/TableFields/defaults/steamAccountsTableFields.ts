@@ -104,6 +104,13 @@ const steamAccountsTableFields: Field[] = [
         showTtitleInTable: true
     },
     {
+        type: AvalibleFieldTypes.steamId,
+        title: "Steam ID",
+        isSortable: true,
+        isVisible: true,
+        showTtitleInTable: true
+    },
+    {
         type: AvalibleFieldTypes.tmApiKey,
         title: "TM api",
         isSortable: true,
