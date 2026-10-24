@@ -1,2 +1,2 @@
 // Мок stealth-плагина: вызывается как puppeteerStealth().
-module.exports = () => ({});
+module.exports = () => ({ enabledEvasions: new Set() });
