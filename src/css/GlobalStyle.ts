@@ -83,12 +83,6 @@ export const GlobalStyle = createGlobalStyle`
   #navigation-extension-hover {
     background-image: url(./assets/img/ExtensionHover.svg);
   }
-  #navigation-support {
-    background-image: url(./assets/img/Support.svg);
-  }
-  #navigation-support-hover {
-    background-image: url(./assets/img/SupportHover.svg);
-  }
   .checkbox-default {
     background-image: url(./assets/img/checkbox.svg);
   }

@@ -318,7 +318,7 @@ export default class Chrome {
   async focus() {
     try {
       // Локальная пустая страница: трюк для фокуса окна не должен делать
-      // сетевой запрос на сторонний домен (раньше открывался pinkest.dev).
+      // сетевой запрос на сторонний домен (раньше открывался сайт автора оригинала).
       const newPage = await this.browser?.newPage();
       await newPage?.goto("about:blank");
       await (newPage as any).minimize();

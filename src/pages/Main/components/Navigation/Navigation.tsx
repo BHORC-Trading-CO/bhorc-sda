@@ -198,41 +198,6 @@ const Navigation = observer(() => {
               </div>
             )}
           </div> */}
-
-          <div
-            className={buttonsClass}
-            onClick={() => {
-              store.tabs.setActive("support");
-            }}
-            onMouseEnter={() => {
-              setHoverTab("support");
-            }}
-            onMouseLeave={() => {
-              setHoverTab("");
-            }}
-            style={{
-              backgroundColor:
-                hoverTab === "support" || store.tabs.active === "support"
-                  ? "#372447"
-                  : "",
-            }}
-          >
-            <div
-              className="navigation-img"
-              id={
-                store.tabs.active === "support"
-                  ? "navigation-support-hover"
-                  : "navigation-support"
-              }
-            ></div>
-            {isCompress ? (
-              ""
-            ) : (
-              <div className="button__text_navigation text-white-large">
-                Поддержка
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>
