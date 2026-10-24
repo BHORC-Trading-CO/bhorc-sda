@@ -1,7 +1,7 @@
 import { Store } from "./store";
 import { makeAutoObservable } from 'mobx';
 
-type Tab = 'steamAccounts' | 'proxies' | 'extensions' | 'support';
+type Tab = 'steamAccounts' | 'proxies' | 'extensions';
 
 class TabsStore {
     root: Store;

@@ -10,7 +10,6 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import store from "../../store/store";
 import { observer } from "mobx-react";
-import SupportTab from "./tabs/SupportTab/SupportTab";
 import ExtensionTab from "./tabs/ExtensionsTab/ExtensionsTab";
 
 const Main = observer(() => {
@@ -23,7 +22,6 @@ const Main = observer(() => {
           {store.tabs.active === "steamAccounts" ? <SteamAccountsTab /> : <></>}
           {store.tabs.active === "proxies" ? <ProxiesTab /> : <></>}
           {store.tabs.active === "extensions" ? <ExtensionTab /> : <></>}
-          {store.tabs.active === "support" ? <SupportTab /> : <></>}
         </div>
         <Prompt />
         <MiniNotification />
