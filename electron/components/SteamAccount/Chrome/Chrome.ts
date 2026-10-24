@@ -4,7 +4,15 @@ import puppeteerDefault, { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
 import puppeteerStealth from "puppeteer-extra-plugin-stealth";
 puppeteer.use(require("puppeteer-extra-plugin-minmax")());
-puppeteer.use(puppeteerStealth());
+const stealth = puppeteerStealth();
+// Эвейжен iframe.contentWindow для srcdoc-iframe до вставки в DOM подменяет
+// contentWindow прокси на ВЕРХНИЙ window. Скрипты фингерпринтинга (FingerprintJS
+// на cs.money и др.) пишут в "iframe" тестовый текст ("word word …",
+// "mmMwWLliI0fiflO&1") и ставят body ширину 4000px — а попадает это в саму
+// страницу: мусор в футере и растянутая вёрстка. Нужен он только для старого
+// headless-бага Chromium, мы запускаем headful — отключаем.
+stealth.enabledEvasions.delete("iframe.contentWindow");
+puppeteer.use(stealth);
 import { app } from "electron";
 import SteamAccountInterface from "../../../interfaces/SteamAccount/SteamAccountInterface";
 import Manager from "../../manager/manager";
