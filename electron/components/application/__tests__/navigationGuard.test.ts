@@ -39,7 +39,9 @@ describe('isAppUrl', () => {
         [`${macRoot}/..%2fmain/index.html`, [macEntry], false],
         [`${winRoot}/..%5cmain/index.html`, [winEntry], false],
         [`${macRoot}/%00.html`, [macEntry], false],
-        [`${macRoot}/%zz.html`, [macEntry], false],
+        // Битый %-escape внутри своей папки — просто буквальное имя файла приложения.
+        [`${macRoot}/%zz.html`, [macEntry], true],
+        [`${macRoot}/../%zz/index.html`, [macEntry], false],
         [macEntry.replace('file:///', 'file://evil.test/'), [macEntry], false],
         [macEntry.replace('file:///', 'file://localhost/'), [macEntry], true],
         ['file://server/share/.webpack/renderer/error_window/index.html', ['file://server/share/.webpack/renderer/main_window/index.html'], true],
@@ -58,6 +60,32 @@ describe('isAppUrl', () => {
         ['https://evil.test/', ['invalid'], false],
     ])('%s with %j -> %s', (url, entries, expected) => {
         expect(isAppUrl(url as string, entries as string[])).toBe(expected);
+    });
+});
+
+describe('isAppUrl: голый % в пути установки', () => {
+    // Forge подставляет путь в entry как есть, а Chromium кодирует "%" страницы как %25.
+    const rawEntry = 'file:///C:/Users/100%Pure/AppData/Local/BHORC%20SDA/.webpack/renderer/main_window/index.html';
+    it('доверяет своим страницам, если в пути есть голый %', () => {
+        expect(isAppUrl('file:///C:/Users/100%25Pure/AppData/Local/BHORC%20SDA/.webpack/renderer/confirmations_window/index.html', [rawEntry])).toBe(true);
+        expect(isAppUrl(rawEntry, [rawEntry])).toBe(true);
+    });
+    it('и по-прежнему не доверяет чужим', () => {
+        expect(isAppUrl('file:///C:/Users/100%25Pure/Evil/index.html', [rawEntry])).toBe(false);
+        expect(isAppUrl('https://evil.test/', [rawEntry])).toBe(false);
+    });
+});
+
+describe('подключение защиты', () => {
+    it('application ставит защиту до создания окон и проверяет адрес в sendToMain', () => {
+        const fs = require('fs');
+        const path = require('path');
+        const src: string = fs.readFileSync(path.join(__dirname, '..', 'application.ts'), 'utf8');
+        const guardAt = src.indexOf('installNavigationGuard(getAppEntries())');
+        const windowsAt = src.indexOf('new WindowsManager()');
+        expect(guardAt).toBeGreaterThan(-1);
+        expect(guardAt).toBeLessThan(windowsAt);
+        expect(src).toMatch(/sendToMain[\s\S]*isAppUrl\(win\.webContents\.getURL\(\), getAppEntries\(\)\)/);
     });
 });
 

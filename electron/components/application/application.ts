@@ -8,7 +8,7 @@ import { areDataPathsPinned, LEGACY_DATA_DIR_NAME } from "../../dataDir";
 import WindowsChannels from "../../interfaces/IpcChannels/WindowsChannels";
 import { testCrypto } from "../newStorage/cryptoUserData";
 import { getAppEntries } from "./appEntries";
-import { installNavigationGuard } from "./navigationGuard";
+import { installNavigationGuard, isAppUrl } from "./navigationGuard";
 import { onceTrusted } from "./trustedIpc";
 
 class Application {
@@ -76,8 +76,10 @@ class Application {
   }
 
   sendToMain(channel: string, content: any) {
-    if (this.windowsManager.mainWindow)
-      this.windowsManager.mainWindow.webContents.send(channel, content);
+    const win = this.windowsManager.mainWindow;
+    // Сюда уходят аккаунты с maFile и прокси с паролями — только странице приложения.
+    if (!win || win.isDestroyed() || !isAppUrl(win.webContents.getURL(), getAppEntries())) return;
+    win.webContents.send(channel, content);
   }
 }
 

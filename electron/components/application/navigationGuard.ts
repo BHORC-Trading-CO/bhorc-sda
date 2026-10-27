@@ -1,10 +1,25 @@
 import { app, shell } from 'electron';
 import { posix } from 'path';
 
+// Голый "%" в пути установки (папка "100%Pure") — не ошибка: Forge подставляет путь в
+// entry как есть, и decodeURIComponent на нём падает, после чего не доверялось бы ничему.
+// Раскодируем только корректные %XX, остальное оставляем буквально — и для entry, и для
+// адресов страниц (URL-парсер оставляет такой "%" как есть). Границы пути это не меняет:
+// закодированные разделители отклоняются до раскодирования, ".." убирает normalize.
+function decodePath(pathname: string): string {
+    return pathname.replace(/(?:%[0-9a-f]{2})+/gi, (seq) => {
+        try {
+            return decodeURIComponent(seq);
+        } catch {
+            return seq;
+        }
+    });
+}
+
 function filePath(url: URL): string | null {
     // URL использует / на любой ОС. Закодированные разделители не должны менять границы пути.
     if (/%2f|%5c/i.test(url.pathname)) return null;
-    const decoded = decodeURIComponent(url.pathname);
+    const decoded = decodePath(url.pathname);
     if (/[\0\\]/.test(decoded)) return null;
     const windowsPath = /^\/[a-z]:\//i.test(decoded) || Boolean(url.hostname);
     // Windows убирает конечные точки/пробелы в компонентах пути; не допускаем такие алиасы.
