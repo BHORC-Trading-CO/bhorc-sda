@@ -1,7 +1,6 @@
 import Store from 'electron-store';
 import TableOptions from '../../interfaces/TableOptions/TableOptions';
 import Field from '../../interfaces/TableFields/Field';
-import AvalibleFieldTypes from '../../interfaces/TableFields/AvalibleFieldTypes';
 import defaultSteamAccountTableFields from '../../interfaces/TableFields/defaults/steamAccountsTableFields';
 import defaultProxyTableFields from '../../interfaces/TableFields/defaults/proxiesTableFields';
 
@@ -16,6 +15,8 @@ console.log(store.path);
 
 type Table = 'steamAccounts' | 'proxies';
 
+const REMOVED_FIELD_TYPES = new Set<string>(["tmApiKey", "csgoTmBalance"]);
+
 class TableStorage {
     static GetFields(type: Table) {
         const defaults = type === 'steamAccounts' ? defaultSteamAccountTableFields
@@ -28,9 +29,10 @@ class TableStorage {
             store.set(`${type}TableFields`, defaults);
             return defaults;
         }
-        // Удаляем устаревшие типы колонок, сохраняя порядок и настройки остальных.
-        const knownTypes = new Set(Object.values(AvalibleFieldTypes));
-        const supportedFields = fields.filter(field => knownTypes.has(field.type));
+        // Удаляем колонки TM (SDA-8), сохраняя порядок и настройки остальных. Неизвестные типы
+        // не трогаем: колонку из более новой версии не надо стирать при откате, а пустую
+        // ячейку таблица и так рисует.
+        const supportedFields = fields.filter(field => !REMOVED_FIELD_TYPES.has(field.type));
         // Бэкфилл новых колонок, добавленных в defaults после того как пользователь
         // уже сохранил свой набор полей (иначе новые колонки, напр. "Группа", не
         // появятся в настройках отображения у существующих пользователей).

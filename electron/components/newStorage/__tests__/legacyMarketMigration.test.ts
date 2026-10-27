@@ -107,7 +107,6 @@ describe("Миграция сохранённых колонок", () => {
             { ...supported[0], type: "tmApiKey" },
             ...supported.slice(0, 2),
             { ...supported[0], type: "csgoTmBalance" },
-            { ...supported[0], type: "unknown-removed-column" },
             ...supported.slice(2),
         ];
         const original = copy(legacy);
@@ -130,6 +129,12 @@ describe("Миграция сохранённых колонок", () => {
 
         expect(TableStorage.GetFields("steamAccounts")).toEqual(expected);
         expect(store.get("steamAccountsTableFields")).toEqual(expected);
+    });
+
+    it("не стирает колонки неизвестных типов (из более новой версии)", () => {
+        const future = { ...copy(defaults[0]), type: "column-from-newer-version" };
+        store.set("steamAccountsTableFields", [...copy(defaults), future]);
+        expect(TableStorage.GetFields("steamAccounts")).toContainEqual(future);
     });
 
     it("создаёт новые настройки без удалённых колонок", () => {
@@ -157,9 +162,16 @@ describe("Миграция сохранённых аккаунтов", () => {
         expect(store.get("steamAccounts")).toEqual(expected);
         expect(store.get("unrelated-setting")).toEqual({ keep: true });
         expect(active).toEqual(original);
-        expect(store.set).toHaveBeenCalledTimes(2);
+        expect(store.set).toHaveBeenCalledTimes(1);
         expect(SteamAccountStorage.GetAll()).toEqual(expected);
-        expect(store.set).toHaveBeenCalledTimes(2);
+        expect(store.set).toHaveBeenCalledTimes(1);
+    });
+
+    it("сбой записи при миграции не оставляет приложение без аккаунтов", () => {
+        const active = oldAccount();
+        store.set("steamAccounts", { [active.id]: active });
+        jest.mocked(store.set).mockImplementationOnce(() => { throw new Error("EPERM"); });
+        expect(SteamAccountStorage.GetAll()).toEqual({ [active.id]: cleanedAccount() });
     });
 
     it("очищает отдельный аккаунт при GetById и не записывает его повторно", () => {
