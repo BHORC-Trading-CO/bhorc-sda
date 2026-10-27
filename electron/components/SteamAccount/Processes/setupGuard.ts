@@ -24,6 +24,7 @@ import {
   EAuthSessionGuardType,
 } from "steam-session";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
+import { writeUnredacted } from "../../Functions/redactSecrets";
 
 type AbortChannelType =
   | SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT
@@ -173,8 +174,8 @@ export default async function setupGuard(
               );
               // Секреты в лог — только запасной путь, когда на диск записать не удалось:
               // иначе revocation_code потеряется. В остальных случаях им в логе не место.
-              // secret-log-ok: резервная копия при сбое записи на диск
-              if (!backupFile) console.log(rawMaFile);
+              // secret-log-ok: резервная копия при сбое записи на диск (мимо маскировки console)
+              if (!backupFile) writeUnredacted(`${steamAccountParams.accountName} - секреты аутентификатора:`, rawMaFile);
 
               // Код подтверждения приходит на ПОЧТУ, если телефон к аккаунту не привязан,
               // и в SMS, если привязан. Эндпоинт и поле activation_code одни и те же,

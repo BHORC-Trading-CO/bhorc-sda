@@ -14,9 +14,11 @@ const SECRET_NAMES = [
     "maFile", "rawMaFile", "sMaFile", "smaFile", "steamAccount", "steamAccounts", "steamAccountParams",
     "thisAccount", "confirmations", "proxy", "proxies", "proxyData", "newProxy", "activeProxy",
     "compiledObjects", "proxiesByPage", "steamAccountsByPage",
+    "shared_secret", "sharedSecret", "identity_secret", "identitySecret", "revocation_code", "revocationCode",
+    "secret_1", "RefreshToken", "AccessToken", "refreshToken", "accessToken", "mailPassword", "familyViewPin",
 ];
 const CONSOLE_CALL = /console\.(log|info|warn|error|debug|trace)\(([^;]*)\)/;
-const BARE_SECRET = new RegExp(`(^|[\\s,(])(?:[\\w$]+\\.)*(${SECRET_NAMES.join("|")})(?=\\s*(,|\\)|$))`);
+const BARE_SECRET = new RegExp(`(^|[\\s,(])(?:[\\w$?]+\\.)*(${SECRET_NAMES.join("|")})(?=\\s*(,|\\)|$))`);
 
 function walk(dir: string, out: string[] = []): string[] {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -55,7 +57,10 @@ describe("секреты не логируются", () => {
                 if (line.trim().startsWith("//")) return;
                 const call = line.match(CONSOLE_CALL);
                 if (!call) return;
-                const args = call[2].replace(/`[^`]*`|"[^"]*"|'[^']*'/g, "\"\"");
+                // Из шаблонных строк оставляем только выражения ${...}: `${steamAccount.password}` — тоже утечка.
+                const args = call[2]
+                    .replace(/`[^`]*`/g, (tpl) => (tpl.match(/\$\{[^}]*\}/g) || []).map((e) => e.slice(2, -1)).join(", ") || "\"\"")
+                    .replace(/"[^"]*"|'[^']*'/g, "\"\"");
                 if (!BARE_SECRET.test(args)) return;
                 if (i > 0 && lines[i - 1].includes("secret-log-ok")) return;
                 offenders.push(`${path.relative(ROOT, file)}:${i + 1}: ${line.trim()}`);

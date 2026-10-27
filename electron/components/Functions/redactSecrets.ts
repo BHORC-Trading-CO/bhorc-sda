@@ -2,52 +2,96 @@
 // Вызовы console.* с секретами мы вычищаем, но любой новый console.log(steamAccount)
 // снова выведет пароль, maFile и токены. Поэтому console во всех процессах обёрнут:
 // значения секретных ключей заменяются на "[redacted]", а в строках маскируются JWT,
-// логины/пароли в адресах прокси, steamLoginSecure и secret= из otpauth-ссылок.
+// логины/пароли в адресах прокси, steamLoginSecure, secret= из otpauth и key=/token=.
+//
+// Для разработчиков: DevTools показывает источником каждого лога этот файл. Чтобы видеть
+// настоящее место вызова, добавьте redactSecrets.ts в Ignore List (Settings > Ignore List).
 
 export const REDACTED = "[redacted]";
 
+// Сравниваем без регистра и без "_"/"-": shared_secret, sharedSecret и SharedSecret — одно и то же.
+const normalizeKey = (key: string) => key.toLowerCase().replace(/[_-]/g, "");
 const SECRET_KEYS = new Set(
     [
         "password", "mailPassword", "username",
         "maFile", "smaFile", "shared_secret", "identity_secret", "revocation_code", "secret_1",
-        "Session", "session", "AccessToken", "RefreshToken", "_accessToken", "_refreshToken", "accessToken", "refreshToken",
-        "SessionID", "sessionid", "steamLoginSecure", "cookies", "cookie", "webCookies",
-        "familyViewPin", "pin", "activation_code", "secretKey", "key", "tmApiKey", "marketApiKey", "token", "access_token",
-    ].map((k) => k.toLowerCase())
+        "Session", "AccessToken", "RefreshToken", "SessionID", "steamLoginSecure", "cookies", "cookie", "webCookies",
+        "familyViewPin", "pin", "activation_code", "secretKey", "key", "apiKey", "tmApiKey", "marketApiKey",
+        "token", "access_token", "authorization",
+    ].map(normalizeKey)
 );
 
-const STRING_PATTERNS: [RegExp, string][] = [
+const PROXY_TOKEN = /^[^:@\/]+:[^@\/]+@[\w.-]+:\d+/;
+const STRING_PATTERNS: [RegExp, string | ((match: string) => string)][] = [
     [/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[redacted-jwt]"],
-    [/(\b[a-z][a-z0-9+.-]*:\/\/)[^\s:@\/]+:[^\s@\/]+@/gi, `$1${REDACTED}@`],
-    [/(^|[\s"'(=])[^\s:@\/"'()=]+:[^\s:@\/"'()]+@(?=[\w.-]+:\d+)/g, `$1${REDACTED}@`],
+    // Схема ограничена по длине: без этого регулярка квадратична на длинных строках вида "a.a.a.".
+    [/(\b[a-z][a-z0-9+.-]{0,31}:\/\/)[^\s:@\/]+:[^\s@\/]+@/gi, `$1${REDACTED}@`],
+    // "login:password@host:port" без схемы (формат массового импорта прокси): проверяем по токенам,
+    // чтобы не было бэктрекинга по всей строке.
+    [/[^\s"'()=,]+/g, (token: string) => (PROXY_TOKEN.test(token) ? token.replace(/^[^@]+@/, `${REDACTED}@`) : token)],
     [/(steamLoginSecure=)[^;\s"']+/gi, `$1${REDACTED}`],
-    [/([?&]secret=)[^&\s"']+/gi, `$1${REDACTED}`],
+    [/([?&](?:secret|key|access_token|token)=)[^&\s"']+/gi, `$1${REDACTED}`],
 ];
 
 const MAX_DEPTH = 6;
-const MAX_KEYS = 200;
+const MAX_ITEMS = 200;
+const MAX_NODES = 5000;
 
 export function redactString(text: string): string {
-    return STRING_PATTERNS.reduce((acc, [pattern, replacement]) => acc.replace(pattern, replacement), text);
+    return STRING_PATTERNS.reduce(
+        (acc, [pattern, replacement]) => acc.replace(pattern, replacement as string),
+        text
+    );
 }
 
-export function redactSecrets(value: unknown, depth = 0, seen: WeakSet<object> = new WeakSet()): unknown {
+interface Walk {
+    ancestors: object[];
+    nodes: number;
+}
+
+function redactValue(value: unknown, depth: number, walk: Walk): unknown {
     if (typeof value === "string") return redactString(value);
     if (value === null || typeof value !== "object") return value;
-    if (value instanceof Error) {
-        const copy = new Error(redactString(value.message));
-        copy.name = value.name;
-        copy.stack = value.stack ? redactString(value.stack) : undefined;
-        return copy;
-    }
-    if (seen.has(value)) return "[Circular]";
+    if (value instanceof Date || value instanceof RegExp) return value;
+    if (typeof URL !== "undefined" && value instanceof URL) return redactString(value.href);
+    if (walk.ancestors.includes(value)) return "[Circular]";
     if (depth >= MAX_DEPTH) return "[Object]";
-    seen.add(value);
-    if (Array.isArray(value)) return value.slice(0, MAX_KEYS).map((item) => redactSecrets(item, depth + 1, seen));
+    if (++walk.nodes > MAX_NODES) return "[Truncated]";
     if (typeof (value as { byteLength?: unknown }).byteLength === "number") return `[Binary ${(value as { byteLength: number }).byteLength}]`;
 
+    walk.ancestors.push(value);
+    try {
+        if (value instanceof Error) {
+            const copy = new Error(redactString(value.message));
+            copy.name = value.name;
+            copy.stack = value.stack ? redactString(value.stack) : undefined;
+            // code, errno, eresult и т.п. нужны для отладки — копируем, тоже через маскировку.
+            Object.assign(copy, redactObjectFields(value, depth, walk));
+            const cause = (value as { cause?: unknown }).cause;
+            if (cause !== undefined) (copy as { cause?: unknown }).cause = redactValue(cause, depth + 1, walk);
+            return copy;
+        }
+        if (Array.isArray(value)) {
+            const out = value.slice(0, MAX_ITEMS).map((item) => redactValue(item, depth + 1, walk));
+            if (value.length > MAX_ITEMS) out.push(`…ещё ${value.length - MAX_ITEMS}`);
+            return out;
+        }
+        if (value instanceof Map) {
+            return new Map([...value.entries()].slice(0, MAX_ITEMS).map(([k, v]) => [
+                k,
+                typeof k === "string" && SECRET_KEYS.has(normalizeKey(k)) ? REDACTED : redactValue(v, depth + 1, walk),
+            ]));
+        }
+        if (value instanceof Set) return new Set([...value].slice(0, MAX_ITEMS).map((v) => redactValue(v, depth + 1, walk)));
+        return redactObjectFields(value, depth, walk);
+    } finally {
+        walk.ancestors.pop();
+    }
+}
+
+function redactObjectFields(value: object, depth: number, walk: Walk): Record<string, unknown> {
     const out: Record<string, unknown> = {};
-    for (const key of Object.keys(value).slice(0, MAX_KEYS)) {
+    for (const key of Object.keys(value).slice(0, MAX_ITEMS)) {
         let item: unknown;
         try {
             item = (value as Record<string, unknown>)[key];
@@ -55,11 +99,15 @@ export function redactSecrets(value: unknown, depth = 0, seen: WeakSet<object> =
             continue;
         }
         if (typeof item === "function") continue;
-        out[key] = SECRET_KEYS.has(key.toLowerCase()) && item !== null && item !== undefined && item !== ""
+        out[key] = SECRET_KEYS.has(normalizeKey(key)) && item !== null && item !== undefined && item !== ""
             ? REDACTED
-            : redactSecrets(item, depth + 1, seen);
+            : redactValue(item, depth + 1, walk);
     }
     return out;
+}
+
+export function redactSecrets(value: unknown): unknown {
+    return redactValue(value, 0, { ancestors: [], nodes: 0 });
 }
 
 const METHODS = ["log", "info", "warn", "error", "debug", "trace"] as const;
@@ -82,4 +130,13 @@ export function installConsoleRedaction(target: Console = console): void {
         };
     }
     marked[INSTALLED] = true;
+}
+
+// Единственный осознанный вывод секретов: резервная копия ответа Steam с секретами
+// аутентификатора, когда записать её на диск не удалось (см. setupGuard). Пишем мимо
+// обёртки console, иначе revocation_code придёт в лог как "[redacted]" и потеряется.
+export function writeUnredacted(label: string, value: unknown): void {
+    const stream = typeof process !== "undefined" ? process.stdout : undefined;
+    const text = `${label}\n${JSON.stringify(value, null, 2)}\n`;
+    if (stream && typeof stream.write === "function") stream.write(text);
 }
