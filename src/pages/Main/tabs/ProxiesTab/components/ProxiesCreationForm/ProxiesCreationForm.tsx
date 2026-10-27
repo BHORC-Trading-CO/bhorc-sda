@@ -93,7 +93,6 @@ export const CreationFormContent: FC = () => {
           }}
         ></Button>
         <Button size="medium" text="Сохранить" onClick={() => {
-          console.log(proxy);
           console.log(links);
           if (proxy.host && proxy.port && proxy.username && proxy.password) {
             window.Main.proxies.new(proxy, links);

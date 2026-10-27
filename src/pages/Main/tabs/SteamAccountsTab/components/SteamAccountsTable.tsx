@@ -25,7 +25,6 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
   const steamAccountsByPage =
     store.steamAccountsTable.getSteamAccountsByPages();
 
-  console.log("accounts by pages: ", steamAccountsByPage);
 
   const lines: Line[] = [];
   if (steamAccountsByPage[store.steamAccountsTable.activePage - 1])

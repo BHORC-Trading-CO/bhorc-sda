@@ -14,7 +14,6 @@ const ProxiesTable: FC = observer(() => {
     const proxiesByPage = store.proxiesTable.getProxiesByPages();
     const lines: Line[] = [];
 
-    console.log(proxiesByPage);
     if (proxiesByPage[store.proxiesTable.activePage - 1])
         for (var proxy of proxiesByPage[store.proxiesTable.activePage - 1]) {
             if (proxy.deleted && !store.proxiesTable.showDeleted) continue;

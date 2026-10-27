@@ -1,3 +1,4 @@
+import "../components/Functions/installConsoleRedaction";
 import { contextBridge, IpcMainEvent, ipcRenderer, IpcRendererEvent, session, shell } from 'electron';
 import Field from '../interfaces/TableFields/Field';
 import CompiledProxyInterface from '../interfaces/Proxy/CompiledProxyInterface';
@@ -67,7 +68,6 @@ const steamAccounts = {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, listener);
   },
   creationProcess: (steamAccount: SteamAccountSetupInterface, links: { proxyId: string | null, newProxy: ProxySetupInterface | null }) => {
-    console.log(steamAccount, links);
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS, { steamAccount: steamAccount, links })
   },
   onCreationProcessStep(listener: (event: IpcRendererEvent, step: CreationStepType) => void) {
@@ -152,7 +152,6 @@ const proxies = {
     ipcRenderer.send('NEW_PROXIES', proxies);
   },
   edit: (id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[] }) => {
-    console.log(id, proxy, links)
     ipcRenderer.send('EDIT_PROXY', { id, proxy, links });
   },
   delete: (id: string) => {

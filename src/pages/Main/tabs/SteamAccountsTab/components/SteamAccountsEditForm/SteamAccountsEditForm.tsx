@@ -35,7 +35,6 @@ const EditFormContent = observer(() => {
     const steamAccount = content.steamAccount;
     const steamAccountInStorage = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(sa => sa.id === steamAccount.id)[0];
     const pin = steamAccount.familyViewPin === 0 ? '' : String(steamAccount.familyViewPin);
-    console.log(pin);
     return <div className='steam-account_edit-form'>
         <div className='steam-data-block'>
             <div className="steam-data-title text-white-medium">Введите данные от существующего Steam аккаунта:</div>

@@ -196,7 +196,6 @@ class SteamAccountsTableStore {
   }
   setSteamAccounts(steamAccounts: CompiledSteamAccountInterface[]) {
     try {
-      console.log(steamAccounts);
       this.steamAccounts = {};
       const tableSteamAccounts: TableSteamAccountInterface[] = [];
       const deletedTableSteamAccounts: TableSteamAccountInterface[] = [];

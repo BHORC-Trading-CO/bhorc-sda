@@ -30,8 +30,6 @@ export const CreateProxyBlock: FC<{
             const value = e.target.value;
             const proxyData = parseProxyString(value);
             setProxyStr(value);
-            console.log(value);
-            console.log(proxyData);
             onChange(proxyData);
           }}
         ></input>

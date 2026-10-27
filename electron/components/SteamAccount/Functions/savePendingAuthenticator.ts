@@ -24,6 +24,8 @@ export default function savePendingAuthenticator(
     try {
         const dir = path.join(app.getPath("userData"), "pending_authenticators");
         fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+        // mode у mkdirSync не трогает уже существующую папку (старые версии создавали 0o755).
+        fs.chmodSync(dir, 0o700);
 
         // Имя с меткой времени: повторные попытки не затирают предыдущие секреты.
         // Две попытки в одну миллисекунду дают одно имя, поэтому пишем с флагом "wx"

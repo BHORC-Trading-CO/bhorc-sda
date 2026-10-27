@@ -79,7 +79,6 @@ export class ProxyManager {
         try {
             const proxies = ProxyStorage.GetAll();
             console.log('load proxies: ');
-            console.log(proxies);
             const objectsArray = Object.values(proxies);
             this.objects = [];
             for (var object of objectsArray) {
@@ -102,7 +101,6 @@ export class ProxyManager {
             compiledObjects.push(compiledObject);
         }
         console.log('compiled proxy:');
-        console.log(compiledObjects);
         return compiledObjects;
     }
     getById(id: string) {

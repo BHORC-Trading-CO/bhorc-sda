@@ -23,7 +23,6 @@ const ImportAccountItem = observer(
     );
     const [isSessionOpen, setIsSessionOpen] = useState(false);
 
-    console.log(Object.keys(smaFile.maFile));
     return (
       <div className="imported-steam-account-item__container">
         <div className="imported-steam-account-item text-white-medium">
@@ -103,7 +102,6 @@ const ImportAccountItem = observer(
         {isProxyOpen ? (
           <ProxyItem
             onSelect={(newProxy) => {
-              console.log(newProxy);
               for (var i in content.importedAccounts) {
                 if (content.importedAccounts[i].tempId === tempId)
                   content.importedAccounts[i].proxyId = newProxy.id;

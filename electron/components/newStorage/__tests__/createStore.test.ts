@@ -10,9 +10,10 @@ jest.mock("electron-store", () =>
     })
 );
 
-import createStore, { CONFIG_FILE_MODE, restrictConfigFileMode } from "../createStore";
+import createStore, { CONFIG_FILE_MODE, restrictSecretFiles } from "../createStore";
 
 const posixOnly = process.platform === "win32" ? it.skip : it;
+const mode = (p: string) => fs.statSync(p).mode & 0o777;
 
 describe("createStore", () => {
     it("создаёт хранилище с правами 0o600 на config.json", () => {
@@ -21,23 +22,46 @@ describe("createStore", () => {
         expect(mockStoreOptions).toContainEqual({ configFileMode: 0o600 });
     });
 
-    posixOnly("restrictConfigFileMode ужимает права уже существующего файла", () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sda-store-"));
-        const file = path.join(dir, "config.json");
-        fs.writeFileSync(file, "{}");
-        fs.chmodSync(file, 0o666);
-
-        restrictConfigFileMode({ path: file });
-
-        expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+    posixOnly("настоящий conf с этим режимом пишет файл 0o600 (и 0o666 без него)", () => {
+        const Conf = jest.requireActual("conf");
+        const ConfClass = Conf.default || Conf;
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sda-conf-"));
+        const secure = new ConfClass({ cwd: path.join(dir, "a"), projectName: "t", configFileMode: CONFIG_FILE_MODE });
+        secure.set("k", 1);
+        expect(mode(secure.path)).toBe(0o600);
+        const insecure = new ConfClass({ cwd: path.join(dir, "b"), projectName: "t" });
+        insecure.set("k", 1);
+        expect(mode(insecure.path)).toBe(0o666);
     });
 
-    it("restrictConfigFileMode не падает, если файла ещё нет", () => {
-        expect(() => restrictConfigFileMode({ path: "/nonexistent/config.json" })).not.toThrow();
+    posixOnly("restrictSecretFiles чинит права старой установки и убирает tmp-копии", () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sda-store-"));
+        const config = path.join(dir, "config.json");
+        fs.writeFileSync(config, "{}");
+        fs.chmodSync(config, 0o666);
+        const tmp = path.join(dir, "config.json.tmp-1234567890abcdef");
+        fs.writeFileSync(tmp, "{\"password\":\"x\"}");
+        const pending = path.join(dir, "pending_authenticators");
+        fs.mkdirSync(pending, { mode: 0o755 });
+        fs.chmodSync(pending, 0o755);
+        const backup = path.join(pending, "acc-1.json");
+        fs.writeFileSync(backup, "{}");
+        fs.chmodSync(backup, 0o644);
+
+        restrictSecretFiles({ path: config });
+
+        expect(mode(config)).toBe(0o600);
+        expect(fs.existsSync(tmp)).toBe(false);
+        expect(mode(pending)).toBe(0o700);
+        expect(mode(backup)).toBe(0o600);
+    });
+
+    it("restrictSecretFiles не падает, если ничего ещё нет", () => {
+        expect(() => restrictSecretFiles({ path: "/nonexistent/config.json" })).not.toThrow();
     });
 
     it("electron-store нигде не создают в обход createStore", () => {
-        const root = path.join(__dirname, "../../..");
+        const roots = [path.join(__dirname, "../../.."), path.join(__dirname, "../../../../src")];
         const offenders: string[] = [];
         const walk = (dir: string) => {
             for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -45,12 +69,11 @@ describe("createStore", () => {
                 if (entry.isDirectory()) {
                     if (entry.name !== "__tests__") walk(full);
                 } else if (/\.tsx?$/.test(entry.name) && !full.endsWith(path.join("newStorage", "createStore.ts"))) {
-                    const text = fs.readFileSync(full, "utf8");
-                    if (/new Store\(|from ["']electron-store["']/.test(text)) offenders.push(path.relative(root, full));
+                    if (/["']electron-store["']/.test(fs.readFileSync(full, "utf8"))) offenders.push(full);
                 }
             }
         };
-        walk(root);
+        roots.forEach(walk);
         expect(offenders).toEqual([]);
     });
 });

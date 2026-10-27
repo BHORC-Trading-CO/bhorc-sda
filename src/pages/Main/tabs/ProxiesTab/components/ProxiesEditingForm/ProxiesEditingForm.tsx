@@ -100,7 +100,6 @@ const EditingFormContent: FC = observer(() => {
           }}
         ></Button>
         <Button size="medium" text="Сохранить" onClick={() => {
-          console.log(proxyData, links);
           if (proxyData.host && proxyData.port && proxyData.password && proxyData.host) {
             window.Main.proxies.edit(proxy.id, proxyData, links);
             store.proxiesTable.closeEditingForm();
