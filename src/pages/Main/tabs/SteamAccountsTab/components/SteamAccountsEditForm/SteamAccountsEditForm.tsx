@@ -67,11 +67,6 @@ const EditFormContent = observer(() => {
                         <></>
                 }
             </div>
-            <Input value={steamAccount.tmApiKey ? steamAccount.tmApiKey : ""} placeholder='TM api ключ' onChange={(newValue) => {
-                store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, tmApiKey: newValue } });
-                changeThisProperties.tmApiKey = newValue;
-            }} />
-
             <MaFileImport currentMaFile={content.steamAccount.maFile} onChange={(newMaFile) => {
                 if (!newMaFile) return;
 

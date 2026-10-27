@@ -1,7 +1,8 @@
 import MaFileInterface from "../../interfaces/SteamAccount/MaFileInterface";
+import stripLegacyMarketData from "../../Functions/stripLegacyMarketData";
 
 const maFileToString = (maFile: MaFileInterface): string => {
-    let text = JSON.stringify(maFile);
+    let text = JSON.stringify(stripLegacyMarketData(maFile));
     const pos1 = text.indexOf('"SteamID"') + '"SteamID"'.length;
     const pos2 = text.indexOf('"', pos1) + 1;
     const pos3 = text.indexOf('"', pos2);

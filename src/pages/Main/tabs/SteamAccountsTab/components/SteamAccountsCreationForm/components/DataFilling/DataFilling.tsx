@@ -258,15 +258,6 @@ const NewSteamAccountForm: FC = observer(() => {
             }}
           />
         </div>
-        <Input
-          value={params.tmApiKey}
-          placeholder="Апи ключ tm (необязательно)"
-          onChange={(newValue) => {
-            store.steamAccountsTable.creationForm.editContent({
-              tmApiKey: newValue,
-            });
-          }}
-        />
         <Delimeter marginBottom="25px" marginTop="0px" />
       </div>
       <Delimeter marginBottom="25px" marginTop="0px" />

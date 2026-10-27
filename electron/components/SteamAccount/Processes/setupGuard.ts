@@ -36,7 +36,6 @@ export default async function setupGuard(
   steamAccountParams: {
     accountName: string;
     password: string;
-    tmApiKey?: string;
   },
   proxy?: ProxySetupInterface
 ): Promise<SmaFileInterface> {
@@ -239,7 +238,6 @@ export default async function setupGuard(
             const sMaFile: SmaFileInterface = {
               accountName: steamAccountParams.accountName,
               password: steamAccountParams.password,
-              tmApiKey: steamAccountParams.tmApiKey,
               maFile: maFile,
               secondary: secondaries,
               familyViewPin: null,

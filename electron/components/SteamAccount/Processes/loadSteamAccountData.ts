@@ -120,15 +120,10 @@ function parseAvatarURL(body: string): string {
     return DEFAULT_AVATAR_URL;
 }
 
-export async function getChangableSecondaries(community: SteamCommunity, marketApiKey: string): Promise<ChangableSecondaryInterface> {
-    const promises = [getSteamBalance(community), getMarketBalance(marketApiKey, community)]
+export async function getChangableSecondaries(community: SteamCommunity): Promise<ChangableSecondaryInterface> {
+    const promises = [getSteamBalance(community)]
     const result = await Promise.allSettled(promises);
     const changableSecondary: ChangableSecondaryInterface = {
-        market: {
-            error: result[1].status === 'rejected' ? result[1].reason : null,
-            balance: result[1].status === 'fulfilled' ? result[1].value.balance : null,
-            currency: result[1].status === 'fulfilled' ? result[1].value.currency : null
-        },
         steam: {
             error: result[0].status === 'rejected' ? result[0].reason : null,
             balance: result[0].status === 'fulfilled' ? result[0].value.balance : null,
@@ -166,25 +161,6 @@ async function getSteamBalance(community: SteamCommunity): Promise<{ balance: nu
                 } catch (err) {
                     reject(err);
                 }
-            } else {
-                reject(new Error(`${response.statusCode}: ${response.statusMessage}`));
-            }
-        });
-    });
-}
-
-async function getMarketBalance(marketApiKey: string, community: SteamCommunity): Promise<{ balance: number, currency: string }> {
-    return new Promise<{ balance: number, currency: string }>((resolve, reject) => {
-        if (!marketApiKey) {
-            return reject('Апи ключ маркета не установлен');
-        }
-        community.httpRequestGet({
-            uri: `https://market.csgo.com/api/v2/get-money?key=${marketApiKey}`
-        }, (err: SteamCommunity.CallbackError, response: Response, body: Response["body"]) => {
-            if (err) return reject(err);
-            if (response.statusCode == 200) {
-                const balance = JSON.parse(body);
-                resolve({ balance: balance.money, currency: balance.currency });
             } else {
                 reject(new Error(`${response.statusCode}: ${response.statusMessage}`));
             }

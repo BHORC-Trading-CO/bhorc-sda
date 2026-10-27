@@ -43,16 +43,12 @@ const getAltText = (field: Field) => {
             return <div className='alt-text-container'>Статус красной таблички в Steam. Упоси господь увидеть здесь что-то отличное от слова ОК 😈</div>
         case AvalibleFieldTypes.steamAccountBalance:
             return <div className='alt-text-container'>Здесь отображаются балансы Steam😙. Что еще сказать?</div>
-        case AvalibleFieldTypes.csgoTmBalance:
-            return <div className='alt-text-container'>Здесь отображаются балансы ваших аккаунтах на сайте https://market.csgo.com. Условие для отображение: необходимо указать api ключ в настройках</div>
         case AvalibleFieldTypes.number:
             return <div className='alt-text-container'>Это номер в системе. Его нельзя изменить. По сути это просто цифра для более удобной работы</div>
         case AvalibleFieldTypes.steamAccountNickname:
             return <div className='alt-text-container'>Тут отображаются никнеймы из Steam (из профиля)</div>;
         case AvalibleFieldTypes.steamId:
             return <div className='alt-text-container'>SteamID64 аккаунта (из maFile). По нему тоже работает поиск</div>;
-        case AvalibleFieldTypes.tmApiKey:
-            return <div className='alt-text-container'>Api ключ от сайта https://market.csgo.com Нужен для получения баланса оттуда. Если вы не работаете с маркетом, то вполне можно оставить это поле пустым</div>;
 
         case AvalibleFieldTypes.proxyHost:
             return <div className='alt-text-container'>Тут располагаются хосты прокси. Это часть ip адреса. Например: 123.123.123.123</div>;

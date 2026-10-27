@@ -67,14 +67,6 @@ const steamAccountsTableFields: Field[] = [
     },
 
     {
-        type: AvalibleFieldTypes.csgoTmBalance,
-        title: "Баланс CSGO TM",
-        isSortable: true,
-        isVisible: false,
-        showTtitleInTable: true
-    },
-
-    {
         type: AvalibleFieldTypes.ktState,
         title: "Статус КТ",
         isSortable: true,
@@ -108,13 +100,6 @@ const steamAccountsTableFields: Field[] = [
         title: "Steam ID",
         isSortable: true,
         isVisible: true,
-        showTtitleInTable: true
-    },
-    {
-        type: AvalibleFieldTypes.tmApiKey,
-        title: "TM api",
-        isSortable: true,
-        isVisible: false,
         showTtitleInTable: true
     },
     {

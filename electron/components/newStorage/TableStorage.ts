@@ -15,6 +15,8 @@ console.log(store.path);
 
 type Table = 'steamAccounts' | 'proxies';
 
+const REMOVED_FIELD_TYPES = new Set<string>(["tmApiKey", "csgoTmBalance"]);
+
 class TableStorage {
     static GetFields(type: Table) {
         const defaults = type === 'steamAccounts' ? defaultSteamAccountTableFields
@@ -27,12 +29,16 @@ class TableStorage {
             store.set(`${type}TableFields`, defaults);
             return defaults;
         }
+        // Удаляем колонки TM (SDA-8), сохраняя порядок и настройки остальных. Неизвестные типы
+        // не трогаем: колонку из более новой версии не надо стирать при откате, а пустую
+        // ячейку таблица и так рисует.
+        const supportedFields = fields.filter(field => !REMOVED_FIELD_TYPES.has(field.type));
         // Бэкфилл новых колонок, добавленных в defaults после того как пользователь
         // уже сохранил свой набор полей (иначе новые колонки, напр. "Группа", не
         // появятся в настройках отображения у существующих пользователей).
-        const existingTypes = new Set(fields.map(f => f.type));
-        const merged = [...fields, ...defaults.filter(f => !existingTypes.has(f.type))];
-        if (merged.length !== fields.length) {
+        const existingTypes = new Set(supportedFields.map(f => f.type));
+        const merged = [...supportedFields, ...defaults.filter(f => !existingTypes.has(f.type))];
+        if (supportedFields.length !== fields.length || merged.length !== fields.length) {
             store.set(`${type}TableFields`, merged);
         }
         return merged;
