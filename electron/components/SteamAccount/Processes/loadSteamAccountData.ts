@@ -201,21 +201,46 @@ function parseTpState(body: string): boolean | string {
     return true;
 }
 
-async function getTradeState(community: SteamCommunity): Promise<boolean> {
+// Статус трейда берём из проверки, которую Steam сам делает перед страницами трейдов:
+// /market/eligibilitycheck/ ставит cookie webTradeEligibility с JSON вида
+// {"allowed":1,"allowed_at_time":0,"steamguard_required_days":15,"new_device_cooldown_days":0,...}.
+// Раньше статус узнавали, открывая новый трейд на захардкоженный трейд-линк чужого аккаунта
+// из апстрима: все аккаунты ходили на один и тот же линк, и Steam мог связать их между собой.
+const TRADE_ELIGIBILITY_URL = "https://steamcommunity.com/market/eligibilitycheck/?goto=%2F";
+
+export interface TradeEligibility {
+    allowed: number;
+    allowed_at_time?: number;
+    reason?: number;
+}
+
+export function parseTradeEligibility(setCookie: string[] | string | undefined): TradeEligibility | null {
+    const cookies = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+    for (const cookie of cookies) {
+        const match = cookie.match(/(?:^|;\s*)webTradeEligibility=([^;]*)/);
+        if (!match) continue;
+        try {
+            const value = JSON.parse(decodeURIComponent(match[1]));
+            if (value && typeof value.allowed === "number") return value;
+        } catch (err) {
+            return null;
+        }
+    }
+    return null;
+}
+
+export async function getTradeState(community: SteamCommunity): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
         community.httpRequestGet({
-            uri: "https://steamcommunity.com/tradeoffer/new/?partner=1019092302&token=1hP4HPB2"
-        }, (err: SteamCommunity.CallbackError, response: Response, _body: Response["body"]) => {
-            if (err) {
-                if (err.message.includes("You cannot trade") || err.message.includes("Steam Guard"))
-                    resolve(false);
-                return reject(err);
+            uri: TRADE_ELIGIBILITY_URL,
+            followRedirect: false
+        }, (err: SteamCommunity.CallbackError, response: Response) => {
+            if (err) return reject(err);
+            const eligibility = parseTradeEligibility(response.headers["set-cookie"]);
+            if (!eligibility) {
+                return reject(new Error(`eligibilitycheck ${response.statusCode}: нет cookie webTradeEligibility`));
             }
-            if (response.statusCode == 200) {
-                resolve(true);
-            } else {
-                reject(new Error(`${response.statusCode}: ${response.statusMessage}`));
-            }
+            resolve(eligibility.allowed === 1);
         });
     });
 }
