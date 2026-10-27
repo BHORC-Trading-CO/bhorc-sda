@@ -96,7 +96,7 @@ beforeEach(() => {
 });
 
 describe("Миграция сохранённых колонок", () => {
-    it("удаляет TM и неизвестные типы, сохраняя порядок и настройки остальных колонок", () => {
+    it("удаляет колонки TM, сохраняя порядок и настройки остальных колонок", () => {
         const supported = copy(defaults).reverse().map((field, index) => ({
             ...field,
             title: `Своё название ${index}`,
@@ -182,6 +182,12 @@ describe("Миграция сохранённых аккаунтов", () => {
         expect(store.set).toHaveBeenCalledTimes(1);
         SteamAccountStorage.GetById("account-1");
         expect(store.set).toHaveBeenCalledTimes(1);
+    });
+
+    it("сбой записи при GetById не роняет чтение аккаунта", () => {
+        store.set("steamAccounts.account-1", oldAccount());
+        jest.mocked(store.set).mockImplementationOnce(() => { throw new Error("EPERM"); });
+        expect(SteamAccountStorage.GetById("account-1")).toEqual(cleanedAccount());
     });
 
     it("Save и EditData не возвращают старые поля в config", () => {
