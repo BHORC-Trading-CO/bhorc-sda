@@ -175,7 +175,6 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                                 password: steamAccountParams.password,
                                 maFile: steamAccountParams.maFile,
                                 secondary: data,
-                                tmApiKey: steamAccountParams.tmApiKey ? steamAccountParams.tmApiKey : undefined,
                                 familyViewPin: steamAccountParams.familyViewPin ? steamAccountParams.familyViewPin : null,
                                 useSteamCookies: steamAccountParams.useSteamCookies
                             };

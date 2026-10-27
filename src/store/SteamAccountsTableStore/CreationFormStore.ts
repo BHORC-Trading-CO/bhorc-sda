@@ -24,7 +24,6 @@ class CreationFormStore {
     content: {
         accountName: string,
         password: string,
-        tmApiKey: string,
         proxy: {
             new: ProxySetupInterface,
             savedId: string | null
@@ -54,7 +53,6 @@ class CreationFormStore {
         this.content = {
             accountName: "",
             password: "",
-            tmApiKey: "",
             proxy: {
                 new: { host: '', port: '', username: '', password: '' },
                 savedId: null
@@ -154,7 +152,6 @@ class CreationFormStore {
         window.Main.steamAccounts.creationProcess({
             accountName: content.accountName,
             password: content.password,
-            tmApiKey: content.tmApiKey,
             maFile: content.maFile,
             familyViewPin: null,
             mail: content.mail,

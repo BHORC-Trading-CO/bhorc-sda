@@ -1,6 +1,7 @@
 import Store from 'electron-store';
 import TableOptions from '../../interfaces/TableOptions/TableOptions';
 import Field from '../../interfaces/TableFields/Field';
+import AvalibleFieldTypes from '../../interfaces/TableFields/AvalibleFieldTypes';
 import defaultSteamAccountTableFields from '../../interfaces/TableFields/defaults/steamAccountsTableFields';
 import defaultProxyTableFields from '../../interfaces/TableFields/defaults/proxiesTableFields';
 
@@ -27,12 +28,15 @@ class TableStorage {
             store.set(`${type}TableFields`, defaults);
             return defaults;
         }
+        // Удаляем устаревшие типы колонок, сохраняя порядок и настройки остальных.
+        const knownTypes = new Set(Object.values(AvalibleFieldTypes));
+        const supportedFields = fields.filter(field => knownTypes.has(field.type));
         // Бэкфилл новых колонок, добавленных в defaults после того как пользователь
         // уже сохранил свой набор полей (иначе новые колонки, напр. "Группа", не
         // появятся в настройках отображения у существующих пользователей).
-        const existingTypes = new Set(fields.map(f => f.type));
-        const merged = [...fields, ...defaults.filter(f => !existingTypes.has(f.type))];
-        if (merged.length !== fields.length) {
+        const existingTypes = new Set(supportedFields.map(f => f.type));
+        const merged = [...supportedFields, ...defaults.filter(f => !existingTypes.has(f.type))];
+        if (supportedFields.length !== fields.length || merged.length !== fields.length) {
             store.set(`${type}TableFields`, merged);
         }
         return merged;

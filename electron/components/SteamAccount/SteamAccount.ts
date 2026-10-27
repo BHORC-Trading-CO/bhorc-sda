@@ -23,6 +23,7 @@ import getCommunityWebCookies from "./Functions/getCommunityWebCookies";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "./Functions/steamUserAgent";
 import askMailCode from "../application/askInfo/askMailCode";
 import SessionInterface from "../../interfaces/SteamAccount/SessionInterface";
+import stripLegacyMarketData from "../Functions/stripLegacyMarketData";
 const SteamTotp = require('steam-totp');
 
 class SteamAccount {
@@ -35,6 +36,7 @@ class SteamAccount {
     proxy: ProxyInterface | null;
 
     constructor(params: SteamAccountInterface) {
+        params = stripLegacyMarketData(params);
         this.setupParams = {
             accountName: params.accountName,
             password: params.password,
@@ -275,7 +277,7 @@ class SteamAccount {
     }
     getChangableSecondary(): Promise<ChangableSecondaryInterface> {
         return new Promise((resolve, reject) => {
-            getChangableSecondaries(this.community, this.params.tmApiKey ? this.params.tmApiKey : "")
+            getChangableSecondaries(this.community)
                 .then(data => {
                     try {
                         // console.log(`#${this.params.number} successful get changable secondary!`);
@@ -314,7 +316,7 @@ class SteamAccount {
             familyViewPin: this.params.familyViewPin,
             useSteamCookies: this.params.useSteamCookies
         }
-        return smaFile;
+        return stripLegacyMarketData(smaFile);
     }
     async saveSession(session: Session) {
         try {
@@ -356,6 +358,7 @@ class SteamAccount {
         });
     }
     editParams(newParams: { [K in keyof SteamAccountInterface]?: SteamAccountInterface[K] }) {
+        newParams = stripLegacyMarketData(newParams);
         for (var i in this.params) {
             if (typeof (newParams[i]) !== 'undefined') {
                 this.params[i] = newParams[i];
@@ -383,18 +386,12 @@ class SteamAccount {
                     balance: 0,
                     currency: 'RUB',
                     error: null
-                },
-                market: {
-                    balance: 0,
-                    currency: 'RUB',
-                    error: null
-                },
-
+                }
             },
             deleted: false
         }
 
-        return params;
+        return stripLegacyMarketData(params);
     }
 }
 

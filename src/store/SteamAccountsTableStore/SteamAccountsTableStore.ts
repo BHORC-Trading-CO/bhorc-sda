@@ -175,11 +175,9 @@ class SteamAccountsTableStore {
     if (this.steamAccounts[id].deleted) return;
     const fields = this.getFields();
     const usefulFields = fields.filter(
-      (f) =>
-        f.type === AvalibleTypes.csgoTmBalance ||
-        f.type === AvalibleTypes.steamAccountBalance
+      (f) => f.type === AvalibleTypes.steamAccountBalance
     );
-    if (usefulFields.filter((f) => !f.isVisible).length === 2) {
+    if (usefulFields.filter((f) => !f.isVisible).length === 1) {
       return;
     }
     this.changableSecondaries[id].isLoad = false;
