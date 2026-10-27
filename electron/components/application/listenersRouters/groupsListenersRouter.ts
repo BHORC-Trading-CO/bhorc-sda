@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { onTrusted } from '../trustedIpc';
 import Group from '../../Group/Group';
 import groupManager from '../../Group/groupManager';
 import GroupStorage from '../../newStorage/GroupStorage';
@@ -8,7 +8,7 @@ import GroupChannels from '../../../interfaces/IpcChannels/GroupChannels';
 import GroupSetupInterface from '../../../interfaces/Group/GroupSetupInterface';
 
 export default () => {
-    ipcMain.on(GroupChannels.GET_GROUPS, (event) => {
+    onTrusted(GroupChannels.GET_GROUPS, (event) => {
         try {
             event.reply(GroupChannels.GET_GROUPS, groupManager.getCompiledObjects());
         } catch (err) {
@@ -17,7 +17,7 @@ export default () => {
     });
 
     // Создать группу и (опционально) сразу привязать к ней выбранные аккаунты.
-    ipcMain.on(GroupChannels.NEW_GROUP, (event, params: { setup: GroupSetupInterface, steamAccountIds?: string[] }) => {
+    onTrusted(GroupChannels.NEW_GROUP, (event, params: { setup: GroupSetupInterface, steamAccountIds?: string[] }) => {
         try {
             const groupData = Group.Generate(params.setup);
             groupManager.addNew(new Group(groupData));
@@ -33,7 +33,7 @@ export default () => {
     });
 
     // Привязать выбранные аккаунты к существующей группе (groupId=null — убрать из группы).
-    ipcMain.on(GroupChannels.ASSIGN_GROUP, (event, params: { groupId: string | null, steamAccountIds: string[] }) => {
+    onTrusted(GroupChannels.ASSIGN_GROUP, (event, params: { groupId: string | null, steamAccountIds: string[] }) => {
         try {
             for (var steamAccountId of params.steamAccountIds) {
                 Manager.LinkGroupToSteamAccount(steamAccountId, params.groupId);
@@ -46,7 +46,7 @@ export default () => {
     });
 
     // Переименование группы (и прочие правки полей).
-    ipcMain.on(GroupChannels.EDIT_GROUP, (event, params: { id: string, name: string }) => {
+    onTrusted(GroupChannels.EDIT_GROUP, (event, params: { id: string, name: string }) => {
         try {
             groupManager.edit(params.id, { name: params.name });
             groupManager.sendGroupsToFront();
@@ -56,7 +56,7 @@ export default () => {
         }
     });
 
-    ipcMain.on(GroupChannels.DELETE_GROUP, (event, id: string) => {
+    onTrusted(GroupChannels.DELETE_GROUP, (event, id: string) => {
         try {
             Manager.ResetGroup(id);
             groupManager.delete(id);

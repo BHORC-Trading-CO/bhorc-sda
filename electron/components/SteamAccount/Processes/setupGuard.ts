@@ -1,5 +1,5 @@
 import SteamTotp from "steam-totp";
-import { ipcMain } from "electron";
+import { onTrusted } from "../../application/trustedIpc";
 import SteamCommunity from "steamcommunity";
 import CreationStepType from "../../../interfaces/SteamAccount/CreationStepType";
 import MaFileInterface from "../../../interfaces/SteamAccount/MaFileInterface";
@@ -51,7 +51,7 @@ export default async function setupGuard(
     const community = new SteamCommunity({ request: communityRequest, userAgent: STEAM_MOBILE_USER_AGENT });
     const EResult = SteamCommunity.EResult;
 
-    ipcMain.on("ABORT_SETUP_GUARD", () => {
+    onTrusted("ABORT_SETUP_GUARD", () => {
       reject("abort");
     });
 
