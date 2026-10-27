@@ -80,6 +80,7 @@ describe("sanitizeSmaFile", () => {
         expect(sanitizeSmaFile({ ...account(), familyViewPin: 1234 }).familyViewPin).toBe(1234);
         expect(sanitizeSmaFile({ ...account(), familyViewPin: null }).familyViewPin).toBeNull();
         expect(sanitizeSmaFile({ ...account(), familyViewPin: "" }).familyViewPin).toBeNull();
+        expect(sanitizeSmaFile({ ...account(), familyViewPin: " 0123 " }).familyViewPin).toBe("0123");
     });
 
     it("null в необязательных полях — как отсутствие (maFile из Steam Desktop Authenticator)", () => {
@@ -104,6 +105,10 @@ describe("sanitizeSmaFile", () => {
 });
 
 describe("sanitizeProxySetup", () => {
+    it("обрезает пробелы по краям host и port (файлы, правленные вручную)", () => {
+        expect(sanitizeProxySetup({ host: " 1.2.3.4", port: "8080 " })).toEqual({ host: "1.2.3.4", port: "8080", username: "", password: "" });
+        expect(sanitizeProxySetup({ host: "proxy.test\n", port: "80\n" })).toEqual({ host: "proxy.test", port: "80", username: "", password: "" });
+    });
     it.each(["proxy.example.", "[::ffff:192.0.2.1]", "[2001:db8::1]", "проксі.example"])("сохраняет допустимый host %s", host => {
         expect(sanitizeProxySetup({ host, port: "8080" })).toEqual({ host, port: "8080", username: "", password: "" });
     });
@@ -111,10 +116,10 @@ describe("sanitizeProxySetup", () => {
         expect(sanitizeProxySetup({ host: "127.0.0.1", port: 8080, username: "u@x", password: "p:/x", countryCode: "XX" }))
             .toEqual({ host: "127.0.0.1", port: "8080", username: "u@x", password: "p:/x" });
     });
-    it.each(["http://unix:/tmp/socket", "proxy.test/path", "proxy.test@other", "proxy.test?x", "proxy.test\n", "proxy.test:80", "%65vil.test", "[::::]", "proxy.test\\path"])("отклоняет разделители URL и неверный host %s", host => {
+    it.each(["http://unix:/tmp/socket", "proxy.test/path", "proxy.test@other", "proxy.test?x", "proxy.test\nx", "proxy.test:80", "%65vil.test", "[::::]", "proxy.test\\path"])("отклоняет разделители URL и неверный host %s", host => {
         expect(() => sanitizeProxySetup({ host, port: "8080" })).toThrow();
     });
-    it.each(["0", "65536", "80/path", "80?x", "80\n", -1, {}])("отклоняет неверный порт %#", port => {
+    it.each(["0", "65536", "80/path", "80?x", "80\n1", -1, {}])("отклоняет неверный порт %#", port => {
         expect(() => sanitizeProxySetup({ host: "proxy.test", port })).toThrow();
     });
 });

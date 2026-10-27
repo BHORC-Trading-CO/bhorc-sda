@@ -85,7 +85,11 @@ export default () => {
                 rejected.push(`${proxy && proxy.host}:${proxy && proxy.port} — ${err instanceof Error ? err.message : err}`);
             }
         }
-        proxyManager.sendProxiesToFront();
+        try {
+            proxyManager.sendProxiesToFront();
+        } catch (err) {
+            event.reply('ERROR', err);
+        }
         if (rejected.length) event.reply('ERROR', new Error(`Не добавлено прокси: ${rejected.length}. ${rejected.join("; ")}`));
     });
     onTrusted('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds: string[] } }) => {

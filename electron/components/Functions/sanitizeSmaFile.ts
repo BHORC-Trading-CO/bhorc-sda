@@ -104,9 +104,10 @@ function sanitizeMaFile(value: unknown): MaFileInterface {
 
 export function sanitizeProxySetup(value: unknown): ProxySetupInterface {
     const source = object(value);
-    const host = string(source, "host");
+    // Пробелы по краям встречаются в файлах, отредактированных вручную, — обрезаем.
+    const host = string(source, "host").trim();
     const rawPort = own(source, "port");
-    const port = typeof rawPort === "number" ? String(rawPort) : string(source, "port");
+    const port = typeof rawPort === "number" ? String(rawPort) : string(source, "port").trim();
     // host/port встраиваются в URL прокси; разделители URL и unix-сокеты здесь недопустимы.
     if (!host || /[\s/\\?#@%]/.test(host) ||
         !/^[0-9]{1,5}$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
@@ -131,7 +132,8 @@ export default function sanitizeSmaFile(value: unknown): SmaFileInterface {
     // PIN приходит и числом (старые файлы), и строкой из окна ввода PIN. Строку оставляем
     // строкой: в числе пропали бы ведущие нули ("0123" -> 123), и Steam отклонил бы PIN.
     const rawPin = own(source, "familyViewPin");
-    const pin = rawPin === "" ? undefined : rawPin;
+    const trimmedPin = typeof rawPin === "string" ? rawPin.trim() : rawPin;
+    const pin = trimmedPin === "" ? undefined : trimmedPin;
     if (pin !== undefined && !(typeof pin === "number" && Number.isInteger(pin) && pin >= 0 && pin <= 9999) &&
         !(typeof pin === "string" && /^[0-9]{1,8}$/.test(pin))) {
         throw new Error("Неправильный familyViewPin");

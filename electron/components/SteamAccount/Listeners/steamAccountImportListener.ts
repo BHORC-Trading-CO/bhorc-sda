@@ -25,7 +25,11 @@ export default (event: Electron.IpcMainEvent, accounts: [{ smaFile: SmaFileInter
             rejected.push(`${name} — ${err instanceof Error ? err.message : err}`);
         }
     }
-    proxyManager.sendProxiesToFront();
-    steamAccountManager.sendAccountsToFront();
+    try {
+        proxyManager.sendProxiesToFront();
+        steamAccountManager.sendAccountsToFront();
+    } catch (err) {
+        event.reply('ERROR', err);
+    }
     if (rejected.length) event.reply('ERROR', new Error(`Не импортировано аккаунтов: ${rejected.length}. ${rejected.join("; ")}`));
 }
