@@ -49,7 +49,9 @@ describe("проверка сборки BHORC SDA", () => {
   });
 
   it("не принимает старую сборку за проверку переименованного приложения", () => {
-    mockLayout("Trademanager-darwin-arm64", path.join("Trademanager.app", "Contents", "Resources", "app"));
+    // Windows-раскладка: у неё нет имени .app внутри, поэтому без фильтра по имени
+    // старая сборка Trademanager-win32-x64 прошла бы проверку.
+    mockLayout("Trademanager-win32-x64", path.join("resources", "app"));
     expect(() => findPackagedAppDirs()).toThrow(/не нашлось собранного приложения BHORC SDA/);
   });
 

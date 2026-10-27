@@ -40,7 +40,7 @@ npm run make
 npm run verify:package
 ```
 
-Build output is under `out/BHORC SDA-<platform>-<arch>/`. On macOS the bundle is `BHORC SDA.app`. Forge copies external modules into the packaged app through the `packageAfterPrune` hook; the module list is in `webpack/externals.js`.
+Packaged app is under `out/BHORC SDA-<platform>-<arch>/`, installers and archives from `npm run make` under `out/make/`. On macOS the bundle is `BHORC SDA.app`. Forge copies external modules into the packaged app through the `packageAfterPrune` hook; the module list is in `webpack/externals.js`.
 
 On arm64 macOS, the first account-browser start downloads native Chromium. Later starts reuse the cached download.
 
@@ -60,7 +60,7 @@ Data, including maFiles and passwords, is currently stored **unencrypted on disk
 
 ## Credits
 
-Fork of [rawr111/trademanager-open-source](https://github.com/rawr111/trademanager-open-source), originally created by Mikhail Gladkikh (rawr111). The upstream project declared the MIT license in `package.json` from its first commit (`a438367`), but did not include a LICENSE file.
+Fork of [rawr111/trademanager-open-source](https://github.com/rawr111/trademanager-open-source), originally created by Mikhail Gladkikh (rawr111). The upstream project declared the MIT license in `package.json` from its first code commit (`a438367`; the repository root commit is `519740f`), but did not include a LICENSE file.
 
 ## License
 

@@ -3,7 +3,10 @@ const { copyExternalModules } = require("./webpack/copyExternalModules");
 module.exports = {
   packagerConfig: {
     name: "BHORC SDA",
-    executableName: "bhorc-sda",
+    // Имя исполняемого файла и Squirrel id пока прежние: v1.0.5 ставилась на Windows как
+    // ElectronStarter/trademanager.exe, и новый id поставил бы вторую копию рядом вместо
+    // обновления. Меняем только после проверки обновления на Windows.
+    executableName: "trademanager",
     appBundleId: "co.bhorc.sda",
     icon: "assets/icon",
     extraResource: ["assets"],
@@ -64,7 +67,7 @@ module.exports = {
   makers: [
     {
       name: "@electron-forge/maker-squirrel",
-      config: { name: "bhorc_sda", setupExe: "BHORC-SDA-Setup.exe" },
+      config: { name: "ElectronStarter", setupExe: "BHORC-SDA-Setup.exe" },
     },
     {
       name: "@electron-forge/maker-zip",
