@@ -221,8 +221,17 @@ describe("Импорт и экспорт старых файлов", () => {
         account.editParams({ maFile: legacy.maFile, changableSecondary: legacy.changableSecondary } as unknown as SteamAccountInterface);
 
         const exported = JSON.parse(JSON.stringify(account.getSmaFile()));
+        // secondary нормализуется при импорте (SDA-17): неизвестные поля отброшены,
+        // недостающие заполнены значениями по умолчанию.
         expect(exported).toEqual({
-            secondary: legacy.secondary,
+            secondary: {
+                nickname: legacy.secondary.nickname,
+                ktState: legacy.secondary.ktState,
+                tpState: legacy.secondary.tpState,
+                avatarUrl: expect.stringMatching(/^https:\/\/avatars\.akamai\.steamstatic\.com\//),
+                level: 0,
+                tradeState: false,
+            },
             accountName: legacy.accountName,
             password: legacy.password,
             maFile: cleanedAccount().maFile,
