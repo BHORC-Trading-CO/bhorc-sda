@@ -201,12 +201,32 @@ function parseTpState(body: string): boolean | string {
     return true;
 }
 
-// Статус трейда берём из проверки, которую Steam сам делает перед страницами трейдов:
+// Статус трейда берём из проверки, которую Steam делает перед Торговой площадкой:
 // /market/eligibilitycheck/ ставит cookie webTradeEligibility с JSON вида
 // {"allowed":1,"allowed_at_time":0,"steamguard_required_days":15,"new_device_cooldown_days":0,...}.
 // Раньше статус узнавали, открывая новый трейд на захардкоженный трейд-линк чужого аккаунта
 // из апстрима: все аккаунты ходили на один и тот же линк, и Steam мог связать их между собой.
+//
+// allowed описывает доступ к Торговой площадке, а не к трейдам. Поэтому решаем по битам
+// reason (EMarketNotAllowedReasonFlags из steamclientpublic.h): трейды блокируют бан,
+// ограниченный аккаунт, Steam Guard < 15 дней, сброс пароля, новое устройство и т.п.
+// Остальные причины (нет покупок за год, новый способ оплаты, возврат, подарок в кошелёк)
+// запрещают только маркет, а трейд-офферы работают.
 const TRADE_ELIGIBILITY_URL = "https://steamcommunity.com/market/eligibilitycheck/?goto=%2F";
+const TRADE_ELIGIBILITY_COOKIE_URL = "https://steamcommunity.com/market/eligibilitycheck/";
+
+const REASON_TEMPORARY_FAILURE = 1 << 0;
+const REASON_INVALID_COOKIE = 1 << 10;
+const TRADE_BLOCKING_REASONS =
+    (1 << 1) |  // AccountDisabled
+    (1 << 2) |  // AccountLockedDown
+    (1 << 3) |  // AccountLimited
+    (1 << 4) |  // TradeBanned
+    (1 << 6) |  // SteamGuardNotEnabled
+    (1 << 7) |  // SteamGuardOnlyRecentlyEnabled
+    (1 << 8) |  // RecentPasswordReset
+    (1 << 11) | // UsingNewDevice
+    (1 << 16);  // TradeCooldown (нет в заголовке Valve, встречается в живых ответах)
 
 export interface TradeEligibility {
     allowed: number;
@@ -214,33 +234,71 @@ export interface TradeEligibility {
     reason?: number;
 }
 
-export function parseTradeEligibility(setCookie: string[] | string | undefined): TradeEligibility | null {
-    const cookies = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
-    for (const cookie of cookies) {
-        const match = cookie.match(/(?:^|;\s*)webTradeEligibility=([^;]*)/);
-        if (!match) continue;
-        try {
-            const value = JSON.parse(decodeURIComponent(match[1]));
-            if (value && typeof value.allowed === "number") return value;
-        } catch (err) {
-            return null;
-        }
+export function parseTradeEligibility(raw: string | undefined | null): TradeEligibility | null {
+    if (!raw) return null;
+    try {
+        const value = JSON.parse(decodeURIComponent(raw));
+        return value && typeof value.allowed === "number" ? value : null;
+    } catch (err) {
+        return null;
     }
-    return null;
+}
+
+// true — трейды доступны, false — заблокированы; исключение — статус неизвестен
+// (временный сбой Steam, проблема с cookie, allowed=0 без причины): getSecondaries
+// тогда оставит прежнее значение.
+export function tradeStateFromEligibility(eligibility: TradeEligibility): boolean {
+    if (eligibility.allowed === 1) return true;
+    const reason = eligibility.reason || 0;
+    if (reason & TRADE_BLOCKING_REASONS) return false;
+    if (reason === 0 || reason & (REASON_TEMPORARY_FAILURE | REASON_INVALID_COOKIE)) {
+        throw new Error(`eligibilitycheck: allowed=0, reason=${reason}, статус неизвестен`);
+    }
+    return true;
+}
+
+type CookieJarLike = {
+    _jar?: {
+        getCookiesSync(url: string): { key: string; value: string; domain: string; path: string }[];
+        store?: { removeCookie(domain: string, path: string, key: string, cb: (err?: Error) => void): void };
+    };
+};
+
+function eligibilityCookies(community: SteamCommunity) {
+    const jar = (community as unknown as { _jar?: CookieJarLike })._jar;
+    try {
+        return (jar?._jar?.getCookiesSync(TRADE_ELIGIBILITY_COOKIE_URL) || []).filter((c) => c.key === "webTradeEligibility");
+    } catch (err) {
+        return [];
+    }
 }
 
 export async function getTradeState(community: SteamCommunity): Promise<boolean> {
+    // /market/ уже прогнал аккаунт через ту же проверку, и cookie может лежать в jar.
+    // Убираем её, чтобы вердикт был свежим, а не прочитанным из прошлого запроса.
+    const jar = (community as unknown as { _jar?: CookieJarLike })._jar;
+    for (const c of eligibilityCookies(community)) jar?._jar?.store?.removeCookie(c.domain, c.path, c.key, () => undefined);
+
     return new Promise<boolean>((resolve, reject) => {
         community.httpRequestGet({
             uri: TRADE_ELIGIBILITY_URL,
             followRedirect: false
         }, (err: SteamCommunity.CallbackError, response: Response) => {
             if (err) return reject(err);
-            const eligibility = parseTradeEligibility(response.headers["set-cookie"]);
+            const fromHeader = ([] as string[])
+                .concat(response.headers["set-cookie"] || [])
+                .map((c) => c.match(/(?:^|;\s*)webTradeEligibility=([^;]*)/))
+                .find(Boolean);
+            const raw = fromHeader ? fromHeader[1] : eligibilityCookies(community)[0]?.value;
+            const eligibility = parseTradeEligibility(raw);
             if (!eligibility) {
                 return reject(new Error(`eligibilitycheck ${response.statusCode}: нет cookie webTradeEligibility`));
             }
-            resolve(eligibility.allowed === 1);
+            try {
+                resolve(tradeStateFromEligibility(eligibility));
+            } catch (e) {
+                reject(e);
+            }
         });
     });
 }
