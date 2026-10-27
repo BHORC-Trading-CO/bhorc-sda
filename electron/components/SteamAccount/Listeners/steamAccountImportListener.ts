@@ -6,8 +6,10 @@ import proxyManager from "../../Proxy/proxyManager";
 import sanitizeSmaFile from "../../Functions/sanitizeSmaFile";
 
 export default (event: Electron.IpcMainEvent, accounts: [{ smaFile: SmaFileInterface, links: { proxyId: string | null, profileId: string | null } }]) => {
-    try {
-        for (var account of accounts) {
+    // Каждый аккаунт отдельно: один неправильный файл не должен обрывать импорт остальных.
+    const rejected: string[] = [];
+    for (var account of accounts) {
+        try {
             const smaFile = sanitizeSmaFile(account.smaFile);
             const steamAccount = steamAccountImport(smaFile);
 
@@ -18,10 +20,12 @@ export default (event: Electron.IpcMainEvent, accounts: [{ smaFile: SmaFileInter
             } else if (account.links.proxyId) {
                 Manager.LinkProxyToSteamAccount(steamAccount.id, account.links.proxyId);
             }
+        } catch (err) {
+            const name = account && account.smaFile && typeof account.smaFile.accountName === "string" ? account.smaFile.accountName : "?";
+            rejected.push(`${name} — ${err instanceof Error ? err.message : err}`);
         }
-        proxyManager.sendProxiesToFront();
-        steamAccountManager.sendAccountsToFront();
-    } catch (err) {
-        event.reply('ERROR', err);
     }
+    proxyManager.sendProxiesToFront();
+    steamAccountManager.sendAccountsToFront();
+    if (rejected.length) event.reply('ERROR', new Error(`Не импортировано аккаунтов: ${rejected.length}. ${rejected.join("; ")}`));
 }

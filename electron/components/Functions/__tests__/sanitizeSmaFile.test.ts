@@ -69,10 +69,32 @@ describe("sanitizeSmaFile", () => {
     });
 
     it.each([null, [], {}, { ...account(), accountName: {} }, { ...account(), secondary: [] },
-        { ...account(), maFile: null }, { ...account(), familyViewPin: "1234" },
+        { ...account(), maFile: null }, { ...account(), familyViewPin: "12a4" },
         { ...account(), maFile: { shared_secret: {} } }, { ...account(), proxy: { host: "bad/host", port: "80" } },
     ])("отклоняет некорректную структуру %#", source => {
         expect(() => sanitizeSmaFile(source)).toThrow();
+    });
+
+    it("PIN из окна ввода приходит строкой и сохраняется строкой (ведущие нули важны)", () => {
+        expect(sanitizeSmaFile({ ...account(), familyViewPin: "0123" }).familyViewPin).toBe("0123");
+        expect(sanitizeSmaFile({ ...account(), familyViewPin: 1234 }).familyViewPin).toBe(1234);
+        expect(sanitizeSmaFile({ ...account(), familyViewPin: null }).familyViewPin).toBeNull();
+    });
+
+    it("null в необязательных полях — как отсутствие (maFile из Steam Desktop Authenticator)", () => {
+        const source = account();
+        const result = sanitizeSmaFile({
+            ...source,
+            mail: null,
+            maFile: { ...source.maFile, device_id: null, serial_number: null, Session: { SteamID: "76561198000000000", SessionID: null, WebCookie: null, SteamLogin: null } },
+        });
+        expect(result.maFile.Session).toEqual({ SteamID: "76561198000000000", SteamLogin: null });
+        expect(result).not.toHaveProperty("mail");
+    });
+
+    it("пустой прокси в файле — без прокси, а не ошибка", () => {
+        expect(sanitizeSmaFile({ ...account(), proxy: {} })).not.toHaveProperty("proxy");
+        expect(sanitizeSmaFile({ ...account(), proxy: { host: "", port: "" } })).not.toHaveProperty("proxy");
     });
 });
 

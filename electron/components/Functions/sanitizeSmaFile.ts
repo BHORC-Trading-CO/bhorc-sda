@@ -14,8 +14,11 @@ function object(value: unknown): Data {
     return value as Data;
 }
 
+// null в необязательном поле — то же, что его отсутствие: Steam Desktop Authenticator
+// и другие инструменты пишут, например, "SessionID": null, "device_id": null.
 function own(data: Data, key: string): unknown {
-    return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : undefined;
+    if (!Object.prototype.hasOwnProperty.call(data, key)) return undefined;
+    return data[key] === null ? undefined : data[key];
 }
 
 function string(data: Data, key: string, fallback = ""): string {
@@ -64,7 +67,7 @@ function sanitizeSession(value: unknown): SessionInterface {
     for (const key of ["SessionID", "SteamLoginSecure", "WebCookie", "SteamRememberLogin", "AccessToken", "RefreshToken"] as const) {
         if (own(source, key) !== undefined) result[key] = string(source, key);
     }
-    if (own(source, "SteamLogin") !== undefined) {
+    if (Object.prototype.hasOwnProperty.call(source, "SteamLogin")) {
         result.SteamLogin = source.SteamLogin === null ? null : string(source, "SteamLogin");
     }
     const steamID = own(source, "SteamID");
@@ -125,15 +128,18 @@ export default function sanitizeSmaFile(value: unknown): SmaFileInterface {
     const accountName = string(source, "accountName");
     const password = string(source, "password");
     if (!accountName || !password) throw new Error("Не указаны логин или пароль аккаунта");
+    // PIN приходит и числом (старые файлы), и строкой из окна ввода PIN. Строку оставляем
+    // строкой: в числе пропали бы ведущие нули ("0123" -> 123), и Steam отклонил бы PIN.
     const pin = own(source, "familyViewPin");
-    if (pin !== undefined && pin !== null && !(typeof pin === "number" && Number.isInteger(pin) && pin >= 0 && pin <= 9999)) {
+    if (pin !== undefined && !(typeof pin === "number" && Number.isInteger(pin) && pin >= 0 && pin <= 9999) &&
+        !(typeof pin === "string" && /^[0-9]{1,8}$/.test(pin))) {
         throw new Error("Неправильный familyViewPin");
     }
     const result: SmaFileInterface = {
         accountName,
         password,
         maFile: sanitizeMaFile(own(source, "maFile")),
-        familyViewPin: pin == null ? null : pin as number,
+        familyViewPin: pin === undefined ? null : pin as number,
         useSteamCookies: own(source, "useSteamCookies") === true,
         secondary: {
             nickname: string(secondary, "nickname"),
@@ -147,6 +153,8 @@ export default function sanitizeSmaFile(value: unknown): SmaFileInterface {
     for (const key of ["profileName", "mail", "mailPassword"] as const) {
         if (own(source, key) !== undefined) result[key] = string(source, key);
     }
-    if (own(source, "proxy") !== undefined && source.proxy !== null) result.proxy = sanitizeProxySetup(source.proxy);
+    // Пустой прокси в файле ({} или без host) — это «без прокси», а не ошибка файла.
+    const proxy = own(source, "proxy");
+    if (proxy !== undefined && !(typeof proxy === "object" && !own(proxy as Data, "host"))) result.proxy = sanitizeProxySetup(proxy);
     return result;
 }

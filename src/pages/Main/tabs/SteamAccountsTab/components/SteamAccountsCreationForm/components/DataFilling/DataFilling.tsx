@@ -164,18 +164,24 @@ const ImportSteamAccountsForm: FC = observer(() => {
           const files = event.target.files;
           if (files) {
             const smaFiles: SmaFileInterface[] = [];
+            const rejected: string[] = [];
             for (var i in files) {
               if (!Number(i) && i !== "0") continue;
               try {
                 // Очищаем файл до записи в состояние и первого показа превью.
                 smaFiles.push(sanitizeSmaFile(await readFile(files[i])));
-              } catch {
-                return store.windows.openMiniNotification({
-                  type: "error",
-                  text: `Неправильный smaFile!`,
-                });
+              } catch (err) {
+                // Неправильный файл пропускаем, остальные импортируем; называем файл и причину.
+                rejected.push(`${files[i].name}: ${err instanceof Error ? err.message : err}`);
               }
             }
+            if (rejected.length) {
+              store.windows.openMiniNotification({
+                type: "error",
+                text: `Пропущено файлов: ${rejected.length}. ${rejected.join("; ")}`,
+              });
+            }
+            if (smaFiles.length === 0) return;
             store.steamAccountsTable.creationForm.editContent({
               importedAccounts: smaFiles.map((file) => {
                 return {

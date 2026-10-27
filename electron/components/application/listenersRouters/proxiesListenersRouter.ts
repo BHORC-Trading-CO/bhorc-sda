@@ -72,17 +72,21 @@ export default () => {
         }
     });
     onTrusted('NEW_PROXIES', (event, proxies: ProxySetupInterface[]) => {
-        try {
-            for (var proxy of proxies) {
+        // Каждую строку отдельно: неправильная не должна обрывать импорт на середине,
+        // когда часть прокси уже сохранена, а таблица ещё не обновлена.
+        const rejected: string[] = [];
+        for (var proxy of proxies) {
+            try {
                 const proxyData = Proxy.Generate(proxy);
                 const proxyObject = new Proxy(proxyData);
                 proxyManager.addNew(proxyObject);
                 ProxyStorage.Save(proxyData.id, proxyData);
+            } catch (err) {
+                rejected.push(`${proxy && proxy.host}:${proxy && proxy.port} — ${err instanceof Error ? err.message : err}`);
             }
-            proxyManager.sendProxiesToFront();
-        } catch (err) {
-            event.reply('ERROR', err);
         }
+        proxyManager.sendProxiesToFront();
+        if (rejected.length) event.reply('ERROR', new Error(`Не добавлено прокси: ${rejected.length}. ${rejected.join("; ")}`));
     });
     onTrusted('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds: string[] } }) => {
         try {

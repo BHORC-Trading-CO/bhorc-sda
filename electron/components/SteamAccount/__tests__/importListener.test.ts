@@ -45,3 +45,15 @@ it("без портативного прокси сохраняет выбран
     expect(Manager.LinkProxyToSteamAccount).toHaveBeenCalledWith("generated-account", "chosen-proxy");
     expect(proxyManager.getOrCreateBySetup).not.toHaveBeenCalled();
 });
+
+it("один неправильный файл не обрывает импорт остальных и называет пропущенный аккаунт", () => {
+    const event = { reply: jest.fn() };
+    const bad = file();
+    bad.accountName = "broken";
+    bad.proxy.host = "http://unix:/tmp/socket";
+    const { proxy, ...good } = file();
+    importListener(event as any, [{ smaFile: bad, links: { proxyId: null } }, { smaFile: good, links: { proxyId: null } }] as any);
+    expect(steamAccountImport).toHaveBeenCalledTimes(1);
+    expect(event.reply).toHaveBeenCalledWith("ERROR", expect.objectContaining({ message: expect.stringMatching(/Не импортировано аккаунтов: 1\. broken/) }));
+    expect(proxyManager.sendProxiesToFront).toHaveBeenCalled();
+});
