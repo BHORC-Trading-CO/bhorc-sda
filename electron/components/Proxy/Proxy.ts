@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ProxyStorage from "../newStorage/ProxyStorage";
 import ProxySetupInterface from "../../interfaces/Proxy/ProxySetupInterface";
 import proxyManager from "./proxyManager";
+import { sanitizeProxySetup } from "../Functions/sanitizeSmaFile";
 
 class Proxy {
     params: ProxyInterface;
@@ -46,10 +47,10 @@ class Proxy {
         proxiesArray.sort((a, b) => a.number < b.number ? 1 : -1);
 
         const params: ProxyInterface = {
+            ...sanitizeProxySetup(proxy),
             id: uuidv4(),
             number: proxiesArray.length === 0 ? 1 : proxiesArray[0].number + 1,
             deleted: false,
-            ...proxy
         }
         return params;
     }

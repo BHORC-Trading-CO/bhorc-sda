@@ -1,3 +1,4 @@
+import sanitizeAvatarUrl from "../../../../../../../electron/components/Functions/sanitizeAvatarUrl";
 import react, { FC } from 'react';
 import MiniWindow from '../../../../components/MiniWindow/MiniWindow';
 import { observer } from 'mobx-react-lite';
@@ -39,7 +40,7 @@ const EditFormContent = observer(() => {
         <div className='steam-data-block'>
             <div className="steam-data-title text-white-medium">Введите данные от существующего Steam аккаунта:</div>
             <div className="steam-data-input__wrapper">
-                <img src={steamAccount.secondary.avatarUrl} alt="" className='steam-account-avatar' style={{ width: '40px', height: '40px', marginRight: '10px' }} />
+                <img src={sanitizeAvatarUrl(steamAccount.secondary?.avatarUrl)} alt="" className='steam-account-avatar' style={{ width: '40px', height: '40px', marginRight: '10px' }} />
                 <Input value={steamAccount.accountName} placeholder='Логин Steam' onChange={(newValue) => {
                     store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, accountName: newValue } });
                     changeThisProperties.accountName = newValue;

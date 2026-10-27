@@ -8,6 +8,7 @@ import Input from "../../../../../../../../globalComponents/Input/Input";
 import MaFileImport from "../../../MaFileImport/MaFileImport";
 import SteamGuardConnecting from "./SteamGuardConnecting/SteamGuardConnecting";
 import SmaFileInterface from "../../../../../../../../../electron/interfaces/SteamAccount/SmaFileInterface";
+import sanitizeSmaFile from "../../../../../../../../../electron/components/Functions/sanitizeSmaFile";
 import readFile from "../../../../../../../../globalComponents/SomeFuncs/readFile";
 import { toJS } from "mobx";
 import "./DataFilling.css";
@@ -163,21 +164,24 @@ const ImportSteamAccountsForm: FC = observer(() => {
           const files = event.target.files;
           if (files) {
             const smaFiles: SmaFileInterface[] = [];
+            const rejected: string[] = [];
             for (var i in files) {
               if (!Number(i) && i !== "0") continue;
-              const smaFile: SmaFileInterface = await readFile(files[i]);
-              if (
-                !smaFile.accountName ||
-                !smaFile.password ||
-                !smaFile.secondary
-              ) {
-                return store.windows.openMiniNotification({
-                  type: "error",
-                  text: `Неправильный smaFile!`,
-                });
+              try {
+                // Очищаем файл до записи в состояние и первого показа превью.
+                smaFiles.push(sanitizeSmaFile(await readFile(files[i])));
+              } catch (err) {
+                // Неправильный файл пропускаем, остальные импортируем; называем файл и причину.
+                rejected.push(`${files[i].name}: ${err instanceof Error ? err.message : err}`);
               }
-              smaFiles.push(smaFile);
             }
+            if (rejected.length) {
+              store.windows.openMiniNotification({
+                type: "error",
+                text: `Пропущено файлов: ${rejected.length}. ${rejected.join("; ")}`,
+              });
+            }
+            if (smaFiles.length === 0) return;
             store.steamAccountsTable.creationForm.editContent({
               importedAccounts: smaFiles.map((file) => {
                 return {

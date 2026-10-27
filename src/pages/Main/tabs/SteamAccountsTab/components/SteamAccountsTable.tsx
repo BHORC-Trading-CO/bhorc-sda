@@ -1,3 +1,4 @@
+import sanitizeAvatarUrl from "../../../../../../electron/components/Functions/sanitizeAvatarUrl";
 import react, { FC, useEffect } from "react";
 import Table, { Line, Cell } from "../../../../../globalComponents/Table/Table";
 import AvalibleTypes from "../../../../../../electron/interfaces/TableFields/AvalibleFieldTypes";
@@ -460,7 +461,7 @@ const CellJSX: FC<{
             </div>
           ) : (
             <img
-              src={steamAccount.secondary.avatarUrl}
+              src={sanitizeAvatarUrl(steamAccount.secondary?.avatarUrl)}
               className="steam-account-avatar"
               style={{ backgroundColor: "black" }}
             />

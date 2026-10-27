@@ -2,6 +2,7 @@ import SteamCommunity from "steamcommunity";
 import { Response } from "request";
 import SecondaryInterface from "../../../interfaces/SteamAccount/SecondaryInterface";
 import ChangableSecondaryInterface from "../../../interfaces/SteamAccount/ChangableSecondaryInterface";
+import sanitizeAvatarUrl, { DEFAULT_AVATAR_URL } from "../../Functions/sanitizeAvatarUrl";
 
 export async function getSecondaries(community: SteamCommunity, prev?: SecondaryInterface): Promise<SecondaryInterface> {
     // Дедуп запросов: раньше профиль /profiles/{id}/ дёргался ТРИЖДЫ (ник, уровень, аватар),
@@ -98,9 +99,7 @@ function decodeHtmlEntities(text: string): string {
         .replace(/&amp;/g, "&");
 }
 
-const DEFAULT_AVATAR_URL = "https://avatars.akamai.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg";
-
-function parseAvatarURL(body: string): string {
+export function parseAvatarURL(body: string): string {
     // Актуальная разметка Steam: аватар в хедере профиля лежит в
     // <div class="playerAvatar profile_header_size ..."> ... <picture>
     //   <source srcset="https://avatars.fastly.steamstatic.com/..._full.jpg"> ...
@@ -110,12 +109,13 @@ function parseAvatarURL(body: string): string {
         const srcset = /srcset="([^"]+)"/.exec(body.slice(headerIdx));
         if (srcset) {
             // srcset может содержать несколько URL через запятую с дескрипторами — берём первый URL
-            return srcset[1].split(",")[0].trim().split(/\s+/)[0];
+            return sanitizeAvatarUrl(srcset[1].split(",")[0].trim().split(/\s+/)[0]);
         }
     }
     // Фолбэк на старую разметку (на случай, если где-то ещё встретится)
     if (body.includes("user_avatar playerAvatar offline")) {
-        return body.split('user_avatar playerAvatar offline">')[1].split('"')[1].split(">")[0];
+        const avatar = /user_avatar playerAvatar offline">\s*<img[^>]*src="([^"]+)"/.exec(body);
+        return sanitizeAvatarUrl(avatar ? avatar[1] : undefined);
     }
     return DEFAULT_AVATAR_URL;
 }

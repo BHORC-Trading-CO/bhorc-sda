@@ -4,7 +4,7 @@ export default interface SteamAccountSetupInterface {
     accountName: string;
     password: string;
     maFile: MaFileInterface;
-    familyViewPin: number | null;
+    familyViewPin: number | string | null;
     profileName?: string;
     mail?:string;
     mailPassword?:string;

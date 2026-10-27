@@ -5,16 +5,19 @@ const readFile = (file: File): Promise<any> => {
         const reader = new FileReader();
         reader.readAsText(file);
         reader.onload = () => {
-            if (typeof (reader.result) === 'string') {
-                let maFile = reader.result.replaceAll(" ", "");
-                const json = JSONbig.parse(maFile);
-                resolve(json);
+            if (typeof (reader.result) !== 'string') return reject(new Error('Файл не текстовый'));
+            // Раньше из текста вырезались все пробелы — вместе с пробелами внутри паролей и ников.
+            // JSON пробелы между токенами и так допускает.
+            try {
+                resolve(JSONbig.parse(reader.result));
+            } catch (err) {
+                // json-bigint бросает простой объект { name, message, at, text }, а не Error:
+                // приводим к Error, иначе обработчик не покажет причину, а промис должен завершиться.
+                reject(new Error(`Неправильный JSON: ${(err && (err as { message?: string }).message) || err}`));
             }
-            reject('file is not string');
         }
-        reader.onerror = (err) => {
-            console.log(err);
-            reject(err);
+        reader.onerror = () => {
+            reject(new Error(`Не удалось прочитать файл ${file.name}`));
         }
     });
 }

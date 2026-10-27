@@ -1,3 +1,4 @@
+import sanitizeAvatarUrl from "../../../../../../../../../electron/components/Functions/sanitizeAvatarUrl";
 import React, { useState } from "react";
 import TableProxyInterface from "../../../../../../../../../electron/interfaces/Proxy/TableProxyInterface";
 import SmaFileInterface from "../../../../../../../../../electron/interfaces/SteamAccount/SmaFileInterface";
@@ -28,7 +29,7 @@ const ImportAccountItem = observer(
         <div className="imported-steam-account-item text-white-medium">
           <div className="imported-steam-account-cell imported-steam-account-avatar-container">
             <img
-              src={smaFile.secondary.avatarUrl}
+              src={sanitizeAvatarUrl(smaFile.secondary?.avatarUrl)}
               className="imported-steam-account-avatar"
               style={{ backgroundColor: "black" }}
             ></img>

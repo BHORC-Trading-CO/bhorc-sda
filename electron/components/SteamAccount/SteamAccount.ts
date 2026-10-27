@@ -24,6 +24,7 @@ import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "./Functions/steamUse
 import askMailCode from "../application/askInfo/askMailCode";
 import SessionInterface from "../../interfaces/SteamAccount/SessionInterface";
 import stripLegacyMarketData from "../Functions/stripLegacyMarketData";
+import sanitizeSmaFile from "../Functions/sanitizeSmaFile";
 const SteamTotp = require('steam-totp');
 
 class SteamAccount {
@@ -365,6 +366,8 @@ class SteamAccount {
         SteamAccountStorage.EditData(this.params.id, newParams);
     }
     static Generate(smaFile: SmaFile, changableSecondary: ChangableSecondaryInterface | null) {
+        // Портативный прокси хранится только в LinksStorage, служебные поля файла не принимаем.
+        const { proxy, ...account } = sanitizeSmaFile(smaFile);
         // Нумеруем относительно активных аккаунтов: удалённые (архивные) не должны
         // оставлять "дыры" в нумерации. Массив менеджера не мутируем (sort in-place
         // ломал порядок отображения — новые аккаунты оказывались "с хвоста").
@@ -376,9 +379,9 @@ class SteamAccount {
         const maxNumber = steamAccountsArray.length === 0 ? 1 : steamAccountsArray[0].number + 1;
 
         const params: SteamAccountInterface = {
+            ...account,
             id: uuidv4(),
             number: maxNumber,
-            ...smaFile,
             changableSecondary: changableSecondary ? changableSecondary : {
                 steam: {
                     balance: 0,
