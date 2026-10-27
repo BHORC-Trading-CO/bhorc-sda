@@ -134,7 +134,6 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                 nextStep("askPin");
                 askFamilyPin(accountId, accountName)
                     .then((pin) => {
-                        console.log(pin);
                         tryFamilyViewPin(pin)
                             .then(() => {
                                 steamAccountParams.familyViewPin = pin;
@@ -190,7 +189,6 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                         createSession(steamAccountParams.accountName, steamAccountParams.password, steamAccountParams.maFile.shared_secret)
                             .then(session => {
                                 steamAccountParams.maFile.Session = session;
-                                console.log(session);
                                 // Прокидываем прокси и в рекурсивный ретрай, чтобы повторный
                                 // логин шёл через тот же прокси (или напрямую, если его нет).
                                 maFileLogin(steamAccountParams, options, proxy)

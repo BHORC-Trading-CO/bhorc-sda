@@ -13,7 +13,6 @@ const SavedProxiesBlock: FC<{
   onChange: (newActiveId: string | null) => void
 }> = observer(({ proxies, activeId, onChange }) => {
   const activeProxy = activeId ? proxies.filter(p => p.id === activeId)[0] : null;
-  console.log(proxies, activeProxy)
   return (
     <div className="saved-proxies__container">
       <div className="saved-proxies-title text-grey-medium">
@@ -24,7 +23,6 @@ const SavedProxiesBlock: FC<{
       </div>
       <div className="saved-proxies">
         {proxies.map((proxy) => {
-          console.log(proxy);
           if (proxy.deleted) return <></>;
           return <SavedProxiesItem
             key={proxy.id}
@@ -63,7 +61,6 @@ const SavedProxiesBlock: FC<{
                       <div className="proxy-item-cell"><Password style={{ height: '100%', display: 'flex', justifyContent: 'center' }} password={activeProxy.username} /></div>
                       <div className="proxy-item-cell"><Password style={{ height: '100%', display: 'flex', justifyContent: 'center' }} password={activeProxy.password} /></div>
                       <div className="proxy-item-cell"><Button onClick={() => {
-                        console.log(activeProxy);
                         store.proxiesTable.testEditingProxy(activeProxy);
                       }} style={{ margin: 'auto' }} isLoad={store.proxiesTable.isTestingEditingProxy} size="small" img="./assets/img/testProxy.svg" view="icon" color="grey" hoverColor="light-grey" /></div>
                     </div>

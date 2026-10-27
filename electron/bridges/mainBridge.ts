@@ -1,3 +1,4 @@
+import "../components/Functions/installConsoleRedaction";
 import { contextBridge, IpcMainEvent, ipcRenderer, IpcRendererEvent, session, shell } from 'electron';
 import Field from '../interfaces/TableFields/Field';
 import CompiledProxyInterface from '../interfaces/Proxy/CompiledProxyInterface';
@@ -19,12 +20,11 @@ import CompiledGroupInterface from '../interfaces/Group/CompiledGroupInterface';
 import TableOptions from '../interfaces/TableOptions/TableOptions';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import path from "path";
-import Store from "electron-store";
+import createStore from "../components/newStorage/createStore";
 
 const SteamTotp = require('steam-totp');
 
 const setRequestHeaders = () => {
-  console.log(session);
   if (!session) return;
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -68,7 +68,6 @@ const steamAccounts = {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, listener);
   },
   creationProcess: (steamAccount: SteamAccountSetupInterface, links: { proxyId: string | null, newProxy: ProxySetupInterface | null }) => {
-    console.log(steamAccount, links);
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS, { steamAccount: steamAccount, links })
   },
   onCreationProcessStep(listener: (event: IpcRendererEvent, step: CreationStepType) => void) {
@@ -153,7 +152,6 @@ const proxies = {
     ipcRenderer.send('NEW_PROXIES', proxies);
   },
   edit: (id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[] }) => {
-    console.log(id, proxy, links)
     ipcRenderer.send('EDIT_PROXY', { id, proxy, links });
   },
   delete: (id: string) => {
@@ -229,7 +227,7 @@ const groups = {
 
 const window = {
   openAppdata: () => {
-    const store = new Store();
+    const store = createStore();
     const folderPath = path.dirname(store.path);
 
     switch (process.platform) {

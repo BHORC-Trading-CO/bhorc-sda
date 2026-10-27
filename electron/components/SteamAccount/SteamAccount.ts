@@ -191,7 +191,6 @@ class SteamAccount {
                             SteamID: steamID.toString(),
                             SessionID: ""
                         }
-                        console.log(newSession);
                         this.saveSession(newSession);
                         resolve();
                     } catch (err) {
@@ -321,7 +320,6 @@ class SteamAccount {
     async saveSession(session: Session) {
         try {
             this.params.maFile.Session = session;
-            console.log(this.params.maFile);
             this.editParams({ maFile: this.params.maFile });
         } catch (err) {
             throw new Error(`Не удалось сохранить сессию: ${err}`);

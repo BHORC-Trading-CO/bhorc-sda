@@ -13,7 +13,6 @@ const ProxyItem = observer((props: {
 }) => {
   const { proxyData, links, setLinks } = props;
 
-  console.log(proxyData);
   if (!proxyData) {
     console.log('return empty')
     return <></>;

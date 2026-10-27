@@ -1,4 +1,4 @@
-import Store from 'electron-store';
+import createStore from "./createStore";
 import TableOptions from '../../interfaces/TableOptions/TableOptions';
 import Field from '../../interfaces/TableFields/Field';
 import defaultSteamAccountTableFields from '../../interfaces/TableFields/defaults/steamAccountsTableFields';
@@ -9,7 +9,7 @@ const defaultTableOptions = {
     activePage: 1
 }
 
-const store = new Store();
+const store = createStore();
 
 console.log(store.path);
 

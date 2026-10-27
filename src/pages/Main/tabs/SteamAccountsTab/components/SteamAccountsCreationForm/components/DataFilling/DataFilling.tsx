@@ -399,7 +399,6 @@ const ProxyBlock: FC = observer(() => {
         />
       );
     case "savedProxy":
-      console.log(store.proxiesTable.getProxies());
       return (
         <SavedProxiesBlock
           proxies={store.proxiesTable.getProxies()}

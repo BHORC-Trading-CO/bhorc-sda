@@ -24,6 +24,7 @@ import {
   EAuthSessionGuardType,
 } from "steam-session";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
+import { writeUnredacted } from "../../Functions/redactSecrets";
 
 type AbortChannelType =
   | SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT
@@ -171,7 +172,10 @@ export default async function setupGuard(
                   ? `${steamAccountParams.accountName} - секреты аутентификатора сохранены: ${backupFile}`
                   : `${steamAccountParams.accountName} - ВНИМАНИЕ: секреты НЕ сохранены на диск, они только в логе ниже`
               );
-              console.log(rawMaFile);
+              // Секреты в лог — только запасной путь, когда на диск записать не удалось:
+              // иначе revocation_code потеряется. В остальных случаях им в логе не место.
+              // secret-log-ok: резервная копия при сбое записи на диск (мимо маскировки console)
+              if (!backupFile) writeUnredacted(`${steamAccountParams.accountName} - секреты аутентификатора:`, rawMaFile);
 
               // Код подтверждения приходит на ПОЧТУ, если телефон к аккаунту не привязан,
               // и в SMS, если привязан. Эндпоинт и поле activation_code одни и те же,
@@ -222,7 +226,6 @@ export default async function setupGuard(
                 device_id: SteamTotp.getDeviceID(session.steamID),
                 fully_enrolled: true,
               };
-              console.log(maFile);
               resolve(maFile);
             });
           });
@@ -243,7 +246,6 @@ export default async function setupGuard(
               familyViewPin: null,
               useSteamCookies: true,
             };
-            console.log(sMaFile);
             resolve(sMaFile);
           })
           .catch((err) => {

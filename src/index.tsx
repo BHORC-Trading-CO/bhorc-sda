@@ -1,3 +1,4 @@
+import '../electron/components/Functions/installConsoleRedaction';
 import ReactDOM from 'react-dom';
 //import Router from './Router';
 //import './css/Switcher.css';

@@ -1,3 +1,4 @@
+import "../components/Functions/installConsoleRedaction";
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import CConfirmation from 'steamcommunity/classes/CConfirmation';
 import SteamAccountChannels from '../interfaces/IpcChannels/SteamAccountChannels';

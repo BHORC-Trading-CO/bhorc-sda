@@ -28,7 +28,6 @@ export class SteamAccountManager {
             SteamAccountStorage.Delete(id);
             try {
                 const thisAccount = SteamAccountStorage.GetById(id);
-                console.log(thisAccount);
             } catch (err){
                 console.log(`account ${id} has been deleted`);
             }
