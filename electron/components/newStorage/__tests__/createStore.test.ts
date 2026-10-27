@@ -10,12 +10,17 @@ jest.mock("electron-store", () =>
     })
 );
 
-import createStore, { CONFIG_FILE_MODE, restrictSecretFiles } from "../createStore";
+import createStore, { CONFIG_FILE_MODE, getCreatedStorePaths, restrictSecretFiles } from "../createStore";
 
 const posixOnly = process.platform === "win32" ? it.skip : it;
 const mode = (p: string) => fs.statSync(p).mode & 0o777;
 
 describe("createStore", () => {
+    it("запоминает пути созданных хранилищ для проверки папки данных", () => {
+        createStore();
+        expect(getCreatedStorePaths()).toContain("/nonexistent/config.json");
+    });
+
     it("создаёт хранилище с правами 0o600 на config.json", () => {
         createStore();
         expect(CONFIG_FILE_MODE).toBe(0o600);

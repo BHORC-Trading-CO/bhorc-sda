@@ -1,8 +1,14 @@
 {
-  "name": "trademanager-open-source",
-  "author": "Mikhail Gladkikh <vamavama998@gmail.com>",
+  "name": "bhorc-sda",
+  "productName": "BHORC SDA",
+  "author": "BHORC",
   "version": "1.0.5",
-  "description": "TRADEMANAGER",
+  "description": "Open-source Steam Desktop Authenticator for managing many Steam accounts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BHORC-Trading-CO/bhorc-sda"
+  },
+  "homepage": "https://github.com/BHORC-Trading-CO/bhorc-sda",
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",

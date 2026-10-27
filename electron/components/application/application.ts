@@ -1,8 +1,10 @@
 import Manager from "../manager/manager";
 import WindowsManager from "./WindowsManager/WindowsManager";
 import listeners from "./listenersRouters/listenersRouters";
-import { app, App, ipcMain } from "electron";
-import createStore, { restrictSecretFiles } from "../newStorage/createStore";
+import { app, App, dialog, ipcMain } from "electron";
+import createStore, { getCreatedStorePaths, restrictSecretFiles } from "../newStorage/createStore";
+import ensureSingleInstance from "./singleInstance";
+import { areDataPathsPinned, LEGACY_DATA_DIR_NAME } from "../../dataDir";
 import WindowsChannels from "../../interfaces/IpcChannels/WindowsChannels";
 import { testCrypto } from "../newStorage/cryptoUserData";
 
@@ -24,7 +26,19 @@ class Application {
   }
 
   firstStage(cb: () => void) {
+    const isPrimary = ensureSingleInstance(app, () => {
+      const win = this.windowsManager.mainWindow;
+      if (!win) return;
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    });
+    if (!isPrimary) return;
     app.on("ready", async () => {
+      if (!areDataPathsPinned(app.getPath("userData"), getCreatedStorePaths())) {
+        dialog.showErrorBox("BHORC SDA", `Данные открыты не из папки ${LEGACY_DATA_DIR_NAME} (${getCreatedStorePaths().join(", ") || app.getPath("userData")}). Запуск остановлен, чтобы не потерять аккаунты.`);
+        app.quit();
+        return;
+      }
       restrictSecretFiles(createStore());
       this.windowsManager.createMain();
       //this.decrypt(cb);

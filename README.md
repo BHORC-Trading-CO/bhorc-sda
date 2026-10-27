@@ -1,27 +1,67 @@
-# trademanager-open-source
-![screen1](https://github.com/pinkest-dev/trademanager-open-source/assets/70286254/c81ddb29-dc20-4388-b6c2-139487c65e80)![screen3](https://github.com/pinkest-dev/trademanager-open-source/assets/70286254/9f18e27b-b5ce-4715-a503-d952c7fd7161)
-![screen2](https://github.com/pinkest-dev/trademanager-open-source/assets/70286254/ab84c95c-12ec-4c0b-bdab-db4097f7d65c)
+# BHORC SDA
 
+## What it is
 
+BHORC SDA is an open-source desktop app for managing many Steam accounts and their Steam Guard authenticators. It supports:
 
+- Steam Guard codes and trade/market confirmations.
+- Per-account proxies.
+- Isolated browser profiles with fingerprints configured for each proxy's geographic location.
+- Account groups and bulk proxy import.
+- maFile import.
 
-РУКОВОДСТВО ПО ИСПОЛЬЗОВАНИЮ ТУТ - https://telegra.ph/Otkrytyj-manual-po-Trade-Manager-06-30<br/>
-Скачать последнюю версию: https://github.com/rawr111/trademanager-open-source/releases/latest
+## Status
 
-Как собрать проект:
-1. Клонируем репозиторий к себе на компьютер (git clone https://github.com/rawr111/trademanager-open-source)
-2. Устанавливаем бибилотеки (npm install)
-3. npm start - для запуска в режиме разработчика
-4. npm run make - для компиляции
+Beta. The user interface is currently in Russian.
 
-Внешние модули (puppeteer, sharp, chromium, steamcommunity и т.д.) forge теперь
-кладёт в сборку сам, вручную копировать их в resources больше не нужно. Список
-модулей — в `webpack/externals.js`, копирование — в хуке `packageAfterPrune`
-(`forge.config.js`).
+## Download
 
-Если сборка падает на node-gyp с `No module named 'distutils'`, значит node-gyp
-запустился на Python 3.12+, где distutils удалён. Соберите с Python 3.11:
+Download builds from [GitHub Releases](https://github.com/BHORC-Trading-CO/bhorc-sda/releases).
 
-    PYTHON=/путь/до/python3.11 npm run make
+## Build from source
 
-либо поставьте setuptools в активный Python.
+Use Node.js 22. On macOS, install Python 3.11 and set `PYTHON=python3.11` for node-gyp before installing dependencies or building:
+
+```sh
+export PYTHON=python3.11
+```
+
+Clone this repository and run these commands from its root:
+
+```sh
+npm ci
+npm start
+```
+
+`npm start` runs the development app. To build installers and verify the packaged dependencies:
+
+```sh
+npm run make
+npm run verify:package
+```
+
+Packaged app is under `out/BHORC SDA-<platform>-<arch>/`, installers and archives from `npm run make` under `out/make/`. On macOS the bundle is `BHORC SDA.app`. Forge copies external modules into the packaged app through the `packageAfterPrune` hook; the module list is in `webpack/externals.js`.
+
+On arm64 macOS, the first account-browser start downloads native Chromium. Later starts reuse the cached download.
+
+## Where data lives
+
+The application keeps the folder name `trademanager-open-source` for compatibility with existing installations. Rebranding does not move or rename it.
+
+| OS | Data directory |
+| --- | --- |
+| Windows | `%APPDATA%\trademanager-open-source` |
+| macOS | `~/Library/Application Support/trademanager-open-source` |
+| Linux | `$XDG_CONFIG_HOME/trademanager-open-source`, or `~/.config/trademanager-open-source` when unset |
+
+This directory contains the `electron-store` configuration (`config.json`), account data, maFiles, proxies, groups, browser profiles, pending authenticators, and Chromium cache.
+
+Data, including maFiles and passwords, is currently stored **unencrypted on disk**. Keep the machine secure and protect access to this directory and its backups.
+
+## Credits
+
+Fork of [rawr111/trademanager-open-source](https://github.com/rawr111/trademanager-open-source), originally created by Mikhail Gladkikh (rawr111). The upstream project declared the MIT license in `package.json` from its first code commit (`a438367`; the repository root commit is `519740f`), but did not include a LICENSE file.
+
+## License
+
+[MIT](LICENSE). Copyright (c) 2023 Mikhail Gladkikh (rawr111) and Copyright (c) 2026 BHORC.

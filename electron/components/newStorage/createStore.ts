@@ -8,8 +8,19 @@ import Store from "electron-store";
 export const CONFIG_FILE_MODE = 0o600;
 export const PRIVATE_DIR_MODE = 0o700;
 
+// Пути всех созданных хранилищ: на старте проверяем, что они лежат в закреплённой папке
+// данных (см. dataDir.ts). Хранилища создаются при импорте модулей, и если закрепление
+// когда-нибудь выполнится позже них, они уже будут смотреть в другую папку.
+const createdStorePaths: string[] = [];
+
+export function getCreatedStorePaths(): string[] {
+    return [...createdStorePaths];
+}
+
 export default function createStore() {
-    return new Store({ configFileMode: CONFIG_FILE_MODE });
+    const store = new Store({ configFileMode: CONFIG_FILE_MODE });
+    if (store.path) createdStorePaths.push(store.path);
+    return store;
 }
 
 function chmodQuietly(target: string, mode: number) {
