@@ -227,6 +227,13 @@ const TRADE_BLOCKING_REASONS =
     (1 << 8) |  // RecentPasswordReset
     (1 << 11) | // UsingNewDevice
     (1 << 16);  // TradeCooldown (нет в заголовке Valve, встречается в живых ответах)
+const MARKET_ONLY_REASONS =
+    (1 << 5) |  // AccountNotTrusted
+    (1 << 9) |  // NewPaymentMethod
+    (1 << 12) | // RecentSelfRefund
+    (1 << 13) | // NewPaymentMethodCannotBeVerified
+    (1 << 14) | // NoRecentPurchases
+    (1 << 15);  // AcceptedWalletGift
 
 export interface TradeEligibility {
     allowed: number;
@@ -251,7 +258,9 @@ export function tradeStateFromEligibility(eligibility: TradeEligibility): boolea
     if (eligibility.allowed === 1) return true;
     const reason = eligibility.reason || 0;
     if (reason & TRADE_BLOCKING_REASONS) return false;
-    if (reason === 0 || reason & (REASON_TEMPORARY_FAILURE | REASON_INVALID_COOKIE)) {
+    // Трейды доступны, только если ВСЕ причины из списка «только маркет». Временный сбой,
+    // проблема с cookie, пустая причина и биты, которых Valve ещё не было, — статус неизвестен.
+    if (reason === 0 || reason & (REASON_TEMPORARY_FAILURE | REASON_INVALID_COOKIE) || reason & ~MARKET_ONLY_REASONS) {
         throw new Error(`eligibilitycheck: allowed=0, reason=${reason}, статус неизвестен`);
     }
     return true;
@@ -289,8 +298,9 @@ export async function getTradeState(community: SteamCommunity): Promise<boolean>
                 .concat(response.headers["set-cookie"] || [])
                 .map((c) => c.match(/(?:^|;\s*)webTradeEligibility=([^;]*)/))
                 .find(Boolean);
-            const raw = fromHeader ? fromHeader[1] : eligibilityCookies(community)[0]?.value;
-            const eligibility = parseTradeEligibility(raw);
+            // Только из этого ответа: cookie из jar перед запросом убрана, и подставлять
+            // туда прошлый вердикт нельзя.
+            const eligibility = parseTradeEligibility(fromHeader ? fromHeader[1] : null);
             if (!eligibility) {
                 return reject(new Error(`eligibilitycheck ${response.statusCode}: нет cookie webTradeEligibility`));
             }

@@ -58,6 +58,8 @@ describe("trade-статус через eligibilitycheck", () => {
         ["без причины", { allowed: 0 }],
         ["временный сбой", { allowed: 0, reason: 1 }],
         ["проблема с cookie", { allowed: 0, reason: 1 << 10 }],
+        ["неизвестный новый бит", { allowed: 0, reason: 1 << 17 }],
+        ["только маркет + неизвестный бит", { allowed: 0, reason: (1 << 14) | (1 << 20) }],
     ])("статус неизвестен (%s) — исключение, чтобы оставить прежний", (_name, eligibility) => {
         expect(() => tradeStateFromEligibility(eligibility)).toThrow("статус неизвестен");
     });
