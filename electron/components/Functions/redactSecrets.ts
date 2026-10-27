@@ -17,7 +17,7 @@ const SECRET_KEYS = new Set(
         "maFile", "smaFile", "shared_secret", "identity_secret", "revocation_code", "secret_1",
         "Session", "AccessToken", "RefreshToken", "SessionID", "steamLoginSecure", "cookies", "cookie", "webCookies",
         "familyViewPin", "pin", "activation_code", "secretKey", "key", "apiKey", "tmApiKey", "marketApiKey",
-        "token", "access_token", "authorization",
+        "token", "access_token", "authorization", "proxy-authorization",
     ].map(normalizeKey)
 );
 
@@ -62,7 +62,7 @@ function redactValue(value: unknown, depth: number, walk: Walk): unknown {
     walk.ancestors.push(value);
     try {
         if (value instanceof Error) {
-            const copy = new Error(redactString(value.message));
+            const copy = new Error(redactString(String(value.message)));
             copy.name = value.name;
             copy.stack = value.stack ? redactString(value.stack) : undefined;
             // code, errno, eresult и т.п. нужны для отладки — копируем, тоже через маскировку.

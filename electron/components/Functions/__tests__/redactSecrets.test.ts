@@ -73,6 +73,8 @@ describe("redactSecrets: имена ключей, отладка и произв
         const err = Object.assign(new Error("boom"), { code: "ECONNRESET", eresult: 84, cause });
         const out = redactSecrets(err) as Error & { code?: string; eresult?: number; cause?: Error };
         expect(out.code).toBe("ECONNRESET");
+        expect(() => redactSecrets(Object.assign(new Error("x"), { message: 42 }))).not.toThrow();
+        expect(redactSecrets({ "Proxy-Authorization": "Basic dXNlcjpwYXNz" })).toEqual({ "Proxy-Authorization": REDACTED });
         expect(out.eresult).toBe(84);
         expect((out.cause as Error).message).toBe("inner");
 
@@ -117,6 +119,21 @@ describe("writeUnredacted", () => {
         } finally {
             spy.mockRestore();
         }
+    });
+
+    it("writeUnredacted вызывается только в setupGuard", () => {
+        const root = path.join(__dirname, "../../..");
+        const users: string[] = [];
+        const walk = (d: string) => {
+            for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+                const full = path.join(d, e.name);
+                if (e.isDirectory()) { if (e.name !== "__tests__") walk(full); }
+                else if (/\.tsx?$/.test(e.name) && /writeUnredacted\(/.test(fs.readFileSync(full, "utf8")) && !full.endsWith("redactSecrets.ts")) users.push(path.basename(full));
+            }
+        };
+        walk(root);
+        walk(path.join(root, "../src"));
+        expect(users).toEqual(["setupGuard.ts"]);
     });
 
     it("setupGuard при сбое записи на диск пишет секреты через writeUnredacted, а не через console", () => {
