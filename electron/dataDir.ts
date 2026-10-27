@@ -11,3 +11,10 @@ app.setPath("userData", path.join(app.getPath("appData"), LEGACY_DATA_DIR_NAME))
 export function isDataDirPinned(userDataPath: string = app.getPath("userData")): boolean {
     return path.basename(userDataPath) === LEGACY_DATA_DIR_NAME;
 }
+
+// Проверка по факту: и текущий userData, и папки всех уже созданных хранилищ.
+// Только userData мало: если закрепление сработает поздно, userData уже будет верным,
+// а хранилища, созданные при импорте, — смотреть в папку с новым именем.
+export function areDataPathsPinned(userDataPath: string, storePaths: string[]): boolean {
+    return isDataDirPinned(userDataPath) && storePaths.every((storePath) => isDataDirPinned(path.dirname(storePath)));
+}

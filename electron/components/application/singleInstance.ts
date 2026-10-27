@@ -4,6 +4,7 @@ import { App } from "electron";
 // Второй экземпляр сразу выходит, а первый поднимает своё окно.
 export default function ensureSingleInstance(app: Pick<App, "requestSingleInstanceLock" | "quit" | "on">, onSecondInstance: () => void): boolean {
     if (!app.requestSingleInstanceLock()) {
+        console.log("BHORC SDA уже запущен: переключаемся на открытое окно и выходим.");
         app.quit();
         return false;
     }

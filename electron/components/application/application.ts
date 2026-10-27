@@ -2,9 +2,9 @@ import Manager from "../manager/manager";
 import WindowsManager from "./WindowsManager/WindowsManager";
 import listeners from "./listenersRouters/listenersRouters";
 import { app, App, dialog, ipcMain } from "electron";
-import createStore, { restrictSecretFiles } from "../newStorage/createStore";
+import createStore, { getCreatedStorePaths, restrictSecretFiles } from "../newStorage/createStore";
 import ensureSingleInstance from "./singleInstance";
-import { isDataDirPinned, LEGACY_DATA_DIR_NAME } from "../../dataDir";
+import { areDataPathsPinned, LEGACY_DATA_DIR_NAME } from "../../dataDir";
 import WindowsChannels from "../../interfaces/IpcChannels/WindowsChannels";
 import { testCrypto } from "../newStorage/cryptoUserData";
 
@@ -34,8 +34,8 @@ class Application {
     });
     if (!isPrimary) return;
     app.on("ready", async () => {
-      if (!isDataDirPinned()) {
-        dialog.showErrorBox("BHORC SDA", `Папка данных не ${LEGACY_DATA_DIR_NAME}: ${app.getPath("userData")}. Запуск остановлен, чтобы не потерять аккаунты.`);
+      if (!areDataPathsPinned(app.getPath("userData"), getCreatedStorePaths())) {
+        dialog.showErrorBox("BHORC SDA", `Данные открыты не из папки ${LEGACY_DATA_DIR_NAME} (${getCreatedStorePaths().join(", ") || app.getPath("userData")}). Запуск остановлен, чтобы не потерять аккаунты.`);
         app.quit();
         return;
       }

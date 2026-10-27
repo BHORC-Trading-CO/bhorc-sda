@@ -32,9 +32,18 @@ describe("каталог данных после переименования п
     expect(isDataDirPinned(path.join("C:\\Users\\x\\AppData\\Roaming", "bhorc-sda"))).toBe(false);
   });
 
+  it("areDataPathsPinned ловит хранилища, созданные до закрепления", () => {
+    const { areDataPathsPinned } = require("../dataDir");
+    const legacy = path.join("/Users/x/Library/Application Support", "trademanager-open-source");
+    const renamed = path.join("/Users/x/Library/Application Support", "BHORC SDA");
+    expect(areDataPathsPinned(legacy, [path.join(legacy, "config.json")])).toBe(true);
+    expect(areDataPathsPinned(legacy, [path.join(renamed, "config.json"), path.join(legacy, "config.json")])).toBe(false);
+    expect(areDataPathsPinned(renamed, [])).toBe(false);
+  });
+
   it("application на старте проверяет папку данных и держит один экземпляр", () => {
     const appSource = fs.readFileSync(path.join(__dirname, "..", "components", "application", "application.ts"), "utf8");
-    expect(appSource).toMatch(/if \(!isDataDirPinned\(\)\)/);
+    expect(appSource).toMatch(/if \(!areDataPathsPinned\(app\.getPath\("userData"\), getCreatedStorePaths\(\)\)\)/);
     expect(appSource).toMatch(/ensureSingleInstance\(app,/);
   });
 

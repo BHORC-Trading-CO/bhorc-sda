@@ -3,10 +3,11 @@ const { copyExternalModules } = require("./webpack/copyExternalModules");
 module.exports = {
   packagerConfig: {
     name: "BHORC SDA",
-    // Имя исполняемого файла и Squirrel id пока прежние: v1.0.5 ставилась на Windows как
-    // ElectronStarter/trademanager.exe, и новый id поставил бы вторую копию рядом вместо
-    // обновления. Меняем только после проверки обновления на Windows.
-    executableName: "trademanager",
+    // На Windows имя исполняемого файла и Squirrel id пока прежние: v1.0.5 ставилась как
+    // ElectronStarter/trademanager.exe, и новые поставили бы вторую копию рядом вместо
+    // обновления. Меняем только после проверки обновления на Windows. Windows-сборку
+    // собирают на Windows, поэтому выбираем по платформе сборки.
+    executableName: process.platform === "win32" ? "trademanager" : "bhorc-sda",
     appBundleId: "co.bhorc.sda",
     icon: "assets/icon",
     extraResource: ["assets"],
