@@ -64,7 +64,8 @@ describe('isAppUrl', () => {
 });
 
 describe('isAppUrl: голый % в пути установки', () => {
-    // Forge подставляет путь в entry как есть, а Chromium кодирует "%" страницы как %25.
+    // Forge подставляет путь в entry как есть; адрес страницы может прийти и с голым "%"
+    // (URL-парсер оставляет его как есть), и с %25 — доверять нужно обоим.
     const rawEntry = 'file:///C:/Users/100%Pure/AppData/Local/BHORC%20SDA/.webpack/renderer/main_window/index.html';
     it('доверяет своим страницам, если в пути есть голый %', () => {
         expect(isAppUrl('file:///C:/Users/100%25Pure/AppData/Local/BHORC%20SDA/.webpack/renderer/confirmations_window/index.html', [rawEntry])).toBe(true);
