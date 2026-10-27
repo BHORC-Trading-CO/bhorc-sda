@@ -1,4 +1,5 @@
 import createStore from "./createStore";
+import assertStorageId from "./assertStorageId";
 import SteamAccountInterface from '../../interfaces/SteamAccount/SteamAccountInterface';
 import cryptoUserData from './cryptoUserData';
 import stripLegacyMarketData from '../Functions/stripLegacyMarketData';
@@ -33,6 +34,7 @@ class SteamAccountStorage {
         return migrated;
     }
     static GetById(id: string) {
+        assertStorageId(id);
         const steamAccount = store.get(`steamAccounts.${id}`) as SteamAccountInterface;
         const decryptedSteamAccount = cryptoUserData.decryptObject(steamAccount);
         if (!decryptedSteamAccount) throw new Error(`SteamAccount ${id} is not exist`);
@@ -52,10 +54,14 @@ class SteamAccountStorage {
         SteamAccountStorage.Save(id, { ...steamAccount, ...newObject });
     }
     static Save(id: string, steamAccount: SteamAccountInterface) {
+        assertStorageId(id);
+        assertStorageId(steamAccount.id);
+        if (steamAccount.id !== id) throw new Error("Идентификатор записи не совпадает с ключом");
         const encryptedSteamAccount = cryptoUserData.encryptObject(stripLegacyMarketData(steamAccount));
         store.set(`steamAccounts.${id}`, encryptedSteamAccount);
     }
     static Delete(id: string) {
+        assertStorageId(id);
         store.delete(`steamAccounts.${id}`);
     }
 }

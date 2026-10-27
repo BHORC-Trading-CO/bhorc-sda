@@ -8,6 +8,7 @@ import Input from "../../../../../../../../globalComponents/Input/Input";
 import MaFileImport from "../../../MaFileImport/MaFileImport";
 import SteamGuardConnecting from "./SteamGuardConnecting/SteamGuardConnecting";
 import SmaFileInterface from "../../../../../../../../../electron/interfaces/SteamAccount/SmaFileInterface";
+import sanitizeSmaFile from "../../../../../../../../../electron/components/Functions/sanitizeSmaFile";
 import readFile from "../../../../../../../../globalComponents/SomeFuncs/readFile";
 import { toJS } from "mobx";
 import "./DataFilling.css";
@@ -165,18 +166,15 @@ const ImportSteamAccountsForm: FC = observer(() => {
             const smaFiles: SmaFileInterface[] = [];
             for (var i in files) {
               if (!Number(i) && i !== "0") continue;
-              const smaFile: SmaFileInterface = await readFile(files[i]);
-              if (
-                !smaFile.accountName ||
-                !smaFile.password ||
-                !smaFile.secondary
-              ) {
+              try {
+                // Очищаем файл до записи в состояние и первого показа превью.
+                smaFiles.push(sanitizeSmaFile(await readFile(files[i])));
+              } catch {
                 return store.windows.openMiniNotification({
                   type: "error",
                   text: `Неправильный smaFile!`,
                 });
               }
-              smaFiles.push(smaFile);
             }
             store.steamAccountsTable.creationForm.editContent({
               importedAccounts: smaFiles.map((file) => {

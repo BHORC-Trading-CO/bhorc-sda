@@ -1,4 +1,5 @@
-import { parseUsername } from "../loadSteamAccountData";
+import { parseUsername, parseAvatarURL } from "../loadSteamAccountData";
+import { DEFAULT_AVATAR_URL } from "../../../Functions/sanitizeAvatarUrl";
 
 // Фрагмент реальной разметки профиля Steam (2026): data-miniprofile стоит на блоке аватара,
 // поэтому старый парсер возвращал пробелы/табы вместо ника.
@@ -34,5 +35,24 @@ describe("parseUsername", () => {
 
     it("возвращает пустую строку, если ника нет", () => {
         expect(parseUsername("<html><body>nothing</body></html>")).toBe("");
+    });
+});
+
+describe("parseAvatarURL", () => {
+    const avatar = "https://avatars.akamai.steamstatic.com/c5d56249ee5d28a07db4ac9f7f60af961fab5426_full.jpg";
+    it("сохраняет реальный аватар из разметки профиля", () => {
+        expect(parseAvatarURL(profileHeader("Rabscuttle"))).toBe(avatar);
+    });
+    it("берёт первый URL из srcset с дескрипторами", () => {
+        const fastly = avatar.replace("akamai", "fastly");
+        expect(parseAvatarURL(profileHeader("Name").replace(avatar, `${fastly} 1x, ${avatar} 2x`))).toBe(fastly);
+    });
+    it("поддерживает старую разметку с тем же CDN", () => {
+        expect(parseAvatarURL(`<div class="user_avatar playerAvatar offline"><img src="${avatar}"></div>`)).toBe(avatar);
+    });
+    it("заменяет посторонние URL и отсутствующий аватар", () => {
+        expect(parseAvatarURL(profileHeader("Name").replace(avatar, "http://unix:/tmp/socket:/image"))).toBe(DEFAULT_AVATAR_URL);
+        expect(parseAvatarURL("<html></html>")).toBe(DEFAULT_AVATAR_URL);
+        expect(parseAvatarURL('<div class="user_avatar playerAvatar offline"></div>')).toBe(DEFAULT_AVATAR_URL);
     });
 });

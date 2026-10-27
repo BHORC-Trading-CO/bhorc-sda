@@ -1,3 +1,4 @@
+import sanitizeAvatarUrl from "../../../../../../../electron/components/Functions/sanitizeAvatarUrl";
 import React from "react";
 import SteamAccountInterface from "../../../../../../../electron/interfaces/SteamAccount/SteamAccountInterface";
 import TableSteamAccountInterface from "../../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface";
@@ -17,7 +18,7 @@ const AccountItem = observer((props: {
     <div className="account-item">
       <div className="account-wrapper text-white-medium">
         <img
-          src={steamAccount.secondary.avatarUrl}
+          src={sanitizeAvatarUrl(steamAccount.secondary?.avatarUrl)}
           className="account-logo"
         ></img>
         <div className="account-item-text">

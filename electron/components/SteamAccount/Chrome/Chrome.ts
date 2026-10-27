@@ -1,4 +1,5 @@
 import downloadImage from "../../someFuncs/downloadImage";
+import sanitizeAvatarUrl from "../../Functions/sanitizeAvatarUrl";
 import fs from "fs/promises";
 import puppeteerDefault, { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
@@ -151,13 +152,14 @@ export default class Chrome {
           `${this.profileDir}/Local State`,
           LocalState(this.params.secondary.nickname)
         );
-        // Аватар — косметика профиля. Если URL пустой/недоступен, профиль всё равно создаём.
+        // Аватар — косметика профиля. Недопустимый или недоступный URL пропускаем.
         // С прокси качаем через него; без прокси — напрямую.
-        if (this.params.secondary.avatarUrl) {
+        const avatarUrl = this.params.secondary?.avatarUrl;
+        if (avatarUrl && sanitizeAvatarUrl(avatarUrl) === avatarUrl) {
           try {
             const proxyUrl = this.proxyUrl();
             await downloadImage(
-              this.params.secondary.avatarUrl,
+              avatarUrl,
               `${this.profileDir}/Avatars/avatar_generic_small.png`,
               proxyUrl
             );
