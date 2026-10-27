@@ -3,7 +3,8 @@ module.exports = {
   app: {
     whenReady: () => Promise.resolve(),
     on: () => {},
-    getPath: () => process.cwd(),
+    getPath: jest.fn(() => process.cwd()),
+    setPath: jest.fn(),
     quit: () => {},
     requestSingleInstanceLock: () => true,
   },

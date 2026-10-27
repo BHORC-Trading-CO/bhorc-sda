@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-TradeManager — an Electron desktop app for managing multiple Steam accounts (Steam Guard / mobile authenticator, trade confirmations, proxies, and isolated browser profiles). The renderer is React + MobX; the Electron main process owns all Steam/network logic and persistent storage.
+BHORC SDA — an Electron desktop app for managing multiple Steam accounts (Steam Guard / mobile authenticator, trade confirmations, proxies, and isolated browser profiles). The renderer is React + MobX; the Electron main process owns all Steam/network logic and persistent storage.
 
 ## Commands
 
 - `npm start` — run in development (electron-forge + webpack dev server, hot reload).
 - `npm run make` — build/compile distributables (Squirrel for Windows, zip for darwin, deb/rpm for Linux).
 - `npm run package` — package the app without making installers.
+- `npm run verify:package` — check bundled external modules strictly inside the packaged app's `node_modules`. Output is `out/BHORC SDA-<platform>-<arch>/resources/app` on Windows/Linux and `out/BHORC SDA-darwin-<arch>/BHORC SDA.app/Contents/Resources/app` on macOS.
 - `npm run release` — publish via electron-forge.
 - `npm test` — run Jest tests (`electron/**/__tests__/*.test.ts`, via babel-jest reusing `babel.config.js`). Heavy/native modules (puppeteer, sharp, electron, electron-store) are stubbed in the root `__mocks__/` and auto-applied. Privacy/fail-closed regression tests live alongside the code they cover.
 
@@ -23,12 +24,12 @@ There is **no linter or typecheck script** configured. `tsc` runs with `noEmit` 
 Two processes communicate exclusively over Electron IPC. There is **no shared code import between `src/` and `electron/`** — the contract between them is the set of string channel names and TypeScript interfaces.
 
 ### Main process (`electron/`)
-- Entry: `electron/main.ts` → `components/application/application.ts` (singleton). `firstStage` waits for `app.ready`, creates the main window, then `secondStage` calls `Manager.Load()` and registers all IPC listeners via `listenersRouters()`. (The `decrypt`/secret-key flow exists but is currently bypassed — `secondStage` is called directly.)
+- Entry: `electron/main.ts` imports `electron/dataDir.ts` **first**, pinning `userData` to `appData/trademanager-open-source` before importing `components/application/application.ts` (singleton) and its storage dependencies. Keep this legacy directory name independent of the app/package name; storage modules instantiate `Store` at import time. `firstStage` waits for `app.ready`, creates the main window, then `secondStage` calls `Manager.Load()` and registers all IPC listeners via `listenersRouters()`. (The `decrypt`/secret-key flow exists but is currently bypassed — `secondStage` is called directly.)
 - **Managers are singletons** (`steamAccountManager`, `proxyManager`) holding live in-memory object arrays. `Manager` (`components/Manager/Manager.ts`) coordinates cross-entity concerns, primarily the **links** between accounts and proxies (`LinksStorage`).
 - **`SteamAccount` class** (`components/SteamAccount/SteamAccount.ts`) is the core domain object. Each instance wraps: a `steamcommunity` client, a `steam-session` `LoginSession`, and a `Chrome` puppeteer browser. It handles login (maFile/TOTP via `steam-totp`), session refresh, family-view PIN, secondaries (balances), and trade confirmations. `SteamAccount.Generate()` is the static factory; `editParams()` mutates in memory **and** persists.
 - **IPC listeners** live in `components/SteamAccount/Listeners/*` and `components/Proxy/...`, wired in `components/application/listenersRouters/*Router.ts`. Each listener is a thin handler that calls into a manager/domain method and replies to the `'ERROR'` channel on failure. Channel name constants live in `electron/interfaces/IpcChannels/*` — **use these enums, do not hardcode channel strings** (some legacy listeners still use raw strings like `'NEW_PROXY'`).
 - **Multi-step flows** (`components/SteamAccount/Processes/*`) like account creation and guard setup stream progress back to the renderer step-by-step (`createProcessSendStep`).
-- **Persistence** (`components/newStorage/*Storage.ts`): backed by `electron-store` (JSON on disk in appData). `SteamAccountStorage` encrypts/decrypts every record through `cryptoUserData`. Storage classes are static; `EditData` does a read-merge-write.
+- **Persistence** (`components/newStorage/*Storage.ts`): backed by `electron-store` (`config.json` in the pinned `userData` directory). The `cryptoUserData` wrappers currently return data unchanged, so account data, including passwords and maFiles, is stored unencrypted. Storage classes are static; `EditData` does a read-merge-write.
 - **Browser automation** (`components/SteamAccount/Chrome/Chrome.ts`): per-account persistent puppeteer profile (`puppeteer-extra` + stealth), routed through the account's proxy.
 
 ### Renderer (`src/`)
@@ -48,4 +49,4 @@ Two processes communicate exclusively over Electron IPC. There is **no shared co
 - Comments and many error messages are in **Russian**; match the surrounding language when editing nearby code.
 - Domain methods overwhelmingly return hand-rolled `new Promise((resolve, reject) => …)` wrappers around callback-based Steam libraries — follow that pattern rather than mixing in raw `async` over the same callbacks.
 - Filesystem folder casing is inconsistent with imports (e.g. folders `Manager/`, `application/` are imported as `manager/manager`, `application/application`). This resolves on case-insensitive Windows; preserve existing import casing to avoid breaking other platforms.
-- `package-lock.json` and `yarn.lock` both exist; the README instructs `npm install`.
+- `package-lock.json` and `yarn.lock` both exist; use Node 22 and `npm ci` as documented in the README. On macOS set `PYTHON=python3.11` for node-gyp.

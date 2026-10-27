@@ -2,8 +2,9 @@ const { copyExternalModules } = require("./webpack/copyExternalModules");
 
 module.exports = {
   packagerConfig: {
-    name: "Trademanager",
-    executableName: "trademanager",
+    name: "BHORC SDA",
+    executableName: "bhorc-sda",
+    appBundleId: "co.bhorc.sda",
     icon: "assets/icon",
     extraResource: ["assets"],
   },
@@ -63,7 +64,7 @@ module.exports = {
   makers: [
     {
       name: "@electron-forge/maker-squirrel",
-      config: { name: "ElectronStarter" },
+      config: { name: "bhorc_sda", setupExe: "BHORC-SDA-Setup.exe" },
     },
     {
       name: "@electron-forge/maker-zip",

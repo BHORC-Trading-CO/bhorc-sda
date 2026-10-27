@@ -12,6 +12,13 @@
 
 ## 0. Підготовка середовища
 
+Збирайте **BHORC SDA** через `npm run make`, потім виконайте `npm run verify:package`.
+На macOS застосунок лежить у `out/BHORC SDA-darwin-<arch>/BHORC SDA.app`,
+його код — у `Contents/Resources/app`. На Windows/Linux код лежить у
+`out/BHORC SDA-<platform>-<arch>/resources/app` (`win32` або `linux`).
+Назва каталогу даних лишається `trademanager-open-source` для сумісності;
+`electron/dataDir.ts` закріплює його до завантаження сховищ.
+
 **Інструменти:**
 - **Wireshark** (Windows) — головний детектор витоку.
 - Контрольований HTTP-проксі з логами (напр. **mitmproxy**/Burp або будь-який проксі, чий лог видно) — щоб бачити, що трафік реально йде через нього.

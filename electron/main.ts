@@ -1,3 +1,4 @@
+import "./dataDir";
 import "./components/Functions/installConsoleRedaction";
 import application from "./components/application/application";
 

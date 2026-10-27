@@ -8,7 +8,7 @@ const Attic: FC<AtticInterface> = (props) => {
         <>
             <div className='attic'>
                 <div className='drag'>
-                    {props.title ? props.title : `SDA v${__APP_VERSION__}`}
+                    {props.title ? props.title : `BHORC SDA v${__APP_VERSION__}`}
                 </div>
                 <div className='buttons'>
                     <div onClick={() => {

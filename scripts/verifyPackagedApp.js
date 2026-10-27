@@ -14,13 +14,14 @@ const fs = require("fs");
 const path = require("path");
 
 const externals = require("../webpack/externals");
+const { productName: APP_NAME } = require("../package.json");
 
 const OUT_DIR = path.resolve(__dirname, "..", "out");
 
 /**
  * Ищет папку приложения внутри out/. Раскладка разная по платформам:
- *   Windows/Linux — out/<Name>-<platform>-<arch>/resources/app
- *   macOS         — out/<Name>-darwin-<arch>/<Name>.app/Contents/Resources/app
+ *   Windows/Linux — out/BHORC SDA-<platform>-<arch>/resources/app
+ *   macOS         — out/BHORC SDA-darwin-<arch>/BHORC SDA.app/Contents/Resources/app
  */
 function findPackagedAppDirs() {
   if (!fs.existsSync(OUT_DIR)) {
@@ -30,16 +31,15 @@ function findPackagedAppDirs() {
   const found = [];
 
   for (const entry of fs.readdirSync(OUT_DIR)) {
+    // Старые сборки не должны давать ложный успех после переименования приложения.
+    if (!entry.startsWith(`${APP_NAME}-`)) continue;
     const base = path.join(OUT_DIR, entry);
-    if (!fs.statSync(base).isDirectory() || entry === "make") continue;
+    if (!fs.statSync(base).isDirectory()) continue;
 
-    const candidates = [path.join(base, "resources", "app")];
-
-    for (const nested of fs.readdirSync(base)) {
-      if (nested.endsWith(".app")) {
-        candidates.push(path.join(base, nested, "Contents", "Resources", "app"));
-      }
-    }
+    const candidates = [
+      path.join(base, "resources", "app"),
+      path.join(base, `${APP_NAME}.app`, "Contents", "Resources", "app"),
+    ];
 
     for (const candidate of candidates) {
       if (fs.existsSync(path.join(candidate, "package.json"))) found.push(candidate);
@@ -47,7 +47,7 @@ function findPackagedAppDirs() {
   }
 
   if (found.length === 0) {
-    throw new Error(`В ${OUT_DIR} не нашлось собранного приложения.`);
+    throw new Error(`В ${OUT_DIR} не нашлось собранного приложения ${APP_NAME}.`);
   }
   return found;
 }
