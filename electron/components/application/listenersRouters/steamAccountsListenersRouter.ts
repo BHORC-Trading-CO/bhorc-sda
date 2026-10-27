@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { onTrusted } from '../trustedIpc';
 import SteamAccountChannels from '../../../interfaces/IpcChannels/SteamAccountChannels';
 import steamAccountCreationProcess from '../../SteamAccount/Listeners/steamAccountCreateProcessListener';
 import getAuthCode from '../../SteamAccount/Functions/getAuthCode';
@@ -23,25 +23,25 @@ import steamAccountFocusBrowser from '../../SteamAccount/Listeners/steamAccountF
 import getBrowserStatus from '../../SteamAccount/Listeners/GetBrowserStatus';
 
 export default () => {
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS, steamAccountGetConfirmationsListener);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM, steamAccountConfirmListener);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_STORAGE, steamAccountRefreshStorageListener);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION, steamAccountRefreshSession)
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY, steamAccountGetSecondaryListener); //тут надо функцию поменять
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY, steamAccountGetChangableSecondaryListener);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_GET_TABLE_FIELDS, steamAccountGetTableFieldsListener);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_SET_TABLE_FIELDS, steamAccountSetTableFieldsListener);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_IMPORT, steamAccountImportListener);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS, steamAccountCreationProcess);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_EDIT, steamAccountEditListener);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_DELETE, steamAccountDeleteListener);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_GET, steamAccountGetListener);
-    ipcMain.on(SteamAccountChannels.GUARD_SETUP_PROCESS, guardSetupProcessListener);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_AUTH_CODE, getAuthCode);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_SAVE_TABLE_OPTIONS, steamAccountSetTableOptionsListener);
-    ipcMain.on(SteamAccountChannels.STEAM_ACCOUNT_GET_TABLE_OPTIONS, steamAccountGetTableOptionsListener);
-    ipcMain.on(SteamAccountChannels.START_BROWSER, steamAccountStartBrowser);
-    ipcMain.on(SteamAccountChannels.STOP_BROWSER, steamAccountStopBrowser);
-    ipcMain.on(SteamAccountChannels.FOCUS_BROWSER, steamAccountFocusBrowser);
-    ipcMain.on(SteamAccountChannels.GET_BROWSER_STARTUS, getBrowserStatus);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS, steamAccountGetConfirmationsListener);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM, steamAccountConfirmListener);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_STORAGE, steamAccountRefreshStorageListener);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION, steamAccountRefreshSession)
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY, steamAccountGetSecondaryListener); //тут надо функцию поменять
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY, steamAccountGetChangableSecondaryListener);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_GET_TABLE_FIELDS, steamAccountGetTableFieldsListener);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_SET_TABLE_FIELDS, steamAccountSetTableFieldsListener);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_IMPORT, steamAccountImportListener);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS, steamAccountCreationProcess);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_EDIT, steamAccountEditListener);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_DELETE, steamAccountDeleteListener);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_GET, steamAccountGetListener);
+    onTrusted(SteamAccountChannels.GUARD_SETUP_PROCESS, guardSetupProcessListener);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_AUTH_CODE, getAuthCode);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_SAVE_TABLE_OPTIONS, steamAccountSetTableOptionsListener);
+    onTrusted(SteamAccountChannels.STEAM_ACCOUNT_GET_TABLE_OPTIONS, steamAccountGetTableOptionsListener);
+    onTrusted(SteamAccountChannels.START_BROWSER, steamAccountStartBrowser);
+    onTrusted(SteamAccountChannels.STOP_BROWSER, steamAccountStopBrowser);
+    onTrusted(SteamAccountChannels.FOCUS_BROWSER, steamAccountFocusBrowser);
+    onTrusted(SteamAccountChannels.GET_BROWSER_STARTUS, getBrowserStatus);
 }

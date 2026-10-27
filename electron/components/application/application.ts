@@ -1,12 +1,15 @@
 import Manager from "../manager/manager";
 import WindowsManager from "./WindowsManager/WindowsManager";
 import listeners from "./listenersRouters/listenersRouters";
-import { app, App, dialog, ipcMain } from "electron";
+import { app, App, dialog } from "electron";
 import createStore, { getCreatedStorePaths, restrictSecretFiles } from "../newStorage/createStore";
 import ensureSingleInstance from "./singleInstance";
 import { areDataPathsPinned, LEGACY_DATA_DIR_NAME } from "../../dataDir";
 import WindowsChannels from "../../interfaces/IpcChannels/WindowsChannels";
 import { testCrypto } from "../newStorage/cryptoUserData";
+import { getAppEntries } from "./appEntries";
+import { installNavigationGuard, isAppUrl } from "./navigationGuard";
+import { onceTrusted } from "./trustedIpc";
 
 class Application {
   object: App;
@@ -15,6 +18,7 @@ class Application {
 
   constructor() {
     this.object = app;
+    installNavigationGuard(getAppEntries());
     this.windowsManager = new WindowsManager();
 
     this.object.on('window-all-closed', () => {
@@ -52,7 +56,7 @@ class Application {
 
     if (secretKey) {
       this.windowsManager.mainWindow?.webContents.send(WindowsChannels.GET_SECRET_KEY);
-      ipcMain.once(WindowsChannels.GET_SECRET_KEY, (event, key) => {
+      onceTrusted(WindowsChannels.GET_SECRET_KEY, (event, key) => {
         if (testCrypto(key)) {
           this.secretKey = key;
           this.secondStage(cb);
@@ -72,8 +76,10 @@ class Application {
   }
 
   sendToMain(channel: string, content: any) {
-    if (this.windowsManager.mainWindow)
-      this.windowsManager.mainWindow.webContents.send(channel, content);
+    const win = this.windowsManager.mainWindow;
+    // Сюда уходят аккаунты с maFile и прокси с паролями — только странице приложения.
+    if (!win || win.isDestroyed() || !isAppUrl(win.webContents.getURL(), getAppEntries())) return;
+    win.webContents.send(channel, content);
   }
 }
 

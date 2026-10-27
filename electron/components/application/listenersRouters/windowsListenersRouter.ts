@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { onTrusted } from '../trustedIpc';
 import WindowsChannels from '../../../interfaces/IpcChannels/WindowsChannels';
 import closeMainWindowListener from '../WindowsManager/windowsListeners/closeMainWindowListener';
 import centerizeMainWindowListener from '../WindowsManager/windowsListeners/centerizeMainWindowListener';
@@ -26,36 +26,36 @@ import setSecretKeyListener from '../WindowsManager/windowsListeners/setSecretKe
 
 export default () => {
     //main window
-    ipcMain.on(WindowsChannels.GET_PROFILE_PARAMS, getProfileParams);
-    ipcMain.on(WindowsChannels.CLOSE_MAIN_WINDOW, closeMainWindowListener);
-    ipcMain.on(WindowsChannels.CENTERIZE_MAIN_WINDOW, centerizeMainWindowListener);
-    ipcMain.on(WindowsChannels.MAXIMIZE_MAIN_WINDOW, maximizeMainWindowListener);
-    ipcMain.on(WindowsChannels.MINIMIZE_MAIN_WINDOW, minimizeMainWindowListener);
+    onTrusted(WindowsChannels.GET_PROFILE_PARAMS, getProfileParams);
+    onTrusted(WindowsChannels.CLOSE_MAIN_WINDOW, closeMainWindowListener);
+    onTrusted(WindowsChannels.CENTERIZE_MAIN_WINDOW, centerizeMainWindowListener);
+    onTrusted(WindowsChannels.MAXIMIZE_MAIN_WINDOW, maximizeMainWindowListener);
+    onTrusted(WindowsChannels.MINIMIZE_MAIN_WINDOW, minimizeMainWindowListener);
 
     //ask window
-    ipcMain.on(WindowsChannels.CLOSE_ASK_WINDOW, closeAskWindowListener);
-    ipcMain.on(WindowsChannels.CENTERIZE_ASK_WINDOW, centerizeAskWindowListener);
-    ipcMain.on(WindowsChannels.MAXIMIZE_ASK_WINDOW, maximizeAskWindowListener);
-    ipcMain.on(WindowsChannels.MINIMIZE_ASK_WINDOW, minimizeAskWindowListener);
+    onTrusted(WindowsChannels.CLOSE_ASK_WINDOW, closeAskWindowListener);
+    onTrusted(WindowsChannels.CENTERIZE_ASK_WINDOW, centerizeAskWindowListener);
+    onTrusted(WindowsChannels.MAXIMIZE_ASK_WINDOW, maximizeAskWindowListener);
+    onTrusted(WindowsChannels.MINIMIZE_ASK_WINDOW, minimizeAskWindowListener);
 
     //confirmations window
-    ipcMain.on(WindowsChannels.CLOSE_CONFIRMATIONS_WINDOW, closeConfirmationsWindowListener);
-    ipcMain.on(WindowsChannels.CENTERIZE_CONFIRMATIONS_WINDOW, centerizeConfirmationsWindowListener);
-    ipcMain.on(WindowsChannels.MAXIMIZE_CONFIRMATIONS_WINDOW, maximizeConfirmationsWindowListener);
-    ipcMain.on(WindowsChannels.MINIMIZE_CONFIRMATIONS_WINDOW, minimizeConfirmationsWindowListener);
-    ipcMain.on(WindowsChannels.OPEN_CONFIRMATIONS_WINDOW, openConfirmationsWindowListener);
+    onTrusted(WindowsChannels.CLOSE_CONFIRMATIONS_WINDOW, closeConfirmationsWindowListener);
+    onTrusted(WindowsChannels.CENTERIZE_CONFIRMATIONS_WINDOW, centerizeConfirmationsWindowListener);
+    onTrusted(WindowsChannels.MAXIMIZE_CONFIRMATIONS_WINDOW, maximizeConfirmationsWindowListener);
+    onTrusted(WindowsChannels.MINIMIZE_CONFIRMATIONS_WINDOW, minimizeConfirmationsWindowListener);
+    onTrusted(WindowsChannels.OPEN_CONFIRMATIONS_WINDOW, openConfirmationsWindowListener);
 
     //confirmations window
-    ipcMain.on(WindowsChannels.CLOSE_AUTH_WINDOW, closeAuthWindowListener);
-    ipcMain.on(WindowsChannels.CENTERIZE_AUTH_WINDOW, centerizeAuthWindowListener);
-    ipcMain.on(WindowsChannels.MAXIMIZE_AUTH_WINDOW, maximizeAuthWindowListener);
-    ipcMain.on(WindowsChannels.MINIMIZE_AUTH_WINDOW, minimizeAuthWindowListener);
+    onTrusted(WindowsChannels.CLOSE_AUTH_WINDOW, closeAuthWindowListener);
+    onTrusted(WindowsChannels.CENTERIZE_AUTH_WINDOW, centerizeAuthWindowListener);
+    onTrusted(WindowsChannels.MAXIMIZE_AUTH_WINDOW, maximizeAuthWindowListener);
+    onTrusted(WindowsChannels.MINIMIZE_AUTH_WINDOW, minimizeAuthWindowListener);
 
     //error window
-    ipcMain.on(WindowsChannels.CLOSE_ERROR_WINDOW, closeErrorWindowListener);
-    ipcMain.on(WindowsChannels.CENTERIZE_ERROR_WINDOW, centerizeErrorWindowListener);
-    ipcMain.on(WindowsChannels.MAXIMIZE_ERROR_WINDOW, maximizeErrorWindowListener);
-    ipcMain.on(WindowsChannels.MINIMIZE_ERROR_WINDOW, minimizeErrorWindowListener);
+    onTrusted(WindowsChannels.CLOSE_ERROR_WINDOW, closeErrorWindowListener);
+    onTrusted(WindowsChannels.CENTERIZE_ERROR_WINDOW, centerizeErrorWindowListener);
+    onTrusted(WindowsChannels.MAXIMIZE_ERROR_WINDOW, maximizeErrorWindowListener);
+    onTrusted(WindowsChannels.MINIMIZE_ERROR_WINDOW, minimizeErrorWindowListener);
 
-    ipcMain.on(WindowsChannels.SET_SECRET_KEY, setSecretKeyListener);
+    onTrusted(WindowsChannels.SET_SECRET_KEY, setSecretKeyListener);
 }
