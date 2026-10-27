@@ -28,7 +28,7 @@ const Navigation = observer(() => {
       <div className="navigation-content">
         <div className="navigation-logo-container">
           <img src="./assets/img/Logo.svg" className="navigation-logo" />
-          {isCompress ? "" : <img src="./assets/img/Logo_Text.svg"></img>}
+          {isCompress ? "" : <div className="navigation-logo-text">BHORC SDA</div>}
         </div>
 
         <div className="navigation-items">
