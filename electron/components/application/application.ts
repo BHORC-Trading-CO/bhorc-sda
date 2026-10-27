@@ -2,7 +2,7 @@ import Manager from "../manager/manager";
 import WindowsManager from "./WindowsManager/WindowsManager";
 import listeners from "./listenersRouters/listenersRouters";
 import { app, App, ipcMain } from "electron";
-import Store from "electron-store";
+import createStore, { restrictConfigFileMode } from "../newStorage/createStore";
 import WindowsChannels from "../../interfaces/IpcChannels/WindowsChannels";
 import { testCrypto } from "../newStorage/cryptoUserData";
 
@@ -25,6 +25,7 @@ class Application {
 
   firstStage(cb: () => void) {
     app.on("ready", async () => {
+      restrictConfigFileMode(createStore());
       this.windowsManager.createMain();
       //this.decrypt(cb);
       this.secondStage(cb);
@@ -32,7 +33,7 @@ class Application {
   }
 
   decrypt(cb: () => void) {
-    const store = new Store();
+    const store = createStore();
     const secretKey = store.get("secretKey", null);
 
     if (secretKey) {

@@ -1,7 +1,7 @@
-import Store from 'electron-store';
+import createStore from "./createStore";
 import GroupInterface from '../../interfaces/Group/GroupInterface';
 
-const store = new Store();
+const store = createStore();
 
 // Хранилище групп по образцу ProxyStorage: карта { [id]: GroupInterface } под ключом 'groups'.
 // Группы не секретны, поэтому cryptoUserData не используем (как и LinksStorage).

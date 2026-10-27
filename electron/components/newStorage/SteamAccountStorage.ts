@@ -1,9 +1,9 @@
-import Store from 'electron-store';
+import createStore from "./createStore";
 import SteamAccountInterface from '../../interfaces/SteamAccount/SteamAccountInterface';
 import cryptoUserData from './cryptoUserData';
 import stripLegacyMarketData from '../Functions/stripLegacyMarketData';
 
-const store = new Store();
+const store = createStore();
 
 class SteamAccountStorage {
     static GetAll() {

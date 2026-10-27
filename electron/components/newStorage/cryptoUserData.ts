@@ -1,10 +1,10 @@
 import crypto from 'crypto';
 import application from '../application/application';
-import Store from "electron-store";
+import createStore from "./createStore";
 import Manager from '../manager/manager';
 
 export const testCrypto = (secretKey: string) => {
-    const store = new Store();
+    const store = createStore();
 
     const encryptedtestString = store.get('test-string-encrypted', "") as string;
     const testString = store.get('test-string', "") as string;
@@ -27,7 +27,7 @@ export const testCrypto = (secretKey: string) => {
 }
 
 export const setCrypto = (key: string) => {
-    const store = new Store();
+    const store = createStore();
     const steamAccounts = store.get("steamAccounts", {});
     const proxies = store.get("proxies", {});
 

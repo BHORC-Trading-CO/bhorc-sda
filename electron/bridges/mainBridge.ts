@@ -19,12 +19,11 @@ import CompiledGroupInterface from '../interfaces/Group/CompiledGroupInterface';
 import TableOptions from '../interfaces/TableOptions/TableOptions';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import path from "path";
-import Store from "electron-store";
+import createStore from "../components/newStorage/createStore";
 
 const SteamTotp = require('steam-totp');
 
 const setRequestHeaders = () => {
-  console.log(session);
   if (!session) return;
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -229,7 +228,7 @@ const groups = {
 
 const window = {
   openAppdata: () => {
-    const store = new Store();
+    const store = createStore();
     const folderPath = path.dirname(store.path);
 
     switch (process.platform) {

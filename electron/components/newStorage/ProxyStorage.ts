@@ -1,7 +1,7 @@
-import Store from 'electron-store';
+import createStore from "./createStore";
 import ProxyInterface from '../../interfaces/Proxy/ProxyInterface';
 import cryptoUserData from './cryptoUserData';
-const store = new Store();
+const store = createStore();
 
 class ProxyStorage {
     static GetAll() {

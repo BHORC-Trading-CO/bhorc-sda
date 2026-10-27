@@ -1,6 +1,6 @@
-import Store from 'electron-store';
+import createStore from "./createStore";
 import LinksInterface from '../../interfaces/Links/LinksInterface';
-const store = new Store();
+const store = createStore();
 
 class LinksStorage {
     static Get(): LinksInterface {
