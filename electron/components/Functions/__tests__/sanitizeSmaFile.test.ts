@@ -79,6 +79,7 @@ describe("sanitizeSmaFile", () => {
         expect(sanitizeSmaFile({ ...account(), familyViewPin: "0123" }).familyViewPin).toBe("0123");
         expect(sanitizeSmaFile({ ...account(), familyViewPin: 1234 }).familyViewPin).toBe(1234);
         expect(sanitizeSmaFile({ ...account(), familyViewPin: null }).familyViewPin).toBeNull();
+        expect(sanitizeSmaFile({ ...account(), familyViewPin: "" }).familyViewPin).toBeNull();
     });
 
     it("null в необязательных полях — как отсутствие (maFile из Steam Desktop Authenticator)", () => {
@@ -95,6 +96,10 @@ describe("sanitizeSmaFile", () => {
     it("пустой прокси в файле — без прокси, а не ошибка", () => {
         expect(sanitizeSmaFile({ ...account(), proxy: {} })).not.toHaveProperty("proxy");
         expect(sanitizeSmaFile({ ...account(), proxy: { host: "", port: "" } })).not.toHaveProperty("proxy");
+    });
+
+    it("прокси с логином или портом, но без host — ошибка, а не тихий импорт с реального IP", () => {
+        expect(() => sanitizeSmaFile({ ...account(), proxy: { host: "", port: "8080", username: "u", password: "p" } })).toThrow();
     });
 });
 

@@ -130,7 +130,8 @@ export default function sanitizeSmaFile(value: unknown): SmaFileInterface {
     if (!accountName || !password) throw new Error("Не указаны логин или пароль аккаунта");
     // PIN приходит и числом (старые файлы), и строкой из окна ввода PIN. Строку оставляем
     // строкой: в числе пропали бы ведущие нули ("0123" -> 123), и Steam отклонил бы PIN.
-    const pin = own(source, "familyViewPin");
+    const rawPin = own(source, "familyViewPin");
+    const pin = rawPin === "" ? undefined : rawPin;
     if (pin !== undefined && !(typeof pin === "number" && Number.isInteger(pin) && pin >= 0 && pin <= 9999) &&
         !(typeof pin === "string" && /^[0-9]{1,8}$/.test(pin))) {
         throw new Error("Неправильный familyViewPin");
@@ -153,8 +154,12 @@ export default function sanitizeSmaFile(value: unknown): SmaFileInterface {
     for (const key of ["profileName", "mail", "mailPassword"] as const) {
         if (own(source, key) !== undefined) result[key] = string(source, key);
     }
-    // Пустой прокси в файле ({} или без host) — это «без прокси», а не ошибка файла.
+    // Совсем пустой прокси в файле ({} или все поля пустые) — это «без прокси». Если же
+    // есть порт или логин, но нет host, это ошибка файла: молча импортировать такой
+    // аккаунт без прокси значит пустить его в Steam с реального IP.
     const proxy = own(source, "proxy");
-    if (proxy !== undefined && !(typeof proxy === "object" && !own(proxy as Data, "host"))) result.proxy = sanitizeProxySetup(proxy);
+    const emptyProxy = typeof proxy === "object" && proxy !== null && !Array.isArray(proxy) &&
+        ["host", "port", "username", "password"].every((key) => !own(proxy as Data, key));
+    if (proxy !== undefined && !emptyProxy) result.proxy = sanitizeProxySetup(proxy);
     return result;
 }
