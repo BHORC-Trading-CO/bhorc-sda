@@ -55,23 +55,15 @@ export const GlobalStyle = createGlobalStyle`
   #navigation-main-hover {
     background-image: url(./assets/img/HomeHover.svg);
   }
+  /* Navigation icons are masks; Navigation.css sets the colour (muted, white on hover, gradient when active). */
   #navigation-steam-accounts {
-    background-image: url(./assets/img/SteamAccount.svg);
-  }
-  #navigation-steam-accounts-hover {
-    background-image: url(./assets/img/SteamAccountHover.svg);
+    -webkit-mask-image: url(./assets/img/SteamAccount.svg);
   }
   #navigation-proxy {
-    background-image: url(./assets/img/Proxy.svg);
-  }
-  #navigation-proxy-hover {
-    background-image: url(./assets/img/ProxyHover.svg);
+    -webkit-mask-image: url(./assets/img/Proxy.svg);
   }
   #navigation-extension {
-    background-image: url(./assets/img/Extension.svg);
-  }
-  #navigation-extension-hover {
-    background-image: url(./assets/img/ExtensionHover.svg);
+    -webkit-mask-image: url(./assets/img/Extension.svg);
   }
   .checkbox-default {
     background-image: url(./assets/img/checkbox.svg);

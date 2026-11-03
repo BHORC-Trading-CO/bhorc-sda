@@ -1,17 +1,19 @@
 .navigation {
   padding: 23px 8px 10px 14px;
   border-radius: 0px 20px 0px 0px;
-  background: rgba(33, 18, 40, 0.65);
+  background: var(--sda-surface-1);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   user-select: none;
 }
 
+/* gap вместо margin у логотипа: в узкой навигации текста нет, и логотип встаёт ровно по центру над иконками. */
 .navigation-logo-container {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
   margin-bottom: 37px;
 }
 
@@ -20,21 +22,26 @@
   flex-direction: column;
 }
 .navigation-logo {
-  margin-right: 12px;
+  display: block;
+  flex-shrink: 0;
 }
 /* Название текстом, а не картинкой: в Logo_Text.svg был зашит «TRADEMANAGER» контурами. */
 .navigation-logo-text {
-  color: #fff;
+  color: var(--sda-text);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.14em;
   white-space: nowrap;
 }
+
+/* Иконка пункта — маска из SVG (url в GlobalStyle.ts), цвет задаёт фон: токены вместо зашитых в SVG цветов. */
 .navigation-img {
   width: 24px;
   height: 24px;
-  background-repeat: no-repeat;
-  background-position: center;
+  flex-shrink: 0;
+  background: var(--sda-text-muted);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
 }
 
 .navigation-items {
@@ -48,7 +55,7 @@
   min-height: 43px;
   width: 100%;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--sda-radius);
   margin-bottom: 12px;
   padding: 0px 10px 0px 15px;
   display: flex;
@@ -57,31 +64,69 @@
   justify-self: flex-end;
 }
 
-.navigation-button:hover {
-  background: #372447;
-}
-
 .button__text_navigation {
   margin-left: 12px;
 }
 
 .navigation-button_account {
-  background-color: #2C1935;
+  background-color: var(--sda-surface-2);
   min-height: 60px;
   margin-bottom: 0px;
 }
 
 .navigation-button_mini {
+  cursor: pointer;
   width: 43px;
   height: 43px;
-  background: #372447;
   border: none;
-  border-radius: 10px;
-  border-radius: 10px;
+  border-radius: var(--sda-radius);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* --- Состояния пункта: обычный, ховер, активный (широкая и узкая навигация) --- */
+.navigation-item {
+  position: relative;
+  color: var(--sda-text-muted);
+  background: transparent;
+  transition: background-color var(--sda-transition), color var(--sda-transition);
+}
+/* Подписи с классом text-white-large берут цвет пункта. */
+.navigation-item .text-white-large {
+  color: inherit;
+}
+.navigation-item:hover {
+  background: var(--sda-surface-2);
+  color: var(--sda-text);
+}
+.navigation-item:hover .navigation-img {
+  background: var(--sda-text);
+}
+.navigation-item_active,
+.navigation-item_active:hover {
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
+}
+.navigation-item_active .button__text_navigation {
+  font-weight: 600;
+}
+.navigation-item_active .navigation-img,
+.navigation-item_active:hover .navigation-img {
+  background: var(--sda-accent-gradient);
+}
+/* Метка активного пункта слева. */
+.navigation-item_active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 20px;
+  margin-top: -10px;
+  border-radius: 0 3px 3px 0;
+  background: var(--sda-accent-gradient);
 }
 
 /* --- Группы аккаунтов в навигации --- */
@@ -94,9 +139,15 @@
 .navigation-group-icon {
   width: 24px;
   height: 24px;
-  color: #b79ce0;
-  opacity: 0.85;
+  color: var(--sda-text-muted);
   flex-shrink: 0;
+}
+.navigation-item:hover .navigation-group-icon {
+  color: var(--sda-text);
+}
+.navigation-item_active .navigation-group-icon,
+.navigation-item_active:hover .navigation-group-icon {
+  color: var(--sda-accent-from);
 }
 .navigation-group-name {
   margin-left: 12px;
@@ -108,7 +159,7 @@
   font-size: 15px;
 }
 .navigation-group-count {
-  opacity: 0.5;
+  color: var(--sda-text-subtle);
   margin-left: 6px;
   font-size: 13px;
 }
@@ -117,23 +168,27 @@
   opacity: 0;
   cursor: pointer;
   padding: 0 6px;
+  border-radius: var(--sda-radius-sm);
   font-size: 15px;
   flex-shrink: 0;
 }
-.navigation-group-button:hover .navigation-group-edit {
-  opacity: 0.6;
+.navigation-group-button:hover .navigation-group-edit,
+.navigation-group-edit:focus-visible {
+  opacity: 0.7;
 }
 .navigation-group-edit:hover {
   opacity: 1;
 }
-/* --- Переключатель языка внизу навигации (SDA-18) --- */
+
+/* --- Переключатель языка внизу навигации (SDA-18) ---
+   Сегменты в стиле остальных переключателей приложения: подложка surface-3, выбранный — градиент. */
 .navigation-language {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   margin-top: 12px;
-  padding: 4px;
-  border-radius: 10px;
-  background: #2C1935;
+  padding: 3px;
+  border-radius: var(--sda-radius);
+  background: var(--sda-surface-3);
 }
 /* В узкой навигации (< 1200px) сегменты идут столбиком по ширине мини-кнопок. */
 .navigation-language_mini {
@@ -146,21 +201,28 @@
   min-height: 30px;
   padding: 0;
   border: none;
-  border-radius: 8px;
+  border-radius: 7px;
   background: transparent;
-  color: #776284;
-  font-family: "Nunito";
+  color: var(--sda-text-muted);
+  font-family: var(--sda-font);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
   cursor: pointer;
+  transition: background-color var(--sda-transition), color var(--sda-transition);
 }
-.navigation-language-option:hover,
-.navigation-language-option_active {
-  background: #372447;
-  color: #fff;
+.navigation-language-option:hover {
+  background: var(--sda-surface-4);
+  color: var(--sda-text);
 }
-.navigation-language-option:focus-visible {
-  outline: 2px solid #b79ce0;
-  outline-offset: -2px;
+.navigation-language-option_active,
+.navigation-language-option_active:hover {
+  background: var(--sda-accent-gradient);
+  color: var(--sda-text);
+  cursor: default;
+}
+
+/* Тултип узкой навигации непрозрачный: у react-tooltip по умолчанию 0.9, и сквозь него видна таблица. */
+.navigation .navigation-tooltip.show {
+  opacity: 1;
 }
