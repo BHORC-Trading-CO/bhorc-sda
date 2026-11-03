@@ -109,7 +109,8 @@
   background: var(--sda-surface-3);
   color: var(--sda-text);
 }
-.navigation-item_active .button__text_navigation {
+.navigation-item_active .button__text_navigation,
+.navigation-item_active .navigation-group-name {
   font-weight: 600;
 }
 .navigation-item_active .navigation-img,
@@ -159,7 +160,7 @@
   font-size: 15px;
 }
 .navigation-group-count {
-  color: var(--sda-text-subtle);
+  color: var(--sda-text-muted);
   margin-left: 6px;
   font-size: 13px;
 }
