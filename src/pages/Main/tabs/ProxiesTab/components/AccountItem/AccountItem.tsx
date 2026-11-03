@@ -6,6 +6,7 @@ import Button from "../../../../../../globalComponents/Button/Button";
 import Checkbox from "../../../../../../globalComponents/Checkbox/Checkbox";
 import "./AccountItem.css";
 import { observer } from "mobx-react";
+import { useTranslation } from "react-i18next";
 
 const AccountItem = observer((props: {
   steamAccount: TableSteamAccountInterface,
@@ -13,6 +14,7 @@ const AccountItem = observer((props: {
   setLinks: (links: { steamAccountIds: string[] }) => void
 }) => {
   const { steamAccount, links, setLinks } = props;
+  const { t } = useTranslation();
 
   return (
     <div className="account-item">
@@ -29,7 +31,7 @@ const AccountItem = observer((props: {
         </div>
         <div className="account-item-text" style={{ width: '250px', display: 'flex', justifyContent: 'center' }}>
           {
-            <div className='proxy-account-item text-white-medium' style={{ marginRight: '5px' }}>{steamAccount.proxy ? "#" + steamAccount.proxy.number : 'нет'}</div>
+            <div className='proxy-account-item text-white-medium' style={{ marginRight: '5px' }}>{steamAccount.proxy ? "#" + steamAccount.proxy.number : t('common.none')}</div>
           }
           {steamAccount.proxy ? <>{steamAccount.proxy.host + ":" + steamAccount.proxy.port}</> : ""}
         </div>

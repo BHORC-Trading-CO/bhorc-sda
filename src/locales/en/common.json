@@ -1,0 +1,410 @@
+{
+  "common": {
+    "buttons": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "saveChanges": "Save changes",
+      "delete": "Delete",
+      "deleteIt": "Delete it!",
+      "archiveIt": "Archive it!",
+      "apply": "Apply",
+      "confirm": "Confirm",
+      "close": "Close",
+      "back": "Back",
+      "connect": "Connect",
+      "abort": "Abort",
+      "expand": "Expand",
+      "collapse": "Collapse"
+    },
+    "none": "none",
+    "notSet": "not set",
+    "selected": "Selected",
+    "noAccountsSelected": "No accounts selected",
+    "openDataFolder": "Open the account data folder. All data is stored in config.json",
+    "reloadAll": "Reload all data",
+    "startTyping": "Start typing...",
+    "irreversible": "This action cannot be undone",
+    "archiveHint": "You can always restore it or delete it permanently (just click the eye icon in the top panel)",
+    "error": "Error",
+    "errorTitle": "Error 😒",
+    "unknownStep": "Unknown step: {{step}}",
+    "canCloseWindow": "You can close the window",
+    "inDevelopment": "In development"
+  },
+  "prompt": {
+    "cancel": "Cancel",
+    "accept": "Accept"
+  },
+  "secretKey": {
+    "title": "Enter the encryption key",
+    "text": "Your data is encrypted with a special key. Please enter it below so the app can continue"
+  },
+  "files": {
+    "notText": "The file is not a text file",
+    "invalidJson": "Invalid JSON: {{reason}}",
+    "readFailed": "Could not read the file {{name}}"
+  },
+  "home": {
+    "title": "Home"
+  },
+  "pagination": {
+    "total": "Total items: ",
+    "page": "Page: ",
+    "pageSize": "Items per page:"
+  },
+  "tableSettings": {
+    "title": "Table settings",
+    "allFields": "All available fields:",
+    "selectedColumns": "Columns selected"
+  },
+  "fields": {
+    "steamAccounts": {
+      "number": "#",
+      "startButton": "Browser launch button",
+      "steamAccountAvatar": "Steam avatar",
+      "steamGuard": "Guard code",
+      "steamAccountButtons": "Guard actions",
+      "steamAccountLevel": "lvl",
+      "steamAccountName": "Steam login",
+      "steamAccountBalance": "Steam balance",
+      "steamPassword": "Steam password",
+      "ktState": "Red flag",
+      "tpState": "Market",
+      "tradeState": "Trade status",
+      "steamAccountNickname": "Steam nickname",
+      "steamId": "Steam ID",
+      "mail": "Email",
+      "mailPassword": "Email (password)",
+      "linkedProxies": "Linked proxy",
+      "group": "Group"
+    },
+    "proxies": {
+      "number": "#",
+      "proxyHost": "Proxy host",
+      "proxyPort": "Proxy port",
+      "proxyUsername": "Proxy login",
+      "proxyPassword": "Proxy password",
+      "linkedSteamAccounts": "Linked Steam accounts",
+      "linkedProfiles": "Linked profiles",
+      "testProxyButton": "Test button"
+    }
+  },
+  "fieldHints": {
+    "linkedProxies": "The app will do everything for this Steam account through this proxy",
+    "steamAccountName": "The login you enter when signing in to Steam",
+    "steamPassword": "Steam account password (what else is there to say???🙄)",
+    "steamAccountLevel": "Your Steam level",
+    "tradeState": "Whether the account can send trade offers",
+    "tpState": "Shows whether the Community Market is available on the account",
+    "ktState": "Status of the Steam red warning banner. God forbid you see anything here but OK 😈",
+    "steamAccountBalance": "Steam balances are shown here😙. What else is there to say?",
+    "number": "This is the number in the app. It cannot be changed. It is just a number to make work easier",
+    "steamAccountNickname": "Steam nicknames (from the profile) are shown here",
+    "steamId": "The account's SteamID64 (from the maFile). Search works by it too",
+    "proxyHost": "Proxy hosts are shown here. This is the IP address part. For example: 123.123.123.123",
+    "proxyPort": "Proxy ports are shown here. For example: 30013",
+    "proxyUsername": "Logins of your proxies are shown here",
+    "proxyPassword": "Passwords of your proxies are shown here",
+    "linkedSteamAccounts": "Numbers of the accounts linked to this proxy. (Each account in the list will work through this proxy)",
+    "linkedProfiles": "Numbers of the profiles linked to this proxy (Each profile in the list will work through this proxy)"
+  },
+  "columns": {
+    "host": "Host",
+    "port": "Port",
+    "login": "Login",
+    "password": "Password",
+    "account": "Account",
+    "nickname": "Nickname",
+    "proxy": "Proxy",
+    "steamAccounts": "Steam accounts",
+    "linkedProxies": "Linked proxies"
+  },
+  "proxyBlock": {
+    "noProxy": "No proxy",
+    "newProxy": "New proxy",
+    "savedProxy": "Saved proxies",
+    "notSet": "No proxy set!<br/>All work with this account will go through your current IP",
+    "example": "Example: Login:Password@1.1.1.1:77777",
+    "selectedProxy": "Selected proxy:"
+  },
+  "accounts": {
+    "panel": {
+      "title": "Steam accounts",
+      "add": "Add account"
+    },
+    "table": {
+      "balanceError": "Error(?)",
+      "actions": {
+        "confirmations": "Steam Guard confirmations",
+        "refreshProfile": "Refresh profile data (including statuses)",
+        "refreshSession": "Refresh session (log in again)",
+        "saveMaFile": "Save maFile as",
+        "exportSmaFile": "Export account data (smaFile)",
+        "focusBrowser": "Bring the browser to front",
+        "restore": "Restore Steam account",
+        "edit": "Edit Steam account data"
+      }
+    },
+    "delete": {
+      "permanentTitle": "Permanently delete Steam account #{{number}}?",
+      "archiveTitle": "Move Steam account #{{number}} to the archive?"
+    },
+    "footer": {
+      "refreshSession": "Refresh session",
+      "toGroup": "To group"
+    },
+    "archiveSelected": {
+      "title_one": "Move {{count}} account to the archive?",
+      "title_other": "Move {{count}} accounts to the archive?",
+      "text_one": "Account #{{numbers}} will be archived. You can always restore it or delete it permanently (just click the eye icon in the top panel)",
+      "text_other": "Accounts #{{numbers}} will be archived. You can always restore them or delete them permanently (just click the eye icon in the top panel)",
+      "accept_one": "Delete {{count}} account",
+      "accept_other": "Delete {{count}} accounts"
+    },
+    "errors": {
+      "loadData": "Failed to load account data: {{error}}",
+      "refreshSession": "Could not refresh the session of account #{{number}}: {{error}}",
+      "editNotFound": "Could not change account data: #{{id}} - no such account"
+    },
+    "form": {
+      "existingAccountData": "Enter the details of an existing Steam account:",
+      "optionalData": "Enter details (everything here is optional):",
+      "secondaryData": "Additional data:",
+      "steamLogin": "Steam login",
+      "steamPassword": "Steam password",
+      "pin": "PIN",
+      "mail": "Email",
+      "mailPassword": "Email password",
+      "useSteamCookies": "Use Steam cookies in the browser (auto login)",
+      "maFileNameMismatch": "The Steam account name in the maFile does not match the one entered above!"
+    },
+    "editing": {
+      "title": "Edit Steam account #{{number}} {{name}}"
+    },
+    "creation": {
+      "title": "Add a new Steam account",
+      "tabs": {
+        "new": "New account",
+        "import": "Import accounts"
+      },
+      "create": "Add account",
+      "import": "Import",
+      "alreadyRunning": "the process is already running",
+      "missingData": "Not all details are filled in!",
+      "abortPrompt": {
+        "title": "Abort adding the account?",
+        "text": "The account will not be added 😨"
+      },
+      "abort": "Abort adding",
+      "steps": {
+        "start": {
+          "title": "Starting to add the Steam account"
+        },
+        "loginByPassword": {
+          "text": "The session in the maFile looks invalid, so we are creating a new one"
+        },
+        "checkLoginStatus": {
+          "title": "Checking the current session",
+          "text": "The app checks whether it has access to your Steam account features"
+        },
+        "askPin": {
+          "title": "Enter the Family View PIN",
+          "text": "A window has opened, enter your PIN there"
+        },
+        "tryPin": {
+          "title": "Trying the entered PIN"
+        },
+        "loadData": {
+          "title": "Loading account info",
+          "text": "Avatar, nickname, level, balance, currency and more..."
+        },
+        "link": {
+          "title": "Linking the account to the proxy and profile"
+        },
+        "import": {
+          "title": "Saving the account data in the app"
+        },
+        "end": {
+          "title": "Account added"
+        }
+      }
+    },
+    "import": {
+      "loadSmaFile": "Load .smaFile file",
+      "selectedFiles_one": "{{count}} file selected: {{names}}",
+      "selectedFiles_other": "{{count}} files selected: {{names}}",
+      "skippedFiles": "Files skipped: {{count}}. {{details}}",
+      "view": "View"
+    }
+  },
+  "maFile": {
+    "load": "Load .maFile",
+    "attach": "Attach maFile",
+    "invalid": "You are trying to load an invalid maFile: {{error}}"
+  },
+  "steps": {
+    "startText": "The app will sign in with your details and load all the needed info. This may take a while, don't worry",
+    "loginByPassword": "Signing in with login and password"
+  },
+  "guard": {
+    "tabs": {
+      "connect": "Set up Guard",
+      "useMaFile": "Use maFile"
+    },
+    "connect": {
+      "question": "Want to set up Steam Guard? Make sure this account is NOT already linked to Steam Guard",
+      "checkData": "Check the details:",
+      "login": "Steam login: {{value}}",
+      "password": "Steam password: {{value}}"
+    },
+    "abortPrompt": {
+      "title": "Abort Guard setup?",
+      "text": "Guard will not be set up 😨"
+    },
+    "abort": "Abort setup",
+    "steps": {
+      "start": {
+        "title": "Starting Steam Guard setup"
+      },
+      "askEmailCode": {
+        "title": "Enter the email code",
+        "text": "A code should have arrived at the email linked to the account. Please enter it in the window that opened"
+      },
+      "tryEmailCode": {
+        "title": "Sending the Steam email code"
+      },
+      "enableTwoFactor": {
+        "title": "Guard setup, step 1",
+        "text": "Requesting all the needed info from Steam and saving it"
+      },
+      "askSmsCode": {
+        "title": "Enter the confirmation code",
+        "text": "Steam sent a confirmation code: by email if no phone is linked to the account, or by SMS if one is. Please enter it in the window that opened"
+      },
+      "trySmsCode": {
+        "title": "Sending the Steam confirmation code"
+      },
+      "finalizeTwoFactor": {
+        "title": "Guard setup, step 2",
+        "text": "Sending the final setup request"
+      },
+      "loadData": {
+        "title": "Collecting data"
+      },
+      "import": {
+        "title": "Adding the account and saving data to local storage"
+      },
+      "link": {
+        "title": "Linking the selected proxy and profile"
+      }
+    },
+    "result": {
+      "title": "Account added 😍",
+      "account": "Account: {{name}}",
+      "proxy": "Proxy: {{proxy}}",
+      "revocationCode": "Guard revocation code:",
+      "saveIt": "Save it. Steam shows this code only once — without it you cannot remove the authenticator from the account.",
+      "copyCode": "Copy code"
+    },
+    "code": {
+      "copied": "Code copied!",
+      "copy": "Copy Guard code"
+    }
+  },
+  "groups": {
+    "assign": {
+      "title": "Add accounts to group",
+      "selectedCount": "Accounts selected: {{count}}",
+      "existing": "Existing groups",
+      "newGroup": "New group",
+      "newGroupName": "New group name",
+      "chooseOrName": "Choose a group or enter a name for a new one"
+    },
+    "edit": {
+      "title": "Edit group",
+      "name": "Group name",
+      "emptyName": "Group name cannot be empty"
+    },
+    "delete": {
+      "button": "Delete group",
+      "title": "Delete group “{{name}}”?",
+      "text": "Accounts in the group are not deleted — they just leave this group."
+    }
+  },
+  "proxies": {
+    "panel": {
+      "title": "Proxies",
+      "add": "Add proxy",
+      "bulkHint": "Add proxies in bulk (one proxy per line)"
+    },
+    "footer": {
+      "testAll": "Test all"
+    },
+    "delete": {
+      "permanentTitle": "Permanently delete proxy #{{number}}?",
+      "archiveTitle": "Move proxy #{{number}} to the archive?"
+    },
+    "archiveSelected": {
+      "title_one": "Move {{count}} proxy to the archive?",
+      "title_other": "Move {{count}} proxies to the archive?",
+      "text_one": "Proxy #{{numbers}} will be archived. You can always restore it or delete it permanently (just click the eye icon in the top panel)",
+      "text_other": "Proxies #{{numbers}} will be archived. You can always restore them or delete them permanently (just click the eye icon in the top panel)",
+      "accept_one": "Delete {{count}} proxy",
+      "accept_other": "Delete {{count}} proxies"
+    },
+    "bulk": {
+      "title": "Add proxies in bulk",
+      "example": "One proxy per line. Example: Login:Password@1.1.1.1:7777",
+      "empty": "The field is empty!",
+      "result": "Added: {{added}}, invalid skipped: {{invalid}}, duplicates: {{duplicates}}"
+    },
+    "creation": {
+      "title": "New proxies",
+      "incomplete": "Not all proxy fields are filled in!"
+    },
+    "editing": {
+      "title": "Edit proxy (#{{number}}) {{host}}:{{port}}"
+    },
+    "test": {
+      "editingWorking": "Proxy works",
+      "editingNotWorking": "Proxy does NOT work",
+      "working": "Proxy #{{number}} {{host}}:{{port}} works",
+      "notWorking": "Proxy #{{number}} {{host}}:{{port}} does NOT work",
+      "workingRich": "Proxy #{{number}} {{host}}:{{port}} <b>works</b>",
+      "notWorkingRich": "Proxy #{{number}} {{host}}:{{port}} <b>DOES NOT WORK</b>"
+    },
+    "errors": {
+      "notFound": "Proxy #{{id}} does not exist",
+      "deleteNotFound": "Could not delete proxy: #{{id}} - no such proxy"
+    }
+  },
+  "confirmations": {
+    "title": "Confirmations",
+    "selectedOf": "Selected: {{selected}} of {{total}}",
+    "toggleAll": "Select/deselect all confirmations",
+    "refresh": "Refresh",
+    "empty": "No confirmations available 😕",
+    "loading": "🤩Loading confirmations...",
+    "confirming": "😁Confirming selected: {{count}}",
+    "declining": "😯Declining selected: {{count}}",
+    "declineSelected": "Decline selected",
+    "confirmSelected": "Confirm selected",
+    "item": {
+      "select": "Select",
+      "deselect": "Deselect"
+    }
+  },
+  "ask": {
+    "nothing": "nothing here yet...",
+    "unknown": "What???",
+    "familyPin": {
+      "label": "Enter PIN:"
+    },
+    "mailCode": {
+      "label": "Enter the email code:"
+    },
+    "smsCode": {
+      "label": "Enter the confirmation code (from email or SMS):"
+    }
+  }
+}

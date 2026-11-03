@@ -6,15 +6,17 @@ import Button from "../../../../../../globalComponents/Button/Button";
 import Input from "../../../../../../globalComponents/Input/Input";
 import Delimeter from "../../../../../../globalComponents/Delimeter/Delimeter";
 import "./GroupForms.css";
+import { useTranslation } from "react-i18next";
 
 // Popup "В группу": назначить выделенные аккаунты в существующую группу
 // или создать новую и сразу их туда добавить.
 const GroupAssignForm: FC = observer(() => {
+  const { t } = useTranslation();
   if (!store.groups.isAssignFormOpen) return <></>;
 
   return (
     <MiniWindow
-      title="Добавить аккаунты в группу"
+      title={t("groups.assign.title")}
       width="480px"
       height=""
       content={<AssignFormContent />}
@@ -26,6 +28,7 @@ const GroupAssignForm: FC = observer(() => {
 const AssignFormContent: FC = observer(() => {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
+  const { t } = useTranslation();
 
   const selectedAccounts = Object.values(
     store.steamAccountsTable.getSteamAccounts()
@@ -36,7 +39,7 @@ const AssignFormContent: FC = observer(() => {
     if (selectedAccounts.length === 0) {
       return store.windows.openMiniNotification({
         type: "error",
-        text: "Не выбрано ни одного аккаунта",
+        text: t("common.noAccountsSelected"),
       });
     }
     const ids = selectedAccounts.map((a) => a.id);
@@ -48,7 +51,7 @@ const AssignFormContent: FC = observer(() => {
     } else {
       return store.windows.openMiniNotification({
         type: "error",
-        text: "Выберите группу или введите название новой",
+        text: t("groups.assign.chooseOrName"),
       });
     }
     store.groups.closeAssignForm();
@@ -57,13 +60,13 @@ const AssignFormContent: FC = observer(() => {
   return (
     <div className="group-form">
       <div className="group-form__caption text-grey-medium">
-        Выбрано аккаунтов: {selectedAccounts.length}
+        {t("groups.assign.selectedCount", { count: selectedAccounts.length })}
       </div>
 
       {groups.length > 0 && (
         <>
           <div className="group-form__section-title text-white-medium">
-            Существующие группы
+            {t("groups.assign.existing")}
           </div>
           <div className="group-form__list">
             {groups.map((group) => (
@@ -90,11 +93,11 @@ const AssignFormContent: FC = observer(() => {
       )}
 
       <div className="group-form__section-title text-white-medium">
-        Новая группа
+        {t("groups.assign.newGroup")}
       </div>
       <Input
         value={newName}
-        placeholder="Название новой группы"
+        placeholder={t("groups.assign.newGroupName")}
         onChange={(value) => {
           setNewName(value);
           if (value) setSelectedGroupId(null);
@@ -104,12 +107,12 @@ const AssignFormContent: FC = observer(() => {
       <div className="group-form__buttons">
         <Button
           size="medium"
-          text="Отменить"
+          text={t("common.buttons.cancel")}
           color="grey"
           hoverColor="grey"
           onClick={() => store.groups.closeAssignForm()}
         />
-        <Button size="medium" text="Применить" onClick={apply} />
+        <Button size="medium" text={t("common.buttons.apply")} onClick={apply} />
       </div>
     </div>
   );

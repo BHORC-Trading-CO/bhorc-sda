@@ -5,9 +5,11 @@ import store from "../../../../../../store/store";
 import readFile from "../../../../../../globalComponents/SomeFuncs/readFile";
 import MaFileInterface from "../../../../../../../electron/interfaces/SteamAccount/MaFileInterface";
 import MaFile from "../../../../../../globalComponents/MaFile/MaFile";
+import { useTranslation } from "react-i18next";
 
 const MaFileImport: FC<{ currentMaFile: MaFileInterface | null, onChange: (newMaFile: MaFileInterface | null) => void }> = observer((props) => {
     const [maFileHidden, setMaFileHidden] = useState(true);
+    const { t } = useTranslation();
     const { currentMaFile, onChange } = props;
 
     return (
@@ -19,7 +21,7 @@ const MaFileImport: FC<{ currentMaFile: MaFileInterface | null, onChange: (newMa
                 text={
                     currentMaFile
                         ? `${currentMaFile.account_name}`
-                        : "Загрузить .maFile"
+                        : t("maFile.load")
                 }
                 color="grey"
                 hoverColor="light-grey"
@@ -27,18 +29,18 @@ const MaFileImport: FC<{ currentMaFile: MaFileInterface | null, onChange: (newMa
                     const el = document.getElementById("maFileImportInput");
                     el?.click();
                 }}
-                altText="Прикрепить maFile"
+                altText={t("maFile.attach")}
             />
             {currentMaFile ? (
                 <div>
                     <Button
                         size="medium"
                         style={{ width: "100%", marginBottom: "20px" }}
-                        text={maFileHidden ? "Развернуть" : "Свернуть"}
+                        text={maFileHidden ? t("common.buttons.expand") : t("common.buttons.collapse")}
                         color="grey"
                         hoverColor="light-grey"
                         onClick={() => { setMaFileHidden(!maFileHidden) }}
-                        altText={maFileHidden ? "Развернуть" : "Свернуть"}
+                        altText={maFileHidden ? t("common.buttons.expand") : t("common.buttons.collapse")}
                     ></Button>
                     {maFileHidden ? <></> : <MaFile maFile={currentMaFile}></MaFile>}
                 </div>
@@ -69,7 +71,7 @@ const MaFileImport: FC<{ currentMaFile: MaFileInterface | null, onChange: (newMa
                                 onChange(null);
                                 event.target.value = "";
                                 store.windows.openMiniNotification({
-                                    text: `Вы пытаетесь загрузить невалидный maFile: ${err}`,
+                                    text: t("maFile.invalid", { error: String(err) }),
                                     type: "error",
                                 });
                             });

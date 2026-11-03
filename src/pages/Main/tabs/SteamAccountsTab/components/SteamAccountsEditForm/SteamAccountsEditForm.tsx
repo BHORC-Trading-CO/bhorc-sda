@@ -14,23 +14,26 @@ import Button from '../../../../../../globalComponents/Button/Button';
 import TableSteamAccountInterface from '../../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface';
 import MaFileImport from '../MaFileImport/MaFileImport';
 import Checkbox from '../../../../../../globalComponents/Checkbox/Checkbox';
+import { Trans, useTranslation } from 'react-i18next';
 
 const changeThisProperties: { [K in keyof TableSteamAccountInterface]?: TableSteamAccountInterface[K] } = {};
 
 const SteamAccountsEditForm: FC = observer(() => {
+    const { t } = useTranslation();
     if (!store.steamAccountsTable.editingForm.isOpen) return <></>;
     const content = store.steamAccountsTable.editingForm.getContent();
     const steamAccountId = content.steamAccount.id;
     const steamAccount = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(sa => sa.id === steamAccountId)[0];
 
     return (
-        <MiniWindow title={`Редактирование Steam аккаунта #${steamAccount.number} ${steamAccount.accountName}`} height='' width='750px' maxHeight='900px' content={<EditFormContent />} onClose={() => {
+        <MiniWindow title={t('accounts.editing.title', { number: steamAccount.number, name: steamAccount.accountName })} height='' width='750px' maxHeight='900px' content={<EditFormContent />} onClose={() => {
             store.steamAccountsTable.editingForm.close();
         }} />
     );
 });
 
 const EditFormContent = observer(() => {
+    const { t } = useTranslation();
     const content = store.steamAccountsTable.editingForm.getContent();
     const switches = store.steamAccountsTable.editingForm.getSwitches();
     const steamAccount = content.steamAccount;
@@ -38,22 +41,22 @@ const EditFormContent = observer(() => {
     const pin = steamAccount.familyViewPin === 0 ? '' : String(steamAccount.familyViewPin);
     return <div className='steam-account_edit-form'>
         <div className='steam-data-block'>
-            <div className="steam-data-title text-white-medium">Введите данные от существующего Steam аккаунта:</div>
+            <div className="steam-data-title text-white-medium">{t('accounts.form.existingAccountData')}</div>
             <div className="steam-data-input__wrapper">
                 <img src={sanitizeAvatarUrl(steamAccount.secondary?.avatarUrl)} alt="" className='steam-account-avatar' style={{ width: '40px', height: '40px', marginRight: '10px' }} />
-                <Input value={steamAccount.accountName} placeholder='Логин Steam' onChange={(newValue) => {
+                <Input value={steamAccount.accountName} placeholder={t('accounts.form.steamLogin')} onChange={(newValue) => {
                     store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, accountName: newValue } });
                     changeThisProperties.accountName = newValue;
                 }} />
                 <div className="steam-data-input__delimener"></div>
-                <Input type='password' value={steamAccount.password} placeholder='пароль Steam' onChange={(newValue) => {
+                <Input type='password' value={steamAccount.password} placeholder={t('accounts.form.steamPassword')} onChange={(newValue) => {
                     store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, password: newValue } });
                     changeThisProperties.password = newValue;
                 }} />
                 <div className="steam-data-input__delimener"></div>
                 {
                     steamAccountInStorage.familyViewPin ?
-                        <Input type='password' value={pin} placeholder='пинкод' onChange={(newValue) => {
+                        <Input type='password' value={pin} placeholder={t('accounts.form.pin')} onChange={(newValue) => {
                             if (newValue != '' && !Number(newValue)) return;
                             if (newValue.length > 4) return;
                             if (newValue.length === 0) {
@@ -73,7 +76,7 @@ const EditFormContent = observer(() => {
                 if (newMaFile.account_name != content.steamAccount.accountName) {
                     return store.windows.openMiniNotification({
                         type: 'error',
-                        text: `Имя аккаунта Steam в мафайле не совпадает с заданным выше!`
+                        text: t('accounts.form.maFileNameMismatch')
                     })
                 }
                 store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...content.steamAccount, maFile: newMaFile } });
@@ -82,14 +85,14 @@ const EditFormContent = observer(() => {
         </div>
         <Delimeter marginBottom='25px' marginTop='0px' />
         <div className='steam-data-block'>
-            <div className="steam-data-title text-white-medium">Второстепенные данные:</div>
+            <div className="steam-data-title text-white-medium">{t('accounts.form.secondaryData')}</div>
             <div className="steam-data-input__wrapper">
-                <Input value={steamAccount.mail ? steamAccount.mail : ""} placeholder='Почта' onChange={(newValue) => {
+                <Input value={steamAccount.mail ? steamAccount.mail : ""} placeholder={t('accounts.form.mail')} onChange={(newValue) => {
                     store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, mail: newValue } });
                     changeThisProperties.mail = newValue;
                 }} />
                 <div className="steam-data-input__delimener"></div>
-                <Input type="password" value={steamAccount.mailPassword ? steamAccount.mailPassword : ""} placeholder='Почта пароль' onChange={(newValue) => {
+                <Input type="password" value={steamAccount.mailPassword ? steamAccount.mailPassword : ""} placeholder={t('accounts.form.mailPassword')} onChange={(newValue) => {
                     store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, mailPassword: newValue } });
                     changeThisProperties.mailPassword = newValue;
                 }} />
@@ -99,7 +102,7 @@ const EditFormContent = observer(() => {
                     <Checkbox isChecked={steamAccount.useSteamCookies} onChange={(newValue) => {
                         store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, useSteamCookies: newValue } });
                         changeThisProperties.useSteamCookies = newValue;
-                    }} /><span style={{ lineHeight: '25px' }}>Использовать куки Steam в браузере (автологин)</span>
+                    }} /><span style={{ lineHeight: '25px' }}>{t('accounts.form.useSteamCookies')}</span>
                 </div>
 
             </div>
@@ -109,15 +112,15 @@ const EditFormContent = observer(() => {
             <Navigation
                 buttons={[
                     {
-                        text: 'Без прокси',
+                        text: t('proxyBlock.noProxy'),
                         id: 'noProxy'
                     },
                     {
-                        text: 'Создать прокси',
+                        text: t('proxyBlock.newProxy'),
                         id: 'newProxy'
                     },
                     {
-                        text: 'Сохраненные прокси',
+                        text: t('proxyBlock.savedProxy'),
                         id: 'savedProxy'
                     }
                 ]}
@@ -134,10 +137,10 @@ const EditFormContent = observer(() => {
             </div>
         </div>
         <div className='steam-data-block' style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', marginBottom: '20px' }}>
-            <Button text='Отменить' size='medium' color='grey' hoverColor='light-grey' onClick={() => {
+            <Button text={t('common.buttons.cancel')} size='medium' color='grey' hoverColor='light-grey' onClick={() => {
                 store.steamAccountsTable.editingForm.close();
             }} />
-            <Button text='Сохранить изменения' size='medium' color='gradient' hoverColor='gradient' onClick={() => {
+            <Button text={t('common.buttons.saveChanges')} size='medium' color='gradient' hoverColor='gradient' onClick={() => {
                 let proxyId: string | null = steamAccount.proxy ? steamAccount.proxy.id : null;
                 if (store.steamAccountsTable.editingForm.switches.proxy === "noProxy") {
                     proxyId = null;
@@ -166,8 +169,7 @@ const ProxyBlock: FC = observer(() => {
     switch (CreationFormSwitches.proxy) {
         case "noProxy":
             return <div className='info-block'>
-                Прокси не установлен!<br />
-                Вся работа с этим аккаунтом будет осуществляться с вашего текущего ip
+                <Trans i18nKey="proxyBlock.notSet" components={{ br: <br /> }} />
             </div>
         case "newProxy":
             return <CreateProxyBlock proxy={content.proxy.new} onChange={(newProxyData) => {

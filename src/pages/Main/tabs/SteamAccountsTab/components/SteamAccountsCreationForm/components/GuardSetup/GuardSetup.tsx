@@ -4,40 +4,42 @@ import store from '../../../../../../../../store/store';
 import Button from '../../../../../../../../globalComponents/Button/Button';
 import LoadingIcons from 'react-loading-icons';
 import { observer } from 'mobx-react';
+import { useTranslation } from 'react-i18next';
 
 const Page: FC<{ step: CreationStepType }> = observer(({ step }) => {
+    const { t } = useTranslation();
     switch (step) {
         case "start":
-            return <Step title='Запускаем процесс подключения Steam Guard' text='Программа залогинится по вашим данным и подгрузит всю нужную информацию. Это может занять какое-то время, не переживайте' />;
+            return <Step title={t('guard.steps.start.title')} text={t('steps.startText')} />;
         case "loginByPassword":
-            return <Step title='Логинимся по имени и паролю' text='' />;
+            return <Step title={t('steps.loginByPassword')} text='' />;
         case "askEmailCode":
-            return <Step title='Введите код с почты' text='На подключенную к аккаунту почту должен был прийти код. Пожалуйста впишите его в появивщееся окно' />;
+            return <Step title={t('guard.steps.askEmailCode.title')} text={t('guard.steps.askEmailCode.text')} />;
         case "tryEmailCode":
-            return <Step title='Отправляем код с почты Steam' text='' />;
+            return <Step title={t('guard.steps.tryEmailCode.title')} text='' />;
         case "enableTwoFactor":
-            return <Step title='Первый этап подключения Guard' text='Запрашиваем у Steam всю нужную информацию и сохраняем ее' />;
+            return <Step title={t('guard.steps.enableTwoFactor.title')} text={t('guard.steps.enableTwoFactor.text')} />;
         case "askSmsCode":
-            return <Step title='Введите код подтверждения' text='Steam прислал код подтверждения: на почту, если к аккаунту не привязан телефон, или в смс, если привязан. Пожалуйста впишите его в появившееся окно' />;
+            return <Step title={t('guard.steps.askSmsCode.title')} text={t('guard.steps.askSmsCode.text')} />;
         case "trySmsCode":
-            return <Step title='Отправляем код подтверждения Steam' text='' />;
+            return <Step title={t('guard.steps.trySmsCode.title')} text='' />;
         case "finalizeTwoFactor":
-            return <Step title='Второй этап подключения Guard' text='Отправляем финальный запрос на подключение' />
+            return <Step title={t('guard.steps.finalizeTwoFactor.title')} text={t('guard.steps.finalizeTwoFactor.text')} />
         case "loadData":
-            return <Step title='Собираем данные' text='' />;
+            return <Step title={t('guard.steps.loadData.title')} text='' />;
         case "import":
-            return <Step title='Создаем аккаунт и сохраняем данные в локальное хранилище' text='' />
+            return <Step title={t('guard.steps.import.title')} text='' />
         case "link":
-            return <Step title='Привязываем указанный прокси и профиль' text='' />;
+            return <Step title={t('guard.steps.link.title')} text='' />;
         case "end":
             return <Result />;
         case "error":
             return <div className='account-creation_step'>
-                <div className='title'>Ошибка 😒</div>
+                <div className='title'>{t('common.errorTitle')}</div>
                 <div className='texxt'>{store.steamAccountsTable.creationForm.guardSetupProcessError}</div>
             </div>
         default:
-            return <>Неизвестный шаг: {step}</>;
+            return <>{t('common.unknownStep', { step })}</>;
     }
 });
 
@@ -55,30 +57,30 @@ const GuardSetup: FC = observer(() => {
 // закрыть "мимо" кода — он показан крупно и рядом с кнопкой копирования.
 const Result: FC = observer(() => {
     const result = store.steamAccountsTable.creationForm.guardSetupResult;
+    const { t } = useTranslation();
 
     return <div className='account-creation_step'>
-        <div className='title'>Аккаунт создан 😍</div>
+        <div className='title'>{t('guard.result.title')}</div>
         {result
             ? <>
-                <div className='text'>Аккаунт: {result.accountName}</div>
+                <div className='text'>{t('guard.result.account', { name: result.accountName })}</div>
                 <div className='text'>SteamId: {result.steamId}</div>
-                {result.proxy ? <div className='text'>Прокси: {result.proxy}</div> : null}
+                {result.proxy ? <div className='text'>{t('guard.result.proxy', { proxy: result.proxy })}</div> : null}
                 <div className='text' style={{ marginTop: '15px' }}>
-                    Код отзыва Guard (revocation code):
+                    {t('guard.result.revocationCode')}
                 </div>
                 <div className='title' style={{ userSelect: 'text', letterSpacing: '2px' }}>
                     {result.revocationCode}
                 </div>
                 <div className='text' style={{ maxWidth: '420px', textAlign: 'center' }}>
-                    Сохраните его. Steam выдаёт этот код один раз — без него отключить
-                    аутентификатор от аккаунта будет невозможно.
+                    {t('guard.result.saveIt')}
                 </div>
-                <Button size='medium' text='Скопировать код' color='grey' hoverColor='light-grey' onClick={() => {
+                <Button size='medium' text={t('guard.result.copyCode')} color='grey' hoverColor='light-grey' onClick={() => {
                     navigator.clipboard.writeText(result.revocationCode);
                 }} />
             </>
-            : <div className='text'>Можно закрыть окно</div>}
-        <Button size='medium' text='Закрыть' color='grey' hoverColor='light-grey' onClick={() => {
+            : <div className='text'>{t('common.canCloseWindow')}</div>}
+        <Button size='medium' text={t('common.buttons.close')} color='grey' hoverColor='light-grey' onClick={() => {
             store.steamAccountsTable.creationForm.close();
         }} />
     </div>;
@@ -86,12 +88,13 @@ const Result: FC = observer(() => {
 
 const Step: FC<{ title: string, text: string }> = (props) => {
     const { title, text } = props;
+    const { t } = useTranslation();
 
     return <div className='account-creation_step'>
         <div className='title'>{title}</div>
         <div className='text'>{text}</div>
         <LoadingIcons.BallTriangle style={{ width: '50px', height: '50px', marginBottom: '30px' }} />
-        <Button size='medium' text='Прервать подключение' color='grey' hoverColor='light-grey' onClick={() => {
+        <Button size='medium' text={t('guard.abort')} color='grey' hoverColor='light-grey' onClick={() => {
             store.steamAccountsTable.creationForm.close();
         }} />
     </div>

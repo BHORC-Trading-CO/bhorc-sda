@@ -7,6 +7,7 @@ import defaultProxiesTableFields from "../../../electron/interfaces/TableFields/
 import ProxySetupInterface from "../../../electron/interfaces/Proxy/ProxySetupInterface";
 import testingResultJsx from "./testingResultJsx";
 import parseProxyString from "../../pages/Main/tabs/ProxiesTab/components/Funcs/parseProxyString";
+import i18n from "../../i18n/i18n";
 
 class ProxiesTableStore {
   root: Store;
@@ -60,19 +61,21 @@ class ProxiesTableStore {
       if (data.id === "editing_proxy") {
         this.isTestingEditingProxy = false;
         store.windows.openMiniNotification({
-          text: `Прокси ${data.testResult ? "работает" : "НЕ работает"}`,
+          text: i18n.t(data.testResult ? "proxies.test.editingWorking" : "proxies.test.editingNotWorking"),
           type: data.testResult ? "success" : "error",
         });
         return;
       }
       const proxy = this.proxies.filter((p) => p.id === data.id);
-      if (!proxy[0]) throw new Error(`Прокси #${data.id} не существует`);
+      if (!proxy[0]) throw new Error(i18n.t("proxies.errors.notFound", { id: data.id }));
       proxy[0].isTesting = false;
       store.windows.openMiniNotification({
         type: data.testResult ? "success" : "error",
-        text: `Прокси #${proxy[0].number} ${proxy[0].host}:${proxy[0].port} ${
-          data.testResult ? "работает" : "НЕ работает"
-        }`,
+        text: i18n.t(data.testResult ? "proxies.test.working" : "proxies.test.notWorking", {
+          number: proxy[0].number,
+          host: proxy[0].host,
+          port: proxy[0].port,
+        }),
       });
       runInAction(() => {
         proxy[0].isWorking = data.testResult;
@@ -132,7 +135,7 @@ class ProxiesTableStore {
   }
   testProxy(id: string) {
     const proxy = this.proxies.filter((p) => p.id === id);
-    if (!proxy[0]) throw new Error(`Прокси #${id} не существует`);
+    if (!proxy[0]) throw new Error(i18n.t("proxies.errors.notFound", { id }));
     proxy[0].isTesting = true;
     window.Main.proxies.test(id);
   }
@@ -236,9 +239,7 @@ class ProxiesTableStore {
   deleteProxy(id: string) {
     const index = this.getProxies().findIndex((proxy) => proxy.id === id);
     if (index === -1)
-      throw new Error(
-        `Не получилось удалить прокси: #${id} - такого прокси не существует`
-      );
+      throw new Error(i18n.t("proxies.errors.deleteNotFound", { id }));
     this.proxies.splice(index, 1);
     window.Main.proxies.delete(id);
   }
@@ -314,7 +315,11 @@ class ProxiesTableStore {
 
     this.root.windows.openMiniNotification({
       type: validProxies.length > 0 ? "success" : "error",
-      text: `Добавлено: ${validProxies.length}, пропущено невалидных: ${invalidCount}, дубликатов: ${duplicateCount}`,
+      text: i18n.t("proxies.bulk.result", {
+        added: validProxies.length,
+        invalid: invalidCount,
+        duplicates: duplicateCount,
+      }),
     });
   }
   setActivePage(n: number, save: boolean = false) {

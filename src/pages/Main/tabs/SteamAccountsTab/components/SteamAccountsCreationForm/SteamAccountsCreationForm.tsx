@@ -7,8 +7,10 @@ import './SteamDataForm.css';
 import DataFillingForm from './components/DataFilling/DataFilling';
 import AccountCreation from './components/AccountCreation/AccountCreation';
 import GuardSetup from './components/GuardSetup/GuardSetup';
+import { useTranslation } from 'react-i18next';
 
 const SteamAccountsCreationForm: FC = observer(() => {
+    const { t } = useTranslation();
     if (!store.steamAccountsTable.creationForm.isOpen) return <></>;
 
     const getCurrentContent = () => {
@@ -24,7 +26,7 @@ const SteamAccountsCreationForm: FC = observer(() => {
 
     return (
         <MiniWindow
-            title='Подключение нового аккаунта Steam'
+            title={t('accounts.creation.title')}
             width='800px'
             height=''
             maxHeight='900px'

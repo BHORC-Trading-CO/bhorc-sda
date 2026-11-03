@@ -4,9 +4,11 @@ import { observer } from "mobx-react";
 import TableSteamAccountInterface from "../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface";
 import uuid from "react-uuid";
 import ReactTooltip from "react-tooltip";
+import { useTranslation } from "react-i18next";
 
 const Guard: FC<{ code: string }> = observer((props) => {
   const [isCopied, setIsCopied] = useState(false);
+  const { t } = useTranslation();
   const timeToUpdate = 30 - ((Number(new Date()) / 1000) % 30);
 
   const [percent, setPercent] = useState(
@@ -33,7 +35,7 @@ const Guard: FC<{ code: string }> = observer((props) => {
       }}
     >
       <ReactTooltip place="top" type="dark" effect="float" id={uniqueId}>
-        <span>{isCopied ? `Код скопирован!` : `Копировать Guard код`}</span>
+        <span>{isCopied ? t("guard.code.copied") : t("guard.code.copy")}</span>
       </ReactTooltip>
       <div
         style={{

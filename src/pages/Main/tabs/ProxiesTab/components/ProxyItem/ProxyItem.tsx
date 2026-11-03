@@ -5,6 +5,7 @@ import ProxySetupInterface from '../../../../../../../electron/interfaces/Proxy/
 import "./ProxyItem.css";
 import { observer } from "mobx-react-lite";
 import Button from "../../../../../../globalComponents/Button/Button";
+import { useTranslation } from "react-i18next";
 
 const ProxyItem = observer((props: {
   proxyData: ProxySetupInterface | null,
@@ -12,6 +13,7 @@ const ProxyItem = observer((props: {
   setLinks: (links: { steamAccountIds: string[] }) => void
 }) => {
   const { proxyData, links, setLinks } = props;
+  const { t } = useTranslation();
 
   if (!proxyData) {
     console.log('return empty')
@@ -66,8 +68,8 @@ const ProxyItem = observer((props: {
             <div className="accounts__container">
               <div className="accounts-header text-grey-medium">
                 <span className="account-header-text">№</span>
-                <span className="account-header-text">Логин</span>
-                <span className="account-header-text" style={{ width: '250px' }}>Подключенные прокси</span>
+                <span className="account-header-text">{t("columns.login")}</span>
+                <span className="account-header-text" style={{ width: '250px' }}>{t("columns.linkedProxies")}</span>
               </div>
 
               <div className="accounts-proxy">

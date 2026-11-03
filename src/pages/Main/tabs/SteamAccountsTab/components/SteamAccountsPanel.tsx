@@ -3,12 +3,14 @@ import Button from "../../../../../globalComponents/Button/Button";
 import Search from "../../../../../globalComponents/Search/Search";
 import { observer } from 'mobx-react';
 import store from '../../../../../store/store';
+import { useTranslation } from 'react-i18next';
 
 const ProxiesPanel = observer(() => {
+    const { t } = useTranslation();
     return (
         <div className="panel">
             <div className="panel-content">
-                <h1 className="panel-text_main">Steam аккаунты</h1>
+                <h1 className="panel-text_main">{t("accounts.panel.title")}</h1>
                 <div className="panel-content__options">
                     {/* <div className="header-content__buttons-container">
             <div className="button-default" id="panel_settings" onClick={()=>{
@@ -48,7 +50,7 @@ const ProxiesPanel = observer(() => {
                         onClick={() => {
                             window.Main.window.openAppdata();
                         }}
-                        altText="Открыть папку с данными от аккаунтов. Все данные хранятся в файле config.json"
+                        altText={t("common.openDataFolder")}
                     />
                     <Button
                         view="icon"
@@ -61,7 +63,7 @@ const ProxiesPanel = observer(() => {
                         onClick={() => {
                             store.steamAccountsTable.settingsForm.open();
                         }}
-                        altText="Настройки таблицы"
+                        altText={t("tableSettings.title")}
                     />
 
                     <Button
@@ -76,7 +78,7 @@ const ProxiesPanel = observer(() => {
                             console.log('send refresh req')
                             window.Main.steamAccounts.refresh();
                         }}
-                        altText="Перезагрузить все данные"
+                        altText={t("common.reloadAll")}
                     />
 
                     <Search onChange={(value) => {
@@ -88,7 +90,7 @@ const ProxiesPanel = observer(() => {
                     <Button
                         size="large"
                         img="./assets/img/Mark.svg"
-                        text="Добавить аккаунт"
+                        text={t("accounts.panel.add")}
                         className="headline-button_gradient"
                         onClick={() => {
                             store.steamAccountsTable.creationForm.open();

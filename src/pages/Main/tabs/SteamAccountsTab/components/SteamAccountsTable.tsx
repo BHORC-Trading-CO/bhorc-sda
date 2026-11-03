@@ -16,6 +16,7 @@ import LoadingIcons from "react-loading-icons";
 import ReactTooltip from "react-tooltip";
 import uuid from "react-uuid";
 import { toJS } from "mobx";
+import { useTranslation } from "react-i18next";
 
 const SteamAccountsTableWrapper: FC = () => {
   const fields = store.steamAccountsTable.getFields();
@@ -44,6 +45,7 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
       }}
       isSelected={store.steamAccountsTable.isAllSelected}
       fields={fields}
+      fieldsTable="steamAccounts"
       lines={lines}
       onSort={(fieldType, direction) => {
         store.steamAccountsTable.changeFieldDirection(fieldType, direction);
@@ -203,6 +205,7 @@ const CellJSX: FC<{
   steamAccount: TableSteamAccountInterface;
 }> = observer((props) => {
   const { type, steamAccount } = props;
+  const { t } = useTranslation();
   const changableSecondaries =
     store.steamAccountsTable.changableSecondaries[steamAccount.id];
   const browserStatus =
@@ -215,7 +218,7 @@ const CellJSX: FC<{
       return steamAccount.mailPassword ? (
         <Password password={steamAccount.mailPassword} />
       ) : (
-        <>нет</>
+        <>{t("common.none")}</>
       );
 
     case AvalibleTypes.profileName:
@@ -242,7 +245,7 @@ const CellJSX: FC<{
                 steamAccountName: steamAccount.accountName,
               });
             }}
-            altText="Steam Guard подтверждения"
+            altText={t("accounts.table.actions.confirmations")}
           />
           <Button
             disabled={steamAccount.deleted}
@@ -257,7 +260,7 @@ const CellJSX: FC<{
             onClick={() => {
               store.steamAccountsTable.loadSecondaries(steamAccount.id);
             }}
-            altText="Обновить данные профиля (в том числе и статусы)"
+            altText={t("accounts.table.actions.refreshProfile")}
           />
           <Button
             disabled={steamAccount.deleted}
@@ -272,7 +275,7 @@ const CellJSX: FC<{
             onClick={() => {
               store.steamAccountsTable.refreshSession(steamAccount.id);
             }}
-            altText="Обновить сессию (перелогиниться)"
+            altText={t("accounts.table.actions.refreshSession")}
           />
           <Button
             disabled={steamAccount.deleted}
@@ -289,7 +292,7 @@ const CellJSX: FC<{
               );
               el?.click();
             }}
-            altText="Сохранить maFile как"
+            altText={t("accounts.table.actions.saveMaFile")}
           />
 
           <a
@@ -388,7 +391,7 @@ const CellJSX: FC<{
         if (changableSecondaries.content.steam.error) {
           return (
             <div data-tip="React-tooltip" data-for={uniqueId}>
-              Ошибка(?)
+              {t("accounts.table.balanceError")}
               <ReactTooltip
                 place="top"
                 type="dark"
@@ -477,7 +480,7 @@ const CellJSX: FC<{
           </>
         );
       } else {
-        return <>нет</>;
+        return <>{t("common.none")}</>;
       }
     case AvalibleTypes.group:
       return <>{steamAccount.group ? steamAccount.group.name : "—"}</>;
@@ -519,7 +522,7 @@ const CellJSX: FC<{
               );
               el?.click();
             }}
-            altText="Экспорт данных аккаунта (smaFile)"
+            altText={t("accounts.table.actions.exportSmaFile")}
           />
           <a
             style={{ display: "none" }}
@@ -569,7 +572,7 @@ const CellJSX: FC<{
                 onClick={() => {
                   window.Main.steamAccounts.focusBrowser(steamAccount.id);
                 }}
-                altText="Поднять браузер наверх"
+                altText={t("accounts.table.actions.focusBrowser")}
               />
             </div>
           );
@@ -614,7 +617,7 @@ const CellJSX: FC<{
               );
               window.Main.steamAccounts.get();
             }}
-            altText="Восстановить Steam аккаунт"
+            altText={t("accounts.table.actions.restore")}
           />
         );
       } else {
@@ -628,7 +631,7 @@ const CellJSX: FC<{
             onClick={() => {
               store.steamAccountsTable.editingForm.open(steamAccount);
             }}
-            altText="Редактирование данных Steam аккаунта"
+            altText={t("accounts.table.actions.edit")}
           />
         );
       }
@@ -644,10 +647,10 @@ const CellJSX: FC<{
             if (steamAccount.deleted) {
               store.windows.prompt({
                 type: "question",
-                title: `Хотите безвозвратно удалить Steam аккаунт №${steamAccount.number}?`,
-                text: "Это действие невозможно будет отменить",
-                acceptButtonText: "Удалить его!",
-                cancelButtonText: "Отмена",
+                title: t("accounts.delete.permanentTitle", { number: steamAccount.number }),
+                text: t("common.irreversible"),
+                acceptButtonText: t("common.buttons.deleteIt"),
+                cancelButtonText: t("prompt.cancel"),
                 cb: () => {
                   window.Main.steamAccounts.delete(steamAccount.id);
                 },
@@ -655,10 +658,10 @@ const CellJSX: FC<{
             } else {
               store.windows.prompt({
                 type: "question",
-                title: `Хотите отправить Steam аккаунт №${steamAccount.number} в архив?`,
-                text: "Его всегда можно будет восстановить или удалить окончательно (просто кликни на глазик в верхней панели)",
-                acceptButtonText: "Убрать в архив!",
-                cancelButtonText: "Отмена",
+                title: t("accounts.delete.archiveTitle", { number: steamAccount.number }),
+                text: t("common.archiveHint"),
+                acceptButtonText: t("common.buttons.archiveIt"),
+                cancelButtonText: t("prompt.cancel"),
                 cb: () => {
                   store.steamAccountsTable.editSteamAccount(steamAccount.id, {
                     deleted: true,

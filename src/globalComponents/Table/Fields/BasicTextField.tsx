@@ -5,11 +5,15 @@ import { observer } from 'mobx-react';
 import ReactTooltip from 'react-tooltip';
 import uuid from 'react-uuid';
 import AvalibleFieldTypes from '../../../../electron/interfaces/TableFields/AvalibleFieldTypes';
+import { useTranslation } from 'react-i18next';
+import { TFunction } from 'i18next';
+import fieldTitle from '../fieldTitle';
 
 const BasicTextField: FC<{ field: Field }> = (props) => {
     const { field } = props;
     const tableProps = useContext(Context);
-    const altText = getAltText(field);
+    const { t } = useTranslation();
+    const altText = getAltText(t, field);
     const uniqueId = uuid();
 
     return (
@@ -19,50 +23,36 @@ const BasicTextField: FC<{ field: Field }> = (props) => {
             {uniqueId ? <ReactTooltip place="top" type="dark" effect="float" id={uniqueId}>
                 <span>{altText}</span>
             </ReactTooltip> : <></>}
-            {field.showTtitleInTable ? field.title : ""}
+            {field.showTtitleInTable ? (tableProps ? fieldTitle(t, tableProps.fieldsTable, field) : field.title) : ""}
             {field.isSortable ? (field.sortDirection === 'UP' ? '↑' : '↓') : ""}
         </div>
     );
 };
 
-const getAltText = (field: Field) => {
-    switch (field.type) {
-        case AvalibleFieldTypes.linkedProxies:
-            return <div className='alt-text-container'>Все действия с этим Steam аккаунтом программа будет выполнять через указанный прокси</div>
-        case AvalibleFieldTypes.steamAccountName:
-            return <div className='alt-text-container'>Это логин, который вы вводите при входе в Steam</div>
-        case AvalibleFieldTypes.steamPassword:
-            return <div className='alt-text-container'>Пароль от Steam аккаунта (что тут еще можно сказать???🙄)</div>
-        case AvalibleFieldTypes.steamAccountLevel:
-            return <div className='alt-text-container'>Ваш уровень Steam</div>
-        case AvalibleFieldTypes.tradeState:
-            return <div className='alt-text-container'>Может ли аккаунт отправлять трейды</div>
-        case AvalibleFieldTypes.tpState:
-            return <div className='alt-text-container'>Показывает открыта ли на аккаунте торговая площадка</div>
-        case AvalibleFieldTypes.ktState:
-            return <div className='alt-text-container'>Статус красной таблички в Steam. Упоси господь увидеть здесь что-то отличное от слова ОК 😈</div>
-        case AvalibleFieldTypes.steamAccountBalance:
-            return <div className='alt-text-container'>Здесь отображаются балансы Steam😙. Что еще сказать?</div>
-        case AvalibleFieldTypes.number:
-            return <div className='alt-text-container'>Это номер в системе. Его нельзя изменить. По сути это просто цифра для более удобной работы</div>
-        case AvalibleFieldTypes.steamAccountNickname:
-            return <div className='alt-text-container'>Тут отображаются никнеймы из Steam (из профиля)</div>;
-        case AvalibleFieldTypes.steamId:
-            return <div className='alt-text-container'>SteamID64 аккаунта (из maFile). По нему тоже работает поиск</div>;
+// Подсказка к заголовку колонки по её type (fieldHints.<type> в locales).
+const HINT_TYPES: AvalibleFieldTypes[] = [
+    AvalibleFieldTypes.linkedProxies,
+    AvalibleFieldTypes.steamAccountName,
+    AvalibleFieldTypes.steamPassword,
+    AvalibleFieldTypes.steamAccountLevel,
+    AvalibleFieldTypes.tradeState,
+    AvalibleFieldTypes.tpState,
+    AvalibleFieldTypes.ktState,
+    AvalibleFieldTypes.steamAccountBalance,
+    AvalibleFieldTypes.number,
+    AvalibleFieldTypes.steamAccountNickname,
+    AvalibleFieldTypes.steamId,
+    AvalibleFieldTypes.proxyHost,
+    AvalibleFieldTypes.proxyPort,
+    AvalibleFieldTypes.proxyUsername,
+    AvalibleFieldTypes.proxyPassword,
+    AvalibleFieldTypes.linkedSteamAccounts,
+    AvalibleFieldTypes.linkedProfiles,
+];
 
-        case AvalibleFieldTypes.proxyHost:
-            return <div className='alt-text-container'>Тут располагаются хосты прокси. Это часть ip адреса. Например: 123.123.123.123</div>;
-        case AvalibleFieldTypes.proxyPort:
-            return <div className='alt-text-container'>Тут отображаются порты прокси. Например: 30013</div>;
-        case AvalibleFieldTypes.proxyUsername:
-            return <div className='alt-text-container'>Тут отображаются логины от ваших прокси</div>;
-        case AvalibleFieldTypes.proxyPassword:
-            return <div className='alt-text-container'>Тут отображаются пароли от ваших прокси</div>;
-        case AvalibleFieldTypes.linkedSteamAccounts:
-            return <div className='alt-text-container'>Тут отображаются номера подключенных аккаунтов к данному прокси. (Каждый аккаунт из списка номеров будет работать через указанный прокси)</div>;
-        case AvalibleFieldTypes.linkedProfiles:
-            return <div className='alt-text-container'>Тут отображаются номера подключенных профилей к данному прокси (Каждый профиль из списка номеров будет работать через указанный прокси)</div>;
-    }
+const getAltText = (t: TFunction, field: Field) => {
+    if (HINT_TYPES.includes(field.type))
+        return <div className='alt-text-container'>{t(`fieldHints.${field.type}`)}</div>;
     return "";
 }
 

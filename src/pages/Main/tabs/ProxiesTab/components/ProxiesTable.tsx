@@ -8,6 +8,7 @@ import Checkbox from '../../../../../globalComponents/Checkbox/Checkbox';
 import Button from '../../../../../globalComponents/Button/Button';
 import Password from '../../../../../globalComponents/Password/Password';
 import { observer } from 'mobx-react';
+import { useTranslation } from 'react-i18next';
 
 const ProxiesTable: FC = observer(() => {
     const fields = store.proxiesTable.getFields();
@@ -24,6 +25,7 @@ const ProxiesTable: FC = observer(() => {
             onSelect={(isSelected) => { store.proxiesTable.selectAllProxies(isSelected); }}
             isSelected={store.proxiesTable.isAllSelected}
             fields={fields}
+            fieldsTable="proxies"
             lines={lines}
             onSort={(fieldType, direction) => {
                 store.proxiesTable.changeFieldDirection(fieldType, direction);
@@ -50,6 +52,7 @@ const generateLine = (fields: Field[], proxy: TableProxyInterface): Line => {
 
 const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observer((props) => {
     const { type, proxy } = props;
+    const { t } = useTranslation();
     switch (type) {
         case AvalibleTypes.checkbox:
             if (proxy.deleted) {
@@ -92,10 +95,10 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
                 if (proxy.deleted) {
                     store.windows.prompt({
                         type: 'question',
-                        title: `Хотите безвозвратно удалить прокси №${proxy.number}?`,
-                        text: 'Это действие невозможно будет отменить',
-                        acceptButtonText: 'Удалить его!',
-                        cancelButtonText: 'Отмена',
+                        title: t('proxies.delete.permanentTitle', { number: proxy.number }),
+                        text: t('common.irreversible'),
+                        acceptButtonText: t('common.buttons.deleteIt'),
+                        cancelButtonText: t('prompt.cancel'),
                         cb: () => {
                             store.proxiesTable.deleteProxy(proxy.id);
                         }
@@ -103,10 +106,10 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
                 } else {
                     store.windows.prompt({
                         type: 'question',
-                        title: `Хотите отправить прокси №${proxy.number} в архив?`,
-                        text: 'Его всегда можно будет восстановить или удалить окончательно (просто кликни на глазик в верхней панели)',
-                        acceptButtonText: 'Убрать в архив!',
-                        cancelButtonText: 'Отмена',
+                        title: t('proxies.delete.archiveTitle', { number: proxy.number }),
+                        text: t('common.archiveHint'),
+                        acceptButtonText: t('common.buttons.archiveIt'),
+                        cancelButtonText: t('prompt.cancel'),
                         cb: () => {
                             store.proxiesTable.editProxyInStorage(proxy.id, { deleted: true }, {
                                 steamAccountIds: []

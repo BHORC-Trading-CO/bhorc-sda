@@ -4,8 +4,10 @@ import { observer } from 'mobx-react';
 import store from '../../../../../store/store';
 import Button from '../../../../../globalComponents/Button/Button';
 import TablePageSwitcher from '../../../../../globalComponents/TablePageSwitcher/TablePageSwitcher';
+import { useTranslation } from 'react-i18next';
 
 const ProxiesFooter: FC = observer(() => {
+    const { t } = useTranslation();
     const proxies = store.proxiesTable.getProxies().filter(p => !p.deleted || store.proxiesTable.showDeleted);
     const proxiesByPage = store.proxiesTable.getProxiesByPages();
     const selectedProxies = proxies.filter(p => p.isSelected);
@@ -24,7 +26,7 @@ const ProxiesFooter: FC = observer(() => {
                 </div>
                 <div className="footer__control">
                     <div className="footer__select-number">
-                        <span className="text-grey-large">Выбрано</span>
+                        <span className="text-grey-large">{t("common.selected")}</span>
                         <span className="text-white-large footer__info">{selectedProxies.length}</span>
                     </div>
 
@@ -36,7 +38,7 @@ const ProxiesFooter: FC = observer(() => {
                         hoverColor="grey"
                         className="footer__button"
                         img="./assets/img/testProxy.svg"
-                        text="Тест всех"
+                        text={t("proxies.footer.testAll")}
                         onClick={() => {
                             const selectedProxies = store.proxiesTable.getProxies().filter(p => p.isSelected && !p.deleted);
                             if (selectedProxies.length === 0) return;
@@ -52,16 +54,16 @@ const ProxiesFooter: FC = observer(() => {
                         hoverColor="grey"
                         img="./assets/img/Trash.svg"
                         hoverImg="./assets/img/Trash_hov.svg"
-                        text="Удалить"
+                        text={t("common.buttons.delete")}
                         onClick={() => {
                             const selectedProxies = store.proxiesTable.getProxies().filter(p => p.isSelected);
                             if (selectedProxies.length === 0) return;
                             store.windows.prompt({
                                 type: 'question',
-                                title: `Хотите переместить в архив ${selectedProxies.length} прокси?`,
-                                text: `Прокси №{${selectedProxies.map(p => p.number).join(', ')}} будут убраны. Их всегда можно восстановить/удалить окночательно (просто кликни на глазик в верхней панели)`,
-                                acceptButtonText: `Удалить ${selectedProxies.length} прокси`,
-                                cancelButtonText: 'Отмена',
+                                title: t('proxies.archiveSelected.title', { count: selectedProxies.length }),
+                                text: t('proxies.archiveSelected.text', { count: selectedProxies.length, numbers: selectedProxies.map(p => p.number).join(', ') }),
+                                acceptButtonText: t('proxies.archiveSelected.accept', { count: selectedProxies.length }),
+                                cancelButtonText: t('prompt.cancel'),
                                 cb: () => {
                                     for (var proxy of selectedProxies) {
                                         store.proxiesTable.editProxyInStorage(proxy.id, { deleted: true }, {

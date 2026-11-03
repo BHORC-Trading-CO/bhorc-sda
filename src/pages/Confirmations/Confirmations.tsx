@@ -5,10 +5,12 @@ import Button from '../../globalComponents/Button/Button';
 import "./Confirmation.css"
 import SellItem from './SellItem/SellItem';
 import LoadingIcons from 'react-loading-icons';
+import { useTranslation } from 'react-i18next';
 
 interface Item { selected: boolean, confirmation: CConfirmation };
 
 const Confirmations: FC = () => {
+    const { t } = useTranslation();
     const [name, setName] = useState('');
     const [items, setItems] = useState<Item[]>([]);
     const [id, setId] = useState("");
@@ -59,7 +61,7 @@ const Confirmations: FC = () => {
 
     return (
         <div className='confirmation-wrapper'>
-            <Attic id={id} windowName="confirmations" title='Подтверждения'></Attic>
+            <Attic id={id} windowName="confirmations" title={t('confirmations.title')}></Attic>
             <div className='confirmation-container'>
                 <div className='confirmation-info-container'>
                     <div className='info-account-name'>
@@ -68,7 +70,7 @@ const Confirmations: FC = () => {
                     </div>
                     <div className='confirmation-info-container'>
                         <div className='sell-items-count-selected'>
-                            Выбрано: {items.filter(i => i.selected).length} из {items.length}
+                            {t('confirmations.selectedOf', { selected: items.filter(i => i.selected).length, total: items.length })}
                         </div>
                         <Button onClick={() => {
                             const selectedItems = items.filter(i => i.selected);
@@ -80,8 +82,8 @@ const Confirmations: FC = () => {
                             }
                         }}
                             style={{ marginRight: '5px' }}
-                            altText='Выбрать/отменить все подтверждения' view='icon' size='small' color='grey' hoverColor='light-grey' img='./assets/img/selectAll.svg' hoverImg='./assets/img/selectAllHover.svg' />
-                        <Button disabled={isLoading} altText='Обновить' onClick={() => {
+                            altText={t('confirmations.toggleAll')} view='icon' size='small' color='grey' hoverColor='light-grey' img='./assets/img/selectAll.svg' hoverImg='./assets/img/selectAllHover.svg' />
+                        <Button disabled={isLoading} altText={t('confirmations.refresh')} onClick={() => {
                             window.Confirmations.api.getConfirmations(id);
                             setIsLoading(true);
                         }} view='icon' size='small' color='grey' hoverColor='light-grey' img='./assets/img/Refresh.svg' hoverImg='./assets/img/Refresh_hov.svg' />
@@ -89,19 +91,19 @@ const Confirmations: FC = () => {
                 </div>
                 <div className='sell-items-container'>
                     {error ? <div className='centered-block'>😯{String(error)}</div> : (!isLoading && !isResponding ?
-                        (items.length > 0 ? <Items items={items} setItems={setItems} /> : <div className='centered-block'>Нет доступных подтверждений 😕</div>) :
+                        (items.length > 0 ? <Items items={items} setItems={setItems} /> : <div className='centered-block'>{t('confirmations.empty')}</div>) :
                         <div className='centered-block'>
                             {isLoading ? <div>
                                 <LoadingIcons.Oval />
                                 <div style={{ lineHeight: '50px' }}>
-                                    🤩Получаем доступные подтверждения...
+                                    {t('confirmations.loading')}
                                 </div>
 
                             </div> :
                                 <div>
                                     <LoadingIcons.Oval />
                                     <div style={{ lineHeight: '50px' }}>
-                                        {isResponding === 'confirm' ? "😁Подтверждаем" : "😯Отклоняем"} выбранное: {items.filter(i => i.selected).length}
+                                        {t(isResponding === 'confirm' ? 'confirmations.confirming' : 'confirmations.declining', { count: items.filter(i => i.selected).length })}
                                     </div>
                                 </div>}
                         </div>)}
@@ -109,7 +111,7 @@ const Confirmations: FC = () => {
 
                 <div className='sell-items-confirms-button-container'>
                     <Button
-                        text='Отклонить выбранное'
+                        text={t('confirmations.declineSelected')}
                         size='large'
                         color='grey'
                         hoverColor='grey'
@@ -126,7 +128,7 @@ const Confirmations: FC = () => {
                         }}
                     />
                     <Button
-                        text='Подтвердить выбранное'
+                        text={t('confirmations.confirmSelected')}
                         size='large'
                         color='grey'
                         hoverColor='grey'

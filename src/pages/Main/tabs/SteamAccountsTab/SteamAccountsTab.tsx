@@ -27,6 +27,7 @@ const SteamAccountsTab: FC = observer(() => {
             <TableSettings
                 isOpen={store.steamAccountsTable.settingsForm.isOpen}
                 fields={steamAccountsTableFields}
+                fieldsTable="steamAccounts"
                 currentFields={store.steamAccountsTable.getCustomizableFields()}
                 onClose={() => {
                     store.steamAccountsTable.settingsForm.close();

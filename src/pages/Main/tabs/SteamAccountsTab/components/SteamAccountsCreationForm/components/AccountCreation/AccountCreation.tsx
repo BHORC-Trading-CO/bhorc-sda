@@ -5,38 +5,40 @@ import CreationStepType from '../../../../../../../../../electron/interfaces/Ste
 import LoadingIcons from 'react-loading-icons'
 import './AccountCreation.css';
 import Button from '../../../../../../../../globalComponents/Button/Button';
+import { useTranslation } from 'react-i18next';
 
 const AccountCreation: FC = observer(() => {
     const Page: FC<{ step: CreationStepType }> = observer(({ step }) => {
+        const { t } = useTranslation();
         switch (step) {
             case "start":
-                return <Step title='Запускаем процесс добавления Steam аккаунта' text='Программа залогинится по вашим данным и подгрузит всю нужную информацию. Это может занять какое-то время, не переживайте' />
+                return <Step title={t('accounts.creation.steps.start.title')} text={t('steps.startText')} />
             case "loginByPassword":
-                return <Step title='Логинимся по имени и паролю' text='Похоже, что указанная сессия в мафайле недействительна, поэтому мы создаем новую' />
+                return <Step title={t('steps.loginByPassword')} text={t('accounts.creation.steps.loginByPassword.text')} />
             case "checkLoginStatus":
-                return <Step title='Проверяем статус текущей сессии' text='Программа узнает есть ли у нее доступ к функционалу вашего Steam аккаунта' />
+                return <Step title={t('accounts.creation.steps.checkLoginStatus.title')} text={t('accounts.creation.steps.checkLoginStatus.text')} />
             case "askPin":
-                return <Step title='Введите пин код семейного доступа' text='У вас открылось окно, введите туда свой pin' />
+                return <Step title={t('accounts.creation.steps.askPin.title')} text={t('accounts.creation.steps.askPin.text')} />
             case "tryPin":
-                return <Step title='Пытаемся установить введенный пин код' text='' />
+                return <Step title={t('accounts.creation.steps.tryPin.title')} text='' />
             case "loadData":
-                return <Step title='Подгружаем информацию об аккаунте' text='Аватарку, никнейм, уровень, баланс, валюту и прочее...' />
+                return <Step title={t('accounts.creation.steps.loadData.title')} text={t('accounts.creation.steps.loadData.text')} />
             case "link":
-                return <Step title='Привязываем аккаунт к прокси и профилю' text='' />;
+                return <Step title={t('accounts.creation.steps.link.title')} text='' />;
             case "import":
-                return <Step title='Сохраняем данные аккаунта в системе' text='' />
+                return <Step title={t('accounts.creation.steps.import.title')} text='' />
             case "end":
                 return (<div className='account-creation_step'>
-                    <div className='title'>Аккаунт создан</div>
-                    <div className='text'>Можно закрыть окно</div>
+                    <div className='title'>{t('accounts.creation.steps.end.title')}</div>
+                    <div className='text'>{t('common.canCloseWindow')}</div>
                 </div>);
             case "error":
                 return (<div className='account-creation_step'>
-                    <div className='title'>Ошибка 😒</div>
+                    <div className='title'>{t('common.errorTitle')}</div>
                     <div className='texxt'>{store.steamAccountsTable.creationForm.creationProcessError}</div>
                 </div>);
             default:
-                return <>Неизвестный шаг: {step}</>;
+                return <>{t('common.unknownStep', { step })}</>;
         }
     });
 
@@ -49,12 +51,13 @@ const AccountCreation: FC = observer(() => {
 
 const Step: FC<{ title: string, text: string }> = (props) => {
     const { title, text } = props;
+    const { t } = useTranslation();
 
     return <div className='account-creation_step'>
         <div className='title'>{title}</div>
         <div className='text'>{text}</div>
         <LoadingIcons.BallTriangle style={{ width: '50px', height: '50px', marginBottom: '30px' }} />
-        <Button size='medium' text='Прервать добавление' color='grey' hoverColor='light-grey' onClick={() => {
+        <Button size='medium' text={t('accounts.creation.abort')} color='grey' hoverColor='light-grey' onClick={() => {
             store.steamAccountsTable.creationForm.close();
         }} />
     </div>

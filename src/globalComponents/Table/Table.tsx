@@ -5,11 +5,13 @@ import AvalibleTypes from '../../../electron/interfaces/TableFields/AvalibleFiel
 import './Table.css';
 import Context from './Context';
 import getField from './Fields/getField';
+import { FieldsTable } from './fieldTitle';
 
 export interface Cell { type: AvalibleTypes, jsx: JSX.Element };
 export interface Line { cells: Cell[], deleted: boolean };
 export interface TableDataInterface {
     fields: Field[],
+    fieldsTable: FieldsTable,
     lines: Line[],
     isSelected?: boolean,
     onSelect?: (isChecked: boolean) => void,

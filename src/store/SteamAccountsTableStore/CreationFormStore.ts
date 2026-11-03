@@ -6,6 +6,7 @@ import MaFileInterface from "../../../electron/interfaces/SteamAccount/MaFileInt
 import SmaFileInterface from "../../../electron/interfaces/SteamAccount/SmaFileInterface";
 import store from "../store";
 import { makeAutoObservable, toJS } from "mobx";
+import i18n from "../../i18n/i18n";
 
 class CreationFormStore {
     root: SteamAccountsTableStore;
@@ -99,10 +100,10 @@ class CreationFormStore {
     close() {
         if (this.currentProcess === 'creation' && !(this.creationProcessStep === 'end' || this.creationProcessStep === 'error')) {
             return store.windows.prompt({
-                text: 'Аккаунт не будет создан 😨',
+                text: i18n.t('accounts.creation.abortPrompt.text'),
                 type: 'question',
-                title: 'Хотите прервать создание аккаунта?',
-                acceptButtonText: 'Прервать',
+                title: i18n.t('accounts.creation.abortPrompt.title'),
+                acceptButtonText: i18n.t('common.buttons.abort'),
                 cb: () => {
                     this.isOpen = false;
                     window.Main.steamAccounts.abortCreation();
@@ -111,10 +112,10 @@ class CreationFormStore {
         }
         if (this.currentProcess === 'guardConnecting' && !(this.guardSetupProcessStep === 'end' || this.guardSetupProcessStep === 'error')) {
             return store.windows.prompt({
-                text: 'Гуард не будет подключен 😨',
+                text: i18n.t('guard.abortPrompt.text'),
                 type: 'question',
-                title: 'Хотите прервать подключение Guard?',
-                acceptButtonText: 'Прервать',
+                title: i18n.t('guard.abortPrompt.title'),
+                acceptButtonText: i18n.t('common.buttons.abort'),
                 cb: () => {
                     this.isOpen = false;
                     window.Main.guardConnection.abortSetup();

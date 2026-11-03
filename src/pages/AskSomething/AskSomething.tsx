@@ -4,8 +4,10 @@ import "./AskSomething.css";
 import FamilyPin from "./FamilyPin";
 import MailCode from "./MailCode";
 import SmsCode from "./SmsCode";
+import { useTranslation } from "react-i18next";
 
 const AskSomething: FC = () => {
+  const { t } = useTranslation();
   const [id, setId] = useState("");
   const [steamAccountName, setSteamAccountName] = useState("");
   const [infoType, setInfoType] = useState<InfoType>("none");
@@ -24,7 +26,7 @@ const AskSomething: FC = () => {
 
   switch (infoType) {
     case "none":
-      return <>тут пока ничего нету...</>;
+      return <>{t("ask.nothing")}</>;
     case "familyPin":
       return <FamilyPin steamAccountName={steamAccountName} id={id} />;
     case "mailCode":
@@ -32,7 +34,7 @@ const AskSomething: FC = () => {
     case "smsCode":
       return <SmsCode steamAccountName={steamAccountName} id={id} />
     default:
-      return <>Что???</>
+      return <>{t("ask.unknown")}</>
   }
 };
 

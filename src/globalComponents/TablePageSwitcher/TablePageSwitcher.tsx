@@ -1,6 +1,7 @@
 import React, { FC, useState } from 'react';
 import './TablePageSwitcher.css';
 import Dropdown from 'react-dropdown';
+import { useTranslation } from 'react-i18next';
 
 const TablePageSwitcher: FC<{
     options?: {
@@ -14,12 +15,13 @@ const TablePageSwitcher: FC<{
     onChangeActivePage: (newActivePageNumber: number) => void,
     onChangePageSize: (newPageSize: number) => void
 }> = ({ options = { numberOfElementsInPage: 10, avalible: [5, 10, 15] }, pageSize, numberOfPages, activePageNumber, onChangeActivePage, onChangePageSize, numberOfElements }) => {
+    const { t } = useTranslation();
     return <>
         <div className='table-footer-left'>
-            <div className='table-footer-left_item'><span className="text-grey-large">Всего элементов: </span>{numberOfElements}</div>
-            <div className='table-footer-left_item'><span className="text-grey-large">Страница: </span>{activePageNumber} / {numberOfPages === 0 ? 1 : numberOfPages}</div>
+            <div className='table-footer-left_item'><span className="text-grey-large">{t("pagination.total")}</span>{numberOfElements}</div>
+            <div className='table-footer-left_item'><span className="text-grey-large">{t("pagination.page")}</span>{activePageNumber} / {numberOfPages === 0 ? 1 : numberOfPages}</div>
             <div className='table-footer-left_item' style={{ display: 'flex' }}>
-                <span className="text-grey-large">Элементов на странице:</span>
+                <span className="text-grey-large">{t("pagination.pageSize")}</span>
                 <Dropdown options={options.avalible!.map(el => String(el))} onChange={(el) => {
                     onChangePageSize(Number(el.value));
                 }} value={String(pageSize)} />
