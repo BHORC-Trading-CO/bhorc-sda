@@ -5,6 +5,7 @@ import SteamAccountStorage from "../newStorage/SteamAccountStorage";
 import Manager from "../manager/manager";
 import application from "../application/application";
 import SteamAccountChannels from "../../interfaces/IpcChannels/SteamAccountChannels";
+import errorsToStrings from "../Functions/errorsToStrings";
 
 export class SteamAccountManager {
     objects: SteamAccount[];
@@ -17,7 +18,8 @@ export class SteamAccountManager {
         this.objects = [...this.objects, steamAccount];
     }
     sendAccountsToFront() {
-        const steamAccounts = this.getCompiledObjects();
+        // Без объектов Error: в Electron 17 они ломают повторные ссылки IPC-сообщения (SDA-19).
+        const steamAccounts = errorsToStrings(this.getCompiledObjects());
         application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_GET, steamAccounts);
     }
     delete(id: string) {
