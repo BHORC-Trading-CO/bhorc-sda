@@ -20,13 +20,31 @@ describe("Баланс Steam после удаления TM", () => {
     });
 
     it.each([
-        ["", new Error("fixture network error"), 200],
-        ["", null, 503],
-        ["<html>no wallet</html>", null, 200],
-    ])("сохраняет ошибку Steam в результате", async (body, error, statusCode) => {
+        ["", new Error("fixture network error"), 200, "fixture network error"],
+        ["", null, 503, "503: Unavailable"],
+        ["<html>no wallet</html>", null, 200, "Error: "],
+    ])("сохраняет ошибку Steam в результате строкой", async (body, error, statusCode, text) => {
         const community = communityWithResponse(body, error, statusCode);
         const result = await getChangableSecondaries(community as unknown as SteamCommunity);
-        expect(result).toEqual({ steam: { balance: null, currency: null, error: expect.any(Error) } });
+        expect(result).toEqual({ steam: { balance: null, currency: null, error: expect.any(String) } });
+        expect(result.steam.error).toContain(text);
         expect(community.httpRequestGet).toHaveBeenCalledTimes(1);
+    });
+
+    // changableSecondary уходит в рендерер внутри списка аккаунтов (STEAM_ACCOUNT_GET).
+    // V8 в Electron 17 (9.8) неверно читает обратные ссылки IPC-сообщения на объекты, впервые
+    // записанные после объекта Error: ссылка указывает на соседний объект (на каждый Error — на
+    // один дальше). Так proxy второго аккаунта на том же прокси приходил группой первого
+    // ("(#1) :"), а smaFile.maFile — чужим объектом. Поэтому живых Error здесь быть не должно.
+    it("не кладёт в результат объект Error", async () => {
+        const community = communityWithResponse("", new Error("read ECONNRESET"), 200);
+        const result = await getChangableSecondaries(community as unknown as SteamCommunity);
+        const errors: string[] = [];
+        (function walk(value: unknown, path: string) {
+            if (value instanceof Error) errors.push(path);
+            if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) walk(v, `${path}.${k}`);
+        })(result, "$");
+        expect(errors).toEqual([]);
+        expect(result.steam.error).toBe("Error: read ECONNRESET");
     });
 });
