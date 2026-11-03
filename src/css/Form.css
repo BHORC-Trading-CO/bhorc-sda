@@ -248,6 +248,9 @@
 .form .sda-button--danger.button:hover {
     background: var(--sda-danger);
 }
+.form .sda-button--danger.button:hover .button__text {
+    color: var(--sda-modal);
+}
 .form .sda-button--danger.button:focus-visible {
     box-shadow: inset 0 0 0 1px var(--sda-danger), var(--sda-focus-ring);
 }
