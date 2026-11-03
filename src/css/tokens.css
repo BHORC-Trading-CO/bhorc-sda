@@ -1,0 +1,49 @@
+/*
+ * Дизайн-токены BHORC SDA (SDA-9). Значения взяты из существующих стилей, чтобы
+ * новые правки опирались на одну палитру, а не на новые hex-коды в каждом файле.
+ * Старые файлы переводятся на токены постепенно, по мере правок.
+ */
+:root {
+  /* Поверхности: от фона окна к приподнятым элементам */
+  --sda-surface-0: #1b0f22;              /* фон окна под градиентом */
+  --sda-surface-1: rgba(33, 18, 40, 0.65); /* панели, таблица, футер */
+  --sda-surface-2: #2c1935;              /* строка таблицы, карточка */
+  --sda-surface-3: #372447;              /* кнопки, поля ввода, ховер */
+  --sda-surface-4: #4f3564;              /* активная кнопка, рамка в фокусе */
+  --sda-modal: #22142a;                  /* модальные окна */
+  --sda-overlay: rgba(0, 0, 0, 0.7);
+
+  /* Текст */
+  --sda-text: #ffffff;
+  --sda-text-muted: #b6a3c3;             /* вторичный текст, читаемый на surface-2 */
+  --sda-text-subtle: #776284;            /* подписи, плейсхолдеры */
+
+  /* Рамки */
+  --sda-border: rgba(183, 156, 224, 0.14);
+  --sda-border-strong: rgba(183, 156, 224, 0.32);
+
+  /* Акцент BHORC */
+  --sda-accent: #c400f5;
+  --sda-accent-from: #ff00e5;
+  --sda-accent-to: #7000ff;
+  --sda-accent-gradient: linear-gradient(121.85deg, #ff00e5 2.04%, #7000ff 108.41%);
+  --sda-focus-ring: 0 0 0 2px rgba(255, 0, 229, 0.55);
+
+  /* Состояния */
+  --sda-success: #3fbf74;
+  --sda-success-bg: rgba(55, 154, 94, 0.16);
+  --sda-danger: #f0574a;
+  --sda-danger-bg: rgba(229, 63, 48, 0.16);
+  --sda-warning: #ffa65e;
+  --sda-warning-bg: rgba(255, 166, 94, 0.16);
+  --sda-info: #8fb4ff;
+  --sda-info-bg: rgba(143, 180, 255, 0.14);
+
+  /* Форма */
+  --sda-radius-sm: 6px;
+  --sda-radius: 10px;
+  --sda-radius-lg: 16px;
+  --sda-font: "Nunito", sans-serif;
+  --sda-font-mono: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+  --sda-transition: 120ms ease-out;
+}
