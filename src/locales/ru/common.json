@@ -273,7 +273,7 @@
       "useMaFile": "Использовать maFile"
     },
     "connect": {
-      "question": "Хотите подключить steam guard? Вы должны убедиться, что указанный аккаунт НЕ подключен к steam guard",
+      "question": "Хотите подключить Steam Guard? Убедитесь, что этот аккаунт НЕ подключён к Steam Guard",
       "checkData": "Проверьте данные:",
       "login": "Логин Steam: {{value}}",
       "password": "Пароль Steam: {{value}}"

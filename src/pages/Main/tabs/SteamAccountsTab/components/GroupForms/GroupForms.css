@@ -1,4 +1,10 @@
 /* Формы групп: тот же язык, что у форм аккаунта (заголовки разделов, липкая нижняя панель). */
+.group-form-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .group-form {
   display: flex;
   flex-direction: column;

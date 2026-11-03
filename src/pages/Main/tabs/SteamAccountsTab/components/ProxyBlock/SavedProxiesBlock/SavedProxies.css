@@ -76,14 +76,21 @@
   flex: 0 0 44px;
   width: 44px;
 }
+/* Кнопка на фоне строки того же цвета: контурная, заливка при наведении. */
 .proxy-table_in-form .proxy-test-button.button {
   min-width: 0;
   height: 30px;
   padding: 0px 14px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--sda-border-strong);
+  transition: background-color var(--sda-transition);
+}
+.proxy-table_in-form .proxy-test-button.button:hover {
+  background: var(--sda-surface-4);
 }
 .proxy-table_in-form .proxy-test-button.button:focus-visible {
   outline: none;
-  box-shadow: var(--sda-focus-ring);
+  box-shadow: inset 0 0 0 1px var(--sda-border-strong), var(--sda-focus-ring);
 }
 
 .proxy-item {

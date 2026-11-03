@@ -53,8 +53,15 @@
 .form .form-caption .form-cross:hover {
     background-color: var(--sda-danger);
 }
+/* Колонка: короткое содержимое (формы групп) растягивается до min-height окна,
+   и нижняя панель встаёт к низу, а не повисает над пустым местом. */
 .form .form-content {
     flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+.form .form-content > * {
+    flex-shrink: 0;
 }
 
 /* Разделы формы: короткий заголовок, подсказка, одинаковые отступы. */
@@ -214,12 +221,22 @@
     color: var(--sda-text-muted);
     text-align: right;
 }
+.sda-form-footer {
+    margin-top: auto;
+}
 .form .sda-form-footer .button {
     flex: 0 0 auto;
     min-width: 140px;
     height: 36px;
     margin: 0px;
     padding: 0px 18px;
+}
+/* .button__text { max-width: 90% } считается от ширины кнопки по содержимому и режет
+   подпись («Создать акка…»), поэтому у кнопок по содержимому ограничение снимаем. */
+.form .sda-form-footer .button .button__text,
+.form .steam-data-code__actions .button .button__text,
+.form .proxy-table_in-form .proxy-test-button .button__text {
+    max-width: none;
 }
 
 /* Деструктивная кнопка в формах: красный контур, заливка при наведении. */

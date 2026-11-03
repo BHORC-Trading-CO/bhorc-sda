@@ -1,7 +1,12 @@
 /* Прокручивается .form-content окна (MiniWindow), а не эта обёртка:
    иначе липкая нижняя панель не прилипает к низу окна. */
 .steam-accounts-creation-form {
-    min-height: 100%;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+.steam-accounts-creation-form > .steam-data-form {
+    flex: 1 0 auto;
 }
 /* «Прокси не задан» и похожие пояснения: нейтральная плашка (стиль .sda-callout в css/Form.css). */
 .info-block {
@@ -18,6 +23,14 @@
 }
 .import-steam-account-block {
     padding: 12px 24px 16px;
+}
+/* Кнопка загрузки .smaFile — той же высоты, что поля ввода и кнопка maFile. */
+.import-steam-account-block > .button {
+    height: 40px;
+}
+.import-steam-account-block > .button:focus-visible {
+    outline: none;
+    box-shadow: var(--sda-focus-ring);
 }
 .proxy-block .account-creation-navigation,
 .guard-block .account-creation-navigation {

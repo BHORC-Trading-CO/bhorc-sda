@@ -53,3 +53,17 @@
   flex-wrap: wrap;
   gap: 4px;
 }
+.saved-proxies-item-container .proxy-account-item {
+  min-width: 22px;
+  width: auto;
+  height: 22px;
+  margin-left: 0px;
+  padding: 0px 6px;
+  border-radius: var(--sda-radius-sm);
+  background: var(--sda-surface-4);
+  color: var(--sda-text);
+  font-size: 12px;
+}
+.saved-proxies-item-container_active .proxy-account-item {
+  background: var(--sda-surface-2);
+}

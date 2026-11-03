@@ -1,4 +1,7 @@
 .steam-account_edit-form {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
     padding: 0px;
 }
 .steam-account_edit-form .steam-account_edit-form__avatar {
