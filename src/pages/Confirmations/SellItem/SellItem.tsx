@@ -11,16 +11,16 @@ function SellItem(props: sellItemInterface) {
   const { t } = useTranslation();
 
   return (
-    <div className="sell-item-container">
+    <div className={`sell-item-container${item.selected ? " sell-item-container--selected" : ""}`}>
       <div className="sell-item-logo">
-        <img src={item.confirmation.icon} style={{ width: "50px" }}></img>
+        <img src={item.confirmation.icon} style={{ width: "50px" }} alt="" />
       </div>
       <div className="sell-item-info">
-        <div className="sell-item-name text-medium-white">
+        <div className="sell-item-name text-medium-white" title={item.confirmation.title}>
           {item.confirmation.title}
         </div>
         <div className="sell-item-price-container">
-          <div className="sell-item-price-new text-pink-small">{item.confirmation.receiving}</div>
+          <div className="sell-item-price-new text-pink-small" title={item.confirmation.receiving}>{item.confirmation.receiving}</div>
         </div>
         <div className="sell-item-date-container text-grey-small">
           {item.confirmation.time}

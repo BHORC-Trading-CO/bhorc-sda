@@ -5,6 +5,7 @@ import store from "../../../../../../store/store";
 import readFile from "../../../../../../globalComponents/SomeFuncs/readFile";
 import MaFileInterface from "../../../../../../../electron/interfaces/SteamAccount/MaFileInterface";
 import MaFile from "../../../../../../globalComponents/MaFile/MaFile";
+import "./MaFileImport.css";
 import { useTranslation } from "react-i18next";
 
 const MaFileImport: FC<{ currentMaFile: MaFileInterface | null, onChange: (newMaFile: MaFileInterface | null) => void }> = observer((props) => {
@@ -14,39 +15,40 @@ const MaFileImport: FC<{ currentMaFile: MaFileInterface | null, onChange: (newMa
 
     return (
         <div className="import-account">
-            <Button
-                size="medium"
-                img="./assets/img/Download.svg"
-                style={{ width: "100%", marginBottom: "20px" }}
-                text={
-                    currentMaFile
-                        ? `${currentMaFile.account_name}`
-                        : t("maFile.load")
-                }
-                color="grey"
-                hoverColor="light-grey"
-                onClick={() => {
-                    const el = document.getElementById("maFileImportInput");
-                    el?.click();
-                }}
-                altText={t("maFile.attach")}
-            />
-            {currentMaFile ? (
-                <div>
+            {/* Файл и «Развернуть» в одну строку: видно, какой maFile загружен и что его можно заменить. */}
+            <div className="import-account__row">
+                <Button
+                    size="medium"
+                    img="./assets/img/Download.svg"
+                    className="import-account__file"
+                    text={
+                        currentMaFile
+                            ? t("maFile.current", { name: currentMaFile.account_name })
+                            : t("maFile.load")
+                    }
+                    color="grey"
+                    hoverColor="light-grey"
+                    onClick={() => {
+                        const el = document.getElementById("maFileImportInput");
+                        el?.click();
+                    }}
+                    altText={t("maFile.attach")}
+                />
+                {currentMaFile ? (
                     <Button
                         size="medium"
-                        style={{ width: "100%", marginBottom: "20px" }}
+                        className="import-account__toggle"
                         text={maFileHidden ? t("common.buttons.expand") : t("common.buttons.collapse")}
                         color="grey"
                         hoverColor="light-grey"
                         onClick={() => { setMaFileHidden(!maFileHidden) }}
                         altText={maFileHidden ? t("common.buttons.expand") : t("common.buttons.collapse")}
                     ></Button>
-                    {maFileHidden ? <></> : <MaFile maFile={currentMaFile}></MaFile>}
-                </div>
-            ) : (
-                <></>
-            )}
+                ) : (
+                    <></>
+                )}
+            </div>
+            {currentMaFile && !maFileHidden ? <MaFile maFile={currentMaFile}></MaFile> : <></>}
             <input
                 type="file"
                 id="maFileImportInput"

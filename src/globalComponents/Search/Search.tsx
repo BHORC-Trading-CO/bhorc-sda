@@ -3,15 +3,19 @@ import "./Search.css";
 
 interface SearchPropsInterface {
   onChange: (value: string) => void;
+  /** Что ищет поле (подсказка внутри и имя для скринридера) */
+  placeholder?: string;
 }
 
 const Search: FC<SearchPropsInterface> = (props) => {
   return (
     <div className="search">
-      <img src="./assets/img/Search.svg" className="search-img"></img>
+      <img src="./assets/img/Search.svg" className="search-img" alt=""></img>
       <input
         type="text"
         className="search-input text-white-medium"
+        placeholder={props.placeholder}
+        aria-label={props.placeholder}
         onChange={(event) => {
           const target = event.target;
           props.onChange(target.value);

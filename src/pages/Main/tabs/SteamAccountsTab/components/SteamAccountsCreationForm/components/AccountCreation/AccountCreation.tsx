@@ -35,7 +35,7 @@ const AccountCreation: FC = observer(() => {
             case "error":
                 return (<div className='account-creation_step'>
                     <div className='title'>{t('common.errorTitle')}</div>
-                    <div className='texxt'>{store.steamAccountsTable.creationForm.creationProcessError}</div>
+                    <div className='text text_error'>{store.steamAccountsTable.creationForm.creationProcessError}</div>
                 </div>);
             default:
                 return <>{t('common.unknownStep', { step })}</>;

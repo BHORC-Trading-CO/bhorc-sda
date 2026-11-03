@@ -1,8 +1,13 @@
 .table-settings-item {
-    padding-top: 5px;
-    padding-bottom: 5px;
+    padding: 5px 6px;
     font-size: 15px;
-    line-height: 22px;  
+    line-height: 22px;
     display: flex;
+    align-items: center;
     justify-content: start;
+    border-radius: var(--sda-radius-sm);
+}
+
+.table-settings-item:hover {
+    background: var(--sda-surface-3);
 }

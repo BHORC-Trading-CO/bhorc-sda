@@ -1,5 +1,22 @@
-.proxy-bulk-textarea {
+.proxies-form .proxy-bulk-textarea {
   width: 100%;
   height: 300px;
   margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--sda-surface-2);
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius);
+  color: var(--sda-text);
+  font-family: var(--sda-font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--sda-transition), box-shadow var(--sda-transition);
+}
+
+.proxies-form .proxy-bulk-textarea::placeholder { color: var(--sda-text-subtle); }
+.proxies-form .proxy-bulk-textarea:focus {
+  border-color: var(--sda-border-strong);
+  box-shadow: var(--sda-focus-ring);
 }

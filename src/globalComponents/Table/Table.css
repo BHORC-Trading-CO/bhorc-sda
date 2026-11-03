@@ -1,10 +1,12 @@
 .list-container {
+    /* Своя стековая область: прилипшие шапка и кнопки не вылезают поверх модальных окон */
+    isolation: isolate;
     display: flex;
     height: 100%;
-    border-radius: 16px;
+    border-radius: var(--sda-radius-lg);
     overflow-y: hidden;
     align-items: flex-start;
-    background: rgba(33, 18, 40, 0.65);
+    background: var(--sda-surface-1);
     margin-bottom: 15px;
 }
 .list-container .list-content {
@@ -17,20 +19,26 @@
 }
 .list {
     width: 100%;
-    padding: 10px;
+    padding: 4px 4px 10px;
     display: table;
     position: absolute;
     margin-bottom: 17px;
     border-collapse: separate;
-    border-spacing: 0 5px;
+    border-spacing: 0 4px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--sda-text);
 }
+
+/* ---------- Заголовки ---------- */
 
 .list-headline-row {
     display: table-row;
-    height: 60px;
+    height: 44px;
     position: sticky;
     top: 0;
-    background: rgba(35,20,44);
+    z-index: 2;
+    background: var(--sda-modal);
 }
 
 .list-headline-container {
@@ -42,15 +50,68 @@
 .list-headline {
     display: table-cell;
     vertical-align: middle;
-    padding-right: 20px;
+    padding-right: 8px;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--sda-text-muted);
 }
 
 .list-headline:first-child {
-    padding-left: 15px;
+    padding-left: 10px;
 }
 
 .list-headline:last-child {
-    padding-left: 15px;
+    padding-right: 10px;
+}
+
+.sort-header {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    user-select: none;
+    border-radius: var(--sda-radius-sm);
+}
+
+.sort-header--sortable {
+    cursor: pointer;
+}
+
+.sort-header--sortable:hover,
+.sort-header--active {
+    color: var(--sda-text);
+}
+
+.sort-header:focus {
+    outline: none;
+}
+
+.sort-header:focus-visible {
+    box-shadow: var(--sda-focus-ring);
+}
+
+/* Неактивная стрелка не занимает места: висит в отступе справа и видна только на ховере */
+.sort-header__arrow {
+    position: absolute;
+    left: 100%;
+    margin-left: 2px;
+    opacity: 0;
+    font-size: 12px;
+    transition: opacity var(--sda-transition);
+}
+
+.sort-header--sortable:hover .sort-header__arrow,
+.sort-header--sortable:focus-visible .sort-header__arrow {
+    opacity: 0.5;
+}
+
+.sort-header--active .sort-header__arrow,
+.sort-header--active:hover .sort-header__arrow {
+    position: static;
+    margin-left: 3px;
+    opacity: 1;
+    color: var(--sda-accent-from);
 }
 
 .list-headline-wrapper {
@@ -58,55 +119,34 @@
     align-items: center;
 }
 
-.list-headline__name {
-    min-width: 390px;
-    width: 24%;
-    padding-left: 14px;
-}
-
-.list-headline__name-img {
-    margin-right: 8px;
-}
-
-.list-headline__login {
-    min-width: 185px;
-    width: 12%;
-}
-
-.list-headline__login-img {
-    margin-left: 8px;
-}
-
-.list-headline__password {
-    min-width: 132px;
-    width: 8%;
-}
-
-.list-headline__guard {
-    min-width: 185px;
-    width: 12%;
-}
-
-.list-headline__mail {
-    min-width: 230px;
-    width: 14%;
-}
-
-.list-headline__mail-pass {
-    min-width: 143px;
-    width: 8%;
-}
-
-.list-headline__proxy {
-    min-width: 326px;
-    width: 20%;
-}
+/* ---------- Строки ---------- */
 
 .list-item-row {
     display: table-row;
-    height: 52px;
-    background: #2C1935;
-    border-radius: 36px;
+    height: 48px;
+    background: var(--sda-surface-2);
+    transition: background-color var(--sda-transition);
+}
+
+/* Ховер светлее плиток кнопок (surface-3), чтобы они не сливались со строкой */
+.list-item-row:hover {
+    background: linear-gradient(var(--sda-border), var(--sda-border)), var(--sda-surface-2);
+}
+
+.list-item-row--selected,
+.list-item-row--selected:hover {
+    background: var(--sda-surface-4);
+}
+
+.list-item-row--selected .list-item:first-child {
+    box-shadow: inset 3px 0 0 var(--sda-accent);
+}
+
+/* Архивный аккаунт: штриховка как раньше, но из токенов */
+.list-item-row--deleted,
+.list-item-row--deleted:hover {
+    background: repeating-linear-gradient(-60deg, var(--sda-border-strong) 0, var(--sda-border-strong) 1px, transparent 1px, transparent 6px), var(--sda-surface-2);
+    color: var(--sda-text-muted);
 }
 
 .list-item-container {
@@ -118,203 +158,393 @@
 .list-item {
     display: table-cell;
     vertical-align: middle;
-    padding-right: 20px;
-    max-width: 150px;
-    /* overflow: auto; */
+    padding-right: 8px;
     white-space: nowrap;
-    overflow-x: hidden;
 }
 
 .list-item:first-child {
-    border-radius: 15px 0 0 15px;
-    padding-left: 15px;
+    border-radius: var(--sda-radius) 0 0 var(--sda-radius);
+    padding-left: 10px;
 }
 
 .list-item:last-child {
-    border-radius: 0 15px 15px 0;
-    padding-right: 15px;
+    border-radius: 0 var(--sda-radius) var(--sda-radius) 0;
+    padding-right: 10px;
 }
 
-.list-item-wrapper {
-    display: flex;
-    align-items: center;
+/* ---------- Колонки ---------- */
+
+.list-item--checkbox,
+.list-headline--checkbox {
+    width: 1%;
 }
 
-.list-item-input__container {}
-
-.list-item-name-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
+.list-item--checkbox .checkbox,
+.list-headline--checkbox .checkbox {
+    display: block;
+    margin-right: 0;
 }
 
-.list-item-name-controls {
-    display: flex;
-    align-items: center;
-    margin-left: 25px;
+.list-item--number {
+    color: var(--sda-text-muted);
+    font-variant-numeric: tabular-nums;
 }
 
-
-.list-item__name {
-    min-width: 390px;
-    width: 24%;
-    padding-right: 23px;
-    padding-left: 14px;
+.list-item--steamAccountLevel,
+.list-item--steamAccountBalance {
+    font-variant-numeric: tabular-nums;
 }
 
-.list-item__name-img {
-    margin-right: 8px;
-}
-
-.list-item__name-text {
-    max-width: 55%;
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: clip;
-}
-
-.list-item__name-start {
-    cursor: pointer;
-    min-width: 53px;
-    min-height: 29px;
-    background: rgba(55, 154, 94, 0.16);
-    border: 0.5px solid #379a5e;
-    border-radius: 10px;
-    margin-right: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: "Nunito";
-    font-style: normal;
-    font-weight: 400;
+.list-item--steamId {
+    color: var(--sda-text-muted);
     font-size: 12px;
-    line-height: 16px;
-    color: #379a5e;
+    font-variant-numeric: tabular-nums;
 }
 
-.list-item__name-stop {
-    cursor: pointer;
-    min-width: 53px;
-    min-height: 29px;
-    background: #740D09;
-    border: 0.5px solid #E53F30;
-    border-radius: 10px;
-    margin-right: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: "Nunito";
-    font-style: normal;
-    font-weight: 400;
-    font-size: 12px;
-    line-height: 16px;
-    color: #E53F30;
+/* Пустая служебная колонка: без отступа, чтобы не съедала ширину */
+.list-item--refreshButton,
+.list-headline--refreshButton {
+    width: 0;
+    padding: 0 !important;
 }
 
-.list-item__name-copy {
-    min-width: 35px;
-    min-height: 29px;
-
-    background: #372447;
-    border-radius: 10px;
-    border: none;
-    margin-left: 8px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.list-item--steamAccountButtons,
+.list-item--startButton,
+.list-item--steamAccountAvatar,
+.list-item--steamGuard {
+    width: 1%;
 }
 
-
-
-
-.list-item__login {
-    min-width: 185px;
-    width: 12%;
-    padding-right: 23px;
+/* Кнопки справа (экспорт, правка, удаление): компактные ячейки одного размера */
+.list-item--exportButton,
+.list-item--editingButton,
+.list-item--deleteButton,
+.list-item--testProxyButton,
+.list-headline--exportButton,
+.list-headline--editingButton,
+.list-headline--deleteButton,
+.list-headline--testProxyButton {
+    width: 1%;
+    padding-right: 4px;
 }
 
-.list-item__login-text {
-    width: 100%;
-    white-space: nowrap;
+.list-item--exportButton,
+.list-headline--exportButton,
+.list-item--testProxyButton,
+.list-headline--testProxyButton {
+    padding-left: 8px;
+}
+
+.list-item--deleteButton:last-child,
+.list-headline--deleteButton:last-child {
+    padding-right: 10px;
+}
+
+/* В таблице аккаунтов колонок много: кнопки справа прилипают к краю при горизонтальной прокрутке */
+.list--steamAccounts .list-item--exportButton,
+.list--steamAccounts .list-item--editingButton,
+.list--steamAccounts .list-item--deleteButton,
+.list--steamAccounts .list-headline--exportButton,
+.list--steamAccounts .list-headline--editingButton,
+.list--steamAccounts .list-headline--deleteButton {
+    position: sticky;
+    z-index: 1;
+    background: inherit;
+}
+
+/* Отступы ячеек: удаление 26 + 10, правка 26 + 4, экспорт 8 + 26 + 4 */
+.list--steamAccounts .list-item--deleteButton,
+.list--steamAccounts .list-headline--deleteButton {
+    right: 0;
+}
+
+.list--steamAccounts .list-item--editingButton,
+.list--steamAccounts .list-headline--editingButton {
+    right: 36px;
+}
+
+.list--steamAccounts .list-item--exportButton,
+.list--steamAccounts .list-headline--exportButton {
+    right: 66px;
+}
+
+/* Тень-разделитель только когда под кнопками действительно спрятаны колонки */
+.list--clipped-right .list-item--exportButton,
+.list--clipped-right .list-headline--exportButton {
+    box-shadow: -12px 0 10px -6px var(--sda-overlay);
+}
+
+.list--steamAccounts .list-headline--exportButton,
+.list--steamAccounts .list-headline--editingButton,
+.list--steamAccounts .list-headline--deleteButton {
+    background: var(--sda-modal);
+}
+
+/* ---------- Содержимое ячеек ---------- */
+
+.cell-muted {
+    color: var(--sda-text-muted);
+}
+
+.cell-text {
+    display: block;
+    max-width: 180px;
     overflow: hidden;
-    text-overflow: clip;
-    word-wrap: break-word;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-
-
-.list-item__password {
-    min-width: 132px;
-    width: 8%;
-    padding-right: 35px;
+.list-item--steamAccountName .cell-text {
+    max-width: 170px;
 }
 
-
-.list-item__guard {
-    min-width: 185px;
-    width: 12%;
+.list-item--linkedProxies .cell-text {
+    max-width: 190px;
 }
 
-.list-item__mail {
-    min-width: 230px;
-    width: 14%;
+.list-item--group .cell-text {
+    max-width: 140px;
 }
 
-.list-item__mail-pass {
-    min-width: 143px;
-    width: 8%;
-    padding-right: 50px;
+.list-item--mail .cell-text {
+    max-width: 200px;
 }
 
-.list-item__proxy {
-    min-width: 326px;
-    padding-right: 83px;
-    width: 20%;
+.alt-text-title {
+    display: block;
+    margin-bottom: 2px;
 }
 
-.list-item__button {
-    min-width: 90px;
-    padding-right: 8px;
+.table-tip {
+    max-width: 320px;
+    white-space: normal;
+    text-align: left;
+    font-size: 13px;
+    line-height: 18px;
+    /* подсказка живёт внутри бейджа/кнопки: не наследуем их капс и жирность */
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
 }
 
-.item-button__wrapper {
-    display: flex;
+/* Бейдж статуса: свой тёмный фон, чтобы контраст не зависел от ховера и выделения строки */
+.status-badge {
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    min-width: 32px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: var(--sda-radius-sm);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: default;
 }
+
+.status-badge--success {
+    color: var(--sda-success);
+    background: linear-gradient(var(--sda-success-bg), var(--sda-success-bg)), var(--sda-surface-0);
+}
+
+.status-badge--danger {
+    color: var(--sda-danger);
+    background: linear-gradient(var(--sda-danger-bg), var(--sda-danger-bg)), var(--sda-surface-0);
+    box-shadow: inset 0 0 0 1px var(--sda-danger);
+}
+
+.status-badge--warning {
+    color: var(--sda-warning);
+    background: linear-gradient(var(--sda-warning-bg), var(--sda-warning-bg)), var(--sda-surface-0);
+}
+
+/* Баланс не загрузился: приглушённый прочерк и значок, причина в подсказке */
+.cell-warn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: help;
+}
+
+.cell-warn svg {
+    color: var(--sda-warning);
+}
+
+/* Аватар и заглушка без «?» */
 .steam-account-avatar {
-    line-height: 40px;
-    text-align: center;
-    width: 35px;
-    height: 35px;
-    border: 1px solid grey;
-    border-radius: 25px;
+    display: block;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--sda-surface-3);
+    box-shadow: 0 0 0 1px var(--sda-border-strong);
 }
-.browser-btn {
-    width: 55px;
-    height: 30px;
-    font-size: 12px;
+
+.steam-account-avatar--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: var(--sda-text-subtle);
+}
+
+.steam-account-avatar .micro-download {
+    width: 16px;
+}
+
+/* Код Guard: кольцо таймера, код моноширинным, значок копирования */
+.guard-code {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 6px 2px 2px;
+    border-radius: var(--sda-radius-sm);
     cursor: pointer;
-    line-height: 30px;
-    border-radius: 10px;
-    text-align: center;
-    margin-right: 10px;
+    transition: background-color var(--sda-transition);
 }
+
+.guard-code:hover {
+    background: var(--sda-surface-4);
+}
+
+.guard-code:focus {
+    outline: none;
+}
+
+.guard-code:focus-visible {
+    box-shadow: var(--sda-focus-ring);
+}
+
+.guard-code__ring {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.guard-code__ring .CircularProgressbar-path {
+    stroke: var(--sda-accent);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.3s linear;
+}
+
+.guard-code__ring .CircularProgressbar-trail {
+    stroke: var(--sda-border-strong);
+}
+
+.guard-code__ring .CircularProgressbar-text {
+    fill: var(--sda-text);
+    font-family: var(--sda-font);
+    font-size: 38px;
+    font-weight: 700;
+}
+
+.guard-code--ending .guard-code__ring .CircularProgressbar-path {
+    stroke: var(--sda-warning);
+}
+
+.guard-code__value {
+    font-family: var(--sda-font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--sda-text);
+}
+
+.guard-code__copy {
+    display: inline-flex;
+    color: var(--sda-text-subtle);
+    transition: color var(--sda-transition);
+}
+
+.guard-code:hover .guard-code__copy {
+    color: var(--sda-text);
+}
+
+.guard-code--copied .guard-code__copy,
+.guard-code--copied:hover .guard-code__copy {
+    color: var(--sda-success);
+}
+
+/* Группа действий Guard в строке */
+.row-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Кнопка браузера START/STOP: обводка зелёная/красная, размер как у кнопок действий */
+.browser-cell {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.browser-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid currentColor;
+    border-radius: var(--sda-radius-sm);
+    font-family: var(--sda-font);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--sda-transition), color var(--sda-transition);
+}
+
+.browser-btn:focus {
+    outline: none;
+}
+
+.browser-btn:focus-visible {
+    box-shadow: var(--sda-focus-ring);
+}
+
 .start-browser-btn {
-    background-color: #2E2E3C;
-    border: 1px solid #379A5E;
-    color: #379A5E;
+    color: var(--sda-success);
+    background: linear-gradient(var(--sda-success-bg), var(--sda-success-bg)), var(--sda-surface-0);
 }
-.download-browser-btn {
-    background-color: #2E2E3C;
-    border: 1px solid #FFA65E;
-    color: #FFA65E;
+
+.start-browser-btn:hover {
+    background: var(--sda-success);
+    color: var(--sda-surface-0);
 }
+
 .stop-browser-btn {
-    background-color: #2E2E3C;
-    border: 1px solid #F24E1E;
-    color: #F24E1E;
+    color: var(--sda-danger);
+    background: linear-gradient(var(--sda-danger-bg), var(--sda-danger-bg)), var(--sda-surface-0);
+}
+
+.stop-browser-btn:hover {
+    background: var(--sda-danger);
+    color: var(--sda-surface-0);
+}
+
+.download-browser-btn {
+    color: var(--sda-warning);
+    background: linear-gradient(var(--sda-warning-bg), var(--sda-warning-bg)), var(--sda-surface-0);
+    cursor: default;
+}
+
+.download-browser-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Пароль в ячейке — размером таблицы, а не 15px глобального класса */
+.list .password {
+    font-size: inherit;
+    line-height: inherit;
+}
+
+.list .password__text {
+    max-width: 110px !important;
 }

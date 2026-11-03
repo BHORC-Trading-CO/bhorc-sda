@@ -12,6 +12,9 @@ const SteamAccountsFooter: FC = observer(() => {
     const steamAccountsByPage = store.steamAccountsTable.getSteamAccountsByPages();
     const visibleSteamAccounts = Object.values(steamAccounts).filter(p => !p.deleted || store.steamAccountsTable.showDeleted);
     const selectedSteamAccounts = visibleSteamAccounts.filter(p => p.isSelected);
+    // Ничего не выбрано: кнопки выглядят неактивными, но клики работают как раньше (напр. тост «не выбрано»)
+    const nothingSelected = selectedSteamAccounts.length === 0;
+    const inactiveHint = nothingSelected ? t("accounts.footer.selectFirst") : undefined;
 
     return (
         <>
@@ -30,18 +33,20 @@ const SteamAccountsFooter: FC = observer(() => {
                 <div className="footer__control">
                     <div className="footer__select-number">
                         <span className="text-grey-large">{t("common.selected")}</span>
-                        <span className="text-white-large footer__info">{selectedSteamAccounts.length}</span>
+                        <span className={`text-white-large footer__info${nothingSelected ? "" : " footer__info--active"}`}>{selectedSteamAccounts.length}</span>
                     </div>
 
                     <Button
                         disabled={false}
+                        inactive={nothingSelected}
+                        altText={inactiveHint}
                         view="default"
                         size="large"
                         color="grey"
                         hoverColor="grey"
                         className="footer__button"
-                        img="./assets/img/RefreshSession.svg"
-                        hoverImg="./assets/img/RefreshSessionHover.svg"
+                        iconMask
+                        img="./assets/img/refreshSession.svg"
                         text={t("accounts.footer.refreshSession")}
                         onClick={() => {
                             const selected = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected && !p.deleted);
@@ -52,6 +57,8 @@ const SteamAccountsFooter: FC = observer(() => {
 
                     <Button
                         disabled={false}
+                        inactive={nothingSelected}
+                        altText={inactiveHint}
                         view="default"
                         size="large"
                         color="grey"
@@ -69,12 +76,15 @@ const SteamAccountsFooter: FC = observer(() => {
 
                     <Button
                         disabled={false}
+                        inactive={nothingSelected}
+                        altText={inactiveHint}
                         view="default"
                         size="large"
                         color="grey"
-                        hoverColor="grey"
+                        hoverColor="danger"
+                        className="footer__button"
+                        iconMask
                         img="./assets/img/Trash.svg"
-                        hoverImg="./assets/img/Trash_hov.svg"
                         text={t("common.buttons.delete")}
                         onClick={() => {
                             const selectedSteamAccounts = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected);

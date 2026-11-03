@@ -155,3 +155,36 @@
 .proxy-item-button-expand:hover {
   background: #281a33;
 }
+/* Блок нового прокси в формах аккаунта (SDA-9). Классы proxy-create-input и proxy-table
+   общие со вкладкой «Прокси», поэтому правила только под .create-proxy-block. */
+.create-proxy-block {
+  align-items: stretch;
+  gap: 12px;
+}
+.create-proxy-block .proxy-create__container__creation {
+  gap: 6px;
+}
+.create-proxy-block .proxy-create-input {
+  height: 40px;
+  margin-bottom: 0px;
+  padding: 0px 14px;
+  background: var(--sda-surface-3);
+  border: 1px solid var(--sda-border-strong);
+  border-radius: var(--sda-radius);
+  color: var(--sda-text);
+  transition: border-color var(--sda-transition), box-shadow var(--sda-transition);
+}
+.create-proxy-block .proxy-create-input::placeholder {
+  color: var(--sda-text-muted);
+}
+.create-proxy-block .proxy-create-input:hover {
+  border-color: var(--sda-surface-4);
+}
+.create-proxy-block .proxy-create-input:focus {
+  border-color: var(--sda-accent);
+  box-shadow: var(--sda-focus-ring);
+}
+.create-proxy-block .proxy-data-example {
+  font-size: 13px;
+  color: var(--sda-text-muted);
+}

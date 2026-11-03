@@ -1,68 +1,90 @@
-.proxy__container {
+.proxies-form.proxy__container {
   display: flex;
   align-items: center;
   flex-direction: column;
+  color: var(--sda-text);
 }
 
-.proxy-create__container {
+.proxies-form .proxy-create__container {
   width: 100%;
   display: flex;
   flex-direction: column;
-  padding: 28px 40px 0px 28px;
+  padding: 24px 28px 0;
 }
 
-.proxy-create-input {
-  background: #372447;
-  border: 1px solid #776284;
-  border-radius: 10px;
+.proxies-form .proxy-field-label {
+  margin-bottom: 8px;
+  color: var(--sda-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.proxies-form.proxy__container .proxy-create-input {
+  background: var(--sda-surface-2);
+  color: var(--sda-text);
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius);
   outline: none;
-  padding: 10px 18px;
+  padding: 10px 14px;
   height: 50px;
-  resize: none;
+  margin-bottom: 10px;
+  transition: border-color var(--sda-transition), box-shadow var(--sda-transition);
 }
 
-.proxy-table__container {
-  padding: 0px 25px;
+.proxies-form.proxy__container .proxy-create-input::placeholder { color: var(--sda-text-subtle); }
+.proxies-form.proxy__container .proxy-create-input:focus {
+  border-color: var(--sda-border-strong);
+  box-shadow: var(--sda-focus-ring);
+}
+
+.proxies-form.proxy__container .proxy-data-example {
+  color: var(--sda-text-muted);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.proxies-form .proxy-table__container {
+  padding: 0 28px;
   width: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.proxy-table {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  border-spacing: 0px 6px;
-}
-
-.proxy-table-header {
-  display: flex;
-  width: 100%;
-  padding: 0px 20px;
-}
-
-.proxy-table-header-cell {
+.proxies-form .proxy-table { display: flex; flex-direction: column; width: 100%; }
+.proxies-form .proxy-table-header { display: flex; width: 100%; }
+.proxies-form .proxy-table-header-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  width: 20%;
-  padding-bottom: 15px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 5px 12px;
+  color: var(--sda-text-muted);
 }
 
-.proxy-item__container {
+.proxies-form .proxy-item__container {
   display: flex;
   flex-direction: column;
-  overflow: scroll;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  height: 300px;
+  overflow: visible;
+  max-height: none;
 }
 
-.proxy-button__container {
-  padding: 0px 25px;
+.proxies-form .proxy-button__container {
+  padding: 0 28px;
+  margin-bottom: 20px;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+}
+
+.proxies-form .proxy-button__container .button {
+  border-radius: var(--sda-radius);
+  transition: background var(--sda-transition), box-shadow var(--sda-transition);
+}
+
+.proxies-form .proxy-button__container .button:focus-visible {
+  outline: none;
+  box-shadow: var(--sda-focus-ring);
 }

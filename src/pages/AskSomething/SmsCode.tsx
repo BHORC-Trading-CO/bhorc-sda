@@ -13,8 +13,9 @@ const SmsCode: FC<{ steamAccountName: string, id: string }> = (props) => {
             <Attic title={steamAccountName} windowName="askSomething" id={props.id} ></Attic>
             <div className="ask-family-pin-container">
                 <div className="">
-                    <span className="text-white-large">{t("ask.smsCode.label")}</span>
+                    <label htmlFor="ask-code-input" className="text-white-large">{t("ask.smsCode.label")}</label>
                     <input
+                        id="ask-code-input"
                         type="text"
                         className="ask-family-pin-input text-white-medium"
                         value={pin}
@@ -26,6 +27,7 @@ const SmsCode: FC<{ steamAccountName: string, id: string }> = (props) => {
                     ></input>
                 </div>
                 <Button
+                    className="ask-confirm-button"
                     size="medium"
                     color="grey"
                     hoverColor="grey"

@@ -1,0 +1,97 @@
+.proxy-action {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 37px;
+  height: 37px;
+  padding: 7px;
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius);
+  background: var(--sda-surface-3);
+  color: var(--sda-text-muted);
+  cursor: pointer;
+  transition: background var(--sda-transition), color var(--sda-transition), border-color var(--sda-transition);
+}
+
+.proxy-action svg {
+  width: 21px;
+  height: 21px;
+}
+
+.proxy-action:hover {
+  background: var(--sda-surface-4);
+  color: var(--sda-text);
+  border-color: var(--sda-border-strong);
+}
+
+.proxy-action:focus-visible {
+  outline: none;
+  box-shadow: var(--sda-focus-ring);
+}
+
+.proxy-action--delete:hover {
+  color: var(--sda-danger);
+  background: var(--sda-danger-bg);
+  border-color: var(--sda-danger);
+}
+
+.proxy-test-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 64px;
+  padding: 1px 0;
+  color: var(--sda-text-muted);
+}
+
+.proxy-test-control .proxy-action {
+  color: inherit;
+}
+
+.proxy-test-state {
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.proxy-test-control--success { color: var(--sda-success); }
+.proxy-test-control--danger { color: var(--sda-danger); }
+.proxy-test-control--pending, .proxy-test-control--idle { color: var(--sda-text-muted); }
+
+.proxy-linked-cell {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proxy-empty-cell { color: var(--sda-text-muted); }
+
+.proxy-test-selected.button {
+  gap: 12px;
+  background: var(--sda-surface-3);
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius);
+  color: var(--sda-text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--sda-transition);
+}
+.proxy-test-selected.button:hover { background: var(--sda-surface-4); }
+.proxy-test-selected.button:focus-visible { outline: none; box-shadow: var(--sda-focus-ring); }
+.proxy-test-selected svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

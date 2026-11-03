@@ -4,7 +4,6 @@ import MiniWindow from "../../../../components/MiniWindow/MiniWindow";
 import store from "../../../../../../store/store";
 import Button from "../../../../../../globalComponents/Button/Button";
 import Input from "../../../../../../globalComponents/Input/Input";
-import Delimeter from "../../../../../../globalComponents/Delimeter/Delimeter";
 import "./GroupForms.css";
 import { useTranslation } from "react-i18next";
 
@@ -50,41 +49,48 @@ const EditFormContent: FC<{ groupId: string; groupName: string }> = observer(
     };
 
     const remove = () => {
-      store.windows.prompt({
-        type: "question",
+      // danger: красная кнопка подтверждения в Prompt (необязательное поле, см. Prompt.tsx).
+      const content = {
+        type: "question" as const,
         title: t("groups.delete.title", { name: props.groupName }),
         text: t("groups.delete.text"),
         acceptButtonText: t("groups.delete.button"),
         cancelButtonText: t("prompt.cancel"),
+        danger: true,
         cb: () => {
           store.groups.deleteGroup(props.groupId);
           store.groups.closeEditForm();
         },
-      });
+      };
+      store.windows.prompt(content);
     };
 
     return (
-      <div className="group-form">
-        <div className="group-form__section-title text-white-medium">
-          {t("groups.edit.name")}
+      <div className="group-form-wrapper">
+        <div className="group-form">
+          <section className="group-form__section">
+            <h3 className="sda-form-section__title group-form__section-title">
+              {t("groups.edit.name")}
+            </h3>
+            <Input
+              value={name}
+              placeholder={t("groups.edit.name")}
+              onChange={(value) => setName(value)}
+            />
+          </section>
         </div>
-        <Input
-          value={name}
-          placeholder={t("groups.edit.name")}
-          onChange={(value) => setName(value)}
-        />
 
-        <div className="group-form__buttons">
+        <div className="sda-form-footer">
           <Button
             size="medium"
             text={t("groups.delete.button")}
             color="grey"
             hoverColor="dark-pink"
+            className="sda-button--danger"
             onClick={remove}
           />
           <Button size="medium" text={t("common.buttons.save")} onClick={save} />
         </div>
-        <Delimeter marginTop="6px" marginBottom="0px" />
       </div>
     );
   }

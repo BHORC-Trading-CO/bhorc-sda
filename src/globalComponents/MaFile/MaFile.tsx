@@ -22,9 +22,9 @@ function MaFile(props: MaFileListInterface) {
               </span>
             </div>
             <Delimeter
-              color="#372447"
-              marginBottom="13px"
-              marginTop="10px"
+              color="var(--sda-border)"
+              marginBottom="8px"
+              marginTop="8px"
             ></Delimeter>
           </li>
         ) : (
@@ -48,9 +48,9 @@ function MaFile(props: MaFileListInterface) {
               </div>
             </div>
             <Delimeter
-              color="#372447"
-              marginBottom="13px"
-              marginTop="10px"
+              color="var(--sda-border)"
+              marginBottom="8px"
+              marginTop="8px"
             ></Delimeter>
           </li>
         );
@@ -66,9 +66,9 @@ function MaFile(props: MaFileListInterface) {
             </span>
           </div>
           <Delimeter
-            color="#372447"
-            marginBottom="13px"
-            marginTop="10px"
+            color="var(--sda-border)"
+            marginBottom="8px"
+            marginTop="8px"
           ></Delimeter>
         </li>
         )

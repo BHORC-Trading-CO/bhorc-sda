@@ -38,6 +38,8 @@ class SteamAccountsTableStore {
   };
   authCodes: { [id: string]: string };
   searchString: string;
+  // Только для отображения: по какой колонке сейчас отсортированы строки (стрелка в заголовке)
+  sortedField: AvalibleTypes | null;
 
   constructor(root: Store) {
     this.root = root;
@@ -60,6 +62,7 @@ class SteamAccountsTableStore {
     this.pageSize = 10;
 
     this.searchString = "";
+    this.sortedField = null;
 
     makeAutoObservable(this);
 
@@ -200,6 +203,8 @@ class SteamAccountsTableStore {
   setSteamAccounts(steamAccounts: CompiledSteamAccountInterface[]) {
     try {
       this.steamAccounts = {};
+      // Список пришёл заново в порядке хранилища: прежняя сортировка больше не действует
+      this.sortedField = null;
       const tableSteamAccounts: TableSteamAccountInterface[] = [];
       const deletedTableSteamAccounts: TableSteamAccountInterface[] = [];
 
@@ -262,6 +267,7 @@ class SteamAccountsTableStore {
     }, Number((timeToUpdate * 1000).toFixed(0)));
   }
   changeFieldDirection(fieldType: AvalibleTypes, direction: "UP" | "DOWN") {
+    this.sortedField = fieldType;
     for (var field of this.fields) {
       if (field.type === fieldType) {
         field.sortDirection = direction;

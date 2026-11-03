@@ -1,6 +1,7 @@
 import react, { FC, useEffect, useState } from "react";
 import MiniWindow from "../../../../components/MiniWindow/MiniWindow";
 import store from "../../../../../../store/store";
+import "../ProxiesCreationForm/ProxiesCreationForm.css";
 import "./ProxiesEditingForm.css";
 import Delimeter from "../../../../../../globalComponents/Delimeter/Delimeter";
 import ProxyItem from "../ProxyItem/ProxyItem";
@@ -47,13 +48,17 @@ const EditingFormContent: FC = observer(() => {
   const parseAddProxyArea = (value: string) => {
     const proxySetup: ProxySetupInterface = parseProxyString(value);
 
+    store.proxiesTable.resetEditingTestDisplay();
     setProxyData(proxySetup);
   }
 
   return (
-    <div className="proxy__container">
+    <div className="proxies-form proxy__container proxy-editing-form">
       <div className="proxy-create__container">
+        <label className="proxy-field-label" htmlFor="proxy-edit-value">{t("proxies.form.label")}</label>
         <input
+          id="proxy-edit-value"
+          aria-describedby="proxy-edit-format"
           className="proxy-create-input text-grey-medium"
           placeholder={t("common.startTyping")}
           defaultValue={
@@ -67,10 +72,10 @@ const EditingFormContent: FC = observer(() => {
           }
           onChange={(e) => parseAddProxyArea(e.target.value)}
         ></input>
-        <div className="proxy-data-example text-grey-medium">
+        <div id="proxy-edit-format" className="proxy-data-example text-grey-medium">
           {t("proxyBlock.example")}
         </div>
-        <Delimeter marginTop="26px" marginBottom="27px"></Delimeter>
+        <Delimeter marginTop="26px" marginBottom="15px"></Delimeter>
       </div>
       <div className="proxy-table__container">
         <div className="proxy-table">
@@ -80,7 +85,7 @@ const EditingFormContent: FC = observer(() => {
             <div className="proxy-table-header-cell">{t("columns.login")}</div>
             <div className="proxy-table-header-cell">{t("columns.password")}</div>
             <div className="proxy-table-header-cell">{t("columns.account")}</div>
-            <div className="proxy-table-header-cell">test</div>
+            <div className="proxy-table-header-cell">{t("proxies.test.column")}</div>
           </div>
           <div className="proxy-item__container">
             {<ProxyItem

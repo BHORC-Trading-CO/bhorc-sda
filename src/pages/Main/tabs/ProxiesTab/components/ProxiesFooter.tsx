@@ -1,5 +1,6 @@
 import react, { FC } from 'react';
 import '../../../../../css/Footer.css';
+import './ProxyActions.css';
 import { observer } from 'mobx-react';
 import store from '../../../../../store/store';
 import Button from '../../../../../globalComponents/Button/Button';
@@ -30,21 +31,18 @@ const ProxiesFooter: FC = observer(() => {
                         <span className="text-white-large footer__info">{selectedProxies.length}</span>
                     </div>
 
-                    <Button
-                        disabled={false}
-                        view="default"
-                        size="large"
-                        color="grey"
-                        hoverColor="grey"
-                        className="footer__button"
-                        img="./assets/img/testProxy.svg"
-                        text={t("proxies.footer.testAll")}
+                    <button
+                        type="button"
+                        className="button button--view-default button--size-large footer__button proxy-test-selected"
                         onClick={() => {
                             const selectedProxies = store.proxiesTable.getProxies().filter(p => p.isSelected && !p.deleted);
                             if (selectedProxies.length === 0) return;
                             store.proxiesTable.testSelected();
                         }}
-                    />
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4" /></svg>
+                        <span>{t("proxies.footer.testAll")}</span>
+                    </button>
 
                     <Button
                         disabled={false}
@@ -52,6 +50,7 @@ const ProxiesFooter: FC = observer(() => {
                         size="large"
                         color="grey"
                         hoverColor="grey"
+                        className="footer__button"
                         img="./assets/img/Trash.svg"
                         hoverImg="./assets/img/Trash_hov.svg"
                         text={t("common.buttons.delete")}
