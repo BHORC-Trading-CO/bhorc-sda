@@ -6,8 +6,8 @@
 
 .account-creation-navigation__accounts{
     display: flex;
-    background: #372447;
-    border-radius: 10px;
+    background: var(--sda-surface-3);
+    border-radius: var(--sda-radius);
     padding: 6px 15px;
     margin-right: 22px;
 }

@@ -25,7 +25,7 @@ html {
 
 body {
   margin: 0;
-  color: #fff;
+  color: var(--sda-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -126,22 +126,67 @@ p {
   position: fixed;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--sda-overlay);
 }
 
+/* --- Глобальные состояния (SDA-9) --- */
+
+/* Одно кольцо фокуса с клавиатуры для кнопок, ссылок, чекбоксов и пунктов с role/tabindex.
+   Весь селектор внутри :where(), специфичность нулевая: свой :focus-visible у компонента
+   (box-shadow: var(--sda-focus-ring) в формах, прокси, подтверждениях) перекрывает это правило.
+   Кольцо — outline, а не box-shadow: box-shadow затирается свечением кнопок на ховере
+   (.button--hoverColor-gradient:hover), и фокус под курсором пропадал. outline там никто не
+   трогает, отступ 2px отделяет кольцо от градиента. Цвет — акцент токенов.
+   Текстовые поля не здесь: у них своё состояние фокуса в стилях полей ввода. */
+:where(
+    button,
+    a[href],
+    select,
+    summary,
+    input[type="checkbox"],
+    input[type="radio"],
+    [role="button"],
+    [role="radio"],
+    [role="tab"],
+    [tabindex]:not([tabindex="-1"])
+  ):where(:focus-visible) {
+  outline: 2px solid var(--sda-accent-from);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--sda-accent-to);
+  color: var(--sda-text);
+}
+
+/* Скроллбар: 8px под курсор, видимая часть тоньше (прозрачная рамка), приглушённый;
+   на ховере и при перетаскивании — шире и в акцентном градиенте. */
 div::-webkit-scrollbar {
-  height: 3px;
-  width: 3px;
+  height: 8px;
+  width: 8px;
 }
 
 div::-webkit-scrollbar-track {
-  background: rgba(119, 98, 132, 0.13);
-  border-radius: 16px;
-  transform: matrix(-1, 0, 0, 1, 0, 0);
+  background: var(--sda-border);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 8px;
 }
 
 div::-webkit-scrollbar-thumb {
-  background: linear-gradient(121.85deg, #ff00e5 2.04%, #7000ff 108.41%);
-  border-radius: 16px;
-  transform: matrix(-1, 0, 0, 1, 0, 0);
+  background: var(--sda-text-subtle);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 8px;
+}
+
+div::-webkit-scrollbar-thumb:hover,
+div::-webkit-scrollbar-thumb:active {
+  background: var(--sda-accent-gradient);
+  background-clip: padding-box;
+  border-width: 1px;
+}
+
+div::-webkit-scrollbar-corner {
+  background: transparent;
 }

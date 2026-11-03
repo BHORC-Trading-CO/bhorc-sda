@@ -15,25 +15,15 @@ export const GlobalStyle = createGlobalStyle`
     background-size: 100% 100%;
     background-repeat: no-repeat;
   }
-  .attic .buttons div:nth-child(1) {
-    background-image: url(./assets/img/Cross.svg);
-    background-size: 10px;
-    background-repeat: no-repeat;
-    background-position: center;
-    border-radius: 0px 0px 10px 0px;
+  /* Window button icons are masks; Attic.css sets their colour from tokens. */
+  .attic-button_minimize::before {
+    -webkit-mask-image: url(./assets/img/Line5.svg);
   }
-  .attic .buttons div:nth-child(2) {
-    background-image: url(./assets/img/Square2.svg);
-    background-size: 10px;
-    background-repeat: no-repeat;
-    background-position: center;
+  .attic-button_maximize::before {
+    -webkit-mask-image: url(./assets/img/Square2.svg);
   }
-  .attic .buttons div:nth-child(3) {
-    background-image: url(./assets/img/Line5.svg);
-    background-size: 10px;
-    background-repeat: no-repeat;
-    background-position: center;
-    border-radius: 0px 0px 0px 10px;
+  .attic-button_close::before {
+    -webkit-mask-image: url(./assets/img/Cross.svg);
   }
   .form-cross {
     background-image: url(./assets/img/Cross.svg);
@@ -65,23 +55,15 @@ export const GlobalStyle = createGlobalStyle`
   #navigation-main-hover {
     background-image: url(./assets/img/HomeHover.svg);
   }
+  /* Navigation icons are masks; Navigation.css sets the colour (muted, white on hover, gradient when active). */
   #navigation-steam-accounts {
-    background-image: url(./assets/img/SteamAccount.svg);
-  }
-  #navigation-steam-accounts-hover {
-    background-image: url(./assets/img/SteamAccountHover.svg);
+    -webkit-mask-image: url(./assets/img/SteamAccount.svg);
   }
   #navigation-proxy {
-    background-image: url(./assets/img/Proxy.svg);
-  }
-  #navigation-proxy-hover {
-    background-image: url(./assets/img/ProxyHover.svg);
+    -webkit-mask-image: url(./assets/img/Proxy.svg);
   }
   #navigation-extension {
-    background-image: url(./assets/img/Extension.svg);
-  }
-  #navigation-extension-hover {
-    background-image: url(./assets/img/ExtensionHover.svg);
+    -webkit-mask-image: url(./assets/img/Extension.svg);
   }
   .checkbox-default {
     background-image: url(./assets/img/checkbox.svg);

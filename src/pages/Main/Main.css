@@ -14,18 +14,21 @@
   justify-content: space-between;
 }
 
+/* Рабочая область занимает остаток после навигации и gap 20px у .content (общее правило из
+   public/index.html). Раньше ширина была calc(100% - 72px | 228px) без учёта gap: в узком окне
+   панели вылезали за правый край на 13px. min-width: 0 даёт сжиматься ниже ширины контента. */
 .main {
   display: flex;
   flex-direction: column;
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
   padding-left: 12px;
-  width: calc(100% - 72px);
 }
 
 .header {
   min-height: 80px;
   border-radius: 16px;
-  background-color: #211228a6;
+  background-color: var(--sda-surface-1);
   width: 100%;
   margin-bottom: 14px;
 }
@@ -34,17 +37,7 @@
   height: 100%;
   width: 100%;
   display: flex;
-  background: #211228a6;
+  background: var(--sda-surface-1);
   border-radius: 16px;
   margin-bottom: 17px;
-}
-
-@media (min-width: 1200px) {
-  .main {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    padding-left: 12px;
-    width: calc(100% - 228px);
-  }
 }
