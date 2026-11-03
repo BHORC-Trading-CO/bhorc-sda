@@ -5,13 +5,15 @@ import store from "../../../../../../store/store";
 import Delimeter from "../../../../../../globalComponents/Delimeter/Delimeter";
 import Button from "../../../../../../globalComponents/Button/Button";
 import "./ProxiesBulkForm.css";
+import { useTranslation } from "react-i18next";
 
 const ProxiesBulkForm: FC = observer(() => {
+  const { t } = useTranslation();
   if (!store.proxiesTable.isBulkFormOpen) return <></>;
 
   return (
     <MiniWindow
-      title="Массовое добавление прокси"
+      title={t("proxies.bulk.title")}
       width="800px"
       height=""
       content={<BulkFormContent />}
@@ -24,12 +26,13 @@ const ProxiesBulkForm: FC = observer(() => {
 
 const BulkFormContent: FC = () => {
   const [rawText, setRawText] = useState("");
+  const { t } = useTranslation();
 
   return (
     <div className="proxy__container">
       <div className="proxy-create__container">
         <div className="proxy-data-example text-grey-medium">
-          Один прокси на строку. Пример: Login:Password@1.1.1.1:7777
+          {t("proxies.bulk.example")}
         </div>
         <textarea
           className="text-area text-grey-medium proxy-bulk-textarea"
@@ -44,7 +47,7 @@ const BulkFormContent: FC = () => {
       <div className="proxy-button__container">
         <Button
           size="medium"
-          text="Отменить"
+          text={t("common.buttons.cancel")}
           color="grey"
           hoverColor="grey"
           onClick={() => {
@@ -53,12 +56,12 @@ const BulkFormContent: FC = () => {
         ></Button>
         <Button
           size="medium"
-          text="Сохранить"
+          text={t("common.buttons.save")}
           onClick={() => {
             if (rawText.trim().length === 0) {
               store.windows.openMiniNotification({
                 type: "error",
-                text: "Поле пустое!",
+                text: t("proxies.bulk.empty"),
               });
               return;
             }

@@ -4,14 +4,16 @@ import store from '../../store/store';
 import { observer } from 'mobx-react';
 import Button from '../Button/Button';
 import Input from '../Input/Input';
+import { useTranslation } from 'react-i18next';
 
 const Notification: FC = observer(() => {
     const [value, setValue] = useState("");
+    const { t } = useTranslation();
 
     if (!store.windows.isPromptOpen) return <></>;
 
-    const cancelButtonText = store.windows.promptContent.cancelButtonText ? store.windows.promptContent.cancelButtonText : "Отмена";
-    const acceptButtonText = store.windows.promptContent.acceptButtonText ? store.windows.promptContent.acceptButtonText : "Принять";
+    const cancelButtonText = store.windows.promptContent.cancelButtonText ? store.windows.promptContent.cancelButtonText : t("prompt.cancel");
+    const acceptButtonText = store.windows.promptContent.acceptButtonText ? store.windows.promptContent.acceptButtonText : t("prompt.accept");
 
     return (
         <div className='darkBackground' onClick={(event) => {
@@ -28,7 +30,7 @@ const Notification: FC = observer(() => {
                             <Input value={value} onChange={(value) => {
                                 setValue(value);
                             }} />
-                            <Button color='gradient' size='large' isNonGuardButton={false} text={"Подтвердить"} onClick={() => {
+                            <Button color='gradient' size='large' isNonGuardButton={false} text={t("common.buttons.confirm")} onClick={() => {
                                 if (store.windows.promptContent.cb)
                                     store.windows.promptContent.cb(value);
                             }} />

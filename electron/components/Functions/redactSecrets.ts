@@ -73,7 +73,7 @@ function redactValue(value: unknown, depth: number, walk: Walk): unknown {
         }
         if (Array.isArray(value)) {
             const out = value.slice(0, MAX_ITEMS).map((item) => redactValue(item, depth + 1, walk));
-            if (value.length > MAX_ITEMS) out.push(`…ещё ${value.length - MAX_ITEMS}`);
+            if (value.length > MAX_ITEMS) out.push(`…ещё ${value.length - MAX_ITEMS}`); // i18n-ok: только лог
             return out;
         }
         if (value instanceof Map) {

@@ -1,6 +1,8 @@
 import react, { FC } from "react";
+import { useTranslation } from "react-i18next";
 
 const ExtensionTab: FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="main">
       <div className="list-container">
@@ -13,7 +15,7 @@ const ExtensionTab: FC = () => {
             lineHeight: "100%",
           }}
         >
-          В разработке
+          {t("common.inDevelopment")}
         </h1>
       </div>
     </div>

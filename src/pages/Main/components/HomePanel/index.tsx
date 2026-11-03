@@ -3,12 +3,14 @@ import Search from "../../../../globalComponents/Search/Search";
 import store from "../../../../store/store";
 import { observer } from "mobx-react";
 import Button from "../../../../globalComponents/Button/Button";
+import { useTranslation } from "react-i18next";
 
 const Panel = observer(() => {
+  const { t } = useTranslation();
   return (
     <div className="panel">
       <div className="panel-content">
-        <h1 className="panel-text_main">Главная страница</h1>
+        <h1 className="panel-text_main">{t("home.title")}</h1>
         <div className="panel-content__options">
           {/* <div className="header-content__buttons-container">
             <div className="button-default" id="panel_settings" onClick={()=>{
@@ -61,7 +63,7 @@ const Panel = observer(() => {
           <Button
             size="large"
             img="/assets/img/Mark.svg"
-            text="Добавить аккаунт"
+            text={t("accounts.panel.add")}
             className="headline-button_gradient"
             onClick={() => {
               //store.windows.openProfileCreationForm();

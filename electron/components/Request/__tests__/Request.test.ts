@@ -1,4 +1,8 @@
 import RequestPromise from "../Request";
+import { setMainLanguage } from "../../../i18n";
+
+// Сообщения проверяем на русском: ru — прежний текст без изменений (SDA-18).
+beforeAll(() => setMainLanguage("ru"));
 
 const proxy = {
   host: "127.0.0.1",

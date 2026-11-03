@@ -4,16 +4,18 @@ import Input from "../../../../../../../../../globalComponents/Input/Input";
 import "./SteamGuardConnecting.css";
 import store from "../../../../../../../../../store/store";
 import { observer } from 'mobx-react';
+import { useTranslation } from 'react-i18next';
 
 const SteamDataCode: FC = observer(() => {
   const [currentPage, setCurrentPage] = useState('start');
 
   const StartPage: FC = observer(() => {
+    const { t } = useTranslation();
     return (
       <>
-        <h1>Хотите подключить steam guard? Вы должны убедиться, что указанный аккаунт НЕ подключен к steam guard</h1>
+        <h1>{t("guard.connect.question")}</h1>
         <br />
-        <Button size="medium" text="Подключить" isNonGuardButton={false} onClick={() => {
+        <Button size="medium" text={t("common.buttons.connect")} isNonGuardButton={false} onClick={() => {
           setCurrentPage('accept');
         }} />
       </>
@@ -22,18 +24,19 @@ const SteamDataCode: FC = observer(() => {
 
   const AcceptConnectingPage: FC = observer(() => {
     const params = store.steamAccountsTable.creationForm.getContent();
+    const { t } = useTranslation();
 
     return (
       <>
-        <h1>Проверьте данные:</h1><br />
-        <div>Логин Steam: {params.accountName ? params.accountName : "не установлено"}</div>
-        <div>Пароль Steam: {params.password ? params.password : "не установлено"}</div>
+        <h1>{t("guard.connect.checkData")}</h1><br />
+        <div>{t("guard.connect.login", { value: params.accountName ? params.accountName : t("common.notSet") })}</div>
+        <div>{t("guard.connect.password", { value: params.password ? params.password : t("common.notSet") })}</div>
         <br />
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button text="Назад" size="medium" color="grey" isNonGuardButton={false} hoverColor='light-grey' style={{ marginRight: '20px' }} onClick={() => {
+          <Button text={t("common.buttons.back")} size="medium" color="grey" isNonGuardButton={false} hoverColor='light-grey' style={{ marginRight: '20px' }} onClick={() => {
             setCurrentPage('start');
           }}></Button>
-          <Button disabled={!(params.accountName && params.password)} isNonGuardButton={false} text="Подключить" size="medium" onClick={() => {
+          <Button disabled={!(params.accountName && params.password)} isNonGuardButton={false} text={t("common.buttons.connect")} size="medium" onClick={() => {
             store.steamAccountsTable.creationForm.runGuardSetupProcess();
           }}></Button>
         </div>

@@ -11,19 +11,23 @@ import Delimeter from "../Delimeter/Delimeter";
 import ColumnsSelectetItem from "./ColumnsSelectetItem/ColumnsSelectetItem";
 import Button from "../Button/Button";
 import TableSettingsItem from "./TableSettingsItem/TableSettingsItem";
+import { useTranslation } from "react-i18next";
+import { FieldsTable } from "../Table/fieldTitle";
 
 const TableSettings: FC<TableSettingsProps> = observer(
   (props: TableSettingsProps) => {
+    const { t } = useTranslation();
     if (!props.isOpen) return <></>;
 
     return (
       <MiniWindow
-        title="Настройки таблицы"
+        title={t("tableSettings.title")}
         width={"800px"}
         height={"600px"}
         content={
           <TableSettingsContent
             fields={props.fields}
+            fieldsTable={props.fieldsTable}
             currentFields={props.currentFields}
             onSave={props.onSave}
             onClose={props.onClose}
@@ -40,6 +44,7 @@ const TableSettings: FC<TableSettingsProps> = observer(
 
 const TableSettingsContent: FC<TableSettingsProps> = observer(
   (props: TableSettingsProps) => {
+    const { t } = useTranslation();
     const [columnsList, setColumnsList] = useState<Array<Field>>(
       props.currentFields
     );
@@ -82,7 +87,7 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
       <div className="table-settings">
         <div className="table-settings-content">
           <div className="table-settings-left">
-            <div>Все доступные поля:</div>
+            <div>{t("tableSettings.allFields")}</div>
 
             <div className="table-settings-list">
               <form>
@@ -93,6 +98,7 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
                       columnsList={columnsList.filter(f => f.isVisible)}
                       updateColumnList={updateColumnList}
                       field={field}
+                      fieldsTable={props.fieldsTable}
                     />
                   );
                 })}
@@ -102,7 +108,7 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
 
           <div className="table-settings-right">
             <div className="table-settings_counter">
-              <div className="table-settings_counter-text">Колонок выбрано</div>
+              <div className="table-settings_counter-text">{t("tableSettings.selectedColumns")}</div>
               <div className="table-settings_counter-counter">
                 {columnsList.filter(f => f.isVisible).length}
               </div>
@@ -121,6 +127,7 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
                       // sortDirection: columnsList[item.source.index].sortDirection
                       columnsList.filter(f => f.isVisible)[item.source.index]
                     }
+                    fieldsTable={props.fieldsTable}
                     draggableProps={provided.draggableProps}
                     dragHandleProps={provided.dragHandleProps}
                     innerRef={provided.innerRef}
@@ -142,6 +149,7 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
                         {(provided, snapshot) => (
                           <ColumnsSelectetItem
                             data={item}
+                            fieldsTable={props.fieldsTable}
                             draggableProps={provided.draggableProps}
                             dragHandleProps={provided.dragHandleProps}
                             innerRef={provided.innerRef}
@@ -164,7 +172,7 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
             size="large"
             color="grey"
             hoverColor="grey"
-            text="Отменить"
+            text={t("common.buttons.cancel")}
             className="table-settings__footer-button"
             onClick={() => {
               props.onClose();
@@ -173,7 +181,7 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
 
           <Button
             size="large"
-            text="Сохранить"
+            text={t("common.buttons.save")}
             className=""
             onClick={() => saveColumns()}
           />
@@ -185,6 +193,7 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
 
 export type TableSettingsProps = {
   fields: Array<Field>;
+  fieldsTable: FieldsTable;
   currentFields: Array<Field>;
   onSave: (newFields: Field[]) => void;
   onClose: () => void;

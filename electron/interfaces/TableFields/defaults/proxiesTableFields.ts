@@ -1,59 +1,61 @@
 import AvalibleTypes from "../AvalibleFieldTypes";
 import Field from "../Field";
 
+// title — только запасной вариант: интерфейс показывает название колонки по type
+// (renderer: fields.<table>.<type> в locales). У старых пользователей в config.json лежат русские title.
 const proxiesTableFields: Field[] = [
     {
         type: AvalibleTypes.number,
-        title: "№",
+        title: "#",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleTypes.proxyHost,
-        title: "Хост прокси",
+        title: "Proxy host",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleTypes.proxyPort,
-        title: "Порт прокси",
+        title: "Proxy port",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleTypes.proxyUsername,
-        title: "Логин прокси",
+        title: "Proxy login",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleTypes.proxyPassword,
-        title: "Пароль прокси",
+        title: "Proxy password",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleTypes.linkedSteamAccounts,
-        title: "Подключенные аккаунты Steam",
+        title: "Linked Steam accounts",
         isSortable: false,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleTypes.linkedProfiles,
-        title: "Подключенные профили",
+        title: "Linked profiles",
         isSortable: false,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleTypes.testProxyButton,
-        title: "Кнопка для тестирования",
+        title: "Test button",
         isSortable: false,
         isVisible: true,
         showTtitleInTable: false

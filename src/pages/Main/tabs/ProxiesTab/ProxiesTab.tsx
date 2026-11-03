@@ -23,6 +23,7 @@ const ProxiesTab: FC = observer(() => {
       <TableSettings
         isOpen={store.proxiesTable.isSettingsFormOpen}
         fields={store.proxiesTable.getDefaultFields()}
+        fieldsTable="proxies"
         currentFields={store.proxiesTable.getCustomizableFields()}
         onClose={() => {
           store.proxiesTable.closeTableSettings();

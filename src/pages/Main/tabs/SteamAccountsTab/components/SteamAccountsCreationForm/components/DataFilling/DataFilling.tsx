@@ -18,8 +18,10 @@ import CreateProxyBlock from "../../../ProxyBlock/CreateProxyBlock/CreateProxyBl
 import SavedProxiesBlock from "../../../ProxyBlock/SavedProxiesBlock/SavedProxies";
 import Checkbox from "../../../../../../../../globalComponents/Checkbox/Checkbox";
 import uuid from "react-uuid";
+import { Trans, useTranslation } from "react-i18next";
 
 const DataFillingForm: FC = observer(() => {
+  const { t } = useTranslation();
   const CreationFormSwitches = store.steamAccountsTable.creationForm.switches;
   const params = store.steamAccountsTable.creationForm.getContent();
 
@@ -30,11 +32,11 @@ const DataFillingForm: FC = observer(() => {
           <Navigation
             buttons={[
               {
-                text: "Новый аккаунт",
+                text: t("accounts.creation.tabs.new"),
                 id: "new",
               },
               {
-                text: "Импорт аккаунтов",
+                text: t("accounts.creation.tabs.import"),
                 id: "import",
               },
             ]}
@@ -55,8 +57,8 @@ const DataFillingForm: FC = observer(() => {
             text={
               store.steamAccountsTable.creationForm.switches.creationType ===
               "new"
-                ? "Создать аккаунт"
-                : "Импортировать"
+                ? t("accounts.creation.create")
+                : t("accounts.creation.import")
             }
             color="grey"
             hoverColor="light-grey"
@@ -65,7 +67,7 @@ const DataFillingForm: FC = observer(() => {
                 store.steamAccountsTable.creationForm.currentProcess ===
                 "creation"
               )
-                return alert("процесс уже запущен");
+                return alert(t("accounts.creation.alreadyRunning"));
               if (
                 store.steamAccountsTable.creationForm.switches.creationType ===
                 "new"
@@ -75,7 +77,7 @@ const DataFillingForm: FC = observer(() => {
                 } else {
                   store.windows.openMiniNotification({
                     type: "error",
-                    text: "Не все данные установлены!",
+                    text: t("accounts.creation.missingData"),
                   });
                 }
               } else {
@@ -131,6 +133,7 @@ const DataFillingForm: FC = observer(() => {
 });
 
 const ImportSteamAccountsForm: FC = observer(() => {
+  const { t } = useTranslation();
   const params = store.steamAccountsTable.creationForm.getContent();
   const importedAccounts = params.importedAccounts;
 
@@ -139,11 +142,13 @@ const ImportSteamAccountsForm: FC = observer(() => {
       <Button
         text={
           importedAccounts.length === 0
-            ? "Загрузить .smaFile файл"
-            : `Выбрано ${importedAccounts.length} файлов: ` +
-              importedAccounts
-                .map((account) => account.smaFile.accountName)
-                .join(", ")
+            ? t("accounts.import.loadSmaFile")
+            : t("accounts.import.selectedFiles", {
+                count: importedAccounts.length,
+                names: importedAccounts
+                  .map((account) => account.smaFile.accountName)
+                  .join(", "),
+              })
         }
         size="medium"
         img="./assets/img/Download.svg"
@@ -178,7 +183,10 @@ const ImportSteamAccountsForm: FC = observer(() => {
             if (rejected.length) {
               store.windows.openMiniNotification({
                 type: "error",
-                text: `Пропущено файлов: ${rejected.length}. ${rejected.join("; ")}`,
+                text: t("accounts.import.skippedFiles", {
+                  count: rejected.length,
+                  details: rejected.join("; "),
+                }),
               });
             }
             if (smaFiles.length === 0) return;
@@ -201,9 +209,9 @@ const ImportSteamAccountsForm: FC = observer(() => {
               className="imported-steam-accounts_header-text"
               style={{ width: "50px" }}
             ></div>
-            <div className="imported-steam-accounts_header-text">Логин</div>
-            <div className="imported-steam-accounts_header-text">Никнейм</div>
-            <div className="imported-steam-accounts_header-text">Прокси</div>
+            <div className="imported-steam-accounts_header-text">{t("columns.login")}</div>
+            <div className="imported-steam-accounts_header-text">{t("columns.nickname")}</div>
+            <div className="imported-steam-accounts_header-text">{t("columns.proxy")}</div>
             <div className="imported-steam-accounts_header-text">maFile</div>
             <div
               className="imported-steam-accounts_header-text"
@@ -230,6 +238,7 @@ const ImportSteamAccountsForm: FC = observer(() => {
 });
 
 const NewSteamAccountForm: FC = observer(() => {
+  const { t } = useTranslation();
   const params = store.steamAccountsTable.creationForm.getContent();
   const switches = store.steamAccountsTable.creationForm.switches;
   const importedAccounts = params.importedAccounts;
@@ -238,12 +247,12 @@ const NewSteamAccountForm: FC = observer(() => {
     <>
       <div className="steam-data-block">
         <div className="steam-data-title text-white-medium">
-          Введите данные от существующего Steam аккаунта:
+          {t("accounts.form.existingAccountData")}
         </div>
         <div className="steam-data-input__wrapper">
           <Input
             value={params.accountName}
-            placeholder="Логин Steam"
+            placeholder={t("accounts.form.steamLogin")}
             onChange={(newValue) => {
               store.steamAccountsTable.creationForm.editContent({
                 accountName: newValue,
@@ -254,7 +263,7 @@ const NewSteamAccountForm: FC = observer(() => {
           <Input
             type="password"
             value={params.password}
-            placeholder="пароль Steam"
+            placeholder={t("accounts.form.steamPassword")}
             onChange={(newValue) => {
               store.steamAccountsTable.creationForm.editContent({
                 password: newValue,
@@ -267,12 +276,12 @@ const NewSteamAccountForm: FC = observer(() => {
       <Delimeter marginBottom="25px" marginTop="0px" />
       <div className="steam-data-block">
         <div className="steam-data-title text-white-medium">
-          Введите данные (все что здесь - необязательно):{" "}
+          {t("accounts.form.optionalData")}{" "}
         </div>
         <div className="steam-data-input__wrapper">
           <Input
             value={params.mail}
-            placeholder="Почта"
+            placeholder={t("accounts.form.mail")}
             onChange={(newValue) => {
               store.steamAccountsTable.creationForm.editContent({
                 mail: newValue,
@@ -283,7 +292,7 @@ const NewSteamAccountForm: FC = observer(() => {
           <Input
             type="password"
             value={params.mailPassword}
-            placeholder="Почта пароль"
+            placeholder={t("accounts.form.mailPassword")}
             onChange={(newValue) => {
               store.steamAccountsTable.creationForm.editContent({
                 mailPassword: newValue,
@@ -302,7 +311,7 @@ const NewSteamAccountForm: FC = observer(() => {
               }}
             />
             <span style={{ lineHeight: "25px" }}>
-              Использовать куки Steam в браузере (автологин)
+              {t("accounts.form.useSteamCookies")}
             </span>
           </div>
         </div>
@@ -313,15 +322,15 @@ const NewSteamAccountForm: FC = observer(() => {
         <Navigation
           buttons={[
             {
-              text: "Без прокси",
+              text: t("proxyBlock.noProxy"),
               id: "noProxy",
             },
             {
-              text: "Создать прокси",
+              text: t("proxyBlock.newProxy"),
               id: "newProxy",
             },
             {
-              text: "Сохраненные прокси",
+              text: t("proxyBlock.savedProxy"),
               id: "savedProxy",
             },
           ]}
@@ -343,11 +352,11 @@ const NewSteamAccountForm: FC = observer(() => {
         <Navigation
           buttons={[
             {
-              text: "Подключить Guard",
+              text: t("guard.tabs.connect"),
               id: "new",
             },
             {
-              text: "Использовать maFile",
+              text: t("guard.tabs.useMaFile"),
               id: "maFile",
             },
           ]}
@@ -379,6 +388,8 @@ const NewSteamAccountForm: FC = observer(() => {
 });
 
 const ProxyBlock: FC = observer(() => {
+  // Trans не подписан на смену языка — хук перерисовывает блок при переключении.
+  useTranslation();
   const CreationFormSwitches = store.steamAccountsTable.creationForm.switches;
   const content = store.steamAccountsTable.creationForm.getContent();
 
@@ -386,9 +397,7 @@ const ProxyBlock: FC = observer(() => {
     case "noProxy":
       return (
         <div className="info-block">
-          Прокси не установлен!
-          <br />
-          Вся работа с этим аккаунтом будет осуществляться с вашего текущего ip
+          <Trans i18nKey="proxyBlock.notSet" components={{ br: <br /> }} />
         </div>
       );
     case "newProxy":

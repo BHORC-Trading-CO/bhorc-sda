@@ -6,6 +6,10 @@ import fs from "fs";
 import { PassThrough } from "stream";
 import downloadImage from "../downloadImage";
 import { DEFAULT_AVATAR_URL } from "../../Functions/sanitizeAvatarUrl";
+import { setMainLanguage } from "../../../i18n";
+
+// Сообщения проверяем на русском: ru — прежний текст без изменений (SDA-18).
+beforeAll(() => setMainLanguage("ru"));
 
 it.each(["http://unix:/tmp/socket:/image", "https://evil.test/avatar.jpg", "data:image/png;base64,xxx", "javascript:alert(1)", "", DEFAULT_AVATAR_URL + "?next=http://127.0.0.1/"])("не вызывает request и файловую систему для %s", async url => {
     await expect(downloadImage(url, "/unused/avatar", "http://proxy.test:8080")).rejects.toThrow("недопустимый URL");

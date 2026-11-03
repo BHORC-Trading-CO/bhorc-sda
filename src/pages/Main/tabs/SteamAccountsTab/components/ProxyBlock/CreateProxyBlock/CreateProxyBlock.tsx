@@ -6,11 +6,13 @@ import store from "../../../../../../../store/store";
 import { observer } from 'mobx-react';
 import ProxySetupInterface from "../../../../../../../../electron/interfaces/Proxy/ProxySetupInterface";
 import Button from "../../../../../../../globalComponents/Button/Button";
+import { Trans, useTranslation } from "react-i18next";
 
 export const CreateProxyBlock: FC<{
   proxy: ProxySetupInterface,
   onChange: (newProxy: ProxySetupInterface) => void
 }> = observer(({ proxy, onChange }) => {
+  const { t } = useTranslation();
   const [isProxyFilledData, setIsProxyFilledData] = useState(false);
   const [proxyStr, setProxyStr] = useState(``);
 
@@ -24,7 +26,7 @@ export const CreateProxyBlock: FC<{
       <div className="proxy-create__container__creation">
         <input
           className="proxy-create-input text-grey-medium"
-          placeholder="Начните вводить..."
+          placeholder={t("common.startTyping")}
           value={proxyStr}
           onChange={(e) => {
             const value = e.target.value;
@@ -34,7 +36,7 @@ export const CreateProxyBlock: FC<{
           }}
         ></input>
         <div className="proxy-data-example text-grey-medium">
-          Пример: Login:Password@1.1.1.1:77777
+          {t("proxyBlock.example")}
         </div>
 
       </div>
@@ -43,10 +45,10 @@ export const CreateProxyBlock: FC<{
           <Delimeter marginTop="26px" marginBottom="15px"></Delimeter>
           <div className="proxy-table">
             <div className="proxy-table-header text-grey-medium">
-              <div className="proxy-table-header-cell">Хост</div>
-              <div className="proxy-table-header-cell">Порт</div>
-              <div className="proxy-table-header-cell">Логин</div>
-              <div className="proxy-table-header-cell">Пароль</div>
+              <div className="proxy-table-header-cell">{t("columns.host")}</div>
+              <div className="proxy-table-header-cell">{t("columns.port")}</div>
+              <div className="proxy-table-header-cell">{t("columns.login")}</div>
+              <div className="proxy-table-header-cell">{t("columns.password")}</div>
               <div className="proxy-table-header-cell">test</div>
             </div>
             <div className="proxy-item__container">
@@ -64,8 +66,7 @@ export const CreateProxyBlock: FC<{
             </div>
           </div>
         </div> : <><br /><div className='info-block'>
-          Прокси не установлен!<br />
-          Вся работа с этим аккаунтом будет осуществляться с вашего текущего ip
+          <Trans i18nKey="proxyBlock.notSet" components={{ br: <br /> }} />
         </div></>
       }
     </div>

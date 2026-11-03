@@ -1,6 +1,7 @@
 import "../components/Functions/installConsoleRedaction";
 import { contextBridge, ipcRenderer, IpcRendererEvent, shell } from 'electron';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
+import { exposeLanguageApi } from './languageBridge';
 
 const errorApi = {
     openLink: () => {
@@ -20,4 +21,5 @@ const windowApi = {
 export default { errorApi, windowApi };
 
 contextBridge.exposeInMainWorld('ErrorWindow', { errorApi, windowApi });
+exposeLanguageApi();
 contextBridge.exposeInMainWorld('getWindowName', () => 'error');

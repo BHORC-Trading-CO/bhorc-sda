@@ -6,20 +6,22 @@ import TableProxyInterface from "../../../../../../../../electron/interfaces/Pro
 import store from "../../../../../../../store/store";
 import Button from "../../../../../../../globalComponents/Button/Button";
 import { observer } from "mobx-react";
+import { Trans, useTranslation } from "react-i18next";
 
 const SavedProxiesBlock: FC<{
   proxies: TableProxyInterface[],
   activeId: string | null,
   onChange: (newActiveId: string | null) => void
 }> = observer(({ proxies, activeId, onChange }) => {
+  const { t } = useTranslation();
   const activeProxy = activeId ? proxies.filter(p => p.id === activeId)[0] : null;
   return (
     <div className="saved-proxies__container">
       <div className="saved-proxies-title text-grey-medium">
         <div className="saved-proxies-title-cell" style={{width: '50px'}}>№</div>
-        <div className="saved-proxies-title-cell">Хост</div>
-        <div className="saved-proxies-title-cell">Порт</div>
-        <div className="saved-proxies-title-cell">Steam аккаунты</div>
+        <div className="saved-proxies-title-cell">{t("columns.host")}</div>
+        <div className="saved-proxies-title-cell">{t("columns.port")}</div>
+        <div className="saved-proxies-title-cell">{t("columns.steamAccounts")}</div>
       </div>
       <div className="saved-proxies">
         {proxies.map((proxy) => {
@@ -41,15 +43,15 @@ const SavedProxiesBlock: FC<{
           activeProxy ?
             <>
               <br />
-              <div style={{ lineHeight: '30px' }}>Выбранный прокси:</div>
+              <div style={{ lineHeight: '30px' }}>{t("proxyBlock.selectedProxy")}</div>
               <br />
               <div className="proxy-table">
                 <div className="proxy-table-header text-grey-medium">
                   <div className="proxy-table-header-cell" style={{width:'50px'}}>№</div>
-                  <div className="proxy-table-header-cell">Хост</div>
-                  <div className="proxy-table-header-cell">Порт</div>
-                  <div className="proxy-table-header-cell">Логин</div>
-                  <div className="proxy-table-header-cell">Пароль</div>
+                  <div className="proxy-table-header-cell">{t("columns.host")}</div>
+                  <div className="proxy-table-header-cell">{t("columns.port")}</div>
+                  <div className="proxy-table-header-cell">{t("columns.login")}</div>
+                  <div className="proxy-table-header-cell">{t("columns.password")}</div>
                   <div className="proxy-table-header-cell">test</div>
                 </div>
                 <div className="proxy-item__container">
@@ -72,8 +74,7 @@ const SavedProxiesBlock: FC<{
             <>
               <br />
               <div className='info-block'>
-                Прокси не установлен!<br />
-                Вся работа с этим аккаунтом будет осуществляться с вашего текущего ip
+                <Trans i18nKey="proxyBlock.notSet" components={{ br: <br /> }} />
               </div>
             </>
         }

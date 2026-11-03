@@ -1,5 +1,6 @@
 // Минимальный мок electron для юнит-тестов main-процесса (вне Electron runtime).
 const { EventEmitter } = require('events');
+const allWindows = [];
 const app = Object.assign(new EventEmitter(), {
   whenReady: () => Promise.resolve(),
   getPath: jest.fn(() => process.cwd()),
@@ -11,8 +12,11 @@ const app = Object.assign(new EventEmitter(), {
 module.exports = {
   app,
   BrowserWindow: class BrowserWindow extends EventEmitter {
+    // Как в Electron: только живые окна.
+    static getAllWindows() { return allWindows.filter((win) => !win.destroyed); }
     constructor() {
       super();
+      allWindows.push(this);
       this.url = '';
       this.destroyed = false;
       this.webContents = Object.assign(new EventEmitter(), {

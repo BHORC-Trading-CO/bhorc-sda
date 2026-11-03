@@ -8,13 +8,15 @@ import ProxyItem from "../ProxyItem/ProxyItem";
 import "../ProxiesEditingForm/ProxiesEditingForm";
 import ProxySetupInterface from '../../../../../../../electron/interfaces/Proxy/ProxySetupInterface';
 import parseProxyString from "../Funcs/parseProxyString";
+import { useTranslation } from "react-i18next";
 
 const ProxiesCreationForm: FC = observer(() => {
+  const { t } = useTranslation();
   if (!store.proxiesTable.isCreationFormOpen) return <></>;
 
   return (
     <MiniWindow
-      title="Создание новых прокси"
+      title={t("proxies.creation.title")}
       width="1000px"
       height=""
       content={<CreationFormContent />}
@@ -26,6 +28,7 @@ const ProxiesCreationForm: FC = observer(() => {
 });
 
 export const CreationFormContent: FC = () => {
+  const { t } = useTranslation();
   const [proxy, setProxy] = useState<ProxySetupInterface>({
     username: "",
     password: "",
@@ -47,7 +50,7 @@ export const CreationFormContent: FC = () => {
       <div className="proxy-create__container">
         <input
           className="proxy-create-input text-grey-medium"
-          placeholder="Начните вводить..."
+          placeholder={t("common.startTyping")}
           onChange={(e) => {
             const value = e.target.value;
             const proxyData = parseProxyString(value);
@@ -55,7 +58,7 @@ export const CreationFormContent: FC = () => {
           }}
         ></input>
         <div className="proxy-data-example text-grey-medium">
-          Пример: Login:Password@1.1.1.1:77777
+          {t("proxyBlock.example")}
         </div>
         <Delimeter marginTop="26px" marginBottom="15px"></Delimeter>
       </div>
@@ -63,11 +66,11 @@ export const CreationFormContent: FC = () => {
         <div className="proxy-table__container">
           <div className="proxy-table">
             <div className="proxy-table-header text-grey-medium">
-              <div className="proxy-table-header-cell">Хост</div>
-              <div className="proxy-table-header-cell">Порт</div>
-              <div className="proxy-table-header-cell">Логин</div>
-              <div className="proxy-table-header-cell">Пароль</div>
-              <div className="proxy-table-header-cell">Аккаунт</div>
+              <div className="proxy-table-header-cell">{t("columns.host")}</div>
+              <div className="proxy-table-header-cell">{t("columns.port")}</div>
+              <div className="proxy-table-header-cell">{t("columns.login")}</div>
+              <div className="proxy-table-header-cell">{t("columns.password")}</div>
+              <div className="proxy-table-header-cell">{t("columns.account")}</div>
               <div className="proxy-table-header-cell">test</div>
             </div>
             <div className="proxy-item__container">
@@ -85,14 +88,14 @@ export const CreationFormContent: FC = () => {
       <div className="proxy-button__container">
         <Button
           size="medium"
-          text="Отменить"
+          text={t("common.buttons.cancel")}
           color="grey"
           hoverColor="grey"
           onClick={() => {
             store.proxiesTable.closeCreationForm();
           }}
         ></Button>
-        <Button size="medium" text="Сохранить" onClick={() => {
+        <Button size="medium" text={t("common.buttons.save")} onClick={() => {
           console.log(links);
           if (proxy.host && proxy.port && proxy.username && proxy.password) {
             window.Main.proxies.new(proxy, links);
@@ -100,7 +103,7 @@ export const CreationFormContent: FC = () => {
           } else {
             store.windows.openMiniNotification({
               type: "error",
-              text: "Не все поля прокси заданы!"
+              text: t("proxies.creation.incomplete")
             });
           }
         }}></Button>

@@ -8,14 +8,16 @@ import Button from "../../../../../../globalComponents/Button/Button";
 import { observer } from 'mobx-react';
 import ProxySetupInterface from "../../../../../../../electron/interfaces/Proxy/ProxySetupInterface";
 import parseProxyString from "../Funcs/parseProxyString";
+import { useTranslation } from "react-i18next";
 
 const ProxiesEditingForm: FC = observer(() => {
+  const { t } = useTranslation();
   if (!store.proxiesTable.isEditingFormOpen) return <></>;
   const proxy = store.proxiesTable.getEditingFormContent();
 
   return (
     <MiniWindow
-      title={`Изменить прокси (#${proxy.number}) ${proxy.host}:${proxy.port}`}
+      title={t("proxies.editing.title", { number: proxy.number, host: proxy.host, port: proxy.port })}
       width="1000px"
       height=""
       content={
@@ -29,6 +31,7 @@ const ProxiesEditingForm: FC = observer(() => {
 });
 
 const EditingFormContent: FC = observer(() => {
+  const { t } = useTranslation();
   const proxy = store.proxiesTable.getEditingFormContent();
   const [proxyData, setProxyData] = useState<ProxySetupInterface>({
     username: proxy.username,
@@ -52,7 +55,7 @@ const EditingFormContent: FC = observer(() => {
       <div className="proxy-create__container">
         <input
           className="proxy-create-input text-grey-medium"
-          placeholder="Начните вводить..."
+          placeholder={t("common.startTyping")}
           defaultValue={
             proxyData.username +
             ":" +
@@ -65,18 +68,18 @@ const EditingFormContent: FC = observer(() => {
           onChange={(e) => parseAddProxyArea(e.target.value)}
         ></input>
         <div className="proxy-data-example text-grey-medium">
-          Пример: Login:Password@1.1.1.1:77777
+          {t("proxyBlock.example")}
         </div>
         <Delimeter marginTop="26px" marginBottom="27px"></Delimeter>
       </div>
       <div className="proxy-table__container">
         <div className="proxy-table">
           <div className="proxy-table-header text-grey-medium">
-            <div className="proxy-table-header-cell">Хост</div>
-            <div className="proxy-table-header-cell">Порт</div>
-            <div className="proxy-table-header-cell">Логин</div>
-            <div className="proxy-table-header-cell">Пароль</div>
-            <div className="proxy-table-header-cell">Аккаунт</div>
+            <div className="proxy-table-header-cell">{t("columns.host")}</div>
+            <div className="proxy-table-header-cell">{t("columns.port")}</div>
+            <div className="proxy-table-header-cell">{t("columns.login")}</div>
+            <div className="proxy-table-header-cell">{t("columns.password")}</div>
+            <div className="proxy-table-header-cell">{t("columns.account")}</div>
             <div className="proxy-table-header-cell">test</div>
           </div>
           <div className="proxy-item__container">
@@ -92,14 +95,14 @@ const EditingFormContent: FC = observer(() => {
       <div className="proxy-button__container">
         <Button
           size="medium"
-          text="Отменить"
+          text={t("common.buttons.cancel")}
           color="grey"
           hoverColor="grey"
           onClick={() => {
             store.proxiesTable.closeEditingForm();
           }}
         ></Button>
-        <Button size="medium" text="Сохранить" onClick={() => {
+        <Button size="medium" text={t("common.buttons.save")} onClick={() => {
           if (proxyData.host && proxyData.port && proxyData.password && proxyData.host) {
             window.Main.proxies.edit(proxy.id, proxyData, links);
             store.proxiesTable.closeEditingForm();

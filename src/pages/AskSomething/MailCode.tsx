@@ -1,9 +1,11 @@
 import react, { FC, useState } from 'react';
 import Attic from '../../globalComponents/Attic/Attic';
 import Button from '../../globalComponents/Button/Button';
+import { useTranslation } from 'react-i18next';
 
 const MailCode: FC<{ steamAccountName: string, id: string }> = (props) => {
     const [pin, setPin] = useState("");
+    const { t } = useTranslation();
     const { steamAccountName, id } = props;
 
     return (
@@ -11,7 +13,7 @@ const MailCode: FC<{ steamAccountName: string, id: string }> = (props) => {
             <Attic id={props.id} windowName="askSomething" title={steamAccountName}></Attic>
             <div className="ask-family-pin-container">
                 <div className="">
-                    <span className="text-white-large">Введите код с почты:</span>
+                    <span className="text-white-large">{t("ask.mailCode.label")}</span>
                     <input
                         type="text"
                         className="ask-family-pin-input text-white-medium"
@@ -27,7 +29,7 @@ const MailCode: FC<{ steamAccountName: string, id: string }> = (props) => {
                     size="medium"
                     color="grey"
                     hoverColor="grey"
-                    text="Подтвердить"
+                    text={t("common.buttons.confirm")}
                     onClick={() => {
                         window.AskFamilyPin.askFamilyPinApi.sendData(id, pin);
                     }}

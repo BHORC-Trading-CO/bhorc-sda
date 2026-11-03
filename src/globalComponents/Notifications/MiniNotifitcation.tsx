@@ -3,6 +3,7 @@ import './miniNotifications.css';
 import store from '../../store/store';
 import { observer } from 'mobx-react';
 import TableProxyInterface from '../../../electron/interfaces/Proxy/TableProxyInterface';
+import { Trans } from 'react-i18next';
 
 const MiniNotification: FC = observer(() => {
     if (!store.windows.isMiniNotificationOpen) return <></>;
@@ -48,7 +49,7 @@ const ErrorInTestingProxy: FC<{ proxy: TableProxyInterface }> = (props) => {
     return (
         <div className='mini_notification' style={{ display: store.windows.isMiniNotificationOpen ? 'flex' : 'none' }}>
             <img src="./assets/img/Info.svg" alt="" />
-            <div>Прокси №{props.proxy.number} {props.proxy.host}:{props.proxy.port} <b style={{ color: "#FA403A" }}>НЕ РАБОТАЕТ</b></div>
+            <div><Trans i18nKey="proxies.test.notWorkingRich" values={{ number: props.proxy.number, host: props.proxy.host, port: props.proxy.port }} components={{ b: <b style={{ color: "#FA403A" }} /> }} /></div>
         </div>
     )
 }
@@ -57,7 +58,7 @@ const SuccessInTestingProxy: FC<{ proxy: TableProxyInterface }> = (props) => {
     return (
         <div className='mini_notification' style={{ display: store.windows.isMiniNotificationOpen ? 'flex' : 'none' }}>
             <img src="./assets/img/Info.svg" alt="" />
-            <div>Прокси №{props.proxy.number} {props.proxy.host}:{props.proxy.port} <b style={{ color: "#6BF06C" }}>работает</b></div>
+            <div><Trans i18nKey="proxies.test.workingRich" values={{ number: props.proxy.number, host: props.proxy.host, port: props.proxy.port }} components={{ b: <b style={{ color: "#6BF06C" }} /> }} /></div>
         </div>
     )
 }

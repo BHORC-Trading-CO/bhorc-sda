@@ -8,6 +8,7 @@ import ProxyItem from "./ProxyItem";
 import store from "../../../../../../../../store/store";
 import { observer } from "mobx-react";
 import Button from "../../../../../../../../globalComponents/Button/Button";
+import { useTranslation } from "react-i18next";
 
 const ImportAccountItem = observer(
   (props: {
@@ -23,6 +24,7 @@ const ImportAccountItem = observer(
       null
     );
     const [isSessionOpen, setIsSessionOpen] = useState(false);
+    const { t } = useTranslation();
 
     return (
       <div className="imported-steam-account-item__container">
@@ -69,7 +71,7 @@ const ImportAccountItem = observer(
               }}
               className="imported-steam-account-button text-white-medium"
             >
-              Посмотреть
+              {t("accounts.import.view")}
               <img
                 src="./assets/img/ArrowDown.svg"
                 style={{

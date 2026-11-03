@@ -3,12 +3,14 @@ import Button from "../../../../../globalComponents/Button/Button";
 import Search from "../../../../../globalComponents/Search/Search";
 import { observer } from 'mobx-react';
 import store from '../../../../../store/store';
+import { useTranslation } from 'react-i18next';
 
 const ProxiesPanel = observer(() => {
+    const { t } = useTranslation();
     return (
         <div className="panel">
             <div className="panel-content">
-                <h1 className="panel-text_main">Прокси</h1>
+                <h1 className="panel-text_main">{t("proxies.panel.title")}</h1>
                 <div className="panel-content__options">
                     {/* <div className="header-content__buttons-container">
             <div className="button-default" id="panel_settings" onClick={()=>{
@@ -27,7 +29,7 @@ const ProxiesPanel = observer(() => {
                         onClick={() => {
                             window.Main.window.openAppdata();
                         }}
-                        altText="Открыть папку с данными от аккаунтов. Все данные хранятся в файле config.json"
+                        altText={t("common.openDataFolder")}
                     />
 
                     <Button
@@ -69,13 +71,13 @@ const ProxiesPanel = observer(() => {
                         onClick={() => {
                             store.proxiesTable.openBulkForm();
                         }}
-                        altText="Массовое добавление прокси (один прокси на строку)"
+                        altText={t("proxies.panel.bulkHint")}
                     />
 
                     <Button
                         size="large"
                         img="./assets/img/Mark.svg"
-                        text="Добавить прокси"
+                        text={t("proxies.panel.add")}
                         className="headline-button_gradient"
                         onClick={() => {
                             store.proxiesTable.openCreationForm();

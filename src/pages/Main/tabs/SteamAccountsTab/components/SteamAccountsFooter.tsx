@@ -4,8 +4,10 @@ import { observer } from 'mobx-react';
 import store from '../../../../../store/store';
 import Button from '../../../../../globalComponents/Button/Button';
 import TablePageSwitcher from '../../../../../globalComponents/TablePageSwitcher/TablePageSwitcher';
+import { useTranslation } from 'react-i18next';
 
 const SteamAccountsFooter: FC = observer(() => {
+    const { t } = useTranslation();
     const steamAccounts = store.steamAccountsTable.getSteamAccounts();
     const steamAccountsByPage = store.steamAccountsTable.getSteamAccountsByPages();
     const visibleSteamAccounts = Object.values(steamAccounts).filter(p => !p.deleted || store.steamAccountsTable.showDeleted);
@@ -27,7 +29,7 @@ const SteamAccountsFooter: FC = observer(() => {
 
                 <div className="footer__control">
                     <div className="footer__select-number">
-                        <span className="text-grey-large">Выбрано</span>
+                        <span className="text-grey-large">{t("common.selected")}</span>
                         <span className="text-white-large footer__info">{selectedSteamAccounts.length}</span>
                     </div>
 
@@ -40,7 +42,7 @@ const SteamAccountsFooter: FC = observer(() => {
                         className="footer__button"
                         img="./assets/img/RefreshSession.svg"
                         hoverImg="./assets/img/RefreshSessionHover.svg"
-                        text="Обновить сессию"
+                        text={t("accounts.footer.refreshSession")}
                         onClick={() => {
                             const selected = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected && !p.deleted);
                             if (selected.length === 0) return;
@@ -55,11 +57,11 @@ const SteamAccountsFooter: FC = observer(() => {
                         color="grey"
                         hoverColor="grey"
                         className="footer__button"
-                        text="В группу"
+                        text={t("accounts.footer.toGroup")}
                         onClick={() => {
                             const selected = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected && !p.deleted);
                             if (selected.length === 0) {
-                                return store.windows.openMiniNotification({ type: 'error', text: 'Не выбрано ни одного аккаунта' });
+                                return store.windows.openMiniNotification({ type: 'error', text: t('common.noAccountsSelected') });
                             }
                             store.groups.openAssignForm();
                         }}
@@ -73,17 +75,17 @@ const SteamAccountsFooter: FC = observer(() => {
                         hoverColor="grey"
                         img="./assets/img/Trash.svg"
                         hoverImg="./assets/img/Trash_hov.svg"
-                        text="Удалить"
+                        text={t("common.buttons.delete")}
                         onClick={() => {
                             const selectedSteamAccounts = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected);
                             if (selectedSteamAccounts.length === 0) return;
 
                             store.windows.prompt({
                                 type: 'question',
-                                title: `Хотите переместить в архив ${selectedSteamAccounts.length} аккаунтов?`,
-                                text: `Прокси №{${selectedSteamAccounts.map(p => p.number).join(', ')}} будут убраны. Их всегда можно восстановить/удалить окночательно (просто кликни на глазик в верхней панели)`,
-                                acceptButtonText: `Удалить ${selectedSteamAccounts.length} прокси`,
-                                cancelButtonText: 'Отмена',
+                                title: t('accounts.archiveSelected.title', { count: selectedSteamAccounts.length }),
+                                text: t(selectedSteamAccounts.length === 1 ? 'accounts.archiveSelected.textSingle' : 'accounts.archiveSelected.textMany', { numbers: selectedSteamAccounts.map(p => p.number).join(', ') }),
+                                acceptButtonText: t('accounts.archiveSelected.accept', { count: selectedSteamAccounts.length }),
+                                cancelButtonText: t('prompt.cancel'),
                                 cb: () => {
                                     for (var steamAccount of selectedSteamAccounts) {
                                         store.steamAccountsTable.editSteamAccount(steamAccount.id, { deleted: true, isSelected: false });

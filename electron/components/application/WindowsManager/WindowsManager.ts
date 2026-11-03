@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getAppEntries } from '../appEntries';
 import { isAppUrl } from '../navigationGuard';
 import { onTrusted } from '../trustedIpc';
+import { t } from '../../../i18n';
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
@@ -35,6 +36,18 @@ class WindowsManager {
         this.errorWindows = {};
     }
 
+    /** Живые окна приложения, в которых открыта страница приложения (не чужая).
+     *  Берём все BrowserWindow, а не карты менеджера: второе окно ввода для того же
+     *  аккаунта перезаписывает запись в askWindows, но остаётся открытым. Браузеры
+     *  puppeteer — отдельные процессы Chromium, а не BrowserWindow, сюда не попадают. */
+    getAppWindows(): BrowserWindow[] {
+        return BrowserWindow.getAllWindows().filter((win) =>
+            !win.isDestroyed() && isAppUrl(win.webContents.getURL(), getAppEntries()));
+    }
+    /** Отправить событие во все окна приложения (например, смену языка). */
+    broadcast(channel: string, payload: unknown) {
+        for (const win of this.getAppWindows()) win.webContents.send(channel, payload);
+    }
     createErrorWindow(title: string, text: string) {
         const winId = uuidv4();
         this.errorWindows[winId] = new BrowserWindow({
@@ -150,7 +163,7 @@ class WindowsManager {
                 removeErrorListener();
                 askPinWindow.close();
                 delete (this.askWindows[accountId]);
-                reject("Добавление пин кода от семейного доступа прервано");
+                reject(t(`errors.askAborted.${infoType}`));
             }
             const removeListener = onTrusted(AskSomethingChannels.ASK_WINDOW_SEND_DATA, askFunc);
             const removeErrorListener = onTrusted(AskSomethingChannels.ASK_WINDOW_ABORT_SENDING_DATA, abortFunc);

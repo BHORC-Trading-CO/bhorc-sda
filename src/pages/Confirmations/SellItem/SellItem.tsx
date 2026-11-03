@@ -2,11 +2,13 @@ import React, { Dispatch, SetStateAction, useEffect } from "react";
 import CConfirmation from "steamcommunity/classes/CConfirmation";
 import Button from "../../../globalComponents/Button/Button";
 import "./SellItem.css";
+import { useTranslation } from "react-i18next";
 
 interface Item { selected: boolean, confirmation: CConfirmation };
 
 function SellItem(props: sellItemInterface) {
   const { item, onChange } = props;
+  const { t } = useTranslation();
 
   return (
     <div className="sell-item-container">
@@ -26,7 +28,7 @@ function SellItem(props: sellItemInterface) {
       </div>
       <div className="sell-item-confirm-container">
         <Button
-          text={item.selected ? "Отменить" : "Выбрать"}
+          text={item.selected ? t("confirmations.item.deselect") : t("confirmations.item.select")}
           size="large"
           color={item.selected ? "dark-pink" : "light-grey"}
           hoverColor={item.selected ? "dark-pink" : "grey"}

@@ -7,6 +7,10 @@ import resolveBrowserPath, {
   needsNativeArmBrowser,
   ResolveBrowserDeps,
 } from "../resolveBrowserPath";
+import { setMainLanguage } from "../../../../i18n";
+
+// Сообщения проверяем на русском: ru — прежний текст без изменений (SDA-18).
+beforeAll(() => setMainLanguage("ru"));
 
 const BUNDLED = "/fake/chromium";
 

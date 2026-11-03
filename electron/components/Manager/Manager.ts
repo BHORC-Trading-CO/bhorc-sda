@@ -5,6 +5,7 @@ import LinksStorage from "../newStorage/LinksStorage";
 import SteamAccountInterface from "../../interfaces/SteamAccount/SteamAccountInterface";
 import application from "../application/application";
 import SteamAccountChannels from "../../interfaces/IpcChannels/SteamAccountChannels";
+import { t } from "../../i18n";
 
 class Manager {
     static GetSteamAccountLinkedData(steamAccountId: string) {
@@ -63,7 +64,7 @@ class Manager {
             // Прокси привязан, но объекта нет — раньше уходили в setProxy(undefined),
             // т.е. связь сохранялась, а трафик шёл НАПРЯМУЮ с реального IP. Падаем явно
             // и связь не сохраняем: лучше видимая ошибка, чем тихая утечка IP.
-            if (!proxy) throw new Error(`proxy #${proxyId} is not exist: связь с аккаунтом #${steamAccountId} не установлена (запросы шли бы напрямую)`);
+            if (!proxy) throw new Error(t("errors.proxyLinkMissing", { proxyId, steamAccountId }));
             links.steamAccounts[steamAccountId] = proxyId;
             LinksStorage.Save(links);
             steamAccount.setProxy(proxy);

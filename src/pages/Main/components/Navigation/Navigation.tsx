@@ -3,8 +3,11 @@ import "./Navigation.css";
 import Button from "../../../../globalComponents/Button/Button";
 import store from "../../../../store/store";
 import { observer } from "mobx-react";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const Navigation = observer(() => {
+  const { t } = useTranslation("shell");
   const [isCompress, setIsCompress] = useState(false);
   const [buttonsClass, setButtonsClass] = useState("navigation-button");
   const [hoverTab, setHoverTab] = useState("");
@@ -66,7 +69,7 @@ const Navigation = observer(() => {
               ""
             ) : (
               <div className="button__text_navigation text-white-large">
-                Steam аккаунты
+                {t("navigation.steamAccounts")}
               </div>
             )}
           </div>
@@ -116,7 +119,7 @@ const Navigation = observer(() => {
                     </div>
                     <div
                       className="navigation-group-edit text-white-large"
-                      title="Редактировать группу"
+                      title={t("navigation.editGroup")}
                       onClick={(e) => {
                         e.stopPropagation();
                         store.groups.openEditForm(group.id);
@@ -159,7 +162,7 @@ const Navigation = observer(() => {
               ""
             ) : (
               <div className="button__text_navigation text-white-large">
-                Прокси
+                {t("navigation.proxies")}
               </div>
             )}
           </div>
@@ -200,6 +203,7 @@ const Navigation = observer(() => {
           </div> */}
         </div>
       </div>
+      <LanguageSwitcher isCompress={isCompress} />
     </div>
   );
 });

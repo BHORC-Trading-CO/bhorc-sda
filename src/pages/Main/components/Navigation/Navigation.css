@@ -126,3 +126,41 @@
 .navigation-group-edit:hover {
   opacity: 1;
 }
+/* --- Переключатель языка внизу навигации (SDA-18) --- */
+.navigation-language {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #2C1935;
+}
+/* В узкой навигации (< 1200px) сегменты идут столбиком по ширине мини-кнопок. */
+.navigation-language_mini {
+  flex-direction: column;
+  width: 43px;
+  box-sizing: border-box;
+}
+.navigation-language-option {
+  flex: 1;
+  min-height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #776284;
+  font-family: "Nunito";
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.navigation-language-option:hover,
+.navigation-language-option_active {
+  background: #372447;
+  color: #fff;
+}
+.navigation-language-option:focus-visible {
+  outline: 2px solid #b79ce0;
+  outline-offset: -2px;
+}

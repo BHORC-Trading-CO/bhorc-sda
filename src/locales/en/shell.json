@@ -1,0 +1,15 @@
+{
+  "navigation": {
+    "steamAccounts": "Steam accounts",
+    "proxies": "Proxies",
+    "editGroup": "Edit group"
+  },
+  "languageSwitcher": {
+    "label": "Interface language",
+    "names": {
+      "en": "English",
+      "uk": "Українська",
+      "ru": "Русский"
+    }
+  }
+}

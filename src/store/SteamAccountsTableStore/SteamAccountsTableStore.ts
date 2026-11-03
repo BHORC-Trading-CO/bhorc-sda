@@ -9,6 +9,7 @@ import CreationFormStore from "./CreationFormStore";
 import EditingFormStore from "./EditingFormStore";
 import ChangableSecondaryInterface from "../../../electron/interfaces/SteamAccount/ChangableSecondaryInterface";
 import { matchesSteamAccountSearch } from "../../../electron/components/Functions/steamAccountSearch";
+import i18n from "../../i18n/i18n";
 
 class SteamAccountsTableStore {
   root: Store;
@@ -76,7 +77,7 @@ class SteamAccountsTableStore {
     window.Main.steamAccounts.onGetSecondaryError((event, data) => {
       store.windows.openMiniNotification({
         type: "error",
-        text: `Ошибка получения данных аккаунта: ${data.err}`,
+        text: i18n.t("accounts.errors.loadData", { error: data.err }),
       });
       runInAction(() => {
         this.steamAccounts[data.id].isLoadSecondary = false;
@@ -110,8 +111,10 @@ class SteamAccountsTableStore {
         this.steamAccounts[data.id].isLogining = false;
       });
       this.root.windows.openMiniNotification({
-        text: `Не удалось обновить сессию аккаунта #${this.steamAccounts[data.id].number
-          }: ${data.err}`,
+        text: i18n.t("accounts.errors.refreshSession", {
+          number: this.steamAccounts[data.id].number,
+          error: data.err,
+        }),
         type: "error",
       });
     });
@@ -413,9 +416,7 @@ class SteamAccountsTableStore {
         return this.steamAccounts[i];
       }
     }
-    throw new Error(
-      `Не получилось поменять данные прокси: #${id} - такого прокси не существует`
-    );
+    throw new Error(i18n.t("accounts.errors.editNotFound", { id }));
   }
   setActivePage(n: number, save: boolean = false) {
     try {

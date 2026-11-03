@@ -25,6 +25,7 @@ import askMailCode from "../application/askInfo/askMailCode";
 import SessionInterface from "../../interfaces/SteamAccount/SessionInterface";
 import stripLegacyMarketData from "../Functions/stripLegacyMarketData";
 import sanitizeSmaFile from "../Functions/sanitizeSmaFile";
+import { t } from "../../i18n";
 const SteamTotp = require('steam-totp');
 
 class SteamAccount {
@@ -323,7 +324,7 @@ class SteamAccount {
             this.params.maFile.Session = session;
             this.editParams({ maFile: this.params.maFile });
         } catch (err) {
-            throw new Error(`Не удалось сохранить сессию: ${err}`);
+            throw new Error(t('errors.saveSession', { error: String(err) }));
         }
     }
     getConfirmations(): Promise<CConfirmation[]> {

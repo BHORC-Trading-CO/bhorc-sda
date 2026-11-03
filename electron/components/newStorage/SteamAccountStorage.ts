@@ -3,6 +3,7 @@ import assertStorageId from "./assertStorageId";
 import SteamAccountInterface from '../../interfaces/SteamAccount/SteamAccountInterface';
 import cryptoUserData from './cryptoUserData';
 import stripLegacyMarketData from '../Functions/stripLegacyMarketData';
+import { t } from "../../i18n";
 
 const store = createStore();
 
@@ -56,7 +57,7 @@ class SteamAccountStorage {
     static Save(id: string, steamAccount: SteamAccountInterface) {
         assertStorageId(id);
         assertStorageId(steamAccount.id);
-        if (steamAccount.id !== id) throw new Error("Идентификатор записи не совпадает с ключом");
+        if (steamAccount.id !== id) throw new Error(t("errors.storage.idMismatch"));
         const encryptedSteamAccount = cryptoUserData.encryptObject(stripLegacyMarketData(steamAccount));
         store.set(`steamAccounts.${id}`, encryptedSteamAccount);
     }

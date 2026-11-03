@@ -6,9 +6,11 @@ import Button from "../../../../../../globalComponents/Button/Button";
 import Input from "../../../../../../globalComponents/Input/Input";
 import Delimeter from "../../../../../../globalComponents/Delimeter/Delimeter";
 import "./GroupForms.css";
+import { useTranslation } from "react-i18next";
 
 // Popup редактирования группы (иконка карандаша в навигации): переименование и удаление.
 const GroupEditForm: FC = observer(() => {
+  const { t } = useTranslation();
   if (store.groups.editingGroupId === null) return <></>;
   const group = store.groups
     .getGroups()
@@ -17,7 +19,7 @@ const GroupEditForm: FC = observer(() => {
 
   return (
     <MiniWindow
-      title="Редактировать группу"
+      title={t("groups.edit.title")}
       width="440px"
       height=""
       content={<EditFormContent groupId={group.id} groupName={group.name} />}
@@ -29,6 +31,7 @@ const GroupEditForm: FC = observer(() => {
 const EditFormContent: FC<{ groupId: string; groupName: string }> = observer(
   (props) => {
     const [name, setName] = useState(props.groupName);
+    const { t } = useTranslation();
 
     // Синхронизируем поле, если переоткрыли форму для другой группы
     useEffect(() => {
@@ -39,7 +42,7 @@ const EditFormContent: FC<{ groupId: string; groupName: string }> = observer(
       if (!name.trim()) {
         return store.windows.openMiniNotification({
           type: "error",
-          text: "Название группы не может быть пустым",
+          text: t("groups.edit.emptyName"),
         });
       }
       store.groups.renameGroup(props.groupId, name.trim());
@@ -49,10 +52,10 @@ const EditFormContent: FC<{ groupId: string; groupName: string }> = observer(
     const remove = () => {
       store.windows.prompt({
         type: "question",
-        title: `Удалить группу «${props.groupName}»?`,
-        text: "Аккаунты из группы не удаляются — они просто перестанут быть в этой группе.",
-        acceptButtonText: "Удалить группу",
-        cancelButtonText: "Отмена",
+        title: t("groups.delete.title", { name: props.groupName }),
+        text: t("groups.delete.text"),
+        acceptButtonText: t("groups.delete.button"),
+        cancelButtonText: t("prompt.cancel"),
         cb: () => {
           store.groups.deleteGroup(props.groupId);
           store.groups.closeEditForm();
@@ -63,23 +66,23 @@ const EditFormContent: FC<{ groupId: string; groupName: string }> = observer(
     return (
       <div className="group-form">
         <div className="group-form__section-title text-white-medium">
-          Название группы
+          {t("groups.edit.name")}
         </div>
         <Input
           value={name}
-          placeholder="Название группы"
+          placeholder={t("groups.edit.name")}
           onChange={(value) => setName(value)}
         />
 
         <div className="group-form__buttons">
           <Button
             size="medium"
-            text="Удалить группу"
+            text={t("groups.delete.button")}
             color="grey"
             hoverColor="dark-pink"
             onClick={remove}
           />
-          <Button size="medium" text="Сохранить" onClick={save} />
+          <Button size="medium" text={t("common.buttons.save")} onClick={save} />
         </div>
         <Delimeter marginTop="6px" marginBottom="0px" />
       </div>
