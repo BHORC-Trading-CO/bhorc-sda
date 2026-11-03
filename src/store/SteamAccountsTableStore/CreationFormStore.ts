@@ -99,28 +99,34 @@ class CreationFormStore {
     }
     close() {
         if (this.currentProcess === 'creation' && !(this.creationProcessStep === 'end' || this.creationProcessStep === 'error')) {
-            return store.windows.prompt({
+            // danger: только вид кнопки подтверждения в Prompt (SDA-9), поведение то же.
+            const content = {
                 text: i18n.t('accounts.creation.abortPrompt.text'),
-                type: 'question',
+                type: 'question' as const,
                 title: i18n.t('accounts.creation.abortPrompt.title'),
                 acceptButtonText: i18n.t('common.buttons.abort'),
+                danger: true,
                 cb: () => {
                     this.isOpen = false;
                     window.Main.steamAccounts.abortCreation();
                 }
-            });
+            };
+            return store.windows.prompt(content);
         }
         if (this.currentProcess === 'guardConnecting' && !(this.guardSetupProcessStep === 'end' || this.guardSetupProcessStep === 'error')) {
-            return store.windows.prompt({
+            // danger: только вид кнопки подтверждения в Prompt (SDA-9), поведение то же.
+            const content = {
                 text: i18n.t('guard.abortPrompt.text'),
-                type: 'question',
+                type: 'question' as const,
                 title: i18n.t('guard.abortPrompt.title'),
                 acceptButtonText: i18n.t('common.buttons.abort'),
+                danger: true,
                 cb: () => {
                     this.isOpen = false;
                     window.Main.guardConnection.abortSetup();
                 }
-            });
+            };
+            return store.windows.prompt(content);
         }
         this.isOpen = false;
     }

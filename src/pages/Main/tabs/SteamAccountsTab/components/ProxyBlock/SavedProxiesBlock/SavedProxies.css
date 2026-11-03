@@ -3,17 +3,23 @@
   flex-direction: column;
 }
 
-.saved-proxies-title-cell{
-    line-height: 40px;
-    text-align: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding: 0px 5px;
-    width: 150px;
+/* Шапка и строки сохранённых прокси на одной сетке колонок (SDA-9). */
+.saved-proxies-title,
+.saved-proxies-item-container {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1.4fr) 72px minmax(0, 2fr) 40px;
+  column-gap: 8px;
+  align-items: center;
+  padding: 0px 8px;
 }
 
-.saved-proxies-title{
-    display: flex;
+.saved-proxies-title-cell {
+  min-width: 0;
+  line-height: 32px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--sda-text-muted);
 }
 
 .saved-proxies {
@@ -23,6 +29,63 @@
   overflow-x: hidden;
   max-height: 300px;
 }
+
+.saved-proxies-selected-title {
+  margin: 16px 0px 6px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--sda-text);
+}
+.saved-proxies__container > .proxy-item__container > .info-block {
+  margin-top: 12px;
+}
+
+/* Таблица выбранного/нового прокси внутри форм аккаунта. Классы proxy-table / proxy-item-*
+   общие со вкладкой «Прокси», поэтому правила только под .proxy-table_in-form. */
+.proxy-table_in-form .proxy-table-header {
+  min-height: 32px;
+  align-items: center;
+}
+.proxy-table_in-form .proxy-table-header-cell {
+  padding-bottom: 0px;
+  color: var(--sda-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  justify-content: flex-start;
+  padding-left: 8px;
+}
+.proxy-table_in-form .proxy-item-row {
+  align-items: center;
+  height: 44px;
+  min-height: 44px;
+  background: var(--sda-surface-3);
+  border-radius: var(--sda-radius);
+}
+.proxy-table_in-form .proxy-item-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  min-width: 0;
+  line-height: 20px;
+  padding: 0px 8px;
+  white-space: nowrap;
+}
+.proxy-table_in-form .proxy-table-cell_number {
+  flex: 0 0 44px;
+  width: 44px;
+}
+.proxy-table_in-form .proxy-test-button.button {
+  min-width: 0;
+  height: 30px;
+  padding: 0px 14px;
+}
+.proxy-table_in-form .proxy-test-button.button:focus-visible {
+  outline: none;
+  box-shadow: var(--sda-focus-ring);
+}
+
 .proxy-item {
   display: flex;
   flex-direction: column;

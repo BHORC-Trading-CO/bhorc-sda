@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-height: 100%;
 }
 
 .steam-data-title {
@@ -17,15 +18,30 @@
   flex-direction: column;
 }
 
+/* Поля в ряд с одинаковым зазором (раньше — пустой div-разделитель). */
 .steam-data-input__wrapper {
-  margin-bottom: 17px;
+  margin-bottom: 12px;
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.steam-data-input__wrapper:last-child {
+  margin-bottom: 0px;
+}
+
+.steam-data-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 25px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sda-text);
 }
 
 .steam-data-navigation__wrapper {
-  background: #372447;
-  border-radius: 10px;
+  background: var(--sda-surface-3);
+  border-radius: var(--sda-radius);
   padding: 6px 15px;
   display: flex;
   justify-content: space-between;

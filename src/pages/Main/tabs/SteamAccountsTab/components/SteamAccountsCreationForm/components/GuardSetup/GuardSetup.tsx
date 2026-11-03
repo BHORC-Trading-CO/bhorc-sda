@@ -36,7 +36,7 @@ const Page: FC<{ step: CreationStepType }> = observer(({ step }) => {
         case "error":
             return <div className='account-creation_step'>
                 <div className='title'>{t('common.errorTitle')}</div>
-                <div className='texxt'>{store.steamAccountsTable.creationForm.guardSetupProcessError}</div>
+                <div className='text text_error'>{store.steamAccountsTable.creationForm.guardSetupProcessError}</div>
             </div>
         default:
             return <>{t('common.unknownStep', { step })}</>;
@@ -64,12 +64,12 @@ const Result: FC = observer(() => {
         {result
             ? <>
                 <div className='text'>{t('guard.result.account', { name: result.accountName })}</div>
-                <div className='text'>SteamId: {result.steamId}</div>
+                <div className='text'>{t('guard.result.steamId', { id: result.steamId })}</div>
                 {result.proxy ? <div className='text'>{t('guard.result.proxy', { proxy: result.proxy })}</div> : null}
                 <div className='text' style={{ marginTop: '15px' }}>
                     {t('guard.result.revocationCode')}
                 </div>
-                <div className='title' style={{ userSelect: 'text', letterSpacing: '2px' }}>
+                <div className='title title_code' style={{ userSelect: 'text', letterSpacing: '2px' }}>
                     {result.revocationCode}
                 </div>
                 <div className='text' style={{ maxWidth: '420px', textAlign: 'center' }}>

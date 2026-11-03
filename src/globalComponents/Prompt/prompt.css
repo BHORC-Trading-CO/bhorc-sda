@@ -1,66 +1,142 @@
+/* Окно подтверждения. Высота по содержимому (длинные uk/ru тексты не обрезаются),
+   но не больше окна: длинный текст прокручивается. */
 .notification {
     position: fixed;
     width: 480px;
-    height: 330px;
-    background-color: #22142A;
-    border-radius: 20px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 35px - 32px);
+    display: flex;
+    flex-direction: column;
+    background-color: var(--sda-modal);
+    border: 1px solid var(--sda-border);
+    border-radius: var(--sda-radius-lg);
+    box-shadow: 0 24px 64px var(--sda-overlay);
     left: 50%;
-    top: 50%;
+    top: calc(50% + 17px);
     transform: translate(-50%, -50%);
-    padding: 20px;
+    padding: 24px;
+    color: var(--sda-text);
 }
 
 .notification .notification_content {
     text-align: center;
-    height: 100%;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
 }
 
-.notification_content img {
-    width: 50px;
+.notification_icon {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    background-color: var(--sda-text-muted);
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
 }
-.notification .notification_content .button_gradient {
-    margin: auto;
-    width: 135px;
+.notification_icon-img {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+}
+.notification_danger .notification_icon-img {
+    box-shadow: 0 0 0 4px var(--sda-danger-bg), 0 0 0 5px var(--sda-danger);
+}
+.notification_info .notification_icon {
+    background-color: var(--sda-info);
+}
+.notification_error .notification_icon,
+.notification_danger .notification_icon {
+    background-color: var(--sda-danger);
+}
+.notification_success .notification_icon {
+    background-color: var(--sda-success);
 }
 
 .notification .notification_content .notification_title {
+    margin: 4px 0px 0px;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 24px;
     overflow-y: hidden;
     overflow-x: hidden;
+    overflow-wrap: anywhere;
 }
 
 .notification .notification_content .notification_text {
-    margin-bottom: 10px;
+    min-height: 0;
+    overflow-y: auto;
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--sda-text-muted);
+    overflow-wrap: anywhere;
 }
 
 .notification .notification_content .notification_text::-webkit-scrollbar {
     height: 3px;
     width: 3px;
-    background-color: #2D1E36;
+    background-color: var(--sda-surface-2);
 }
 
 .notification .notification_content .notification_text::-webkit-scrollbar-thumb {
-    background: linear-gradient(121.85deg, #ff00e5 2.04%, #7000ff 108.41%);
+    background: var(--sda-accent-gradient);
     border-radius: 2px;
 }
 
 .notification .notification_content .notification_title::-webkit-scrollbar {
     height: 3px;
     width: 3px;
-    background-color: #2D1E36;
+    background-color: var(--sda-surface-2);
 }
 
 .notification .notification_content .notification_title::-webkit-scrollbar-thumb {
-    background: linear-gradient(121.85deg, #ff00e5 2.04%, #7000ff 108.41%);
+    background: var(--sda-accent-gradient);
     border-radius: 2px;
 }
 
+/* Отмена слева, подтверждение справа — как в формах. С полем ввода — столбиком. */
 .notification__buttons {
     display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+}
+.notification__buttons .button {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 210px;
+    padding: 0px 16px;
+}
+.notification__buttons_input {
     flex-direction: column;
-    gap: 10px;
     align-items: center;
+}
+.notification__buttons_input .button {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: none;
+}
+.notification .button:focus {
+    outline: none;
+}
+.notification .button:focus-visible {
+    box-shadow: var(--sda-focus-ring);
+}
+
+/* Опасное подтверждение (удаление, прерывание): красный контур, заливка при наведении. */
+.notification .notification__accept_danger.button,
+.notification .notification__accept_danger.button:hover {
+    background: var(--sda-danger-bg);
+    box-shadow: inset 0 0 0 1px var(--sda-danger);
+}
+.notification .notification__accept_danger.button:hover {
+    background: var(--sda-danger);
+}
+.notification .notification__accept_danger.button:focus-visible {
+    box-shadow: inset 0 0 0 1px var(--sda-danger), var(--sda-focus-ring);
 }
