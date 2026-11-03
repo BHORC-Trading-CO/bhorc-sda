@@ -119,9 +119,10 @@
     "host": "Хост",
     "short": {
       "steamAccountName": "Логин",
+      "ktState": "КТ",
       "steamAccountBalance": "Баланс",
       "steamPassword": "Пароль",
-      "tpState": "Статус ТП",
+      "tpState": "ТП",
       "tradeState": "Обмены",
       "linkedProxies": "Прокси"
     },
@@ -172,7 +173,7 @@
         "tradeBlocked": "Трейды на этом аккаунте заблокированы"
       },
       "browser": {
-        "start": "Запуск",
+        "start": "Старт",
         "stop": "Стоп",
         "startHint": "Открыть браузерный профиль этого аккаунта (через его прокси)",
         "stopHint": "Закрыть браузер этого аккаунта",

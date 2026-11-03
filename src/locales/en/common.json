@@ -119,6 +119,7 @@
     "host": "Host",
     "short": {
       "steamAccountName": "Login",
+      "ktState": "Red flag",
       "steamAccountBalance": "Balance",
       "steamPassword": "Password",
       "tpState": "Market",

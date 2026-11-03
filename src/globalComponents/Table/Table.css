@@ -19,7 +19,7 @@
 }
 .list {
     width: 100%;
-    padding: 4px 8px 10px;
+    padding: 4px 4px 10px;
     display: table;
     position: absolute;
     margin-bottom: 17px;
@@ -58,7 +58,7 @@
 }
 
 .list-headline:first-child {
-    padding-left: 12px;
+    padding-left: 10px;
 }
 
 .list-headline:last-child {
@@ -128,8 +128,9 @@
     transition: background-color var(--sda-transition);
 }
 
+/* Ховер светлее плиток кнопок (surface-3), чтобы они не сливались со строкой */
 .list-item-row:hover {
-    background: var(--sda-surface-3);
+    background: linear-gradient(var(--sda-border), var(--sda-border)), var(--sda-surface-2);
 }
 
 .list-item-row--selected,
@@ -163,7 +164,7 @@
 
 .list-item:first-child {
     border-radius: var(--sda-radius) 0 0 var(--sda-radius);
-    padding-left: 12px;
+    padding-left: 10px;
 }
 
 .list-item:last-child {
@@ -196,7 +197,7 @@
 
 .list-item--steamId {
     color: var(--sda-text-muted);
-    font-size: 12.5px;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
 
@@ -320,6 +321,10 @@
     text-align: left;
     font-size: 13px;
     line-height: 18px;
+    /* подсказка живёт внутри бейджа/кнопки: не наследуем их капс и жирность */
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
 }
 
 /* Бейдж статуса: свой тёмный фон, чтобы контраст не зависел от ховера и выделения строки */
@@ -414,8 +419,8 @@
 }
 
 .guard-code__ring {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     flex-shrink: 0;
 }
 
@@ -441,11 +446,10 @@
 }
 
 .guard-code__value {
-    min-width: 5.5ch;
     font-family: var(--sda-font-mono);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     color: var(--sda-text);
 }
 
@@ -468,7 +472,7 @@
 .row-actions {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 2px;
 }
 
 /* Кнопка браузера START/STOP: обводка зелёная/красная, размер как у кнопок действий */
@@ -490,7 +494,7 @@
     font-family: var(--sda-font);
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
     cursor: pointer;
     transition: background var(--sda-transition), color var(--sda-transition);
