@@ -1,0 +1,52 @@
+.proxies-panel .panel-content__options {
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.proxies-panel .button-default { margin-right: 0; }
+.proxies-panel .search { min-width: 100px; }
+
+.proxies-panel .proxy-panel-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  min-height: 43px;
+  padding: 0 18px;
+  border: 1px solid var(--sda-border-strong);
+  border-radius: var(--sda-radius);
+  background: var(--sda-surface-1);
+  color: var(--sda-text);
+  font: inherit;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--sda-transition), border-color var(--sda-transition);
+}
+
+.proxies-panel .proxy-panel-cta--primary {
+  background: var(--sda-accent-gradient);
+  border-color: var(--sda-accent);
+}
+
+.proxies-panel .proxy-panel-cta--secondary:hover {
+  background: var(--sda-surface-3);
+  border-color: var(--sda-text-muted);
+}
+
+.proxies-panel .proxy-panel-cta--primary:hover,
+.proxies-panel .proxy-panel-cta:focus-visible {
+  outline: none;
+  box-shadow: var(--sda-focus-ring);
+}
+
+.proxy-panel-cta img { width: 18px; height: 18px; }
+
+@media (max-width: 1200px) {
+  .proxies-panel { padding: 14px 17px; }
+  .proxies-panel .panel-content { flex-wrap: wrap; gap: 12px; }
+  .proxies-panel .panel-content__options { flex-wrap: wrap; }
+  .proxies-panel .search { flex: 1; }
+}
