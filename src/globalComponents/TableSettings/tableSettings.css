@@ -2,16 +2,27 @@
     height: 450px;
     display: flex;
     justify-content: space-between;
+    gap: 16px;
     padding: 20px;
 }
 .table-settings-left {
     width: 48%;
-    background-color: #2C1935;
-    border-radius: 10px;
-    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--sda-surface-2);
+    border-radius: var(--sda-radius);
+    padding: 16px 16px 12px;
 }
 .table-settings-left .search {
     margin: auto;
+}
+
+/* Заголовки обеих колонок в одном стиле */
+.table-settings-heading,
+.table-settings_counter-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--sda-text-muted);
 }
 
 .table-settings-footer {
@@ -22,8 +33,9 @@
 }
 
 .table-settings-list {
-    height: 310px;
-    margin-top: 20px;
+    flex: 1;
+    min-height: 0;
+    margin-top: 10px;
     overflow-y: auto;
 }
 
@@ -34,13 +46,27 @@
 }
 
 .table-settings_counter {
-    padding: 15px;
-    background-color: #291532;
+    padding: 12px 16px;
+    background-color: var(--sda-surface-2);
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    border-radius: 10px;
-    margin-bottom: 13px;
+    border-radius: var(--sda-radius);
+    margin-bottom: 10px;
 }
+
+.table-settings_counter-counter {
+    min-width: 28px;
+    padding: 2px 8px;
+    border-radius: var(--sda-radius-sm);
+    background: var(--sda-surface-4);
+    color: var(--sda-text);
+    font-weight: 700;
+    font-size: 13px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
 .table-settings_selected-list {
     cursor: move;
 }
@@ -48,8 +74,8 @@
     display: flex;
     justify-content: space-between;
     padding: 15px;
-    background-color: #2C1935;
-    border-radius: 10px;
+    background-color: var(--sda-surface-2);
+    border-radius: var(--sda-radius);
     margin-top: 10px;
 }
 .selected-item_title {
@@ -68,8 +94,9 @@
 }
 
 .column-select__container{
-    overflow: scroll;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     overflow-x: hidden;
-    height: 350px;
     padding-right: 5px;
 }

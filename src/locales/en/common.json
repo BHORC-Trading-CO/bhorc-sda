@@ -19,6 +19,9 @@
     "none": "none",
     "notSet": "not set",
     "selected": "Selected",
+    "selectAllOnPage": "Select all on this page",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "noAccountsSelected": "No accounts selected",
     "openDataFolder": "Open the account data folder. All data is stored in config.json",
     "reloadAll": "Reload all data",
@@ -49,6 +52,10 @@
   },
   "pagination": {
     "total": "Total items: ",
+    "first": "First page",
+    "prev": "Previous page",
+    "next": "Next page",
+    "last": "Last page",
     "page": "Page: ",
     "pageSize": "Items per page:"
   },
@@ -110,6 +117,17 @@
   },
   "columns": {
     "host": "Host",
+    "short": {
+      "steamAccountName": "Login",
+      "steamAccountBalance": "Balance",
+      "steamPassword": "Password",
+      "tpState": "Market",
+      "tradeState": "Trades",
+      "linkedProxies": "Proxy"
+    },
+    "sortHint": "click to sort",
+    "sortedAsc": "sorted ascending",
+    "sortedDesc": "sorted descending",
     "port": "Port",
     "login": "Login",
     "password": "Password",
@@ -130,10 +148,36 @@
   "accounts": {
     "panel": {
       "title": "Steam accounts",
+      "searchPlaceholder": "Search by login, nickname or SteamID",
+      "showArchived": "Show archived accounts",
+      "hideArchived": "Hide archived accounts",
       "add": "Add account"
     },
     "table": {
-      "balanceError": "Error(?)",
+      "balanceError": "Balance not loaded",
+      "balanceErrorTip": "Could not load the balance: {{error}}",
+      "noAvatar": "No Steam avatar",
+      "selectAccount": "Select account #{{number}}",
+      "status": {
+        "ok": "OK",
+        "no": "No",
+        "locked": "Locked",
+        "later": "Later",
+        "ktOk": "No red warning: Steam does not report the account as locked",
+        "ktLocked": "Red warning: on the Market page Steam says the account is currently locked",
+        "marketOk": "The Community Market is available",
+        "marketBlocked": "The Community Market is not available on this account",
+        "marketLater": "The Community Market will be available: {{date}}",
+        "tradeOk": "The account can send trade offers",
+        "tradeBlocked": "Trade offers are blocked on this account"
+      },
+      "browser": {
+        "start": "Start",
+        "stop": "Stop",
+        "startHint": "Open the browser profile of this account (through its proxy)",
+        "stopHint": "Close the browser of this account",
+        "checking": "Checking the browser status…"
+      },
       "actions": {
         "confirmations": "Steam Guard confirmations",
         "refreshProfile": "Refresh profile data (including statuses)",
@@ -142,6 +186,8 @@
         "exportSmaFile": "Export account data (smaFile)",
         "focusBrowser": "Bring the browser to front",
         "restore": "Restore Steam account",
+        "archive": "Move Steam account to the archive",
+        "deletePermanently": "Delete Steam account permanently",
         "edit": "Edit Steam account data"
       }
     },
@@ -151,6 +197,7 @@
     },
     "footer": {
       "refreshSession": "Refresh session",
+      "selectFirst": "Select accounts in the table first",
       "toGroup": "To group"
     },
     "archiveSelected": {

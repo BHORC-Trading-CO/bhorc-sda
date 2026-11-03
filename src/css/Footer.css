@@ -1,32 +1,57 @@
 .footer {
     min-height: 68px;
     width: 100%;
-    background: #211228A6;
-    border-radius: 16px;
+    background: var(--sda-surface-1);
+    border-radius: var(--sda-radius-lg);
     margin-bottom: 17px;
-    padding: 0px 18px 0px 15px;
+    padding: 10px 16px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
+    gap: 10px 16px;
   }
 
 .footer__accounts-number{
-
+  min-width: 0;
 }
 
 .footer__select-number{
-  margin-right: 40px;
+  margin-right: 24px;
+  white-space: nowrap;
+}
+
+.footer__select-number .text-grey-large{
+  color: var(--sda-text-muted);
+  font-size: 14px;
 }
 
 .footer__info{
     margin-left: 5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.footer__info--active{
+    font-weight: 700;
 }
 
 .footer__control{
   display: flex;
   align-items: center;
+  margin-left: auto;
+}
+
+/* Кнопки массовых действий: по содержимому, а не по 200px, чтобы влезали в узкое окно */
+.footer__button.button--view-default.button--size-large{
+  min-width: 150px;
+  height: 40px;
+  padding: 0 18px;
 }
 
 .footer__button{
   margin-right: 10px;
+}
+
+.footer__button:last-child{
+  margin-right: 0;
 }

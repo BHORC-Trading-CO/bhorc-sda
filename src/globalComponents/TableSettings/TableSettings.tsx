@@ -87,7 +87,7 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
       <div className="table-settings">
         <div className="table-settings-content">
           <div className="table-settings-left">
-            <div>{t("tableSettings.allFields")}</div>
+            <div className="table-settings-heading">{t("tableSettings.allFields")}</div>
 
             <div className="table-settings-list">
               <form>

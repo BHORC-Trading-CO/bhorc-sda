@@ -81,10 +81,12 @@ const ProxiesPanel = observer(() => {
                         altText={t("common.reloadAll")}
                     />
 
-                    <Search onChange={(value) => {
-                        console.log(value);
-                        store.steamAccountsTable.search(value);
-                    }}></Search>
+                    <Search
+                        placeholder={t("accounts.panel.searchPlaceholder")}
+                        onChange={(value) => {
+                            console.log(value);
+                            store.steamAccountsTable.search(value);
+                        }}></Search>
 
 
                     <Button
@@ -92,6 +94,7 @@ const ProxiesPanel = observer(() => {
                         img="./assets/img/Mark.svg"
                         text={t("accounts.panel.add")}
                         className="headline-button_gradient"
+                        testId="add-account"
                         onClick={() => {
                             store.steamAccountsTable.creationForm.open();
                         }}
@@ -103,7 +106,7 @@ const ProxiesPanel = observer(() => {
                         color="grey"
                         size="large"
                         img={store.steamAccountsTable.showDeleted ? "./assets/img/Open.svg" : "./assets/img/Hide.svg"}
-
+                        altText={store.steamAccountsTable.showDeleted ? t("accounts.panel.hideArchived") : t("accounts.panel.showArchived")}
                         className="button-default"
                         onClick={() => {
                             if (store.steamAccountsTable.showDeleted)

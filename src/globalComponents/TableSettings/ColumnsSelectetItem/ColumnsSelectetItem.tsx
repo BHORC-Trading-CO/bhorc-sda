@@ -19,7 +19,7 @@ function ColumnsSelectetItem(props: ColumnsSelectetInterface) {
       {...draggableProps}
       {...dragHandleProps}
     >
-      <img src="./assets/img/Layers.svg" className="columns-selected-img"></img>
+      <img src="./assets/img/Layers.svg" className="columns-selected-img" alt=""></img>
       <span className="text-white-medium">{fieldTitle(t, props.fieldsTable, data, data.title ? data.title : data.type)}</span>
     </div>
   );
