@@ -6,14 +6,14 @@ import Field from "../Field";
 const steamAccountsTableFields: Field[] = [
     {
         type: AvalibleFieldTypes.number,
-        title: "№",
+        title: "#",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleFieldTypes.startButton,
-        title: "Browser start button",
+        title: "Browser launch button",
         isSortable: false,
         isVisible: true,
         showTtitleInTable: false
@@ -70,14 +70,14 @@ const steamAccountsTableFields: Field[] = [
 
     {
         type: AvalibleFieldTypes.ktState,
-        title: "Account lock status",
+        title: "Red flag",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleFieldTypes.tpState,
-        title: "Market status",
+        title: "Market",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
@@ -113,7 +113,7 @@ const steamAccountsTableFields: Field[] = [
     },
     {
         type: AvalibleFieldTypes.mailPassword,
-        title: "Email password",
+        title: "Email (password)",
         isSortable: false,
         isVisible: false,
         showTtitleInTable: true

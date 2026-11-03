@@ -6,7 +6,7 @@ import Field from "../Field";
 const proxiesTableFields: Field[] = [
     {
         type: AvalibleTypes.number,
-        title: "№",
+        title: "#",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true

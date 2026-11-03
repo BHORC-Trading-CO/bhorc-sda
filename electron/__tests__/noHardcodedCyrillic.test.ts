@@ -86,6 +86,13 @@ describe("в коде нет захардкоженного русского т�
         expect(hits).toEqual(["1: Привет", "2: мир", "3: Подсказка", "3: Текст"]);
     });
 
+    // Если обход сломается (расширения, пропуски каталогов), проверка не должна пройти на пустом списке.
+    it("обход видит файлы кода", () => {
+        expect(walk(path.join(ROOT, "electron")).length).toBeGreaterThan(100);
+        expect(walk(path.join(ROOT, "src")).length).toBeGreaterThan(60);
+        expect(walk(path.join(ROOT, "src")).some((f) => f.endsWith("SteamAccountsTable.tsx"))).toBe(true);
+    });
+
     it("electron/", () => {
         expect(scan("electron")).toEqual([]);
     });

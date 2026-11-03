@@ -83,7 +83,7 @@ const SteamAccountsFooter: FC = observer(() => {
                             store.windows.prompt({
                                 type: 'question',
                                 title: t('accounts.archiveSelected.title', { count: selectedSteamAccounts.length }),
-                                text: t('accounts.archiveSelected.text', { count: selectedSteamAccounts.length, numbers: selectedSteamAccounts.map(p => p.number).join(', ') }),
+                                text: t(selectedSteamAccounts.length === 1 ? 'accounts.archiveSelected.textSingle' : 'accounts.archiveSelected.textMany', { numbers: selectedSteamAccounts.map(p => p.number).join(', ') }),
                                 acceptButtonText: t('accounts.archiveSelected.accept', { count: selectedSteamAccounts.length }),
                                 cancelButtonText: t('prompt.cancel'),
                                 cb: () => {

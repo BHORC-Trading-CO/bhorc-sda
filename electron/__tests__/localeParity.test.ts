@@ -137,3 +137,71 @@ describe("ключи t() в electron/ есть в main", () => {
         expect(missing).toEqual([]);
     });
 });
+
+describe("ключи в src/ есть в common или shell", () => {
+    type Used = { ns: string; key: string; where: string; prefix: boolean };
+    // t("…"), i18n.t("…"), t(cond ? "a" : "b"), t(`prefix.${x}`), <Trans i18nKey="…" />.
+    // Пространство имён: "ns:key" явно, иначе shell для файлов с useTranslation("shell"), иначе common.
+    function usedKeys(): Used[] {
+        const out: Used[] = [];
+        const walk = (dir: string) => {
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                const full = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    if (!["__tests__", "locales", "node_modules"].includes(entry.name)) walk(full);
+                    continue;
+                }
+                if (!/\.tsx?$/.test(entry.name)) continue;
+                const source = fs.readFileSync(full, "utf8");
+                const fileNs = /useTranslation\(\s*["']shell["']\s*\)/.test(source) ? "shell" : "common";
+                const sf = ts.createSourceFile(full, source, ts.ScriptTarget.Latest, true, /\.tsx$/.test(entry.name) ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+                const push = (arg: ts.Expression, node: ts.Node) => {
+                    const where = `${path.relative(ROOT, full)}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}`;
+                    const add = (raw: string, prefix: boolean) => {
+                        const [ns, key] = raw.includes(":") ? raw.split(":", 2) : [fileNs, raw];
+                        out.push({ ns, key, where, prefix });
+                    };
+                    if (ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg)) add(arg.text, false);
+                    else if (ts.isTemplateExpression(arg)) add(arg.head.text, true);
+                    else if (ts.isConditionalExpression(arg)) { push(arg.whenTrue, node); push(arg.whenFalse, node); }
+                };
+                const visit = (node: ts.Node) => {
+                    if (ts.isCallExpression(node) && node.arguments[0]) {
+                        const callee = node.expression;
+                        const isT = (ts.isIdentifier(callee) && callee.text === "t") ||
+                            (ts.isPropertyAccessExpression(callee) && callee.name.text === "t" && ts.isIdentifier(callee.expression) && callee.expression.text === "i18n");
+                        if (isT) push(node.arguments[0], node);
+                    }
+                    if ((ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) && node.tagName.getText(sf) === "Trans") {
+                        for (const attr of node.attributes.properties) {
+                            if (ts.isJsxAttribute(attr) && attr.name.getText(sf) === "i18nKey" && attr.initializer) {
+                                const init = attr.initializer;
+                                if (ts.isStringLiteral(init)) push(init, node);
+                                else if (ts.isJsxExpression(init) && init.expression) push(init.expression, node);
+                            }
+                        }
+                    }
+                    ts.forEachChild(node, visit);
+                };
+                visit(sf);
+            }
+        };
+        walk(path.join(ROOT, "src"));
+        return out;
+    }
+
+    it("каждый ключ существует в en (с учётом форм множественного числа)", () => {
+        const keys: Record<string, string[]> = {};
+        for (const ns of ["common", "shell"]) {
+            keys[ns] = Object.keys(flatten(JSON.parse(fs.readFileSync(path.join(ROOT, "src/locales/en", `${ns}.json`), "utf8")), "", {}, []));
+        }
+        const used = usedKeys();
+        expect(used.length).toBeGreaterThan(200);
+        const exists = ({ ns, key, prefix }: Used) => {
+            const list = keys[ns] || [];
+            if (prefix) return list.some((k) => k.startsWith(key));
+            return list.includes(key) || list.some((k) => k.startsWith(`${key}_`) && PLURAL_SUFFIX.test(k));
+        };
+        expect(used.filter((u) => !exists(u)).map((u) => `${u.where}: ${u.ns}:${u.key}`)).toEqual([]);
+    });
+});

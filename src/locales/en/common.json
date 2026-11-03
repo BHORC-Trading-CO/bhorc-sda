@@ -124,7 +124,7 @@
     "newProxy": "New proxy",
     "savedProxy": "Saved proxies",
     "notSet": "No proxy set!<br/>All work with this account will go through your current IP",
-    "example": "Example: Login:Password@1.1.1.1:77777",
+    "example": "Example: Login:Password@1.1.1.1:7777",
     "selectedProxy": "Selected proxy:"
   },
   "accounts": {
@@ -156,8 +156,8 @@
     "archiveSelected": {
       "title_one": "Move {{count}} account to the archive?",
       "title_other": "Move {{count}} accounts to the archive?",
-      "text_one": "Account #{{numbers}} will be archived. You can always restore it or delete it permanently (just click the eye icon in the top panel)",
-      "text_other": "Accounts #{{numbers}} will be archived. You can always restore them or delete them permanently (just click the eye icon in the top panel)",
+      "textSingle": "Account #{{numbers}} will be archived. You can always restore it or delete it permanently (just click the eye icon in the top panel)",
+      "textMany": "Accounts #{{numbers}} will be archived. You can always restore them or delete them permanently (just click the eye icon in the top panel)",
       "accept_one": "Delete {{count}} account",
       "accept_other": "Delete {{count}} accounts"
     },
@@ -347,8 +347,8 @@
     "archiveSelected": {
       "title_one": "Move {{count}} proxy to the archive?",
       "title_other": "Move {{count}} proxies to the archive?",
-      "text_one": "Proxy #{{numbers}} will be archived. You can always restore it or delete it permanently (just click the eye icon in the top panel)",
-      "text_other": "Proxies #{{numbers}} will be archived. You can always restore them or delete them permanently (just click the eye icon in the top panel)",
+      "textSingle": "Proxy #{{numbers}} will be archived. You can always restore it or delete it permanently (just click the eye icon in the top panel)",
+      "textMany": "Proxies #{{numbers}} will be archived. You can always restore them or delete them permanently (just click the eye icon in the top panel)",
       "accept_one": "Delete {{count}} proxy",
       "accept_other": "Delete {{count}} proxies"
     },

@@ -388,6 +388,8 @@ const NewSteamAccountForm: FC = observer(() => {
 });
 
 const ProxyBlock: FC = observer(() => {
+  // Trans не подписан на смену языка — хук перерисовывает блок при переключении.
+  useTranslation();
   const CreationFormSwitches = store.steamAccountsTable.creationForm.switches;
   const content = store.steamAccountsTable.creationForm.getContent();
 

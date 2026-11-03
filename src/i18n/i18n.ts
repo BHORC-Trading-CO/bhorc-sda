@@ -10,13 +10,11 @@ import ruShell from "../locales/ru/shell.json";
 // экземпляром main-переводов — держим его на том же языке.
 import { setMainLanguage } from "../../electron/i18n";
 
-export const LANGUAGES = ["en", "uk", "ru"] as const;
-export type Language = typeof LANGUAGES[number];
-export const DEFAULT_LANGUAGE: Language = "en";
-
-export function isLanguage(value: unknown): value is Language {
-    return typeof value === "string" && (LANGUAGES as readonly string[]).includes(value);
-}
+// Один список языков на main, preload и renderer.
+import { LANGUAGES, DEFAULT_LANGUAGE, isLanguage } from "../../electron/interfaces/Language";
+import type { Language } from "../../electron/interfaces/Language";
+export { LANGUAGES, DEFAULT_LANGUAGE, isLanguage };
+export type { Language };
 
 function initialLanguage(): Language {
     try {

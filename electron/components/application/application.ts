@@ -12,6 +12,7 @@ import { installNavigationGuard, isAppUrl } from "./navigationGuard";
 import { onceTrusted } from "./trustedIpc";
 import { initLanguage, localeToLanguage } from "../language/languageManager";
 import { setMainLanguage, t } from "../../i18n";
+import languageListeners from "./listenersRouters/languageListenersRouter";
 
 class Application {
   object: App;
@@ -50,6 +51,9 @@ class Application {
       restrictSecretFiles(createStore());
       // До создания окон: первая отрисовка запрашивает язык синхронно.
       initLanguage(app.getLocale(), (channel, payload) => this.windowsManager.broadcast(channel, payload));
+      // Обработчики языка — до окна и до Manager.Load(): preload ждёт ответа sendSync,
+      // и если загрузка данных упадёт, окно не должно зависнуть без ответа.
+      languageListeners();
       this.windowsManager.createMain();
       //this.decrypt(cb);
       this.secondStage(cb);

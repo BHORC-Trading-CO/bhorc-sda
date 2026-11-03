@@ -81,6 +81,18 @@ it("закрытые окна и окна с чужой страницей ра�
     expect(ask.webContents.send).not.toHaveBeenCalled();
 });
 
+it("второе окно ввода для того же аккаунта тоже получает смену языка", () => {
+    const manager = new WindowsManager();
+    manager.createAskWindow("same-account", "name", "familyPin" as InfoType);
+    const first = manager.askWindows["same-account"];
+    manager.createAskWindow("same-account", "name", "mailCode" as InfoType);
+    const second = manager.askWindows["same-account"];
+    expect(second).not.toBe(first);
+    manager.broadcast(LanguageChannels.LANGUAGE_CHANGED, "en");
+    expect(first.webContents.send).toHaveBeenCalledWith(LanguageChannels.LANGUAGE_CHANGED, "en");
+    expect(second.webContents.send).toHaveBeenCalledWith(LanguageChannels.LANGUAGE_CHANGED, "en");
+});
+
 it("недопустимый язык отклоняется: не сохраняется и не рассылается", () => {
     const broadcast = jest.fn();
     initLanguage("uk-UA", broadcast);

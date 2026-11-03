@@ -36,17 +36,13 @@ class WindowsManager {
         this.errorWindows = {};
     }
 
-    /** Живые окна приложения, в которых открыта страница приложения (не чужая). */
+    /** Живые окна приложения, в которых открыта страница приложения (не чужая).
+     *  Берём все BrowserWindow, а не карты менеджера: второе окно ввода для того же
+     *  аккаунта перезаписывает запись в askWindows, но остаётся открытым. Браузеры
+     *  puppeteer — отдельные процессы Chromium, а не BrowserWindow, сюда не попадают. */
     getAppWindows(): BrowserWindow[] {
-        const windows = [
-            this.mainWindow,
-            this.authWindow,
-            ...Object.values(this.askWindows),
-            ...Object.values(this.confirmationsWindows),
-            ...Object.values(this.errorWindows),
-        ];
-        return windows.filter((win): win is BrowserWindow =>
-            !!win && !win.isDestroyed() && isAppUrl(win.webContents.getURL(), getAppEntries()));
+        return BrowserWindow.getAllWindows().filter((win) =>
+            !win.isDestroyed() && isAppUrl(win.webContents.getURL(), getAppEntries()));
     }
     /** Отправить событие во все окна приложения (например, смену языка). */
     broadcast(channel: string, payload: unknown) {

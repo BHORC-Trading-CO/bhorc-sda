@@ -61,7 +61,7 @@ const ProxiesFooter: FC = observer(() => {
                             store.windows.prompt({
                                 type: 'question',
                                 title: t('proxies.archiveSelected.title', { count: selectedProxies.length }),
-                                text: t('proxies.archiveSelected.text', { count: selectedProxies.length, numbers: selectedProxies.map(p => p.number).join(', ') }),
+                                text: t(selectedProxies.length === 1 ? 'proxies.archiveSelected.textSingle' : 'proxies.archiveSelected.textMany', { numbers: selectedProxies.map(p => p.number).join(', ') }),
                                 acceptButtonText: t('proxies.archiveSelected.accept', { count: selectedProxies.length }),
                                 cancelButtonText: t('prompt.cancel'),
                                 cb: () => {

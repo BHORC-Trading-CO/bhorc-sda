@@ -163,6 +163,8 @@ const EditFormContent = observer(() => {
 });
 
 const ProxyBlock: FC = observer(() => {
+    // Trans не подписан на смену языка — хук перерисовывает блок при переключении.
+    useTranslation();
     const CreationFormSwitches = store.steamAccountsTable.editingForm.switches;
     const content = store.steamAccountsTable.editingForm.getContent();
 
