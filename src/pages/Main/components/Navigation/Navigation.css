@@ -182,14 +182,17 @@
 }
 
 /* --- Переключатель языка внизу навигации (SDA-18) ---
-   Сегменты в стиле остальных переключателей приложения: подложка surface-3, выбранный — градиент. */
+   Та же семья, что вкладки в формах (Form.css): дорожка surface-2 с рамкой, неактивный сегмент —
+   приглушённый текст, ховер surface-3. Выбранный — тёмная заливка surface-4 и градиентная рамка:
+   белый текст на градиенте давал ~4.2:1 (3.3:1 у розового края), на surface-4 — 10:1. */
 .navigation-language {
   display: flex;
   gap: 2px;
   margin-top: 12px;
   padding: 3px;
+  border: 1px solid var(--sda-border);
   border-radius: var(--sda-radius);
-  background: var(--sda-surface-3);
+  background: var(--sda-surface-2);
 }
 /* В узкой навигации (< 1200px) сегменты идут столбиком по ширине мини-кнопок. */
 .navigation-language_mini {
@@ -201,8 +204,8 @@
   flex: 1;
   min-height: 30px;
   padding: 0;
-  border: none;
-  border-radius: 7px;
+  border: 1px solid transparent;
+  border-radius: var(--sda-radius-sm);
   background: transparent;
   color: var(--sda-text-muted);
   font-family: var(--sda-font);
@@ -213,14 +216,19 @@
   transition: background-color var(--sda-transition), color var(--sda-transition);
 }
 .navigation-language-option:hover {
-  background: var(--sda-surface-4);
+  background: var(--sda-surface-3);
   color: var(--sda-text);
 }
 .navigation-language-option_active,
 .navigation-language-option_active:hover {
-  background: var(--sda-accent-gradient);
+  background: linear-gradient(var(--sda-surface-4), var(--sda-surface-4)) padding-box,
+    var(--sda-accent-gradient) border-box;
   color: var(--sda-text);
   cursor: default;
+}
+/* Кольцо фокуса вплотную: между сегментами 2px, отступ 2px залез бы на соседа. */
+.navigation-language-option:focus-visible {
+  outline-offset: 0;
 }
 
 /* Тултип узкой навигации непрозрачный: у react-tooltip по умолчанию 0.9, и сквозь него видна таблица. */

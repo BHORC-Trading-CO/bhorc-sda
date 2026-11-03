@@ -132,7 +132,11 @@ p {
 /* --- Глобальные состояния (SDA-9) --- */
 
 /* Одно кольцо фокуса с клавиатуры для кнопок, ссылок, чекбоксов и пунктов с role/tabindex.
-   :where() даёт нулевую специфичность: свой :focus-visible у компонента перекрывает это правило.
+   Весь селектор внутри :where(), специфичность нулевая: свой :focus-visible у компонента
+   (box-shadow: var(--sda-focus-ring) в формах, прокси, подтверждениях) перекрывает это правило.
+   Кольцо — outline, а не box-shadow: box-shadow затирается свечением кнопок на ховере
+   (.button--hoverColor-gradient:hover), и фокус под курсором пропадал. outline там никто не
+   трогает, отступ 2px отделяет кольцо от градиента. Цвет — акцент токенов.
    Текстовые поля не здесь: у них своё состояние фокуса в стилях полей ввода. */
 :where(
     button,
@@ -145,9 +149,9 @@ p {
     [role="radio"],
     [role="tab"],
     [tabindex]:not([tabindex="-1"])
-  ):focus-visible {
-  outline: none;
-  box-shadow: var(--sda-focus-ring);
+  ):where(:focus-visible) {
+  outline: 2px solid var(--sda-accent-from);
+  outline-offset: 2px;
 }
 
 ::selection {

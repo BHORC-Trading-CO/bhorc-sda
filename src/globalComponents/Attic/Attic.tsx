@@ -67,14 +67,14 @@ const Attic: FC<AtticInterface> = (props) => {
         }
     };
 
-    // Кнопки окна вне Tab-порядка, как системные. Подпись только в title (он же доступное имя):
-    // aria-label="Close" совпал бы с селектором закрытия модалок в скриншот-харнессе и закрыл бы окно.
+    // Кнопки окна вне Tab-порядка, как системные; подпись в title (подсказка) и aria-label.
     const windowButton = (kind: "minimize" | "maximize" | "close", onClick: () => void) => (
         <button
             type="button"
             tabIndex={-1}
             className={`attic-button attic-button_${kind}`}
             title={t(`attic.${kind}`)}
+            aria-label={t(`attic.${kind}`)}
             onClick={onClick}
         />
     );

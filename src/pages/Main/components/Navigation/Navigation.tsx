@@ -19,12 +19,13 @@ const onActivateKey = (handler: () => void) => (event: KeyboardEvent) => {
 
 const Navigation = observer(() => {
   const { t } = useTranslation("shell");
-  const [isCompress, setIsCompress] = useState(false);
+  // Сразу по ширине окна: при узком старте первая отрисовка уже компактная, без скачка.
+  const [isCompress, setIsCompress] = useState(() => window.innerWidth < 1200);
   const buttonsClass = isCompress ? "navigation-button_mini" : "navigation-button";
 
   useEffect(() => {
     const handleResize = () => setIsCompress(window.innerWidth < 1200);
-    // Сразу при монтировании: окно могло открыться уже узким.
+    // Ширина могла измениться между первой отрисовкой и подпиской.
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
