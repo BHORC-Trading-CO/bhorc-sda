@@ -13,7 +13,13 @@ function Password(props: IPasswordProps) {
 
   return (
     <div className="password text-white-large" style={style}>
-      <div className="password__text" style={{ maxWidth: '150px' }}>
+      {/* Открытый пароль читается целиком: прокрутка по горизонтали и полное значение в подсказке */}
+      <div
+        className={`password__text${show ? " password__text--revealed" : ""}`}
+        style={{ maxWidth: '150px' }}
+        title={show && password.length > 0 ? password : undefined}
+        tabIndex={show && password.length > 0 ? 0 : undefined}
+      >
         {password.length === 0 ? placeholder : (show ? password : MASK)}
       </div>
       <button

@@ -34,8 +34,9 @@
   margin-right: 0px;
 }
 
+/* Акцентный вариант (выбранное подтверждение): должен отличаться от light-grey */
 .button--dark-pink {
-  background: var(--sda-surface-4);
+  background: var(--sda-accent-to);
 }
 
 .button--gradient {
@@ -75,7 +76,7 @@
 
 .button--hoverColor-darkPink:hover,
 .button--hoverColor-dark-pink:hover {
-  background: var(--sda-surface-4);
+  background: var(--sda-accent);
 }
 
 .button--hoverColor-gradient:hover {

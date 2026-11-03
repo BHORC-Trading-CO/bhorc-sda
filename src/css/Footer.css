@@ -17,7 +17,7 @@
 }
 
 .footer__select-number{
-  margin-right: 16px;
+  margin-right: 8px;
   white-space: nowrap;
 }
 
@@ -35,10 +35,15 @@
     font-weight: 700;
 }
 
+/* Ряд кнопок сам переносится, если не влезает: ни одна кнопка не обрезается краем футера */
 .footer__control{
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
   margin-left: auto;
+  min-width: 0;
 }
 
 /* Кнопки массовых действий: по содержимому, а не по 200px, чтобы влезали в узкое окно */
@@ -49,9 +54,5 @@
 }
 
 .footer__button{
-  margin-right: 8px;
-}
-
-.footer__button:last-child{
   margin-right: 0;
 }

@@ -50,6 +50,7 @@ const ProxiesFooter: FC = observer(() => {
                         size="large"
                         color="grey"
                         hoverColor="grey"
+                        className="footer__button"
                         img="./assets/img/Trash.svg"
                         hoverImg="./assets/img/Trash_hov.svg"
                         text={t("common.buttons.delete")}

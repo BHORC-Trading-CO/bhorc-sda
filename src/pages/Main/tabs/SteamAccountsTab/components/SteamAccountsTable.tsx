@@ -633,8 +633,6 @@ const CellJSX: FC<{
         </div>
       );
     case AvalibleTypes.startButton:
-      // У архивного аккаунта статус браузера не запрашивается: раньше тут вечно крутилась загрузка
-      if (steamAccount.deleted) return <></>;
       switch (browserStatus) {
         case "working":
           return (
@@ -683,6 +681,10 @@ const CellJSX: FC<{
             </div>
           );
         default:
+          // Статус неизвестен. У архивного аккаунта его не запрашивают, и загрузка крутилась
+          // вечно: прячем только её. Известные состояния (в т.ч. STOP у браузера, который
+          // работал до архивации) остаются, как и раньше.
+          if (steamAccount.deleted) return <></>;
           return (
             <Tip tip={t("accounts.table.browser.checking")}>
               <div
