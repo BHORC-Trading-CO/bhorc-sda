@@ -139,12 +139,15 @@
     "linkedProxies": "Linked proxies"
   },
   "proxyBlock": {
+    "title": "Proxy",
     "noProxy": "No proxy",
     "newProxy": "New proxy",
     "savedProxy": "Saved proxies",
     "notSet": "No proxy set!<br/>All work with this account will go through your current IP",
     "example": "Example: Login:Password@1.1.1.1:7777",
-    "selectedProxy": "Selected proxy:"
+    "selectedProxy": "Selected proxy",
+    "test": "Check",
+    "runTest": "Test"
   },
   "accounts": {
     "panel": {
@@ -215,14 +218,17 @@
       "editNotFound": "Could not change account data: #{{id}} - no such account"
     },
     "form": {
-      "existingAccountData": "Enter the details of an existing Steam account:",
-      "optionalData": "Enter details (everything here is optional):",
-      "secondaryData": "Additional data:",
+      "accountSection": "Steam account",
+      "existingAccountData": "Enter the details of an existing Steam account",
+      "secondaryData": "Additional data",
+      "optional": "optional",
       "steamLogin": "Steam login",
       "steamPassword": "Steam password",
       "pin": "PIN",
       "mail": "Email",
       "mailPassword": "Email password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
       "useSteamCookies": "Use Steam cookies in the browser (auto login)",
       "maFileNameMismatch": "The Steam account name in the maFile does not match the one entered above!"
     },
@@ -239,6 +245,10 @@
       "import": "Import",
       "alreadyRunning": "the process is already running",
       "missingData": "Not all details are filled in!",
+      "hint": {
+        "maFile": "Needs Steam login, password and maFile",
+        "guard": "Setting up Guard? Press “{{button}}” above: the account is added at the end"
+      },
       "abortPrompt": {
         "title": "Abort adding the account?",
         "text": "The account will not be added 😨"
@@ -279,14 +289,18 @@
     },
     "import": {
       "loadSmaFile": "Load .smaFile file",
+      "empty": "Load one or more .smaFile files. Before importing you can pick a proxy for each account.",
       "selectedFiles_one": "{{count}} file selected: {{names}}",
       "selectedFiles_other": "{{count}} files selected: {{names}}",
       "skippedFiles": "Files skipped: {{count}}. {{details}}",
-      "view": "View"
+      "view": "View",
+      "pickProxy": "Pick a proxy",
+      "remove": "Remove from the list"
     }
   },
   "maFile": {
     "load": "Load .maFile",
+    "current": "maFile: {{name}}",
     "attach": "Attach maFile",
     "invalid": "You are trying to load an invalid maFile: {{error}}"
   },
@@ -295,6 +309,7 @@
     "loginByPassword": "Signing in with login and password"
   },
   "guard": {
+    "title": "Steam Guard",
     "tabs": {
       "connect": "Set up Guard",
       "useMaFile": "Use maFile"
@@ -349,6 +364,7 @@
     "result": {
       "title": "Account added 😍",
       "account": "Account: {{name}}",
+      "steamId": "Steam ID: {{id}}",
       "proxy": "Proxy: {{proxy}}",
       "revocationCode": "Guard revocation code:",
       "saveIt": "Save it. Steam shows this code only once — without it you cannot remove the authenticator from the account.",
@@ -383,7 +399,8 @@
     "panel": {
       "title": "Proxies",
       "add": "Add proxy",
-      "bulkHint": "Add proxies in bulk (one proxy per line)"
+      "bulkHint": "Add proxies in bulk (one proxy per line)",
+      "importList": "Import list"
     },
     "footer": {
       "testAll": "Test all"
@@ -404,7 +421,9 @@
       "title": "Add proxies in bulk",
       "example": "One proxy per line. Example: Login:Password@1.1.1.1:7777",
       "empty": "The field is empty!",
-      "result": "Added: {{added}}, invalid skipped: {{invalid}}, duplicates: {{duplicates}}"
+      "result": "Added: {{added}}, invalid skipped: {{invalid}}, duplicates: {{duplicates}}",
+      "label": "Proxy list",
+      "placeholder": "Login:Password@1.1.1.1:7777\nLogin:Password@2.2.2.2:7777"
     },
     "creation": {
       "title": "New proxies",
@@ -419,11 +438,30 @@
       "working": "Proxy #{{number}} {{host}}:{{port}} works",
       "notWorking": "Proxy #{{number}} {{host}}:{{port}} does NOT work",
       "workingRich": "Proxy #{{number}} {{host}}:{{port}} <b>works</b>",
-      "notWorkingRich": "Proxy #{{number}} {{host}}:{{port}} <b>DOES NOT WORK</b>"
+      "notWorkingRich": "Proxy #{{number}} {{host}}:{{port}} <b>DOES NOT WORK</b>",
+      "column": "Test",
+      "pending": "Testing…",
+      "untested": "Untested",
+      "ok": "Works",
+      "failed": "Failed"
     },
     "errors": {
       "notFound": "Proxy #{{id}} does not exist",
       "deleteNotFound": "Could not delete proxy: #{{id}} - no such proxy"
+    },
+    "actions": {
+      "test": "Test proxy",
+      "edit": "Edit proxy",
+      "delete": "Delete proxy permanently",
+      "archive": "Archive proxy",
+      "restore": "Restore proxy"
+    },
+    "links": {
+      "empty": "None linked",
+      "manage": "Manage linked accounts"
+    },
+    "form": {
+      "label": "Proxy connection string"
     }
   },
   "confirmations": {
@@ -431,16 +469,20 @@
     "selectedOf": "Selected: {{selected}} of {{total}}",
     "toggleAll": "Select/deselect all confirmations",
     "refresh": "Refresh",
-    "empty": "No confirmations available 😕",
-    "loading": "🤩Loading confirmations...",
-    "confirming": "😁Confirming selected: {{count}}",
-    "declining": "😯Declining selected: {{count}}",
+    "empty": "No confirmations available",
+    "loading": "Loading confirmations…",
     "declineSelected": "Decline selected",
     "confirmSelected": "Confirm selected",
     "item": {
       "select": "Select",
       "deselect": "Deselect"
-    }
+    },
+    "retry": "Retry",
+    "error": "Could not load confirmations.",
+    "confirming_one": "Confirming selected: {{count}}",
+    "confirming_other": "Confirming selected: {{count}}",
+    "declining_one": "Declining selected: {{count}}",
+    "declining_other": "Declining selected: {{count}}"
   },
   "ask": {
     "nothing": "nothing here yet...",

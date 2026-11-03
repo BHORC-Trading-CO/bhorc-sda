@@ -4,6 +4,7 @@ import MiniWindow from "../../../../components/MiniWindow/MiniWindow";
 import store from "../../../../../../store/store";
 import Delimeter from "../../../../../../globalComponents/Delimeter/Delimeter";
 import Button from "../../../../../../globalComponents/Button/Button";
+import "../ProxiesCreationForm/ProxiesCreationForm.css";
 import "./ProxiesBulkForm.css";
 import { useTranslation } from "react-i18next";
 
@@ -29,14 +30,17 @@ const BulkFormContent: FC = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="proxy__container">
+    <div className="proxies-form proxy__container">
       <div className="proxy-create__container">
-        <div className="proxy-data-example text-grey-medium">
+        <label htmlFor="proxy-bulk-value" className="proxy-field-label">{t("proxies.bulk.label")}</label>
+        <div id="proxy-bulk-format" className="proxy-data-example text-grey-medium">
           {t("proxies.bulk.example")}
         </div>
         <textarea
+          id="proxy-bulk-value"
+          aria-describedby="proxy-bulk-format"
           className="text-area text-grey-medium proxy-bulk-textarea"
-          placeholder={"Login:Password@1.1.1.1:7777\nLogin:Password@2.2.2.2:7777"}
+          placeholder={t("proxies.bulk.placeholder")}
           value={rawText}
           onChange={(e) => {
             setRawText(e.target.value);

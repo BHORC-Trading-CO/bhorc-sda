@@ -9,27 +9,34 @@ const SavedProxiesItem: FC<{
   isActive: boolean,
   onClick: (proxyId: string) => void
 }> = ({ proxy, isActive, onClick }) => {
+  // Строка целиком — цель клика (раньше только кружок справа). Обработчик тот же.
+  const select = () => {
+    onClick(proxy.id);
+  };
   return (
-    <div className="saved-proxies-item-container">
-      <div className="saved-proxies-item-wrapper text-white-medium">
-        <div className="saved-proxies-item-cell" style={{width:'50px'}}>{proxy.number}</div>
-        <div className="saved-proxies-item-cell">{proxy.host}</div>
-        <div className="saved-proxies-item-cell">{proxy.port}</div>
-        <div className="saved-proxies-item-cell proxy-account-item-container">
-          {proxy.steamAccounts.map((account) => {
-            return <div className="proxy-account-item">{account.number}</div>
-          })}
-        </div>
+    <div
+      className={`saved-proxies-item-container${isActive ? " saved-proxies-item-container_active" : ""}`}
+      role="option"
+      aria-selected={isActive}
+      tabIndex={0}
+      onClick={select}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          select();
+        }
+      }}
+    >
+      <div className="saved-proxies-item-cell">{proxy.number}</div>
+      <div className="saved-proxies-item-cell" title={proxy.host}>{proxy.host}</div>
+      <div className="saved-proxies-item-cell">{proxy.port}</div>
+      <div className="saved-proxies-item-cell proxy-account-item-container">
+        {proxy.steamAccounts.map((account) => {
+          return <div className="proxy-account-item" key={account.number}>{account.number}</div>
+        })}
       </div>
-      <div className="saved-proxies-item-wrapper">
-        <div
-          className={isActive ? "checkbox-circle-checked" : "checkbox-circle-default"}
-          onClick={
-            () => {
-              onClick(proxy.id);
-            }
-          }
-        ></div>
+      <div className="saved-proxies-item-cell saved-proxies-item-check">
+        <div className={isActive ? "checkbox-circle-checked" : "checkbox-circle-default"}></div>
       </div>
     </div>
   );

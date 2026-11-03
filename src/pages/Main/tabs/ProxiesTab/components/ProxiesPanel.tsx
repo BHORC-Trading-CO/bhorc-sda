@@ -1,4 +1,5 @@
 import '../../../../../css/Panel.css';
+import './ProxiesPanel.css';
 import Button from "../../../../../globalComponents/Button/Button";
 import Search from "../../../../../globalComponents/Search/Search";
 import { observer } from 'mobx-react';
@@ -8,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 const ProxiesPanel = observer(() => {
     const { t } = useTranslation();
     return (
-        <div className="panel">
+        <div className="panel proxies-panel">
             <div className="panel-content">
                 <h1 className="panel-text_main">{t("proxies.panel.title")}</h1>
                 <div className="panel-content__options">
@@ -63,26 +64,27 @@ const ProxiesPanel = observer(() => {
                     }}></Search>
 
 
-                    <Button
-                        size="large"
-                        img="./assets/img/Mark.svg"
-                        text="Bulk"
-                        className="headline-button_gradient"
+                    <button
+                        type="button"
+                        className="proxy-panel-cta proxy-panel-cta--secondary"
+                        data-testid="bulk-proxies"
+                        title={t("proxies.panel.bulkHint")}
                         onClick={() => {
                             store.proxiesTable.openBulkForm();
                         }}
-                        altText={t("proxies.panel.bulkHint")}
-                    />
+                    >{t("proxies.panel.importList")}</button>
 
-                    <Button
-                        size="large"
-                        img="./assets/img/Mark.svg"
-                        text={t("proxies.panel.add")}
-                        className="headline-button_gradient"
+                    <button
+                        type="button"
+                        className="proxy-panel-cta proxy-panel-cta--primary"
+                        data-testid="add-proxy"
                         onClick={() => {
                             store.proxiesTable.openCreationForm();
                         }}
-                    />
+                    >
+                        <img src="./assets/img/Mark.svg" alt="" aria-hidden="true" />
+                        {t("proxies.panel.add")}
+                    </button>
 
                     <Button
                         view="icon"

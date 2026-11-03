@@ -22,7 +22,7 @@ const Error: FC = () => {
             <Attic windowName='error' title={t('common.error')} id={id} />
             <div className='error-container'>
                 <div >
-                    <h1>{title} 🤔</h1>
+                    <h1><svg className="error-warning-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3ZM12 9v5M12 17h.01" /></svg>{title}</h1>
                 </div>
                 <div className='error-container-text'>
                     {text}

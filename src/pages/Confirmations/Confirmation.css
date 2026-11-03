@@ -1,71 +1,137 @@
-.confirmation-container {
-  display: flex;
-  flex-direction: column;
-  padding: 17px 19px 30px 24px;
-  min-width: 500px;
-  height: 100%;
-  background: #22142A;
-}
-
-.confirmation-info-container {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 17px;
-}
-
-.info-account-logo {
-  margin-right: 10px;
-}
-
-.info-account-name {
-  background: #2d1c3a;
-  border-radius: 10px;
-  width: 204px;
-  height: 43px;
-  padding-left: 15px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.sell-items-container {
-  display: flex;
-  flex-direction: column;
-  overflow-x: none;
-  overflow-y: auto;
-  padding-right: 5px;
-  height: 100em;
-}
-
-.sell-items-confirms-button-container {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 30px;
-}
-.sell-items-confirms-button-container-small{
-  display: flex;
-}
-.sell-items-confirms-button-container-small button {
-  margin-right: 5px;
-}
-.sell-items-count-selected {
-  margin-right: 10px;
-  display: flex;
-  align-items: center;
-}
-
 .confirmation-wrapper {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding-bottom: 20px;
+  color: var(--sda-text);
+  background: var(--sda-modal);
 }
-.centered-block {
-  padding: 10px;
-  position: absolute; 
-  left: 50%;
-  top: 50%; 
-  transform: translate(-50%, -50%);
+
+.confirmation-container {
+  display: flex;
+  flex-direction: column;
+  padding: 17px 19px 20px 24px;
+  flex: 1;
+  min-height: 0;
+  background: var(--sda-modal);
+}
+
+.confirmation-info-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 17px;
+}
+
+.info-account-name {
+  background: var(--sda-surface-2);
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius);
+  width: 204px;
+  max-width: 100%;
+  min-height: 43px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+}
+
+.info-account-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.info-account-logo { margin-right: 10px; flex: 0 0 auto; }
+.confirmation-toolbar { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.sell-items-count-selected { color: var(--sda-text-muted); margin-right: 4px; }
+
+.confirmation-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 37px;
+  height: 37px;
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius);
+  color: var(--sda-text-muted);
+  background: var(--sda-surface-3);
+  cursor: pointer;
+  transition: background var(--sda-transition), color var(--sda-transition);
+}
+
+.confirmation-icon-button svg, .confirmation-state-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.confirmation-icon-button svg { width: 22px; height: 22px; }
+.confirmation-icon-button:hover:not(:disabled) {
+  background: var(--sda-surface-4);
+  color: var(--sda-text);
+}
+.confirmation-icon-button:disabled { opacity: .45; cursor: not-allowed; }
+
+.sell-items-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 2px 5px 2px 0;
+}
+
+.confirmation-wrapper .centered-block {
+  padding: 20px;
+  margin: auto;
   text-align: center;
-  width: 400px;
+  width: 100%;
+  max-width: 440px;
 }
+.confirmation-state { display: flex; flex-direction: column; align-items: center; gap: 16px; color: var(--sda-text-muted); }
+.confirmation-state-icon { width: 40px; height: 40px; flex: 0 0 auto; }
+.confirmation-state--error .confirmation-state-icon { color: var(--sda-warning); }
+.confirmation-state-message { color: var(--sda-text); line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+.confirmation-retry {
+  padding: 9px 20px;
+  border: 1px solid var(--sda-border-strong);
+  border-radius: var(--sda-radius);
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
+  font: inherit;
+  cursor: pointer;
+}
+.confirmation-retry:hover { background: var(--sda-surface-4); }
+
+.sell-items-confirms-button-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+}
+.sell-items-confirms-button-container .button {
+  flex: 1;
+  min-width: 0;
+  min-height: 43px;
+  height: auto;
+  padding: 10px 12px;
+  border-radius: var(--sda-radius);
+  border: 1px solid var(--sda-border-strong);
+  transition: background var(--sda-transition), box-shadow var(--sda-transition);
+}
+.sell-items-confirms-button-container .button__text { max-width: 100%; white-space: normal; color: var(--sda-text); }
+.sell-items-confirms-button-container .confirmation-confirm { background: var(--sda-accent-gradient); border-color: var(--sda-accent); }
+.sell-items-confirms-button-container .confirmation-confirm:hover { box-shadow: var(--sda-focus-ring); }
+.sell-items-confirms-button-container .confirmation-decline { background: var(--sda-modal); border-color: var(--sda-danger); }
+.sell-items-confirms-button-container .confirmation-decline .button__text { color: var(--sda-danger); }
+.sell-items-confirms-button-container .confirmation-decline:hover { background: var(--sda-danger-bg); box-shadow: none; }
+.sell-items-confirms-button-container .confirmation-action-inactive,
+.sell-items-confirms-button-container .confirmation-action-inactive:hover {
+  background: var(--sda-surface-2);
+  border-color: var(--sda-border);
+  box-shadow: none;
+  opacity: .55;
+}
+.sell-items-confirms-button-container .confirmation-action-inactive .button__text { color: var(--sda-text-muted); }
+.confirmation-wrapper button:focus-visible { outline: none; box-shadow: var(--sda-focus-ring); }

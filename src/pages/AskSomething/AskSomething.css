@@ -5,13 +5,13 @@
   align-items: center;
   min-width: 500px;
   min-height: 150px;
-  background: #22142A;
+  background: var(--sda-modal);
   height: 100%;
 }
 
 .ask-family-pin-account-name {
-  background: #2d1c3a;
-  border-radius: 10px;
+  background: var(--sda-surface-2);
+  border-radius: var(--sda-radius);
   width: 204px;
   height: 43px;
   padding-left: 15px;
@@ -26,10 +26,9 @@
 }
 
 .ask-family-pin-input {
-  background: #372447;
-  border: 1px solid #776284;
-  border-radius: 10px;
-  border: none;
+  background: var(--sda-surface-2);
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius);
   outline: none;
   padding-left: 10px;
   margin-left: 10px;
@@ -42,3 +41,20 @@
   display: flex;
   flex-direction: column;
 }
+.ask-family-pin-container { color: var(--sda-text); }
+.ask-family-pin-container label { color: var(--sda-text); }
+.ask-family-pin-input {
+  color: var(--sda-text);
+  font-family: var(--sda-font);
+  transition: border-color var(--sda-transition), box-shadow var(--sda-transition);
+}
+.ask-family-pin-input:focus { border-color: var(--sda-border-strong); box-shadow: var(--sda-focus-ring); }
+.ask-family-pin-container .ask-confirm-button {
+  border: 1px solid var(--sda-accent);
+  border-radius: var(--sda-radius);
+  background: var(--sda-accent-gradient);
+  transition: box-shadow var(--sda-transition);
+}
+.ask-family-pin-container .ask-confirm-button .button__text { color: var(--sda-text); }
+.ask-family-pin-container .ask-confirm-button:hover,
+.ask-family-pin-container .ask-confirm-button:focus-visible { outline: none; box-shadow: var(--sda-focus-ring); }

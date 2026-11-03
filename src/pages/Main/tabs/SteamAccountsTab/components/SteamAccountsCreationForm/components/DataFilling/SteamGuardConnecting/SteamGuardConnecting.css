@@ -1,18 +1,44 @@
 .steam-data-code {
   display: flex;
-  justify-content: center;
-  padding-top: 20px;
+  justify-content: flex-start;
 }
 
 .steam-data-code__container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  width: 600px;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
 }
 
 .steam-data-code__title {
-  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--sda-text);
+}
+
+.steam-data-code__details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: var(--sda-radius);
+  background: var(--sda-surface-2);
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.steam-data-code__actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+}
+.steam-data-code__actions .button {
+  min-width: 160px;
+  height: 36px;
+  padding: 0px 18px;
 }
 
 .steam-data-code__button{
@@ -21,6 +47,7 @@
     height: 40px;
 }
 .import-account {
-  margin-top: 30px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
