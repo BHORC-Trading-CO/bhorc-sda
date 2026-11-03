@@ -24,6 +24,8 @@ class ProxiesTableStore {
   pageSize: number;
   activePage: number;
   isTestingEditingProxy: boolean;
+  editingTestResult: boolean | undefined;
+  testedEditingProxy: ProxySetupInterface | undefined;
   hidenProxyId: string[];
   searchString: string;
 
@@ -43,6 +45,8 @@ class ProxiesTableStore {
     this.searchString = "";
 
     this.isTestingEditingProxy = false;
+    this.editingTestResult = undefined;
+    this.testedEditingProxy = undefined;
 
     this.pageSize = 20;
     this.activePage = 1;
@@ -60,6 +64,7 @@ class ProxiesTableStore {
     window.Main.proxies.onTest((event, data) => {
       if (data.id === "editing_proxy") {
         this.isTestingEditingProxy = false;
+        this.editingTestResult = data.testResult;
         store.windows.openMiniNotification({
           text: i18n.t(data.testResult ? "proxies.test.editingWorking" : "proxies.test.editingNotWorking"),
           type: data.testResult ? "success" : "error",
@@ -131,6 +136,9 @@ class ProxiesTableStore {
   }
   testEditingProxy(proxy: ProxySetupInterface) {
     this.isTestingEditingProxy = true;
+    // Display-only snapshot: do not show a previous result for changed credentials.
+    this.testedEditingProxy = { ...proxy };
+    this.editingTestResult = undefined;
     window.Main.proxies.testByParams(proxy);
   }
   testProxy(id: string) {

@@ -5,7 +5,7 @@ import store from '../../../../../store/store';
 import TableProxyInterface from '../../../../../../electron/interfaces/Proxy/TableProxyInterface';
 import Field from '../../../../../../electron/interfaces/TableFields/Field';
 import Checkbox from '../../../../../globalComponents/Checkbox/Checkbox';
-import Button from '../../../../../globalComponents/Button/Button';
+import { ProxyActionButton, ProxyTestButton } from './ProxyActionButton';
 import Password from '../../../../../globalComponents/Password/Password';
 import { observer } from 'mobx-react';
 import { useTranslation } from 'react-i18next';
@@ -73,25 +73,25 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
             return <Password password={proxy.password} />;
         case AvalibleTypes.testProxyButton:
             return (
-                <Button style={{border:  proxy.isWorking != undefined ? (proxy.isWorking ? '2px solid green' : "2px solid red") : "0px solid red"}} img='./assets/img/testProxy.svg' view='icon' color='grey' hoverColor='light-grey' size='small' isLoad={proxy.isTesting} onClick={() => {
+                <ProxyTestButton isWorking={proxy.isWorking} isTesting={proxy.isTesting} onClick={() => {
                     store.proxiesTable.testProxy(proxy.id);
                 }} />
             );
         case AvalibleTypes.editingButton:
             if (proxy.deleted) {
-                return <Button size='small' color='grey' hoverColor='light-grey' view='icon' img='./assets/img/restoreProfile.svg' onClick={() => {
+                return <ProxyActionButton icon='restore' label={t('proxies.actions.restore')} onClick={() => {
                     store.proxiesTable.editProxyInStorage(proxy.id, { deleted: false }, {
                         steamAccountIds: proxy.steamAccountIds
                     });
                 }} />;
             } else {
-                return <Button size='small' color='grey' hoverColor='light-grey' view='icon' img='./assets/img/Edit.svg' onClick={() => {
+                return <ProxyActionButton icon='edit' label={t('proxies.actions.edit')} data-testid='proxy-edit' onClick={() => {
                     console.log(`Открываем форму редактирования прокси`);
                     store.proxiesTable.openEditingForm(proxy);
                 }} />;
             }
         case AvalibleTypes.deleteButton:
-            return <Button size='small' color='grey' hoverColor='light-grey' view='icon' img='./assets/img/Trash.svg' onClick={() => {
+            return <ProxyActionButton icon='delete' label={t(proxy.deleted ? 'proxies.actions.delete' : 'proxies.actions.archive')} onClick={() => {
                 if (proxy.deleted) {
                     store.windows.prompt({
                         type: 'question',
@@ -119,7 +119,9 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
                 }
             }} />;
         case AvalibleTypes.linkedSteamAccounts:
-            return <>{proxy.steamAccounts.map(sa => sa.number).join(', ')}</>;
+            return <span className={`proxy-linked-cell${proxy.steamAccounts.length ? '' : ' proxy-empty-cell'}`} title={proxy.steamAccounts.map(sa => sa.number).join(', ') || t('proxies.links.empty')}>{proxy.steamAccounts.map(sa => sa.number).join(', ') || '—'}</span>;
+        case AvalibleTypes.linkedProfiles:
+            return <span className='proxy-linked-cell proxy-empty-cell' title={t('proxies.links.empty')}>—</span>;
         default:
             return <></>;
     }

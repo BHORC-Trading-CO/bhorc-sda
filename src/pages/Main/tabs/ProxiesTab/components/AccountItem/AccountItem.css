@@ -2,8 +2,8 @@
   display: flex;
   width: 100%;
   min-height: 40px;
-  background: #372447;
-  border-radius: 10px;
+  background: var(--sda-surface-3);
+  border-radius: var(--sda-radius);
   margin-bottom: 5px;
   padding-left: 6px;
   align-items: center;
@@ -15,8 +15,8 @@
 }
 
 .account-logo {
-  border-radius: 20px;
-  border: 1px solid gray;
+  border-radius: var(--sda-radius-lg);
+  border: 1px solid var(--sda-border-strong);
   width: 32px;
   height: 32px;
   margin-right: 16px;
@@ -40,10 +40,10 @@
 }
 
 .checkbox-default__proxy,
-.checkbox-checked {
+.account-item .checkbox-checked {
   width: 22px;
   height: 22px;
-  border-radius: 5px;
+  border-radius: var(--sda-radius-sm);
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -51,3 +51,8 @@
   cursor: pointer;
   margin-right: 10px;
 }
+
+.account-item .account-wrapper { min-width: 0; }
+.account-item .account-wrapper:first-child { flex: 1; color: var(--sda-text); }
+.account-item .account-item-text { min-width: 0; white-space: nowrap; }
+.account-item .account-item-proxy { width: 250px; }

@@ -335,7 +335,8 @@
     "panel": {
       "title": "Proxies",
       "add": "Add proxy",
-      "bulkHint": "Add proxies in bulk (one proxy per line)"
+      "bulkHint": "Add proxies in bulk (one proxy per line)",
+      "importList": "Import list"
     },
     "footer": {
       "testAll": "Test all"
@@ -356,7 +357,9 @@
       "title": "Add proxies in bulk",
       "example": "One proxy per line. Example: Login:Password@1.1.1.1:7777",
       "empty": "The field is empty!",
-      "result": "Added: {{added}}, invalid skipped: {{invalid}}, duplicates: {{duplicates}}"
+      "result": "Added: {{added}}, invalid skipped: {{invalid}}, duplicates: {{duplicates}}",
+      "label": "Proxy list",
+      "placeholder": "Login:Password@1.1.1.1:7777\nLogin:Password@2.2.2.2:7777"
     },
     "creation": {
       "title": "New proxies",
@@ -371,11 +374,30 @@
       "working": "Proxy #{{number}} {{host}}:{{port}} works",
       "notWorking": "Proxy #{{number}} {{host}}:{{port}} does NOT work",
       "workingRich": "Proxy #{{number}} {{host}}:{{port}} <b>works</b>",
-      "notWorkingRich": "Proxy #{{number}} {{host}}:{{port}} <b>DOES NOT WORK</b>"
+      "notWorkingRich": "Proxy #{{number}} {{host}}:{{port}} <b>DOES NOT WORK</b>",
+      "column": "Test",
+      "pending": "Testing…",
+      "untested": "Untested",
+      "ok": "Works",
+      "failed": "Failed"
     },
     "errors": {
       "notFound": "Proxy #{{id}} does not exist",
       "deleteNotFound": "Could not delete proxy: #{{id}} - no such proxy"
+    },
+    "actions": {
+      "test": "Test proxy",
+      "edit": "Edit proxy",
+      "delete": "Delete proxy permanently",
+      "archive": "Archive proxy",
+      "restore": "Restore proxy"
+    },
+    "links": {
+      "empty": "None linked",
+      "manage": "Manage linked accounts"
+    },
+    "form": {
+      "label": "Proxy connection string"
     }
   },
   "confirmations": {
@@ -383,16 +405,20 @@
     "selectedOf": "Selected: {{selected}} of {{total}}",
     "toggleAll": "Select/deselect all confirmations",
     "refresh": "Refresh",
-    "empty": "No confirmations available 😕",
-    "loading": "🤩Loading confirmations...",
-    "confirming": "😁Confirming selected: {{count}}",
-    "declining": "😯Declining selected: {{count}}",
+    "empty": "No confirmations available",
+    "loading": "Loading confirmations…",
     "declineSelected": "Decline selected",
     "confirmSelected": "Confirm selected",
     "item": {
       "select": "Select",
       "deselect": "Deselect"
-    }
+    },
+    "retry": "Retry",
+    "error": "Could not load confirmations.",
+    "confirming_one": "Confirming selected: {{count}}",
+    "confirming_other": "Confirming selected: {{count}}",
+    "declining_one": "Declining selected: {{count}}",
+    "declining_other": "Declining selected: {{count}}"
   },
   "ask": {
     "nothing": "nothing here yet...",

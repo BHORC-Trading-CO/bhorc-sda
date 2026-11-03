@@ -26,14 +26,12 @@ const AccountItem = observer((props: {
         <div className="account-item-text">
           {steamAccount.number}
         </div>
-        <div className="account-item-text">
-          {steamAccount.accountName}
+        <div className="account-item-text" title={steamAccount.accountName}>
+          {steamAccount.accountName || <span className="proxy-empty-cell">—</span>}
         </div>
-        <div className="account-item-text" style={{ width: '250px', display: 'flex', justifyContent: 'center' }}>
-          {
-            <div className='proxy-account-item text-white-medium' style={{ marginRight: '5px' }}>{steamAccount.proxy ? "#" + steamAccount.proxy.number : t('common.none')}</div>
-          }
-          {steamAccount.proxy ? <>{steamAccount.proxy.host + ":" + steamAccount.proxy.port}</> : ""}
+        <div className={`account-item-text account-item-proxy${steamAccount.proxy ? '' : ' proxy-empty-cell'}`}
+          title={steamAccount.proxy ? `#${steamAccount.proxy.number} ${steamAccount.proxy.host}:${steamAccount.proxy.port}` : t('proxies.links.empty')}>
+          {steamAccount.proxy ? `#${steamAccount.proxy.number} ${steamAccount.proxy.host}:${steamAccount.proxy.port}` : '—'}
         </div>
       </div>
       <div className="account-wrapper">

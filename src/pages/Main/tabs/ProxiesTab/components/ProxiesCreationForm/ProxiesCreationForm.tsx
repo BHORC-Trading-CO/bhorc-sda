@@ -5,7 +5,7 @@ import store from "../../../../../../store/store";
 import Delimeter from "../../../../../../globalComponents/Delimeter/Delimeter";
 import Button from "../../../../../../globalComponents/Button/Button";
 import ProxyItem from "../ProxyItem/ProxyItem";
-import "../ProxiesEditingForm/ProxiesEditingForm";
+import "./ProxiesCreationForm.css";
 import ProxySetupInterface from '../../../../../../../electron/interfaces/Proxy/ProxySetupInterface';
 import parseProxyString from "../Funcs/parseProxyString";
 import { useTranslation } from "react-i18next";
@@ -48,7 +48,10 @@ export const CreationFormContent: FC = () => {
   return (
     <div className="proxy__container">
       <div className="proxy-create__container">
+        <label className="proxy-field-label" htmlFor="proxy-create-value">{t("proxies.form.label")}</label>
         <input
+          id="proxy-create-value"
+          aria-describedby="proxy-create-format"
           className="proxy-create-input text-grey-medium"
           placeholder={t("common.startTyping")}
           onChange={(e) => {
@@ -57,7 +60,7 @@ export const CreationFormContent: FC = () => {
             setProxy(proxyData);
           }}
         ></input>
-        <div className="proxy-data-example text-grey-medium">
+        <div id="proxy-create-format" className="proxy-data-example text-grey-medium">
           {t("proxyBlock.example")}
         </div>
         <Delimeter marginTop="26px" marginBottom="15px"></Delimeter>
@@ -71,7 +74,7 @@ export const CreationFormContent: FC = () => {
               <div className="proxy-table-header-cell">{t("columns.login")}</div>
               <div className="proxy-table-header-cell">{t("columns.password")}</div>
               <div className="proxy-table-header-cell">{t("columns.account")}</div>
-              <div className="proxy-table-header-cell">test</div>
+              <div className="proxy-table-header-cell">{t("proxies.test.column")}</div>
             </div>
             <div className="proxy-item__container">
               {

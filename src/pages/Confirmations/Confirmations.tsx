@@ -6,6 +6,7 @@ import "./Confirmation.css"
 import SellItem from './SellItem/SellItem';
 import LoadingIcons from 'react-loading-icons';
 import { useTranslation } from 'react-i18next';
+import stripLeadingEmoji from './stripLeadingEmoji';
 
 interface Item { selected: boolean, confirmation: CConfirmation };
 
@@ -59,20 +60,26 @@ const Confirmations: FC = () => {
         });
     }, []);
 
+    const selectedCount = items.filter(i => i.selected).length;
+    const refresh = () => {
+        window.Confirmations.api.getConfirmations(id);
+        setIsLoading(true);
+    };
+
     return (
         <div className='confirmation-wrapper'>
             <Attic id={id} windowName="confirmations" title={t('confirmations.title')}></Attic>
             <div className='confirmation-container'>
                 <div className='confirmation-info-container'>
                     <div className='info-account-name'>
-                        <img src='./assets/img/User.svg' className='info-account-logo'></img>
-                        <span className='text-medium-white'>{name}</span>
+                        <img src='./assets/img/User.svg' className='info-account-logo' alt='' aria-hidden='true' />
+                        <span className='text-medium-white' title={name}>{name}</span>
                     </div>
-                    <div className='confirmation-info-container'>
+                    <div className='confirmation-toolbar'>
                         <div className='sell-items-count-selected'>
-                            {t('confirmations.selectedOf', { selected: items.filter(i => i.selected).length, total: items.length })}
+                            {t('confirmations.selectedOf', { selected: selectedCount, total: items.length })}
                         </div>
-                        <Button onClick={() => {
+                        <button type='button' className='confirmation-icon-button' title={t('confirmations.toggleAll')} aria-label={t('confirmations.toggleAll')} aria-pressed={items.length > 0 && selectedCount === items.length} onClick={() => {
                             const selectedItems = items.filter(i => i.selected);
                             const newItems = [...items];
                             if (selectedItems.length === 0) {
@@ -81,36 +88,35 @@ const Confirmations: FC = () => {
                                 setItems(newItems.map(i => { return { ...i, selected: false } }));
                             }
                         }}
-                            style={{ marginRight: '5px' }}
-                            altText={t('confirmations.toggleAll')} view='icon' size='small' color='grey' hoverColor='light-grey' img='./assets/img/selectAll.svg' hoverImg='./assets/img/selectAllHover.svg' />
-                        <Button disabled={isLoading} altText={t('confirmations.refresh')} onClick={() => {
-                            window.Confirmations.api.getConfirmations(id);
-                            setIsLoading(true);
-                        }} view='icon' size='small' color='grey' hoverColor='light-grey' img='./assets/img/Refresh.svg' hoverImg='./assets/img/Refresh_hov.svg' />
+                            >
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 8l2 2 5-4M8 15h8" /></svg>
+                        </button>
+                        <button type='button' className='confirmation-icon-button' disabled={isLoading} title={t('confirmations.refresh')} aria-label={t('confirmations.refresh')} onClick={refresh}>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5v6h-6M20 11a8 8 0 1 0-1 7" /></svg>
+                        </button>
                     </div>
                 </div>
                 <div className='sell-items-container'>
-                    {error ? <div className='centered-block'>😯{String(error)}</div> : (!isLoading && !isResponding ?
-                        (items.length > 0 ? <Items items={items} setItems={setItems} /> : <div className='centered-block'>{t('confirmations.empty')}</div>) :
-                        <div className='centered-block'>
-                            {isLoading ? <div>
-                                <LoadingIcons.Oval />
-                                <div style={{ lineHeight: '50px' }}>
-                                    {t('confirmations.loading')}
-                                </div>
-
-                            </div> :
-                                <div>
-                                    <LoadingIcons.Oval />
-                                    <div style={{ lineHeight: '50px' }}>
-                                        {t(isResponding === 'confirm' ? 'confirmations.confirming' : 'confirmations.declining', { count: items.filter(i => i.selected).length })}
-                                    </div>
-                                </div>}
+                    {error && !isLoading ? <div className='centered-block confirmation-state confirmation-state--error' role='alert'>
+                        <svg className='confirmation-state-icon' viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3ZM12 9v5M12 17h.01" /></svg>
+                        <div className='confirmation-state-message'>{stripLeadingEmoji(String(error)) || t('confirmations.error')}</div>
+                        <button type='button' className='confirmation-retry' onClick={refresh}>{t('confirmations.retry')}</button>
+                    </div> : (!isLoading && !isResponding ?
+                        (items.length > 0 ? <Items items={items} setItems={setItems} /> : <div className='centered-block confirmation-state' role='status'>
+                            <svg className='confirmation-state-icon' viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 11l3 3 5-6" /></svg>
+                            <div>{t('confirmations.empty')}</div>
+                        </div>) :
+                        <div className='centered-block confirmation-state' role='status'>
+                            <LoadingIcons.Oval stroke="var(--sda-text-muted)" />
+                            <div className='confirmation-state-message'>
+                                {isLoading ? t('confirmations.loading') : t(isResponding === 'confirm' ? 'confirmations.confirming' : 'confirmations.declining', { count: selectedCount })}
+                            </div>
                         </div>)}
                 </div>
 
                 <div className='sell-items-confirms-button-container'>
                     <Button
+                        className={`confirmation-decline${selectedCount === 0 ? ' confirmation-action-inactive' : ''}`}
                         text={t('confirmations.declineSelected')}
                         size='large'
                         color='grey'
@@ -128,6 +134,7 @@ const Confirmations: FC = () => {
                         }}
                     />
                     <Button
+                        className={`confirmation-confirm${selectedCount === 0 ? ' confirmation-action-inactive' : ''}`}
                         text={t('confirmations.confirmSelected')}
                         size='large'
                         color='grey'
