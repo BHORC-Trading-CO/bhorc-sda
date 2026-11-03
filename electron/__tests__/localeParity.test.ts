@@ -84,6 +84,19 @@ describe.each(NAMESPACES)("переводы: пространство имён $
         expect(mismatches).toEqual([]);
     });
 
+    // В ru/uk форма one — это и 21, 31, 101…, а не «ровно один»: без числа текст читается неверно.
+    it("в ru/uk каждая форма _one содержит {{count}}", () => {
+        const errors2: string[] = [];
+        const bad: string[] = [];
+        for (const language of ["uk", "ru"]) {
+            const flat = load(dir, language, name, errors2);
+            for (const [key, text] of Object.entries(flat)) {
+                if (key.endsWith("_one") && !placeholders(text).includes("count")) bad.push(`${language} ${key}`);
+            }
+        }
+        expect(bad).toEqual([]);
+    });
+
     it("формы множественного числа соответствуют правилам языка", () => {
         const mismatches: string[] = [];
         for (const language of LANGUAGES) {
@@ -139,7 +152,7 @@ describe("ключи t() в electron/ есть в main", () => {
 });
 
 describe("ключи в src/ есть в common или shell", () => {
-    type Used = { ns: string; key: string; where: string; prefix: boolean };
+    type Used = { ns: string; key: string; where: string; prefix: boolean; hasCount: boolean };
     // t("…"), i18n.t("…"), t(cond ? "a" : "b"), t(`prefix.${x}`), <Trans i18nKey="…" />.
     // Пространство имён: "ns:key" явно, иначе shell для файлов с useTranslation("shell"), иначе common.
     function usedKeys(): Used[] {
@@ -155,29 +168,33 @@ describe("ключи в src/ есть в common или shell", () => {
                 const source = fs.readFileSync(full, "utf8");
                 const fileNs = /useTranslation\(\s*["']shell["']\s*\)/.test(source) ? "shell" : "common";
                 const sf = ts.createSourceFile(full, source, ts.ScriptTarget.Latest, true, /\.tsx$/.test(entry.name) ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
-                const push = (arg: ts.Expression, node: ts.Node) => {
+                const push = (arg: ts.Expression, node: ts.Node, hasCount: boolean) => {
                     const where = `${path.relative(ROOT, full)}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}`;
                     const add = (raw: string, prefix: boolean) => {
                         const [ns, key] = raw.includes(":") ? raw.split(":", 2) : [fileNs, raw];
-                        out.push({ ns, key, where, prefix });
+                        out.push({ ns, key, where, prefix, hasCount });
                     };
                     if (ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg)) add(arg.text, false);
                     else if (ts.isTemplateExpression(arg)) add(arg.head.text, true);
-                    else if (ts.isConditionalExpression(arg)) { push(arg.whenTrue, node); push(arg.whenFalse, node); }
+                    else if (ts.isConditionalExpression(arg)) { push(arg.whenTrue, node, hasCount); push(arg.whenFalse, node, hasCount); }
                 };
+                // Второй аргумент t(key, { count, ... }) — объект со свойством count.
+                const passesCount = (options: ts.Expression | undefined) => !!options && ts.isObjectLiteralExpression(options) &&
+                    options.properties.some((p) => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && p.name.getText(sf) === "count");
                 const visit = (node: ts.Node) => {
                     if (ts.isCallExpression(node) && node.arguments[0]) {
                         const callee = node.expression;
                         const isT = (ts.isIdentifier(callee) && callee.text === "t") ||
                             (ts.isPropertyAccessExpression(callee) && callee.name.text === "t" && ts.isIdentifier(callee.expression) && callee.expression.text === "i18n");
-                        if (isT) push(node.arguments[0], node);
+                        if (isT) push(node.arguments[0], node, passesCount(node.arguments[1]));
                     }
                     if ((ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) && node.tagName.getText(sf) === "Trans") {
                         for (const attr of node.attributes.properties) {
                             if (ts.isJsxAttribute(attr) && attr.name.getText(sf) === "i18nKey" && attr.initializer) {
                                 const init = attr.initializer;
-                                if (ts.isStringLiteral(init)) push(init, node);
-                                else if (ts.isJsxExpression(init) && init.expression) push(init.expression, node);
+                                const hasCount = node.attributes.properties.some((a) => ts.isJsxAttribute(a) && a.name.getText(sf) === "count");
+                                if (ts.isStringLiteral(init)) push(init, node, hasCount);
+                                else if (ts.isJsxExpression(init) && init.expression) push(init.expression, node, hasCount);
                             }
                         }
                     }
@@ -197,10 +214,11 @@ describe("ключи в src/ есть в common или shell", () => {
         }
         const used = usedKeys();
         expect(used.length).toBeGreaterThan(200);
-        const exists = ({ ns, key, prefix }: Used) => {
+        const exists = ({ ns, key, prefix, hasCount }: Used) => {
             const list = keys[ns] || [];
             if (prefix) return list.some((k) => k.startsWith(key));
-            return list.includes(key) || list.some((k) => k.startsWith(`${key}_`) && PLURAL_SUFFIX.test(k));
+            // Ключ только с формами множественного числа без count i18next покажет как сырой ключ.
+            return list.includes(key) || (hasCount && list.some((k) => k.startsWith(`${key}_`) && PLURAL_SUFFIX.test(k)));
         };
         expect(used.filter((u) => !exists(u)).map((u) => `${u.where}: ${u.ns}:${u.key}`)).toEqual([]);
     });

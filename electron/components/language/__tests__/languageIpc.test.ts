@@ -123,3 +123,24 @@ it("синхронный запрос языка: значение в returnValu
     ipcMain.emit(LanguageChannels.GET_LANGUAGE, untrusted);
     expect(untrusted.returnValue).toBe("en");
 });
+
+describe("порядок запуска", () => {
+    // Preload главного окна спрашивает язык через sendSync. Если обработчик зарегистрирован
+    // после Manager.Load() и загрузка данных упадёт, окно зависнет без ответа.
+    it("обработчики языка регистрируются после initLanguage и до окна и Manager.Load()", () => {
+        const fs = require("fs");
+        const path = require("path");
+        const app: string = fs.readFileSync(path.join(__dirname, "../../application/application.ts"), "utf8");
+        const ready = app.slice(app.indexOf('app.on("ready"'));
+        const initAt = ready.indexOf("initLanguage(");
+        const listenersAt = ready.indexOf("languageListeners();");
+        const mainAt = ready.indexOf("this.windowsManager.createMain();");
+        const stageAt = ready.indexOf("this.secondStage(cb);");
+        expect(initAt).toBeGreaterThan(-1);
+        expect(listenersAt).toBeGreaterThan(initAt);
+        expect(listenersAt).toBeLessThan(mainAt);
+        expect(listenersAt).toBeLessThan(stageAt);
+        const routers: string = fs.readFileSync(path.join(__dirname, "../../application/listenersRouters/listenersRouters.ts"), "utf8");
+        expect(routers).not.toMatch(/languageListeners/);
+    });
+});
