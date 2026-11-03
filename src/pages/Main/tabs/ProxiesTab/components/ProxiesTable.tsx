@@ -121,7 +121,7 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
         case AvalibleTypes.linkedSteamAccounts:
             return <span className={`proxy-linked-cell${proxy.steamAccounts.length ? '' : ' proxy-empty-cell'}`} title={proxy.steamAccounts.map(sa => sa.number).join(', ') || t('proxies.links.empty')}>{proxy.steamAccounts.map(sa => sa.number).join(', ') || '—'}</span>;
         case AvalibleTypes.linkedProfiles:
-            return <span className='proxy-linked-cell proxy-empty-cell' title={t('proxies.links.empty')}>—</span>;
+            return <span className='proxy-linked-cell proxy-empty-cell'>—</span>;
         default:
             return <></>;
     }

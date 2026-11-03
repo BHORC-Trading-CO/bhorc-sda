@@ -48,11 +48,12 @@ const EditingFormContent: FC = observer(() => {
   const parseAddProxyArea = (value: string) => {
     const proxySetup: ProxySetupInterface = parseProxyString(value);
 
+    store.proxiesTable.resetEditingTestDisplay();
     setProxyData(proxySetup);
   }
 
   return (
-    <div className="proxy__container proxy-editing-form">
+    <div className="proxies-form proxy__container proxy-editing-form">
       <div className="proxy-create__container">
         <label className="proxy-field-label" htmlFor="proxy-edit-value">{t("proxies.form.label")}</label>
         <input

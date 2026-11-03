@@ -46,7 +46,7 @@ export const CreationFormContent: FC = () => {
   }, [proxy])
 
   return (
-    <div className="proxy__container">
+    <div className="proxies-form proxy__container">
       <div className="proxy-create__container">
         <label className="proxy-field-label" htmlFor="proxy-create-value">{t("proxies.form.label")}</label>
         <input
@@ -57,6 +57,7 @@ export const CreationFormContent: FC = () => {
           onChange={(e) => {
             const value = e.target.value;
             const proxyData = parseProxyString(value);
+            store.proxiesTable.resetEditingTestDisplay();
             setProxy(proxyData);
           }}
         ></input>

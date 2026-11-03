@@ -30,7 +30,7 @@ const BulkFormContent: FC = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="proxy__container">
+    <div className="proxies-form proxy__container">
       <div className="proxy-create__container">
         <label htmlFor="proxy-bulk-value" className="proxy-field-label">{t("proxies.bulk.label")}</label>
         <div id="proxy-bulk-format" className="proxy-data-example text-grey-medium">

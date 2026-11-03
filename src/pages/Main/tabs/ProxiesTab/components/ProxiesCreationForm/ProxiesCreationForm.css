@@ -1,25 +1,25 @@
-.proxy__container {
+.proxies-form.proxy__container {
   display: flex;
   align-items: center;
   flex-direction: column;
   color: var(--sda-text);
 }
 
-.proxy-create__container {
+.proxies-form .proxy-create__container {
   width: 100%;
   display: flex;
   flex-direction: column;
   padding: 24px 28px 0;
 }
 
-.proxy-field-label {
+.proxies-form .proxy-field-label {
   margin-bottom: 8px;
   color: var(--sda-text);
   font-size: 14px;
   font-weight: 600;
 }
 
-.proxy__container .proxy-create-input {
+.proxies-form.proxy__container .proxy-create-input {
   background: var(--sda-surface-2);
   color: var(--sda-text);
   border: 1px solid var(--sda-border);
@@ -31,28 +31,28 @@
   transition: border-color var(--sda-transition), box-shadow var(--sda-transition);
 }
 
-.proxy__container .proxy-create-input::placeholder { color: var(--sda-text-muted); }
-.proxy__container .proxy-create-input:focus {
+.proxies-form.proxy__container .proxy-create-input::placeholder { color: var(--sda-text-subtle); }
+.proxies-form.proxy__container .proxy-create-input:focus {
   border-color: var(--sda-border-strong);
   box-shadow: var(--sda-focus-ring);
 }
 
-.proxy__container .proxy-data-example {
+.proxies-form.proxy__container .proxy-data-example {
   color: var(--sda-text-muted);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
-.proxy-table__container {
+.proxies-form .proxy-table__container {
   padding: 0 28px;
   width: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.proxy-table { display: flex; flex-direction: column; width: 100%; }
-.proxy-table-header { display: flex; width: 100%; }
-.proxy-table-header-cell {
+.proxies-form .proxy-table { display: flex; flex-direction: column; width: 100%; }
+.proxies-form .proxy-table-header { display: flex; width: 100%; }
+.proxies-form .proxy-table-header-cell {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -62,15 +62,14 @@
   color: var(--sda-text-muted);
 }
 
-.proxy-item__container {
+.proxies-form .proxy-item__container {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
-  max-height: 300px;
+  overflow: visible;
+  max-height: none;
 }
 
-.proxy-button__container {
+.proxies-form .proxy-button__container {
   padding: 0 28px;
   margin-bottom: 20px;
   width: 100%;
@@ -80,12 +79,12 @@
   gap: 16px;
 }
 
-.proxy-button__container .button {
+.proxies-form .proxy-button__container .button {
   border-radius: var(--sda-radius);
   transition: background var(--sda-transition), box-shadow var(--sda-transition);
 }
 
-.proxy-button__container .button:focus-visible {
+.proxies-form .proxy-button__container .button:focus-visible {
   outline: none;
   box-shadow: var(--sda-focus-ring);
 }

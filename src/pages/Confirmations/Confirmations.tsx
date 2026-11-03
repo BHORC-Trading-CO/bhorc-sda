@@ -79,7 +79,7 @@ const Confirmations: FC = () => {
                         <div className='sell-items-count-selected'>
                             {t('confirmations.selectedOf', { selected: selectedCount, total: items.length })}
                         </div>
-                        <button type='button' className='confirmation-icon-button' title={t('confirmations.toggleAll')} aria-label={t('confirmations.toggleAll')} aria-pressed={items.length > 0 && selectedCount === items.length} onClick={() => {
+                        <button type='button' className='confirmation-icon-button' title={t('confirmations.toggleAll')} aria-label={t('confirmations.toggleAll')} onClick={() => {
                             const selectedItems = items.filter(i => i.selected);
                             const newItems = [...items];
                             if (selectedItems.length === 0) {

@@ -64,7 +64,7 @@
   stroke-linejoin: round;
 }
 .confirmation-icon-button svg { width: 22px; height: 22px; }
-.confirmation-icon-button:hover:not(:disabled), .confirmation-icon-button[aria-pressed="true"] {
+.confirmation-icon-button:hover:not(:disabled) {
   background: var(--sda-surface-4);
   color: var(--sda-text);
 }

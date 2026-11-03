@@ -26,6 +26,9 @@ class ProxiesTableStore {
   isTestingEditingProxy: boolean;
   editingTestResult: boolean | undefined;
   testedEditingProxy: ProxySetupInterface | undefined;
+  private editingTestRequestSeq: number;
+  private editingTestReplySeq: number | undefined;
+  private pendingEditingTestCount: number;
   hidenProxyId: string[];
   searchString: string;
 
@@ -47,6 +50,9 @@ class ProxiesTableStore {
     this.isTestingEditingProxy = false;
     this.editingTestResult = undefined;
     this.testedEditingProxy = undefined;
+    this.editingTestRequestSeq = 0;
+    this.editingTestReplySeq = undefined;
+    this.pendingEditingTestCount = 0;
 
     this.pageSize = 20;
     this.activePage = 1;
@@ -63,7 +69,13 @@ class ProxiesTableStore {
     });
     window.Main.proxies.onTest((event, data) => {
       if (data.id === "editing_proxy") {
-        this.isTestingEditingProxy = false;
+        if (this.pendingEditingTestCount === 0) return;
+        const isCurrentReply = this.pendingEditingTestCount === 1
+          && this.editingTestReplySeq === this.editingTestRequestSeq;
+        this.pendingEditingTestCount -= 1;
+        this.isTestingEditingProxy = this.pendingEditingTestCount > 0 && this.testedEditingProxy !== undefined;
+        if (this.pendingEditingTestCount === 0) this.editingTestReplySeq = undefined;
+        if (!isCurrentReply) return;
         this.editingTestResult = data.testResult;
         store.windows.openMiniNotification({
           text: i18n.t(data.testResult ? "proxies.test.editingWorking" : "proxies.test.editingNotWorking"),
@@ -136,10 +148,23 @@ class ProxiesTableStore {
   }
   testEditingProxy(proxy: ProxySetupInterface) {
     this.isTestingEditingProxy = true;
+    this.editingTestRequestSeq += 1;
+    // Replies carry only editing_proxy, without params or a request ID. Once
+    // requests overlap, none can be attributed safely, even if replies reorder.
+    this.editingTestReplySeq = this.pendingEditingTestCount === 0 ? this.editingTestRequestSeq : undefined;
+    this.pendingEditingTestCount += 1;
     // Display-only snapshot: do not show a previous result for changed credentials.
     this.testedEditingProxy = { ...proxy };
     this.editingTestResult = undefined;
     window.Main.proxies.testByParams(proxy);
+  }
+  resetEditingTestDisplay() {
+    this.editingTestRequestSeq += 1;
+    this.editingTestReplySeq = undefined;
+    this.testedEditingProxy = undefined;
+    this.editingTestResult = undefined;
+    this.isTestingEditingProxy = false;
+    // Keep the in-flight count so replies from a closed/changed form can drain.
   }
   testProxy(id: string) {
     const proxy = this.proxies.filter((p) => p.id === id);
@@ -259,6 +284,7 @@ class ProxiesTableStore {
     this.isSettingsFormOpen = false;
   }
   openEditingForm(proxy: TableProxyInterface) {
+    this.resetEditingTestDisplay();
     this.isEditingFormOpen = true;
     this.editingFormContent = proxy;
   }
@@ -266,12 +292,15 @@ class ProxiesTableStore {
     return toJS(this.editingFormContent);
   }
   closeEditingForm() {
+    this.resetEditingTestDisplay();
     this.isEditingFormOpen = false;
   }
   openCreationForm() {
+    this.resetEditingTestDisplay();
     this.isCreationFormOpen = true;
   }
   closeCreationForm() {
+    this.resetEditingTestDisplay();
     this.isCreationFormOpen = false;
   }
   openBulkForm() {

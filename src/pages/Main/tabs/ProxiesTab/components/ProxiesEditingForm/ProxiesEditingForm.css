@@ -1,3 +1,9 @@
-.proxy-editing-form .proxy-item__container {
-  max-height: 300px;
+/* Baseline shared layout from 53e63af: Accounts-tab proxy blocks still use it.
+   L3 overrides this only beneath .proxies-form in ProxiesCreationForm.css. */
+.proxy-item__container {
+  display: flex;
+  flex-direction: column;
+  overflow: scroll;
+  overflow-y: auto;
+  overflow-x: hidden;
 }

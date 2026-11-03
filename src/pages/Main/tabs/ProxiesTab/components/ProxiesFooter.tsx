@@ -1,5 +1,6 @@
 import react, { FC } from 'react';
 import '../../../../../css/Footer.css';
+import './ProxyActions.css';
 import { observer } from 'mobx-react';
 import store from '../../../../../store/store';
 import Button from '../../../../../globalComponents/Button/Button';

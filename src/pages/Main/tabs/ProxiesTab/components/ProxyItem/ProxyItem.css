@@ -1,20 +1,22 @@
-.proxy-item {
+.proxies-form .proxy-item {
   display: flex;
   flex-direction: column;
   width: 100%;
 }
 
-.proxy-item-row {
+.proxies-form .proxy-item-row {
   display: flex;
   width: 100%;
+  height: auto;
   min-height: 56px;
+  flex-shrink: 0;
   align-items: center;
   background: var(--sda-surface-3);
   border-radius: var(--sda-radius);
   margin-bottom: 5px;
 }
 
-.proxy-item-cell {
+.proxies-form .proxy-item-cell {
   line-height: 20px;
   white-space: nowrap;
   min-width: 0;
@@ -25,29 +27,30 @@
   padding: 0px 5px;
 }
 
-.proxy-item-cell.icon {
+.proxies-form .proxy-item-cell.icon {
   gap: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.proxy-item-cell:first-child {
+.proxies-form .proxy-item-cell:first-child {
   border-radius: var(--sda-radius) 0 0 var(--sda-radius);
 }
 
-.proxy-item-cell:last-child {
+.proxies-form .proxy-item-cell:last-child {
   border-radius: 0 var(--sda-radius) var(--sda-radius) 0;
 }
 
-.accounts-proxy {
+.proxies-form .accounts-proxy {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: visible;
+  flex: 0 0 auto;
   padding-right: 5px;
 }
 
-.accounts__container{
+.proxies-form .accounts__container{
   width: 100%;
   padding: 0px 10px 15px 10px;
   background: var(--sda-surface-2);
@@ -55,26 +58,27 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  max-height: 400px;
+  max-height: clamp(120px, calc(100vh - 520px), 400px);
 }
 
-.accounts-header {
+.proxies-form .accounts-header {
   display: flex;
   width: 100%;
   min-height: 40px;
+  flex-shrink: 0;
   padding-left: 54px;
   align-items: center;
   justify-content: flex-start;
 }
 
-.account-header-text {
+.proxies-form .account-header-text {
   margin-right: 10px;
   width: 150px;
   display: flex;
   justify-content: center;
 }
 
-.proxy-item-button-expand {
+.proxies-form .proxy-item-button-expand {
   width: 20px;
   height: 20px;
   background: var(--sda-surface-4);
@@ -89,24 +93,28 @@
   flex: 0 0 auto;
 }
 
-.proxy-item-button-expand:hover {
+.proxies-form .proxy-item-button-expand:hover {
   background: var(--sda-surface-3);
 }
-.proxy-account-item{
+
+.proxies-form .proxy-item { color: var(--sda-text); }
+.proxies-form .proxy-item-button-expand { cursor: pointer; }
+.proxies-form .proxy-item-button-expand:focus-visible { box-shadow: var(--sda-focus-ring); }
+.proxies-form .proxy-item-test { overflow: visible; }
+.proxies-form .proxy-item .accounts-header { color: var(--sda-text-muted); }
+.proxies-form .proxy-item .proxy-linked-cell { text-align: left; }
+
+
+/* Baseline badge used by SavedProxies (L2); retain its original 5px radius. */
+.proxy-account-item {
   width: 20px;
   height: 20px;
   background: var(--sda-surface-4);
   border: none;
-  border-radius: var(--sda-radius-sm);
+  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-left: 5px;
   flex: 0 0 auto;
 }
-.proxy-item { color: var(--sda-text); }
-.proxy-item-button-expand { cursor: pointer; }
-.proxy-item-button-expand:focus-visible { box-shadow: var(--sda-focus-ring); }
-.proxy-item-test { overflow: visible; }
-.proxy-item .accounts-header { color: var(--sda-text-muted); }
-.proxy-item .proxy-linked-cell { text-align: left; }
