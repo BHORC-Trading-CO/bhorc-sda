@@ -1,23 +1,70 @@
 .table-footer-left {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
 }
 
+/* Подпись и значение не переносятся по словам (раньше «Усього елементів» ломалось в две строки) */
+.table-footer-left_item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
 
-.page-switcher-img {
-    width: 15px;
-    margin-right: 5px;
-    cursor: pointer;
+.table-footer-left_item .text-grey-large {
+    color: var(--sda-text-muted);
+    font-size: 14px;
+}
+
+.table-footer-value {
+    color: var(--sda-text);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
 }
 
 .table-footer-img-item {
-    display: flex;
+    gap: 2px;
 }
 
-.table-footer-img-item div {
-    margin-right: 10px;
+.page-switcher-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: var(--sda-radius-sm);
+    background: transparent;
+    cursor: pointer;
+    transition: background-color var(--sda-transition);
 }
 
+.page-switcher-btn:hover:not([aria-disabled]) {
+    background: var(--sda-surface-3);
+}
+
+.page-switcher-btn[aria-disabled] {
+    cursor: default;
+}
+
+.page-switcher-btn:focus {
+    outline: none;
+}
+
+.page-switcher-btn:focus-visible {
+    box-shadow: var(--sda-focus-ring);
+}
+
+.page-switcher-img {
+    display: block;
+    width: 15px;
+    height: 15px;
+}
+
+/* Выпадающий список «Элементов на странице» в тёмной палитре */
 .Dropdown-root {
     position: relative;
 }
@@ -25,84 +72,86 @@
 .Dropdown-control {
     position: relative;
     overflow: hidden;
-    cursor: default;
+    cursor: pointer;
     outline: none;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 20px;
-    padding: 0px 22px 0px 10px;
-    transition: all 200ms ease;
+    padding: 4px 26px 4px 10px;
+    border-radius: var(--sda-radius-sm);
+    background: var(--sda-surface-3);
+    color: var(--sda-text);
+    font-variant-numeric: tabular-nums;
+    transition: background-color var(--sda-transition);
 }
 
 .Dropdown-control:hover {
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+    background: var(--sda-surface-4);
 }
 
 .Dropdown-arrow {
-    border-color: #999 transparent transparent;
+    border-color: var(--sda-text-muted) transparent transparent;
     border-style: solid;
     border-width: 5px 5px 0;
     content: ' ';
     display: block;
     height: 0;
-    margin-top: -ceil(2.5);
     position: absolute;
     right: 10px;
-    top: 6px;
+    top: 12px;
     width: 0
 }
 
 .is-open .Dropdown-arrow {
-    border-color: transparent transparent #999;
+    border-color: transparent transparent var(--sda-text-muted);
     border-width: 0 5px 5px;
 }
 
+/* Меню открывается вверх ровно над полем (раньше было белым и с фиксированным сдвигом -210px) */
 .Dropdown-menu {
-    background-color: white;
-    border: 1px solid #ccc;
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+    background-color: var(--sda-modal);
+    border: 1px solid var(--sda-border-strong);
+    border-radius: var(--sda-radius-sm);
+    box-shadow: 0 8px 24px var(--sda-overlay);
     box-sizing: border-box;
-    margin-top: -1px;
-    max-height: 210px;
+    max-height: 240px;
+    min-width: 100%;
     overflow-y: auto;
     position: absolute;
-    top: -210px;
+    bottom: 100%;
+    margin-bottom: 4px;
     z-index: 1000;
     -webkit-overflow-scrolling: touch;
 }
 
 .Dropdown-menu .Dropdown-group>.Dropdown-title {
     padding: 8px 10px;
-    color: rgba(51, 51, 51, 1);
+    color: var(--sda-text-muted);
     font-weight: bold;
     text-transform: capitalize;
 }
 
 .Dropdown-option {
     box-sizing: border-box;
-    color: rgba(51, 51, 51, 0.8);
+    color: var(--sda-text-muted);
     cursor: pointer;
     display: block;
-    padding: 8px 10px;
-}
-
-.Dropdown-option:last-child {
-    border-bottom-right-radius: 2px;
-    border-bottom-left-radius: 2px;
+    padding: 6px 12px;
+    font-variant-numeric: tabular-nums;
 }
 
 .Dropdown-option:hover {
-    background-color: #f2f9fc;
-    color: #333;
+    background-color: var(--sda-surface-3);
+    color: var(--sda-text);
 }
 
 .Dropdown-option.is-selected {
-    background-color: #f2f9fc;
-    color: #333;
+    background-color: var(--sda-surface-4);
+    color: var(--sda-text);
 }
 
 .Dropdown-noresults {
     box-sizing: border-box;
-    color: #ccc;
+    color: var(--sda-text-subtle);
     cursor: default;
     display: block;
     padding: 8px 10px;

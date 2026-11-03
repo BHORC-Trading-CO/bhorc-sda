@@ -1,15 +1,20 @@
 .columns-selected-item {
   width: 100%;
-  padding: 0px 16px;
+  padding: 0px 14px;
   display: flex;
   align-items: center;
-  background: #2c1935;
-  border: 1px solid #2d1e36;
-  border-radius: 10px;
+  background: var(--sda-surface-2);
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius);
   height: 40px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   cursor: grab;
+  transition: border-color var(--sda-transition), background-color var(--sda-transition);
+}
 
+.columns-selected-item:hover {
+  border-color: var(--sda-border-strong);
+  background: var(--sda-surface-3);
 }
 
 .columns-selected-item:last-child{
@@ -17,5 +22,8 @@
 }
 
 .columns-selected-img {
-  margin-right: 15px;
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  opacity: 0.8;
 }
