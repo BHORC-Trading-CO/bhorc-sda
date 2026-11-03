@@ -29,7 +29,6 @@ const Confirmations: FC = () => {
         });
 
         window.Confirmations.api.onGetConfirmations((event, data) => {
-            console.log(data);
             setId(currentId => {
                 if (currentId != data.id) return currentId;
                 setIsLoading(false);

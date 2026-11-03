@@ -1,3 +1,4 @@
+import sanitizeAvatarUrl from "../../../../../../../../../electron/components/Functions/sanitizeAvatarUrl";
 import React, { useState } from "react";
 import TableProxyInterface from "../../../../../../../../../electron/interfaces/Proxy/TableProxyInterface";
 import SmaFileInterface from "../../../../../../../../../electron/interfaces/SteamAccount/SmaFileInterface";
@@ -23,13 +24,12 @@ const ImportAccountItem = observer(
     );
     const [isSessionOpen, setIsSessionOpen] = useState(false);
 
-    console.log(Object.keys(smaFile.maFile));
     return (
       <div className="imported-steam-account-item__container">
         <div className="imported-steam-account-item text-white-medium">
           <div className="imported-steam-account-cell imported-steam-account-avatar-container">
             <img
-              src={smaFile.secondary.avatarUrl}
+              src={sanitizeAvatarUrl(smaFile.secondary?.avatarUrl)}
               className="imported-steam-account-avatar"
               style={{ backgroundColor: "black" }}
             ></img>
@@ -103,7 +103,6 @@ const ImportAccountItem = observer(
         {isProxyOpen ? (
           <ProxyItem
             onSelect={(newProxy) => {
-              console.log(newProxy);
               for (var i in content.importedAccounts) {
                 if (content.importedAccounts[i].tempId === tempId)
                   content.importedAccounts[i].proxyId = newProxy.id;

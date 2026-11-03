@@ -7,7 +7,7 @@ export default async (event: IpcMainEvent, id: string) => {
         const steamAccount = steamAccountManager.getById(id);
         if (!steamAccount) throw new Error(`Steam аккаунта #${id} не существует!`);
         const confirmations = await steamAccount.getConfirmations();
-        console.log(confirmations);
+        console.log(`${id} - подтверждений: ${confirmations.length}`);
         event.reply(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS, { id, confirmations });
     } catch (err) {
         event.reply(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS_ERROR, { id, err });

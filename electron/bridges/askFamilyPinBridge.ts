@@ -1,3 +1,4 @@
+import "../components/Functions/installConsoleRedaction";
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import InfoType from "../components/application/askInfo/InfoType";
 import WindowsChannels from "../interfaces/IpcChannels/WindowsChannels";
@@ -9,7 +10,6 @@ const askFamilyPinApi = {
         ipcRenderer.on(WindowsChannels.GET_ASK_WINDOW_PARAMS, func);
     },
     sendData(id: string, data: string) {
-        console.log(id, data);
         ipcRenderer.send(AskSomethingChannels.ASK_WINDOW_SEND_DATA, { id, data });
     },
     abort(id: string) {

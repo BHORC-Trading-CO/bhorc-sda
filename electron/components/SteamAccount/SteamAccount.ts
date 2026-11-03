@@ -23,6 +23,8 @@ import getCommunityWebCookies from "./Functions/getCommunityWebCookies";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "./Functions/steamUserAgent";
 import askMailCode from "../application/askInfo/askMailCode";
 import SessionInterface from "../../interfaces/SteamAccount/SessionInterface";
+import stripLegacyMarketData from "../Functions/stripLegacyMarketData";
+import sanitizeSmaFile from "../Functions/sanitizeSmaFile";
 const SteamTotp = require('steam-totp');
 
 class SteamAccount {
@@ -35,6 +37,7 @@ class SteamAccount {
     proxy: ProxyInterface | null;
 
     constructor(params: SteamAccountInterface) {
+        params = stripLegacyMarketData(params);
         this.setupParams = {
             accountName: params.accountName,
             password: params.password,
@@ -189,7 +192,6 @@ class SteamAccount {
                             SteamID: steamID.toString(),
                             SessionID: ""
                         }
-                        console.log(newSession);
                         this.saveSession(newSession);
                         resolve();
                     } catch (err) {
@@ -275,7 +277,7 @@ class SteamAccount {
     }
     getChangableSecondary(): Promise<ChangableSecondaryInterface> {
         return new Promise((resolve, reject) => {
-            getChangableSecondaries(this.community, this.params.tmApiKey ? this.params.tmApiKey : "")
+            getChangableSecondaries(this.community)
                 .then(data => {
                     try {
                         // console.log(`#${this.params.number} successful get changable secondary!`);
@@ -314,12 +316,11 @@ class SteamAccount {
             familyViewPin: this.params.familyViewPin,
             useSteamCookies: this.params.useSteamCookies
         }
-        return smaFile;
+        return stripLegacyMarketData(smaFile);
     }
     async saveSession(session: Session) {
         try {
             this.params.maFile.Session = session;
-            console.log(this.params.maFile);
             this.editParams({ maFile: this.params.maFile });
         } catch (err) {
             throw new Error(`Не удалось сохранить сессию: ${err}`);
@@ -356,6 +357,7 @@ class SteamAccount {
         });
     }
     editParams(newParams: { [K in keyof SteamAccountInterface]?: SteamAccountInterface[K] }) {
+        newParams = stripLegacyMarketData(newParams);
         for (var i in this.params) {
             if (typeof (newParams[i]) !== 'undefined') {
                 this.params[i] = newParams[i];
@@ -364,6 +366,8 @@ class SteamAccount {
         SteamAccountStorage.EditData(this.params.id, newParams);
     }
     static Generate(smaFile: SmaFile, changableSecondary: ChangableSecondaryInterface | null) {
+        // Портативный прокси хранится только в LinksStorage, служебные поля файла не принимаем.
+        const { proxy, ...account } = sanitizeSmaFile(smaFile);
         // Нумеруем относительно активных аккаунтов: удалённые (архивные) не должны
         // оставлять "дыры" в нумерации. Массив менеджера не мутируем (sort in-place
         // ломал порядок отображения — новые аккаунты оказывались "с хвоста").
@@ -375,26 +379,20 @@ class SteamAccount {
         const maxNumber = steamAccountsArray.length === 0 ? 1 : steamAccountsArray[0].number + 1;
 
         const params: SteamAccountInterface = {
+            ...account,
             id: uuidv4(),
             number: maxNumber,
-            ...smaFile,
             changableSecondary: changableSecondary ? changableSecondary : {
                 steam: {
                     balance: 0,
                     currency: 'RUB',
                     error: null
-                },
-                market: {
-                    balance: 0,
-                    currency: 'RUB',
-                    error: null
-                },
-
+                }
             },
             deleted: false
         }
 
-        return params;
+        return stripLegacyMarketData(params);
     }
 }
 

@@ -33,12 +33,10 @@ export default async (event: Electron.IpcMainEvent, params: { steamAccount: Stea
             //proxy = newProxy;
             console.log(`generate new proxy: ${proxy.id}`);
         }
-        console.log(params.steamAccount);
         const smaFile = await maFileLogin(params.steamAccount, {
             stepChannel: SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP,
             abortChannel: SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT
         }, proxy);
-        console.log(smaFile);
         nextStep("import");
         const steamAccount = steamAccountImport(smaFile);
         nextStep("link");

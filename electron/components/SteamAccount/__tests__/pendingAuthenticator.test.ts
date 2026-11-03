@@ -55,6 +55,29 @@ describe("savePendingAuthenticator", () => {
         expect(JSON.parse(fs.readFileSync(second!, "utf8")).response.revocation_code).toBe("R99999");
     });
 
+    it("не затирает секреты, если две попытки пришлись на одну миллисекунду", () => {
+        jest.useFakeTimers().setSystemTime(new Date("2026-10-27T20:00:00.000Z"));
+        try {
+            const first = savePendingAuthenticator("collision", rawMaFile, "76561198000000000");
+            const second = savePendingAuthenticator(
+                "collision",
+                { ...rawMaFile, revocation_code: "R77777" } as TwoFactorResponseInterface,
+                "76561198000000000"
+            );
+
+            expect(first).not.toBe(second);
+            expect(JSON.parse(fs.readFileSync(first!, "utf8")).response.revocation_code).toBe("R12345");
+            expect(JSON.parse(fs.readFileSync(second!, "utf8")).response.revocation_code).toBe("R77777");
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    (process.platform === "win32" ? it.skip : it)("пишет файл с секретами с правами 0o600", () => {
+        const file = savePendingAuthenticator("modecheck", rawMaFile, "76561198000000000");
+        expect(fs.statSync(file!).mode & 0o777).toBe(0o600);
+    });
+
     it("не бросает исключение, если записать не удалось", () => {
         const spy = jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
             throw new Error("disk full");

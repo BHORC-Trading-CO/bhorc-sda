@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { onTrusted } from '../trustedIpc';
 import proxyManager, { ProxyManager } from '../../Proxy/proxyManager';
 import TableStorage from '../../newStorage/TableStorage';
 import Field from '../../../interfaces/TableFields/Field';
@@ -13,7 +13,7 @@ import proxyGetTableOptionsListener from '../../Proxy/listeners/proxyGetTableOpt
 import proxySetTableOptionsListener from '../../Proxy/listeners/proxySetTableOptionsListener';
 
 export default () => {
-    ipcMain.on('TEST_PROXY', async (event, id: string) => {
+    onTrusted('TEST_PROXY', async (event, id: string) => {
         try {
             const proxy = proxyManager.getById(id);
             if (!proxy) throw new Error(`Прокси #${id} не существует`);
@@ -24,7 +24,7 @@ export default () => {
             event.reply('ERROR', err);
         }
     });
-    ipcMain.on('TEST_PROXY_BY_PARAMS', async (event, proxy: ProxySetupInterface) => {
+    onTrusted('TEST_PROXY_BY_PARAMS', async (event, proxy: ProxySetupInterface) => {
         try {
             const isWork = await Proxy.Test(proxy);
             console.log(isWork);
@@ -33,7 +33,7 @@ export default () => {
             event.reply('ERROR', err);
         }
     }); 
-    ipcMain.on('REFRESH_PROXIES', async (event) => {
+    onTrusted('REFRESH_PROXIES', async (event) => {
         try {
             proxyManager.load();
             const proxies = proxyManager.getCompiledObjects();
@@ -42,7 +42,7 @@ export default () => {
             event.reply('ERROR', err);
         }
     });
-    ipcMain.on('GET_PROXIES_TABLE_FIELDS', (event) => {
+    onTrusted('GET_PROXIES_TABLE_FIELDS', (event) => {
         try {
             const fields = TableStorage.GetFields('proxies');
             event.reply('GET_PROXIES_TABLE_FIELDS', fields);
@@ -50,14 +50,14 @@ export default () => {
             event.reply('ERROR', err);
         }
     });
-    ipcMain.on('SAVE_PROXIES_TABLE_FIELDS', async (event, fields: Field[]) => {
+    onTrusted('SAVE_PROXIES_TABLE_FIELDS', async (event, fields: Field[]) => {
         try {
             TableStorage.EditFields('proxies', fields);
         } catch (err) {
             event.reply('ERROR', err);
         }
     });
-    ipcMain.on('NEW_PROXY', (event, params: { proxy: ProxySetupInterface, links: { steamAccountIds: string[], profileIds: string[] } }) => {
+    onTrusted('NEW_PROXY', (event, params: { proxy: ProxySetupInterface, links: { steamAccountIds: string[], profileIds: string[] } }) => {
         try {
             const proxyData = Proxy.Generate(params.proxy);
             const proxyObject = new Proxy(proxyData);
@@ -71,20 +71,28 @@ export default () => {
             event.reply('ERROR', err);
         }
     });
-    ipcMain.on('NEW_PROXIES', (event, proxies: ProxySetupInterface[]) => {
-        try {
-            for (var proxy of proxies) {
+    onTrusted('NEW_PROXIES', (event, proxies: ProxySetupInterface[]) => {
+        // Каждую строку отдельно: неправильная не должна обрывать импорт на середине,
+        // когда часть прокси уже сохранена, а таблица ещё не обновлена.
+        const rejected: string[] = [];
+        for (var proxy of proxies) {
+            try {
                 const proxyData = Proxy.Generate(proxy);
                 const proxyObject = new Proxy(proxyData);
                 proxyManager.addNew(proxyObject);
                 ProxyStorage.Save(proxyData.id, proxyData);
+            } catch (err) {
+                rejected.push(`${proxy && proxy.host}:${proxy && proxy.port} — ${err instanceof Error ? err.message : err}`);
             }
+        }
+        try {
             proxyManager.sendProxiesToFront();
         } catch (err) {
             event.reply('ERROR', err);
         }
+        if (rejected.length) event.reply('ERROR', new Error(`Не добавлено прокси: ${rejected.length}. ${rejected.join("; ")}`));
     });
-    ipcMain.on('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds: string[] } }) => {
+    onTrusted('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds: string[] } }) => {
         try {
             proxyManager.edit(params.id, params.proxy);
             Manager.ResetProxy(params.id);
@@ -96,7 +104,7 @@ export default () => {
             event.reply('ERROR', err);
         }
     });
-    ipcMain.on('DELETE_PROXY', async (event, id: string) => {
+    onTrusted('DELETE_PROXY', async (event, id: string) => {
         try {
             Manager.ResetProxy(id);
             proxyManager.delete(id);
@@ -104,7 +112,7 @@ export default () => {
             event.reply('ERROR', err);
         }
     });
-    ipcMain.on('GET_PROXIES', (event) => {
+    onTrusted('GET_PROXIES', (event) => {
         try {
             const proxies = proxyManager.getCompiledObjects();
             event.reply('GET_PROXIES', proxies);
@@ -112,6 +120,6 @@ export default () => {
             event.reply('ERROR', err);
         }
     });
-    ipcMain.on(ProxyChannels.PROXY_GET_TABLE_OPTIONS, proxyGetTableOptionsListener);
-    ipcMain.on(ProxyChannels.PROXY_SET_TABLE_OPTIONS, proxySetTableOptionsListener);
+    onTrusted(ProxyChannels.PROXY_GET_TABLE_OPTIONS, proxyGetTableOptionsListener);
+    onTrusted(ProxyChannels.PROXY_SET_TABLE_OPTIONS, proxySetTableOptionsListener);
 }

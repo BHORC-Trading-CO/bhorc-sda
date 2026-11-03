@@ -1,3 +1,4 @@
+import sanitizeAvatarUrl from "../../../../../../electron/components/Functions/sanitizeAvatarUrl";
 import react, { FC, useEffect } from "react";
 import Table, { Line, Cell } from "../../../../../globalComponents/Table/Table";
 import AvalibleTypes from "../../../../../../electron/interfaces/TableFields/AvalibleFieldTypes";
@@ -25,7 +26,6 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
   const steamAccountsByPage =
     store.steamAccountsTable.getSteamAccountsByPages();
 
-  console.log("accounts by pages: ", steamAccountsByPage);
 
   const lines: Line[] = [];
   if (steamAccountsByPage[store.steamAccountsTable.activePage - 1])
@@ -88,26 +88,6 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
                   : -1
                 : a.changableSecondary.steam.balance! >
                   b.changableSecondary.steam.balance!
-                ? 1
-                : -1
-            );
-          case AvalibleTypes.csgoTmBalance:
-            return store.steamAccountsTable.sortSteamAccounts((a, b) =>
-              direction === "UP"
-                ? (a.changableSecondary.market?.balance
-                    ? a.changableSecondary.market?.balance
-                    : 0) <
-                  (b.changableSecondary.market?.balance
-                    ? b.changableSecondary.market?.balance
-                    : 0)
-                  ? 1
-                  : -1
-                : (a.changableSecondary.market?.balance
-                    ? a.changableSecondary.market?.balance
-                    : 0) >
-                  (b.changableSecondary.market?.balance
-                    ? b.changableSecondary.market?.balance
-                    : 0)
                 ? 1
                 : -1
             );
@@ -400,43 +380,6 @@ const CellJSX: FC<{
           )}
         </>
       );
-    case AvalibleTypes.csgoTmBalance:
-      if (steamAccount.deleted) return <></>;
-      if (changableSecondaries.isLoad) {
-        const uniqueId = uuid();
-        if (changableSecondaries.content.market.error) {
-          return (
-            <div data-tip="React-tooltip" data-for={uniqueId}>
-              Ошибка(?)
-              <ReactTooltip
-                place="top"
-                type="dark"
-                effect="float"
-                id={uniqueId}
-              >
-                <div className="alt-text-container">
-                  {String(changableSecondaries.content.market.error)}
-                </div>
-              </ReactTooltip>
-            </div>
-          );
-        } else {
-          return changableSecondaries.content.market ? (
-            <>
-              {changableSecondaries.content.market.balance}
-              {changableSecondaries.content.market.currency}
-            </>
-          ) : (
-            <>нет api</>
-          );
-        }
-      } else {
-        return (
-          <div>
-            <LoadingIcons.ThreeDots className="micro-download" />
-          </div>
-        );
-      }
     case AvalibleTypes.steamAccountBalance:
       if (steamAccount.deleted) return <></>;
 
@@ -473,12 +416,6 @@ const CellJSX: FC<{
           </div>
         );
       }
-    case AvalibleTypes.tmApiKey:
-      return steamAccount.tmApiKey ? (
-        <Password password={steamAccount.tmApiKey} />
-      ) : (
-        <>Нет</>
-      );
     case AvalibleTypes.steamGuard:
       return (
         <>
@@ -524,7 +461,7 @@ const CellJSX: FC<{
             </div>
           ) : (
             <img
-              src={steamAccount.secondary.avatarUrl}
+              src={sanitizeAvatarUrl(steamAccount.secondary?.avatarUrl)}
               className="steam-account-avatar"
               style={{ backgroundColor: "black" }}
             />

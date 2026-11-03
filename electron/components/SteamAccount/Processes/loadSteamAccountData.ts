@@ -2,6 +2,7 @@ import SteamCommunity from "steamcommunity";
 import { Response } from "request";
 import SecondaryInterface from "../../../interfaces/SteamAccount/SecondaryInterface";
 import ChangableSecondaryInterface from "../../../interfaces/SteamAccount/ChangableSecondaryInterface";
+import sanitizeAvatarUrl, { DEFAULT_AVATAR_URL } from "../../Functions/sanitizeAvatarUrl";
 
 export async function getSecondaries(community: SteamCommunity, prev?: SecondaryInterface): Promise<SecondaryInterface> {
     // Дедуп запросов: раньше профиль /profiles/{id}/ дёргался ТРИЖДЫ (ник, уровень, аватар),
@@ -98,9 +99,7 @@ function decodeHtmlEntities(text: string): string {
         .replace(/&amp;/g, "&");
 }
 
-const DEFAULT_AVATAR_URL = "https://avatars.akamai.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg";
-
-function parseAvatarURL(body: string): string {
+export function parseAvatarURL(body: string): string {
     // Актуальная разметка Steam: аватар в хедере профиля лежит в
     // <div class="playerAvatar profile_header_size ..."> ... <picture>
     //   <source srcset="https://avatars.fastly.steamstatic.com/..._full.jpg"> ...
@@ -110,25 +109,21 @@ function parseAvatarURL(body: string): string {
         const srcset = /srcset="([^"]+)"/.exec(body.slice(headerIdx));
         if (srcset) {
             // srcset может содержать несколько URL через запятую с дескрипторами — берём первый URL
-            return srcset[1].split(",")[0].trim().split(/\s+/)[0];
+            return sanitizeAvatarUrl(srcset[1].split(",")[0].trim().split(/\s+/)[0]);
         }
     }
     // Фолбэк на старую разметку (на случай, если где-то ещё встретится)
     if (body.includes("user_avatar playerAvatar offline")) {
-        return body.split('user_avatar playerAvatar offline">')[1].split('"')[1].split(">")[0];
+        const avatar = /user_avatar playerAvatar offline">\s*<img[^>]*src="([^"]+)"/.exec(body);
+        return sanitizeAvatarUrl(avatar ? avatar[1] : undefined);
     }
     return DEFAULT_AVATAR_URL;
 }
 
-export async function getChangableSecondaries(community: SteamCommunity, marketApiKey: string): Promise<ChangableSecondaryInterface> {
-    const promises = [getSteamBalance(community), getMarketBalance(marketApiKey, community)]
+export async function getChangableSecondaries(community: SteamCommunity): Promise<ChangableSecondaryInterface> {
+    const promises = [getSteamBalance(community)]
     const result = await Promise.allSettled(promises);
     const changableSecondary: ChangableSecondaryInterface = {
-        market: {
-            error: result[1].status === 'rejected' ? result[1].reason : null,
-            balance: result[1].status === 'fulfilled' ? result[1].value.balance : null,
-            currency: result[1].status === 'fulfilled' ? result[1].value.currency : null
-        },
         steam: {
             error: result[0].status === 'rejected' ? result[0].reason : null,
             balance: result[0].status === 'fulfilled' ? result[0].value.balance : null,
@@ -173,25 +168,6 @@ async function getSteamBalance(community: SteamCommunity): Promise<{ balance: nu
     });
 }
 
-async function getMarketBalance(marketApiKey: string, community: SteamCommunity): Promise<{ balance: number, currency: string }> {
-    return new Promise<{ balance: number, currency: string }>((resolve, reject) => {
-        if (!marketApiKey) {
-            return reject('Апи ключ маркета не установлен');
-        }
-        community.httpRequestGet({
-            uri: `https://market.csgo.com/api/v2/get-money?key=${marketApiKey}`
-        }, (err: SteamCommunity.CallbackError, response: Response, body: Response["body"]) => {
-            if (err) return reject(err);
-            if (response.statusCode == 200) {
-                const balance = JSON.parse(body);
-                resolve({ balance: balance.money, currency: balance.currency });
-            } else {
-                reject(new Error(`${response.statusCode}: ${response.statusMessage}`));
-            }
-        });
-    });
-}
-
 function formatCurrency(balanceInfo: string): string {
     var rawCurrency = balanceInfo.replace(/\d+,+\d+|\d+\.+\d+|\d+/, "");
     switch (rawCurrency) {
@@ -225,20 +201,113 @@ function parseTpState(body: string): boolean | string {
     return true;
 }
 
-async function getTradeState(community: SteamCommunity): Promise<boolean> {
+// Статус трейда берём из проверки, которую Steam делает перед Торговой площадкой:
+// /market/eligibilitycheck/ ставит cookie webTradeEligibility с JSON вида
+// {"allowed":1,"allowed_at_time":0,"steamguard_required_days":15,"new_device_cooldown_days":0,...}.
+// Раньше статус узнавали, открывая новый трейд на захардкоженный трейд-линк чужого аккаунта
+// из апстрима: все аккаунты ходили на один и тот же линк, и Steam мог связать их между собой.
+//
+// allowed описывает доступ к Торговой площадке, а не к трейдам. Поэтому решаем по битам
+// reason (EMarketNotAllowedReasonFlags из steamclientpublic.h): трейды блокируют бан,
+// ограниченный аккаунт, Steam Guard < 15 дней, сброс пароля, новое устройство и т.п.
+// Остальные причины (нет покупок за год, новый способ оплаты, возврат, подарок в кошелёк)
+// запрещают только маркет, а трейд-офферы работают.
+const TRADE_ELIGIBILITY_URL = "https://steamcommunity.com/market/eligibilitycheck/?goto=%2F";
+const TRADE_ELIGIBILITY_COOKIE_URL = "https://steamcommunity.com/market/eligibilitycheck/";
+
+const REASON_TEMPORARY_FAILURE = 1 << 0;
+const REASON_INVALID_COOKIE = 1 << 10;
+const TRADE_BLOCKING_REASONS =
+    (1 << 1) |  // AccountDisabled
+    (1 << 2) |  // AccountLockedDown
+    (1 << 3) |  // AccountLimited
+    (1 << 4) |  // TradeBanned
+    (1 << 6) |  // SteamGuardNotEnabled
+    (1 << 7) |  // SteamGuardOnlyRecentlyEnabled
+    (1 << 8) |  // RecentPasswordReset
+    (1 << 11) | // UsingNewDevice
+    (1 << 16);  // TradeCooldown (нет в заголовке Valve, встречается в живых ответах)
+const MARKET_ONLY_REASONS =
+    (1 << 5) |  // AccountNotTrusted
+    (1 << 9) |  // NewPaymentMethod
+    (1 << 12) | // RecentSelfRefund
+    (1 << 13) | // NewPaymentMethodCannotBeVerified
+    (1 << 14) | // NoRecentPurchases
+    (1 << 15);  // AcceptedWalletGift
+
+export interface TradeEligibility {
+    allowed: number;
+    allowed_at_time?: number;
+    reason?: number;
+}
+
+export function parseTradeEligibility(raw: string | undefined | null): TradeEligibility | null {
+    if (!raw) return null;
+    try {
+        const value = JSON.parse(decodeURIComponent(raw));
+        return value && typeof value.allowed === "number" ? value : null;
+    } catch (err) {
+        return null;
+    }
+}
+
+// true — трейды доступны, false — заблокированы; исключение — статус неизвестен
+// (временный сбой Steam, проблема с cookie, allowed=0 без причины): getSecondaries
+// тогда оставит прежнее значение.
+export function tradeStateFromEligibility(eligibility: TradeEligibility): boolean {
+    if (eligibility.allowed === 1) return true;
+    const reason = eligibility.reason || 0;
+    if (reason & TRADE_BLOCKING_REASONS) return false;
+    // Трейды доступны, только если ВСЕ причины из списка «только маркет». Временный сбой,
+    // проблема с cookie, пустая причина и биты, которых Valve ещё не было, — статус неизвестен.
+    if (reason === 0 || reason & (REASON_TEMPORARY_FAILURE | REASON_INVALID_COOKIE) || reason & ~MARKET_ONLY_REASONS) {
+        throw new Error(`eligibilitycheck: allowed=0, reason=${reason}, статус неизвестен`);
+    }
+    return true;
+}
+
+type CookieJarLike = {
+    _jar?: {
+        getCookiesSync(url: string): { key: string; value: string; domain: string; path: string }[];
+        store?: { removeCookie(domain: string, path: string, key: string, cb: (err?: Error) => void): void };
+    };
+};
+
+function eligibilityCookies(community: SteamCommunity) {
+    const jar = (community as unknown as { _jar?: CookieJarLike })._jar;
+    try {
+        return (jar?._jar?.getCookiesSync(TRADE_ELIGIBILITY_COOKIE_URL) || []).filter((c) => c.key === "webTradeEligibility");
+    } catch (err) {
+        return [];
+    }
+}
+
+export async function getTradeState(community: SteamCommunity): Promise<boolean> {
+    // /market/ уже прогнал аккаунт через ту же проверку, и cookie может лежать в jar.
+    // Убираем её, чтобы вердикт был свежим, а не прочитанным из прошлого запроса.
+    const jar = (community as unknown as { _jar?: CookieJarLike })._jar;
+    for (const c of eligibilityCookies(community)) jar?._jar?.store?.removeCookie(c.domain, c.path, c.key, () => undefined);
+
     return new Promise<boolean>((resolve, reject) => {
         community.httpRequestGet({
-            uri: "https://steamcommunity.com/tradeoffer/new/?partner=1019092302&token=1hP4HPB2"
-        }, (err: SteamCommunity.CallbackError, response: Response, _body: Response["body"]) => {
-            if (err) {
-                if (err.message.includes("You cannot trade") || err.message.includes("Steam Guard"))
-                    resolve(false);
-                return reject(err);
+            uri: TRADE_ELIGIBILITY_URL,
+            followRedirect: false
+        }, (err: SteamCommunity.CallbackError, response: Response) => {
+            if (err) return reject(err);
+            const fromHeader = ([] as string[])
+                .concat(response.headers["set-cookie"] || [])
+                .map((c) => c.match(/(?:^|;\s*)webTradeEligibility=([^;]*)/))
+                .find(Boolean);
+            // Только из этого ответа: cookie из jar перед запросом убрана, и подставлять
+            // туда прошлый вердикт нельзя.
+            const eligibility = parseTradeEligibility(fromHeader ? fromHeader[1] : null);
+            if (!eligibility) {
+                return reject(new Error(`eligibilitycheck ${response.statusCode}: нет cookie webTradeEligibility`));
             }
-            if (response.statusCode == 200) {
-                resolve(true);
-            } else {
-                reject(new Error(`${response.statusCode}: ${response.statusMessage}`));
+            try {
+                resolve(tradeStateFromEligibility(eligibility));
+            } catch (e) {
+                reject(e);
             }
         });
     });

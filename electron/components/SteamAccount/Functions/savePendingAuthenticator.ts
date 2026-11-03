@@ -23,19 +23,29 @@ export default function savePendingAuthenticator(
 ): string | null {
     try {
         const dir = path.join(app.getPath("userData"), "pending_authenticators");
-        fs.mkdirSync(dir, { recursive: true });
+        fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+        // mode у mkdirSync не трогает уже существующую папку (старые версии создавали 0o755).
+        // Права — best effort: из-за них не должны теряться сами секреты.
+        try {
+            fs.chmodSync(dir, 0o700);
+        } catch (err) {
+            console.log(`Не удалось ограничить права на ${dir}: ${err}`);
+        }
 
         // Имя с меткой времени: повторные попытки не затирают предыдущие секреты.
+        // Две попытки в одну миллисекунду дают одно имя, поэтому пишем с флагом "wx"
+        // (ошибка, если файл уже есть) и добавляем суффикс. Права 0o600: внутри shared_secret.
         const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-        const file = path.join(dir, `${accountName}-${stamp}.json`);
-
-        fs.writeFileSync(
-            file,
-            JSON.stringify({ accountName, steamID64, savedAt: new Date().toISOString(), response: rawMaFile }, null, 2),
-            "utf8"
-        );
-
-        return file;
+        const data = JSON.stringify({ accountName, steamID64, savedAt: new Date().toISOString(), response: rawMaFile }, null, 2);
+        for (let attempt = 0; ; attempt++) {
+            const file = path.join(dir, `${accountName}-${stamp}${attempt ? `-${attempt}` : ""}.json`);
+            try {
+                fs.writeFileSync(file, data, { encoding: "utf8", mode: 0o600, flag: "wx" });
+                return file;
+            } catch (err) {
+                if ((err as NodeJS.ErrnoException).code !== "EEXIST" || attempt >= 100) throw err;
+            }
+        }
     } catch (err) {
         // Не роняем подключение из-за проблем с диском, но кричим в лог: дальше
         // секреты будут жить только в памяти.

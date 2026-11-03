@@ -1,3 +1,4 @@
+import sanitizeAvatarUrl from "../../../../../../../electron/components/Functions/sanitizeAvatarUrl";
 import react, { FC } from 'react';
 import MiniWindow from '../../../../components/MiniWindow/MiniWindow';
 import { observer } from 'mobx-react-lite';
@@ -35,12 +36,11 @@ const EditFormContent = observer(() => {
     const steamAccount = content.steamAccount;
     const steamAccountInStorage = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(sa => sa.id === steamAccount.id)[0];
     const pin = steamAccount.familyViewPin === 0 ? '' : String(steamAccount.familyViewPin);
-    console.log(pin);
     return <div className='steam-account_edit-form'>
         <div className='steam-data-block'>
             <div className="steam-data-title text-white-medium">Введите данные от существующего Steam аккаунта:</div>
             <div className="steam-data-input__wrapper">
-                <img src={steamAccount.secondary.avatarUrl} alt="" className='steam-account-avatar' style={{ width: '40px', height: '40px', marginRight: '10px' }} />
+                <img src={sanitizeAvatarUrl(steamAccount.secondary?.avatarUrl)} alt="" className='steam-account-avatar' style={{ width: '40px', height: '40px', marginRight: '10px' }} />
                 <Input value={steamAccount.accountName} placeholder='Логин Steam' onChange={(newValue) => {
                     store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, accountName: newValue } });
                     changeThisProperties.accountName = newValue;
@@ -67,11 +67,6 @@ const EditFormContent = observer(() => {
                         <></>
                 }
             </div>
-            <Input value={steamAccount.tmApiKey ? steamAccount.tmApiKey : ""} placeholder='TM api ключ' onChange={(newValue) => {
-                store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, tmApiKey: newValue } });
-                changeThisProperties.tmApiKey = newValue;
-            }} />
-
             <MaFileImport currentMaFile={content.steamAccount.maFile} onChange={(newMaFile) => {
                 if (!newMaFile) return;
 

@@ -177,7 +177,7 @@ export async function resolveBrowserPath(
   // Качаем во временный файл: если скачивание оборвётся, в кеше не останется
   // наполовину распакованной сборки, которую следующий запуск примет за готовую.
   const tmpArchive = path.join(
-    await fsp.mkdtemp(path.join(os.tmpdir(), "trademanager-chromium-")),
+    await fsp.mkdtemp(path.join(os.tmpdir(), "bhorc-sda-chromium-")),
     ARCHIVE_NAME
   );
 

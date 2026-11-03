@@ -13,7 +13,7 @@ import Proxy from "../../Proxy/Proxy";
 import ProxyStorage from "../../newStorage/ProxyStorage";
 import GuardSetupResultInterface from "../../../interfaces/SteamAccount/GuardSetupResultInterface";
 
-export default async (event: Electron.IpcMainEvent, params: { accountName: string, password: string, tmApiKey?: string, links: { proxyId: string | null, profileId: string | null, newProxy: ProxySetupInterface | null } }) => {
+export default async (event: Electron.IpcMainEvent, params: { accountName: string, password: string, links: { proxyId: string | null, profileId: string | null, newProxy: ProxySetupInterface | null } }) => {
     try {
         const nextStep = (step: CreationStepType) => application.sendToMain(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, step)
         nextStep("start");
@@ -31,7 +31,7 @@ export default async (event: Electron.IpcMainEvent, params: { accountName: strin
             proxy = newProxy;
         }
 
-        const smaFile = await setupGuard({ accountName: params.accountName, password: params.password, tmApiKey: params.tmApiKey }, proxy);
+        const smaFile = await setupGuard({ accountName: params.accountName, password: params.password }, proxy);
         nextStep("import");
         const steamAccount = steamAccountImport(smaFile);
         nextStep("link");

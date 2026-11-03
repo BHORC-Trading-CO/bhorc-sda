@@ -1,5 +1,5 @@
 const SteamTotp = require('steam-totp');
-import { ipcMain } from "electron";
+import { onTrusted } from "../../application/trustedIpc";
 import SessionInterface from '../../../interfaces/SteamAccount/SessionInterface';
 import SteamCommunity from "steamcommunity";
 import MaFileInterface from "../../../interfaces/SteamAccount/MaFileInterface";
@@ -38,7 +38,7 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
 
         const nextStep = (step: CreationStepType) => options && options.stepChannel ? application.sendToMain(options.stepChannel, step) : () => { };
         if (options && options.abortChannel)
-            ipcMain.on(options.abortChannel, () => {
+            onTrusted(options.abortChannel, () => {
                 reject('abort');
             });
 
@@ -134,7 +134,6 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                 nextStep("askPin");
                 askFamilyPin(accountId, accountName)
                     .then((pin) => {
-                        console.log(pin);
                         tryFamilyViewPin(pin)
                             .then(() => {
                                 steamAccountParams.familyViewPin = pin;
@@ -175,7 +174,6 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                                 password: steamAccountParams.password,
                                 maFile: steamAccountParams.maFile,
                                 secondary: data,
-                                tmApiKey: steamAccountParams.tmApiKey ? steamAccountParams.tmApiKey : undefined,
                                 familyViewPin: steamAccountParams.familyViewPin ? steamAccountParams.familyViewPin : null,
                                 useSteamCookies: steamAccountParams.useSteamCookies
                             };
@@ -191,7 +189,6 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                         createSession(steamAccountParams.accountName, steamAccountParams.password, steamAccountParams.maFile.shared_secret)
                             .then(session => {
                                 steamAccountParams.maFile.Session = session;
-                                console.log(session);
                                 // Прокидываем прокси и в рекурсивный ретрай, чтобы повторный
                                 // логин шёл через тот же прокси (или напрямую, если его нет).
                                 maFileLogin(steamAccountParams, options, proxy)

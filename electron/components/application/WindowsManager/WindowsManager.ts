@@ -1,10 +1,13 @@
 import path from 'path';
-import electron, { BrowserWindow, ipcMain, IpcMainEvent } from 'electron';
+import { BrowserWindow, IpcMainEvent } from 'electron';
 import windowsConfig from './windowsConfig';
 import WindowChannels from '../../../interfaces/IpcChannels/WindowsChannels';
 import InfoType from '../askInfo/InfoType';
 import AskSomethingChannels from '../../../interfaces/IpcChannels/AskSomethigChannels';
 import { v4 as uuidv4 } from 'uuid';
+import { getAppEntries } from '../appEntries';
+import { isAppUrl } from '../navigationGuard';
+import { onTrusted } from '../trustedIpc';
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
@@ -45,7 +48,9 @@ class WindowsManager {
         });
         this.errorWindows[winId].webContents.on('dom-ready', () => {
             setTimeout(async () => {
-                this.errorWindows[winId].webContents.send(WindowChannels.GET_ERROR_WINDOW_PARAMS, { id: winId, title, text  });
+                const errorWindow = this.errorWindows[winId];
+                if (!errorWindow || errorWindow.isDestroyed() || !isAppUrl(errorWindow.webContents.getURL(), getAppEntries())) return;
+                errorWindow.webContents.send(WindowChannels.GET_ERROR_WINDOW_PARAMS, { id: winId, title, text  });
             }, 50);
         });
         this.errorWindows[winId].focus();
@@ -90,6 +95,7 @@ class WindowsManager {
             confirmationsWindow.loadURL(CONFIRMATIONS_WINDOW_WEBPACK_ENTRY);
             confirmationsWindow.webContents.on('dom-ready', () => {
                 setTimeout(async () => {
+                    if (confirmationsWindow.isDestroyed() || !isAppUrl(confirmationsWindow.webContents.getURL(), getAppEntries())) return;
                     confirmationsWindow.webContents.send(WindowChannels.GET_CONFIRMATIONS_WINDOW_PARMAS, { id, steamAccountName });
                     resolve(confirmationsWindow);
                 }, 50);
@@ -113,6 +119,7 @@ class WindowsManager {
             askWindow.loadURL(ASK_FAMILY_PIN_WINDOW_WEBPACK_ENTRY);
             askWindow.webContents.on('dom-ready', () => {
                 setTimeout(() => {
+                    if (askWindow.isDestroyed() || !isAppUrl(askWindow.webContents.getURL(), getAppEntries())) return;
                     askWindow.webContents.send(WindowChannels.GET_ASK_WINDOW_PARAMS, { id, steamAccountName, infoType });
                     resolve(askWindow);
                 }, 50);
@@ -128,8 +135,8 @@ class WindowsManager {
             const askFunc = (event: IpcMainEvent, data: { id: string, data: any }) => {
                 try {
                     if (data.id != accountId) return;
-                    listener.removeListener(AskSomethingChannels.ASK_WINDOW_SEND_DATA, askFunc);
-                    errorListener.removeListener(AskSomethingChannels.ASK_WINDOW_ABORT_SENDING_DATA, abortFunc);
+                    removeListener();
+                    removeErrorListener();
                     isGetInfo = true;
                     askPinWindow.close();
                     resolve(data.data);
@@ -139,16 +146,18 @@ class WindowsManager {
             }
             const abortFunc = (event: IpcMainEvent, id: string) => {
                 if (id != accountId) return;
-                listener.removeListener(AskSomethingChannels.ASK_WINDOW_SEND_DATA, askFunc);
-                errorListener.removeListener(AskSomethingChannels.ASK_WINDOW_ABORT_SENDING_DATA, abortFunc);
+                removeListener();
+                removeErrorListener();
                 askPinWindow.close();
                 delete (this.askWindows[accountId]);
                 reject("Добавление пин кода от семейного доступа прервано");
             }
-            const listener = ipcMain.on(AskSomethingChannels.ASK_WINDOW_SEND_DATA, askFunc);
-            const errorListener = ipcMain.on(AskSomethingChannels.ASK_WINDOW_ABORT_SENDING_DATA, abortFunc);
+            const removeListener = onTrusted(AskSomethingChannels.ASK_WINDOW_SEND_DATA, askFunc);
+            const removeErrorListener = onTrusted(AskSomethingChannels.ASK_WINDOW_ABORT_SENDING_DATA, abortFunc);
 
             askPinWindow.on('close', () => {
+                removeListener();
+                removeErrorListener();
                 delete (this.askWindows[accountId]);
                 if (!isGetInfo) reject();
             });

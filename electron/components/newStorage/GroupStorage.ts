@@ -1,7 +1,8 @@
-import Store from 'electron-store';
+import createStore from "./createStore";
+import assertStorageId from "./assertStorageId";
 import GroupInterface from '../../interfaces/Group/GroupInterface';
 
-const store = new Store();
+const store = createStore();
 
 // Хранилище групп по образцу ProxyStorage: карта { [id]: GroupInterface } под ключом 'groups'.
 // Группы не секретны, поэтому cryptoUserData не используем (как и LinksStorage).
@@ -12,6 +13,7 @@ class GroupStorage {
         return groups as { [id: string]: GroupInterface };
     }
     static GetById(id: string) {
+        assertStorageId(id);
         const group = store.get(`groups.${id}`) as GroupInterface;
         if (!group) throw new Error(`group ${id} is not exist`);
         return group;
@@ -22,9 +24,13 @@ class GroupStorage {
         GroupStorage.Save(id, { ...group, ...newObject });
     }
     static Save(id: string, group: GroupInterface) {
+        assertStorageId(id);
+        assertStorageId(group.id);
+        if (group.id !== id) throw new Error("Идентификатор записи не совпадает с ключом");
         store.set(`groups.${id}`, group);
     }
     static Delete(id: string) {
+        assertStorageId(id);
         store.delete(`groups.${id}`);
     }
 }
