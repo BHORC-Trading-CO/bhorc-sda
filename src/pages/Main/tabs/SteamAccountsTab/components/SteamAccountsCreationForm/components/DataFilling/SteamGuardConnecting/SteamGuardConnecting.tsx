@@ -13,11 +13,15 @@ const SteamDataCode: FC = observer(() => {
     const { t } = useTranslation();
     return (
       <>
-        <h1>{t("guard.connect.question")}</h1>
-        <br />
-        <Button size="medium" text={t("common.buttons.connect")} isNonGuardButton={false} onClick={() => {
-          setCurrentPage('accept');
-        }} />
+        {/* Предупреждение — обычный текст в плашке, а не крупный заголовок. */}
+        <div className="sda-callout sda-callout--warning">
+          <div>{t("guard.connect.question")}</div>
+        </div>
+        <div className="steam-data-code__actions">
+          <Button size="medium" text={t("common.buttons.connect")} isNonGuardButton={false} onClick={() => {
+            setCurrentPage('accept');
+          }} />
+        </div>
       </>
     );
   });
@@ -28,12 +32,13 @@ const SteamDataCode: FC = observer(() => {
 
     return (
       <>
-        <h1>{t("guard.connect.checkData")}</h1><br />
-        <div>{t("guard.connect.login", { value: params.accountName ? params.accountName : t("common.notSet") })}</div>
-        <div>{t("guard.connect.password", { value: params.password ? params.password : t("common.notSet") })}</div>
-        <br />
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button text={t("common.buttons.back")} size="medium" color="grey" isNonGuardButton={false} hoverColor='light-grey' style={{ marginRight: '20px' }} onClick={() => {
+        <div className="steam-data-code__title">{t("guard.connect.checkData")}</div>
+        <div className="steam-data-code__details">
+          <div>{t("guard.connect.login", { value: params.accountName ? params.accountName : t("common.notSet") })}</div>
+          <div>{t("guard.connect.password", { value: params.password ? params.password : t("common.notSet") })}</div>
+        </div>
+        <div className="steam-data-code__actions">
+          <Button text={t("common.buttons.back")} size="medium" color="grey" isNonGuardButton={false} hoverColor='light-grey' onClick={() => {
             setCurrentPage('start');
           }}></Button>
           <Button disabled={!(params.accountName && params.password)} isNonGuardButton={false} text={t("common.buttons.connect")} size="medium" onClick={() => {

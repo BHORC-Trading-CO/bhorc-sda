@@ -3,28 +3,37 @@
   padding-right: 35px;
   padding-top: 5px;
   padding-bottom: 5px;
-  background-color: #2c1935;
+  background-color: var(--sda-surface-2);
   border-radius: 25px;
   margin-bottom: 5px;
   display: table-column;
 }
+/* Высота по содержимому: пустой список больше не оставляет 400px пустоты. */
 .imported-steam-accounts {
-  margin-top: 20px;
-  margin-bottom: 20px;
-  height: 400px;
+  margin-top: 12px;
+}
+
+/* Шапка и строки импорта на одной сетке колонок (SDA-9). */
+.imported-steam-accounts_header,
+.imported-steam-account-item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr) 128px 40px;
+  column-gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 0px 8px;
 }
 .imported-steam-accounts_header {
-  display: flex;
-  justify-content: flex-start;
-  width: 100%;
-  padding-left: 6px;
+  min-height: 32px;
+  color: var(--sda-text-muted);
 }
 
 .imported-steam-accounts_header-text {
-  width: 157px;
-  line-height: 40px;
-  width: 25%;
-  padding: 0px 5px 0px 5px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 32px;
 }
 
 .imported-steam-account__container {
@@ -40,4 +49,6 @@
   display: flex;
   flex-direction: column;
 }
-
+.imported-steam-account-item__container > .saved-proxies__container {
+  margin: 4px 0px 10px 52px;
+}

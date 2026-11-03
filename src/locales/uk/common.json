@@ -120,12 +120,15 @@
     "linkedProxies": "Підключені проксі"
   },
   "proxyBlock": {
+    "title": "Проксі",
     "noProxy": "Без проксі",
     "newProxy": "Створити проксі",
     "savedProxy": "Збережені проксі",
     "notSet": "Проксі не встановлено!<br/>Уся робота з цим акаунтом відбуватиметься з вашої поточної IP-адреси",
     "example": "Приклад: Login:Password@1.1.1.1:7777",
-    "selectedProxy": "Вибраний проксі:"
+    "selectedProxy": "Вибраний проксі",
+    "test": "Перевірка",
+    "runTest": "Перевірити"
   },
   "accounts": {
     "panel": {
@@ -171,14 +174,17 @@
       "editNotFound": "Не вдалося змінити дані акаунта: #{{id}} - такого акаунта не існує"
     },
     "form": {
-      "existingAccountData": "Введіть дані наявного акаунта Steam:",
-      "optionalData": "Введіть дані (усе тут необов’язкове):",
-      "secondaryData": "Додаткові дані:",
+      "accountSection": "Акаунт Steam",
+      "existingAccountData": "Введіть дані наявного акаунта Steam",
+      "secondaryData": "Додаткові дані",
+      "optional": "необов’язково",
       "steamLogin": "Логін Steam",
-      "steamPassword": "пароль Steam",
+      "steamPassword": "Пароль Steam",
       "pin": "PIN-код",
       "mail": "Пошта",
       "mailPassword": "Пароль пошти",
+      "showPassword": "Показати пароль",
+      "hidePassword": "Сховати пароль",
       "useSteamCookies": "Використовувати cookie Steam у браузері (автовхід)",
       "maFileNameMismatch": "Ім’я акаунта Steam у maFile не збігається з указаним вище!"
     },
@@ -195,6 +201,10 @@
       "import": "Імпортувати",
       "alreadyRunning": "процес уже запущено",
       "missingData": "Не всі дані заповнено!",
+      "hint": {
+        "maFile": "Потрібні логін і пароль Steam та maFile",
+        "guard": "Підключаєте Guard? Натисніть «{{button}}» вище: акаунт додасться в кінці"
+      },
       "abortPrompt": {
         "title": "Перервати створення акаунта?",
         "text": "Акаунт не буде створено 😨"
@@ -235,16 +245,20 @@
     },
     "import": {
       "loadSmaFile": "Завантажити файл .smaFile",
+      "empty": "Завантажте один або кілька файлів .smaFile. Перед імпортом для кожного акаунта можна вибрати проксі.",
       "selectedFiles_one": "Вибрано {{count}} файл: {{names}}",
       "selectedFiles_few": "Вибрано {{count}} файли: {{names}}",
       "selectedFiles_many": "Вибрано {{count}} файлів: {{names}}",
       "selectedFiles_other": "Вибрано {{count}} файлу: {{names}}",
       "skippedFiles": "Пропущено файлів: {{count}}. {{details}}",
-      "view": "Переглянути"
+      "view": "Переглянути",
+      "pickProxy": "Вибрати проксі",
+      "remove": "Прибрати зі списку"
     }
   },
   "maFile": {
     "load": "Завантажити .maFile",
+    "current": "maFile: {{name}}",
     "attach": "Прикріпити maFile",
     "invalid": "Ви намагаєтеся завантажити недійсний maFile: {{error}}"
   },
@@ -253,6 +267,7 @@
     "loginByPassword": "Входимо за логіном і паролем"
   },
   "guard": {
+    "title": "Steam Guard",
     "tabs": {
       "connect": "Підключити Guard",
       "useMaFile": "Використати maFile"
@@ -307,6 +322,7 @@
     "result": {
       "title": "Акаунт створено 😍",
       "account": "Акаунт: {{name}}",
+      "steamId": "Steam ID: {{id}}",
       "proxy": "Проксі: {{proxy}}",
       "revocationCode": "Код відкликання Guard (revocation code):",
       "saveIt": "Збережіть його. Steam видає цей код лише один раз — без нього відключити автентифікатор від акаунта буде неможливо.",

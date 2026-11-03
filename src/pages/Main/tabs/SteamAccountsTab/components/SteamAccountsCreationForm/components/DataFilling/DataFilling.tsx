@@ -3,7 +3,6 @@ import store from "../../../../../../../../store/store";
 import { observer } from "mobx-react-lite";
 import Navigation from "../../../../../../../../globalComponents/Navigation/Navigation";
 import Button from "../../../../../../../../globalComponents/Button/Button";
-import Delimeter from "../../../../../../../../globalComponents/Delimeter/Delimeter";
 import Input from "../../../../../../../../globalComponents/Input/Input";
 import MaFileImport from "../../../MaFileImport/MaFileImport";
 import SteamGuardConnecting from "./SteamGuardConnecting/SteamGuardConnecting";
@@ -24,6 +23,18 @@ const DataFillingForm: FC = observer(() => {
   const { t } = useTranslation();
   const CreationFormSwitches = store.steamAccountsTable.creationForm.switches;
   const params = store.steamAccountsTable.creationForm.getContent();
+  // «Добавить аккаунт» завершает сценарий с maFile и импорт. При подключении нового Guard
+  // аккаунт добавляет кнопка «Подключить» в разделе Guard, поэтому тут кнопка вторичная.
+  const isGuardSetup =
+    CreationFormSwitches.creationType === "new" &&
+    CreationFormSwitches.guardConnectingType === "new";
+  const isPrimaryAction = !isGuardSetup;
+  const footerHint =
+    CreationFormSwitches.creationType !== "new"
+      ? ""
+      : isGuardSetup
+      ? t("accounts.creation.hint.guard", { button: t("common.buttons.connect") })
+      : t("accounts.creation.hint.maFile");
 
   return (
     <div className="steam-accounts-creation-form">
@@ -47,86 +58,101 @@ const DataFillingForm: FC = observer(() => {
               });
             }}
           />
-          <Button
-            style={{ height: "43px" }}
-            size="medium"
-            disabled={
-              store.steamAccountsTable.creationForm.currentProcess ===
-              "creation"
-            }
-            text={
-              store.steamAccountsTable.creationForm.switches.creationType ===
-              "new"
-                ? t("accounts.creation.create")
-                : t("accounts.creation.import")
-            }
-            color="grey"
-            hoverColor="light-grey"
-            onClick={() => {
-              if (
-                store.steamAccountsTable.creationForm.currentProcess ===
-                "creation"
-              )
-                return alert(t("accounts.creation.alreadyRunning"));
-              if (
-                store.steamAccountsTable.creationForm.switches.creationType ===
-                "new"
-              ) {
-                if (params.accountName && params.password && params.maFile) {
-                  store.steamAccountsTable.creationForm.runCreationProcess();
-                } else {
-                  store.windows.openMiniNotification({
-                    type: "error",
-                    text: t("accounts.creation.missingData"),
-                  });
-                }
-              } else {
-                const importedAccounts = params.importedAccounts.map(
-                  (account) => {
-                    return {
-                      links: { proxyId: account.proxyId },
-                      smaFile: account.smaFile,
-                    };
-                  }
-                );
-                window.Main.steamAccounts.import(importedAccounts);
-
-                // Подгоняем размер страницы, чтобы все импортированные аккаунты
-                // были видны сразу, а не только первые pageSize штук.
-                const activeAccountsCount = Object.values(
-                  store.steamAccountsTable.getSteamAccounts()
-                ).filter((sa) => !sa.deleted).length;
-                store.steamAccountsTable.ensurePageSizeFits(
-                  activeAccountsCount + importedAccounts.length
-                );
-
-                // Прокси из .smaFile создаются при импорте — таблицу прокси тоже подгоняем
-                // (оценка сверху: дедуп в main-процессе может создать меньше).
-                const importedProxiesCount = importedAccounts.filter(
-                  (a) => a.smaFile.proxy && a.smaFile.proxy.host
-                ).length;
-                if (importedProxiesCount > 0) {
-                  const activeProxiesCount = store.proxiesTable
-                    .getProxies()
-                    .filter((p) => !p.deleted).length;
-                  store.proxiesTable.ensurePageSizeFits(
-                    activeProxiesCount + importedProxiesCount
-                  );
-                }
-
-                store.steamAccountsTable.creationForm.editContent({
-                  importedAccounts: [],
-                });
-                store.steamAccountsTable.creationForm.close();
-              }
-            }}
-          />
         </div>
         {CreationFormSwitches.creationType === "new" ? (
           <NewSteamAccountForm />
         ) : (
           <ImportSteamAccountsForm />
         )}
+        <div className="sda-form-footer">
+          <Button
+            size="medium"
+            text={t("common.buttons.cancel")}
+            color="grey"
+            hoverColor="light-grey"
+            onClick={() => {
+              store.steamAccountsTable.creationForm.close();
+            }}
+          />
+          <div className="sda-form-footer__end">
+            {footerHint ? (
+              <div className="sda-form-footer__hint">{footerHint}</div>
+            ) : null}
+            <Button
+              size="medium"
+              disabled={
+                store.steamAccountsTable.creationForm.currentProcess ===
+                "creation"
+              }
+              text={
+                store.steamAccountsTable.creationForm.switches.creationType ===
+                "new"
+                  ? t("accounts.creation.create")
+                  : t("accounts.creation.import")
+              }
+              color={isPrimaryAction ? "gradient" : "grey"}
+              hoverColor={isPrimaryAction ? "gradient" : "light-grey"}
+              onClick={() => {
+                if (
+                  store.steamAccountsTable.creationForm.currentProcess ===
+                  "creation"
+                )
+                  return alert(t("accounts.creation.alreadyRunning"));
+                if (
+                  store.steamAccountsTable.creationForm.switches.creationType ===
+                  "new"
+                ) {
+                  if (params.accountName && params.password && params.maFile) {
+                    store.steamAccountsTable.creationForm.runCreationProcess();
+                  } else {
+                    store.windows.openMiniNotification({
+                      type: "error",
+                      text: t("accounts.creation.missingData"),
+                    });
+                  }
+                } else {
+                  const importedAccounts = params.importedAccounts.map(
+                    (account) => {
+                      return {
+                        links: { proxyId: account.proxyId },
+                        smaFile: account.smaFile,
+                      };
+                    }
+                  );
+                  window.Main.steamAccounts.import(importedAccounts);
+
+                  // Подгоняем размер страницы, чтобы все импортированные аккаунты
+                  // были видны сразу, а не только первые pageSize штук.
+                  const activeAccountsCount = Object.values(
+                    store.steamAccountsTable.getSteamAccounts()
+                  ).filter((sa) => !sa.deleted).length;
+                  store.steamAccountsTable.ensurePageSizeFits(
+                    activeAccountsCount + importedAccounts.length
+                  );
+
+                  // Прокси из .smaFile создаются при импорте — таблицу прокси тоже подгоняем
+                  // (оценка сверху: дедуп в main-процессе может создать меньше).
+                  const importedProxiesCount = importedAccounts.filter(
+                    (a) => a.smaFile.proxy && a.smaFile.proxy.host
+                  ).length;
+                  if (importedProxiesCount > 0) {
+                    const activeProxiesCount = store.proxiesTable
+                      .getProxies()
+                      .filter((p) => !p.deleted).length;
+                    store.proxiesTable.ensurePageSizeFits(
+                      activeProxiesCount + importedProxiesCount
+                    );
+                  }
+
+                  store.steamAccountsTable.creationForm.editContent({
+                    importedAccounts: [],
+                  });
+                  store.steamAccountsTable.creationForm.close();
+                }
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -205,21 +231,17 @@ const ImportSteamAccountsForm: FC = observer(() => {
       <div className="imported-steam-accounts">
         {importedAccounts[0] ? (
           <div className="imported-steam-accounts_header text-grey-medium">
-            <div
-              className="imported-steam-accounts_header-text"
-              style={{ width: "50px" }}
-            ></div>
+            <div className="imported-steam-accounts_header-text"></div>
             <div className="imported-steam-accounts_header-text">{t("columns.login")}</div>
             <div className="imported-steam-accounts_header-text">{t("columns.nickname")}</div>
             <div className="imported-steam-accounts_header-text">{t("columns.proxy")}</div>
             <div className="imported-steam-accounts_header-text">maFile</div>
-            <div
-              className="imported-steam-accounts_header-text"
-              style={{ width: "50px" }}
-            ></div>
+            <div className="imported-steam-accounts_header-text"></div>
           </div>
         ) : (
-          <></>
+          <div className="sda-callout imported-steam-accounts__empty">
+            {t("accounts.import.empty")}
+          </div>
         )}
 
         <div className="imported-steam-account__container">
@@ -245,8 +267,11 @@ const NewSteamAccountForm: FC = observer(() => {
 
   return (
     <>
-      <div className="steam-data-block">
-        <div className="steam-data-title text-white-medium">
+      <section className="sda-form-section steam-data-block">
+        <div className="sda-form-section__head">
+          <h3 className="sda-form-section__title">{t("accounts.form.accountSection")}</h3>
+        </div>
+        <div className="sda-form-section__hint">
           {t("accounts.form.existingAccountData")}
         </div>
         <div className="steam-data-input__wrapper">
@@ -259,7 +284,6 @@ const NewSteamAccountForm: FC = observer(() => {
               });
             }}
           />
-          <div className="steam-data-input__delimener"></div>
           <Input
             type="password"
             value={params.password}
@@ -271,12 +295,11 @@ const NewSteamAccountForm: FC = observer(() => {
             }}
           />
         </div>
-        <Delimeter marginBottom="25px" marginTop="0px" />
-      </div>
-      <Delimeter marginBottom="25px" marginTop="0px" />
-      <div className="steam-data-block">
-        <div className="steam-data-title text-white-medium">
-          {t("accounts.form.optionalData")}{" "}
+      </section>
+      <section className="sda-form-section steam-data-block">
+        <div className="sda-form-section__head">
+          <h3 className="sda-form-section__title">{t("accounts.form.secondaryData")}</h3>
+          <span className="sda-form-section__badge">{t("accounts.form.optional")}</span>
         </div>
         <div className="steam-data-input__wrapper">
           <Input
@@ -288,7 +311,6 @@ const NewSteamAccountForm: FC = observer(() => {
               });
             }}
           />
-          <div className="steam-data-input__delimener"></div>
           <Input
             type="password"
             value={params.mailPassword}
@@ -300,25 +322,23 @@ const NewSteamAccountForm: FC = observer(() => {
             }}
           />
         </div>
-        <div className="steam-data-input__wrapper">
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <Checkbox
-              isChecked={params.useSteamCookies}
-              onChange={(newValue) => {
-                store.steamAccountsTable.creationForm.editContent({
-                  useSteamCookies: newValue,
-                });
-              }}
-            />
-            <span style={{ lineHeight: "25px" }}>
-              {t("accounts.form.useSteamCookies")}
-            </span>
-          </div>
+        <div className="steam-data-checkbox">
+          <Checkbox
+            isChecked={params.useSteamCookies}
+            onChange={(newValue) => {
+              store.steamAccountsTable.creationForm.editContent({
+                useSteamCookies: newValue,
+              });
+            }}
+          />
+          <span>{t("accounts.form.useSteamCookies")}</span>
         </div>
-      </div>
+      </section>
 
-      <Delimeter marginBottom="25px" marginTop="0px" />
-      <div className="proxy-block">
+      <section className="sda-form-section proxy-block">
+        <div className="sda-form-section__head">
+          <h3 className="sda-form-section__title">{t("proxyBlock.title")}</h3>
+        </div>
         <Navigation
           buttons={[
             {
@@ -341,14 +361,15 @@ const NewSteamAccountForm: FC = observer(() => {
             });
           }}
         />
-        <br />
 
         <div className="steam-account-creation_proxy-block">
           {<ProxyBlock />}
         </div>
-      </div>
-      <Delimeter marginBottom="25px" marginTop="25px" />
-      <div className="guard-block">
+      </section>
+      <section className="sda-form-section guard-block">
+        <div className="sda-form-section__head">
+          <h3 className="sda-form-section__title">{t("guard.title")}</h3>
+        </div>
         <Navigation
           buttons={[
             {
@@ -380,9 +401,7 @@ const NewSteamAccountForm: FC = observer(() => {
             }}
           />
         )}
-      </div>
-
-      <Delimeter marginBottom="25px" marginTop="25px" />
+      </section>
     </>
   );
 });
@@ -396,8 +415,10 @@ const ProxyBlock: FC = observer(() => {
   switch (CreationFormSwitches.proxy) {
     case "noProxy":
       return (
-        <div className="info-block">
-          <Trans i18nKey="proxyBlock.notSet" components={{ br: <br /> }} />
+        <div className="info-block sda-callout">
+          <div>
+            <Trans i18nKey="proxyBlock.notSet" components={{ br: <br /> }} />
+          </div>
         </div>
       );
     case "newProxy":

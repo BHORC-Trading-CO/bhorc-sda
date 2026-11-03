@@ -1,26 +1,39 @@
+/* Сетка колонок общая со шапкой: см. SavedProxies.css. Вся строка кликабельна. */
 .saved-proxies-item-container {
-  display: flex;
-  height: 40px;
-  min-height: 40px;
-  background: #372447;
-  border-radius: 10px;
+  min-height: 44px;
+  background: var(--sda-surface-3);
+  border: 1px solid transparent;
+  border-radius: var(--sda-radius);
   margin-bottom: 5px;
-  align-items: center;
-  justify-content: space-between;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--sda-transition), background-color var(--sda-transition);
+}
+.saved-proxies-item-container:hover {
+  border-color: var(--sda-border-strong);
+}
+.saved-proxies-item-container:focus-visible {
+  box-shadow: var(--sda-focus-ring);
+}
+.saved-proxies-item-container_active,
+.saved-proxies-item-container_active:hover {
+  background: var(--sda-surface-4);
+  border-color: var(--sda-accent);
 }
 
-.saved-proxies-item-cell{
-  line-height: 40px;
-  text-align: center;
+.saved-proxies-item-cell {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sda-text);
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
-  padding: 0px 10px;
-  width: 150px;
 }
 
-.saved-proxies-item-wrapper{
+.saved-proxies-item-check {
   display: flex;
-  align-items: center;
+  justify-content: flex-end;
 }
 
 .checkbox-circle-default,
@@ -33,9 +46,24 @@
   background-size: cover;
   display: inline-block;
   cursor: pointer;
-  margin-right: 10px;
 }
 
-.proxy-account-item-container{
+.saved-proxies-item-container .proxy-account-item-container {
   display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.saved-proxies-item-container .proxy-account-item {
+  min-width: 22px;
+  width: auto;
+  height: 22px;
+  margin-left: 0px;
+  padding: 0px 6px;
+  border-radius: var(--sda-radius-sm);
+  background: var(--sda-surface-4);
+  color: var(--sda-text);
+  font-size: 12px;
+}
+.saved-proxies-item-container_active .proxy-account-item {
+  background: var(--sda-surface-2);
 }

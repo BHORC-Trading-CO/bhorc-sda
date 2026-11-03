@@ -1,33 +1,44 @@
 .imported-steam-account-mafile-list__container {
     width: 100%;
-    background: #2c1935;
-    border-radius: 10px;
+    background: var(--sda-surface-2);
+    border: 1px solid var(--sda-border);
+    border-radius: var(--sda-radius);
     display: flex;
     flex-direction: column;
     height: auto;
-    padding: 10px;
+    padding: 10px 14px;
     margin-bottom: 5px;
   }
 
   .imported-steam-account-mafile-list{
     height: 100%;
+    margin: 0px;
+    padding: 0px;
     list-style-type: none;
   }
 
   .maFile-item {
-    margin-bottom: 5px;
+    margin-bottom: 0px;
   }
 
   .maFile-item-data{
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
+    min-height: 22px;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--sda-text-muted);
   }
 
   .maFile-item-field-value{
+    min-width: 0;
     text-overflow: ellipsis;
     max-width: 550px;
     overflow: hidden;
     white-space: nowrap;
+    font-family: var(--sda-font-mono);
+    font-size: 12px;
+    color: var(--sda-text);
   }
-  

@@ -1,0 +1,22 @@
+/* Строка maFile: кнопка загрузки/замены на всю ширину и «Развернуть» справа. */
+.import-account__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.import-account__row .import-account__file.button {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 40px;
+}
+.import-account__row .import-account__toggle.button {
+    flex: 0 0 auto;
+    min-width: 140px;
+    height: 40px;
+}
+.import-account__row .button:focus {
+    outline: none;
+}
+.import-account__row .button:focus-visible {
+    box-shadow: var(--sda-focus-ring);
+}
