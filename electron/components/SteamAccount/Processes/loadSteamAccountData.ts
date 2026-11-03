@@ -126,7 +126,11 @@ export async function getChangableSecondaries(community: SteamCommunity): Promis
     const result = await Promise.allSettled(promises);
     const changableSecondary: ChangableSecondaryInterface = {
         steam: {
-            error: result[0].status === 'rejected' ? result[0].reason : null,
+            // Только строка (как в ChangableSecondaryInterface), не объект Error: эти данные уходят
+            // в рендерер внутри списка аккаунтов, а V8 в Electron 17 после Error неверно читает
+            // обратные ссылки IPC-сообщения — proxy и smaFile следующих аккаунтов приходили чужими
+            // объектами (см. steamBalance.test.ts).
+            error: result[0].status === 'rejected' ? String(result[0].reason) : null,
             balance: result[0].status === 'fulfilled' ? result[0].value.balance : null,
             currency: result[0].status === 'fulfilled' ? result[0].value.currency : null
         }
