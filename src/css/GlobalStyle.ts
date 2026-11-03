@@ -15,25 +15,15 @@ export const GlobalStyle = createGlobalStyle`
     background-size: 100% 100%;
     background-repeat: no-repeat;
   }
-  .attic .buttons div:nth-child(1) {
-    background-image: url(./assets/img/Cross.svg);
-    background-size: 10px;
-    background-repeat: no-repeat;
-    background-position: center;
-    border-radius: 0px 0px 10px 0px;
+  /* Window button icons are masks; Attic.css sets their colour from tokens. */
+  .attic-button_minimize::before {
+    -webkit-mask-image: url(./assets/img/Line5.svg);
   }
-  .attic .buttons div:nth-child(2) {
-    background-image: url(./assets/img/Square2.svg);
-    background-size: 10px;
-    background-repeat: no-repeat;
-    background-position: center;
+  .attic-button_maximize::before {
+    -webkit-mask-image: url(./assets/img/Square2.svg);
   }
-  .attic .buttons div:nth-child(3) {
-    background-image: url(./assets/img/Line5.svg);
-    background-size: 10px;
-    background-repeat: no-repeat;
-    background-position: center;
-    border-radius: 0px 0px 0px 10px;
+  .attic-button_close::before {
+    -webkit-mask-image: url(./assets/img/Cross.svg);
   }
   .form-cross {
     background-image: url(./assets/img/Cross.svg);

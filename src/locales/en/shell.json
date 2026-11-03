@@ -11,5 +11,10 @@
       "uk": "Українська",
       "ru": "Русский"
     }
+  },
+  "attic": {
+    "minimize": "Minimize",
+    "maximize": "Maximize or restore",
+    "close": "Close"
   }
 }
