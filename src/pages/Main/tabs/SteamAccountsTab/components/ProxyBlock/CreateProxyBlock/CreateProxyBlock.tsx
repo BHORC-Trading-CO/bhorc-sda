@@ -1,6 +1,5 @@
 import react, { FC, useEffect, useState } from "react";
 import "./CreateProxyBlock.css";
-import Delimeter from "../../../../../../../globalComponents/Delimeter/Delimeter";
 import parseProxyString from "../../../../ProxiesTab/components/Funcs/parseProxyString";
 import store from "../../../../../../../store/store";
 import { observer } from 'mobx-react';
@@ -22,11 +21,12 @@ export const CreateProxyBlock: FC<{
   }, [proxy])
 
   return (
-    <div className="proxy__container">
+    <div className="proxy__container create-proxy-block">
       <div className="proxy-create__container__creation">
         <input
           className="proxy-create-input text-grey-medium"
           placeholder={t("common.startTyping")}
+          aria-label={t("proxyBlock.example")}
           value={proxyStr}
           onChange={(e) => {
             const value = e.target.value;
@@ -42,32 +42,33 @@ export const CreateProxyBlock: FC<{
       </div>
       {isProxyFilledData ?
         <div className="proxy-table__container__creation">
-          <Delimeter marginTop="26px" marginBottom="15px"></Delimeter>
-          <div className="proxy-table">
+          <div className="proxy-table proxy-table_in-form">
             <div className="proxy-table-header text-grey-medium">
               <div className="proxy-table-header-cell">{t("columns.host")}</div>
               <div className="proxy-table-header-cell">{t("columns.port")}</div>
               <div className="proxy-table-header-cell">{t("columns.login")}</div>
               <div className="proxy-table-header-cell">{t("columns.password")}</div>
-              <div className="proxy-table-header-cell">test</div>
+              <div className="proxy-table-header-cell">{t("proxyBlock.test")}</div>
             </div>
             <div className="proxy-item__container">
               <div className="proxy-item text-white-medium">
                 <div className="proxy-item-row">
-                  <div className="proxy-item-cell">{proxy.host}</div>
+                  <div className="proxy-item-cell" title={proxy.host}>{proxy.host}</div>
                   <div className="proxy-item-cell">{proxy.port}</div>
-                  <div className="proxy-item-cell">{proxy.username}</div>
+                  <div className="proxy-item-cell" title={proxy.username}>{proxy.username}</div>
                   <div className="proxy-item-cell">{proxy.password}</div>
                   <div className="proxy-item-cell"><Button onClick={() => {
                     store.proxiesTable.testEditingProxy(proxy);
-                  }} style={{ margin: 'auto' }} isLoad={store.proxiesTable.isTestingEditingProxy} size="small" img="./assets/img/testProxy.svg" view="icon" color="grey" hoverColor="light-grey" /></div>
+                  }} className="proxy-test-button" isLoad={store.proxiesTable.isTestingEditingProxy} size="small" text={t("proxyBlock.runTest")} color="grey" hoverColor="light-grey" /></div>
                 </div>
               </div>
             </div>
           </div>
-        </div> : <><br /><div className='info-block'>
-          <Trans i18nKey="proxyBlock.notSet" components={{ br: <br /> }} />
-        </div></>
+        </div> : <div className='info-block sda-callout'>
+          <div>
+            <Trans i18nKey="proxyBlock.notSet" components={{ br: <br /> }} />
+          </div>
+        </div>
       }
     </div>
   );

@@ -3,18 +3,21 @@
   flex-direction: column;
 }
 
+/* Сетка колонок общая со шапкой: см. DataFilling.css. */
 .imported-steam-account-item {
-  display: flex;
-  justify-content: flex-start;
-  width: 100%;
-  padding-left: 6px;
-  background: #372447;
-  border-radius: 10px;
+  background: var(--sda-surface-3);
+  border: 1px solid transparent;
+  border-radius: var(--sda-radius);
   margin-bottom: 5px;
-  min-height: 40px;
+  min-height: 48px;
+  transition: border-color var(--sda-transition);
 }
-
-
+.imported-steam-account-item:hover {
+  border-color: var(--sda-border-strong);
+}
+.imported-steam-account-item_open {
+  border-color: var(--sda-surface-4);
+}
 
 .imported-steam-account_item:last-child {
   margin-bottom: 0px;
@@ -22,49 +25,68 @@
 
 .imported-steam-account-cell {
   display: flex;
-  justify-content: start;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   white-space: nowrap;
-  line-height: 50px;
-  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 25%;
-  padding: 0px 5px;
+}
+.imported-steam-account-cell__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.imported-steam-account-cell__muted {
+  color: var(--sda-text-muted);
 }
 
 .imported-steam-account-cell-button {
-  line-height: 40px;
-  width: 25%;
-  margin: auto;
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .imported-steam-account-button {
-  margin: auto;
-  background: #2f1e38;
-  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0px 12px;
+  background: var(--sda-surface-2);
+  border-radius: var(--sda-radius-sm);
   outline: none;
   border: none;
-  padding: 5px;
+  transition: background-color var(--sda-transition);
 }
 
-.imported-steam-account-button:hover{
-  background: #4C3560;
+.imported-steam-account-button:hover {
+  background: var(--sda-surface-4);
+}
+.imported-steam-account-button:focus-visible,
+.imported-steam-account-item .proxy-item-button-expand:focus-visible {
+  box-shadow: var(--sda-focus-ring);
 }
 
-.imported-steam-account-avatar-container{
-  width: 50px;
-  display: flex;
-  align-items: center;
+.imported-steam-account-item .proxy-item-button-expand {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--sda-radius-sm);
+  background: var(--sda-surface-4);
+  cursor: pointer;
+}
+.imported-steam-account-item .proxy-item-button-expand:hover {
+  background: var(--sda-surface-2);
+}
+
+.imported-steam-account-avatar-container {
   justify-content: center;
 }
 
 .imported-steam-account-avatar {
-  width: 35px;
-  height: 35px;
-  border: 1px solid grey;
-  border-radius: 25px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--sda-border-strong);
+  border-radius: 50%;
+  background: var(--sda-surface-0);
 }
-
-
-
-
