@@ -120,12 +120,15 @@
     "linkedProxies": "Подключенные прокси"
   },
   "proxyBlock": {
+    "title": "Прокси",
     "noProxy": "Без прокси",
     "newProxy": "Создать прокси",
     "savedProxy": "Сохраненные прокси",
     "notSet": "Прокси не установлен!<br/>Вся работа с этим аккаунтом будет осуществляться с вашего текущего ip",
     "example": "Пример: Login:Password@1.1.1.1:7777",
-    "selectedProxy": "Выбранный прокси:"
+    "selectedProxy": "Выбранный прокси",
+    "test": "Проверка",
+    "runTest": "Проверить"
   },
   "accounts": {
     "panel": {
@@ -171,14 +174,17 @@
       "editNotFound": "Не получилось поменять данные аккаунта: #{{id}} - такого аккаунта не существует"
     },
     "form": {
-      "existingAccountData": "Введите данные от существующего Steam аккаунта:",
-      "optionalData": "Введите данные (все что здесь - необязательно):",
-      "secondaryData": "Второстепенные данные:",
+      "accountSection": "Аккаунт Steam",
+      "existingAccountData": "Введите данные существующего аккаунта Steam",
+      "secondaryData": "Дополнительные данные",
+      "optional": "необязательно",
       "steamLogin": "Логин Steam",
-      "steamPassword": "пароль Steam",
-      "pin": "пинкод",
+      "steamPassword": "Пароль Steam",
+      "pin": "PIN-код",
       "mail": "Почта",
-      "mailPassword": "Почта пароль",
+      "mailPassword": "Пароль от почты",
+      "showPassword": "Показать пароль",
+      "hidePassword": "Скрыть пароль",
       "useSteamCookies": "Использовать куки Steam в браузере (автологин)",
       "maFileNameMismatch": "Имя аккаунта Steam в мафайле не совпадает с заданным выше!"
     },
@@ -195,6 +201,10 @@
       "import": "Импортировать",
       "alreadyRunning": "процесс уже запущен",
       "missingData": "Не все данные установлены!",
+      "hint": {
+        "maFile": "Нужны логин и пароль Steam и maFile",
+        "guard": "Подключаете Guard? Нажмите «{{button}}» выше: аккаунт добавится в конце"
+      },
       "abortPrompt": {
         "title": "Хотите прервать создание аккаунта?",
         "text": "Аккаунт не будет создан 😨"
@@ -235,16 +245,20 @@
     },
     "import": {
       "loadSmaFile": "Загрузить .smaFile файл",
+      "empty": "Загрузите один или несколько файлов .smaFile. Перед импортом для каждого аккаунта можно выбрать прокси.",
       "selectedFiles_one": "Выбрано {{count}} файл: {{names}}",
       "selectedFiles_few": "Выбрано {{count}} файла: {{names}}",
       "selectedFiles_many": "Выбрано {{count}} файлов: {{names}}",
       "selectedFiles_other": "Выбрано {{count}} файла: {{names}}",
       "skippedFiles": "Пропущено файлов: {{count}}. {{details}}",
-      "view": "Посмотреть"
+      "view": "Посмотреть",
+      "pickProxy": "Выбрать прокси",
+      "remove": "Убрать из списка"
     }
   },
   "maFile": {
     "load": "Загрузить .maFile",
+    "current": "maFile: {{name}}",
     "attach": "Прикрепить maFile",
     "invalid": "Вы пытаетесь загрузить невалидный maFile: {{error}}"
   },
@@ -253,12 +267,13 @@
     "loginByPassword": "Логинимся по имени и паролю"
   },
   "guard": {
+    "title": "Steam Guard",
     "tabs": {
       "connect": "Подключить Guard",
       "useMaFile": "Использовать maFile"
     },
     "connect": {
-      "question": "Хотите подключить steam guard? Вы должны убедиться, что указанный аккаунт НЕ подключен к steam guard",
+      "question": "Хотите подключить Steam Guard? Убедитесь, что этот аккаунт НЕ подключён к Steam Guard",
       "checkData": "Проверьте данные:",
       "login": "Логин Steam: {{value}}",
       "password": "Пароль Steam: {{value}}"
@@ -307,6 +322,7 @@
     "result": {
       "title": "Аккаунт создан 😍",
       "account": "Аккаунт: {{name}}",
+      "steamId": "Steam ID: {{id}}",
       "proxy": "Прокси: {{proxy}}",
       "revocationCode": "Код отзыва Guard (revocation code):",
       "saveIt": "Сохраните его. Steam выдаёт этот код один раз — без него отключить аутентификатор от аккаунта будет невозможно.",
@@ -341,7 +357,8 @@
     "panel": {
       "title": "Прокси",
       "add": "Добавить прокси",
-      "bulkHint": "Массовое добавление прокси (один прокси на строку)"
+      "bulkHint": "Массовое добавление прокси (один прокси на строку)",
+      "importList": "Импорт списка"
     },
     "footer": {
       "testAll": "Тест всех"
@@ -366,7 +383,9 @@
       "title": "Массовое добавление прокси",
       "example": "Один прокси на строку. Пример: Login:Password@1.1.1.1:7777",
       "empty": "Поле пустое!",
-      "result": "Добавлено: {{added}}, пропущено невалидных: {{invalid}}, дубликатов: {{duplicates}}"
+      "result": "Добавлено: {{added}}, пропущено невалидных: {{invalid}}, дубликатов: {{duplicates}}",
+      "label": "Список прокси",
+      "placeholder": "Login:Password@1.1.1.1:7777\nLogin:Password@2.2.2.2:7777"
     },
     "creation": {
       "title": "Создание новых прокси",
@@ -381,11 +400,30 @@
       "working": "Прокси #{{number}} {{host}}:{{port}} работает",
       "notWorking": "Прокси #{{number}} {{host}}:{{port}} НЕ работает",
       "workingRich": "Прокси #{{number}} {{host}}:{{port}} <b>работает</b>",
-      "notWorkingRich": "Прокси #{{number}} {{host}}:{{port}} <b>НЕ РАБОТАЕТ</b>"
+      "notWorkingRich": "Прокси #{{number}} {{host}}:{{port}} <b>НЕ РАБОТАЕТ</b>",
+      "column": "Проверка",
+      "pending": "Тест…",
+      "untested": "Без теста",
+      "ok": "Работает",
+      "failed": "Сбой"
     },
     "errors": {
       "notFound": "Прокси #{{id}} не существует",
       "deleteNotFound": "Не получилось удалить прокси: #{{id}} - такого прокси не существует"
+    },
+    "actions": {
+      "test": "Проверить прокси",
+      "edit": "Изменить прокси",
+      "delete": "Удалить прокси навсегда",
+      "archive": "Архивировать прокси",
+      "restore": "Восстановить прокси"
+    },
+    "links": {
+      "empty": "Нет связей",
+      "manage": "Управлять подключёнными аккаунтами"
+    },
+    "form": {
+      "label": "Строка подключения прокси"
     }
   },
   "confirmations": {
@@ -393,16 +431,24 @@
     "selectedOf": "Выбрано: {{selected}} из {{total}}",
     "toggleAll": "Выбрать/отменить все подтверждения",
     "refresh": "Обновить",
-    "empty": "Нет доступных подтверждений 😕",
-    "loading": "🤩Получаем доступные подтверждения...",
-    "confirming": "😁Подтверждаем выбранное: {{count}}",
-    "declining": "😯Отклоняем выбранное: {{count}}",
+    "empty": "Нет доступных подтверждений",
+    "loading": "Получаем доступные подтверждения…",
     "declineSelected": "Отклонить выбранное",
     "confirmSelected": "Подтвердить выбранное",
     "item": {
       "select": "Выбрать",
       "deselect": "Отменить"
-    }
+    },
+    "retry": "Повторить",
+    "error": "Не удалось получить подтверждения.",
+    "confirming_one": "Подтверждаем выбранное: {{count}}",
+    "confirming_few": "Подтверждаем выбранное: {{count}}",
+    "confirming_many": "Подтверждаем выбранное: {{count}}",
+    "confirming_other": "Подтверждаем выбранное: {{count}}",
+    "declining_one": "Отклоняем выбранное: {{count}}",
+    "declining_few": "Отклоняем выбранное: {{count}}",
+    "declining_many": "Отклоняем выбранное: {{count}}",
+    "declining_other": "Отклоняем выбранное: {{count}}"
   },
   "ask": {
     "nothing": "тут пока ничего нету...",

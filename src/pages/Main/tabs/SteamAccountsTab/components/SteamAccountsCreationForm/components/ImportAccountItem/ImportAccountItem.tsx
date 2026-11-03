@@ -28,43 +28,47 @@ const ImportAccountItem = observer(
 
     return (
       <div className="imported-steam-account-item__container">
-        <div className="imported-steam-account-item text-white-medium">
+        <div className={`imported-steam-account-item text-white-medium${isMaFileOpen || isProxyOpen ? " imported-steam-account-item_open" : ""}`}>
           <div className="imported-steam-account-cell imported-steam-account-avatar-container">
             <img
               src={sanitizeAvatarUrl(smaFile.secondary?.avatarUrl)}
               className="imported-steam-account-avatar"
-              style={{ backgroundColor: "black" }}
+              alt=""
             ></img>
           </div>
-          <div className="imported-steam-account-cell">
-            {smaFile.accountName}
+          <div className="imported-steam-account-cell" title={smaFile.accountName}>
+            <span className="imported-steam-account-cell__text">{smaFile.accountName}</span>
+          </div>
+          <div className="imported-steam-account-cell" title={smaFile.secondary.nickname}>
+            <span className="imported-steam-account-cell__text">{smaFile.secondary.nickname}</span>
           </div>
           <div className="imported-steam-account-cell">
-            {smaFile.secondary.nickname}
-          </div>
-          <div className="imported-steam-account-cell" style={{marginRight: '10px'}}>
             <button
-              style={{
-                marginTop: "15px",
-                marginRight: "5px",
-              }}
+              type="button"
               className="proxy-item-button-expand"
+              aria-label={t("accounts.import.pickProxy")}
+              aria-expanded={isProxyOpen}
+              title={t("accounts.import.pickProxy")}
               onClick={() => {
                 setIsProxyOpen((isOpen) => !isOpen);
                 setActiveProxy(null);
                 setIsMaFileOpen(false);
               }}
             >
-              <img src="./assets/img/AddNewAccount.svg"></img>
+              <img src="./assets/img/AddNewAccount.svg" alt=""></img>
             </button>
-            {activeProxy
-              ? `#${proxyId} ${activeProxy.host} : ${activeProxy.port}`
-              : smaFile.proxy
-              ? `${smaFile.proxy.host} : ${smaFile.proxy.port}`
-              : ""}
+            <span className="imported-steam-account-cell__text">
+              {activeProxy
+                ? `#${proxyId} ${activeProxy.host} : ${activeProxy.port}`
+                : smaFile.proxy
+                ? `${smaFile.proxy.host} : ${smaFile.proxy.port}`
+                : <span className="imported-steam-account-cell__muted">{t("proxyBlock.noProxy")}</span>}
+            </span>
           </div>
           <div className="imported-steam-account-cell-button">
             <button
+              type="button"
+              aria-expanded={isMaFileOpen}
               onClick={() => {
                 setIsProxyOpen(false);
                 setIsMaFileOpen((isOpen) => !isOpen);
@@ -74,20 +78,21 @@ const ImportAccountItem = observer(
               {t("accounts.import.view")}
               <img
                 src="./assets/img/ArrowDown.svg"
+                alt=""
                 style={{
-                  marginLeft: "10px",
                   transform: isMaFileOpen ? "rotate(180deg)" : "",
                 }}
               ></img>
             </button>
           </div>
-          <div className="imported-steam-account-cell-button" style={{width:'50px'}}>
+          <div className="imported-steam-account-cell-button">
             <Button
               size="tiny"
               img="./assets/img/Trash.svg"
               view="icon"
               color="grey"
               hoverColor="light-grey"
+              altText={t("accounts.import.remove")}
               onClick={()=>{
                 const index = content.importedAccounts.findIndex(sa=>sa.tempId===tempId);
                 if (index >= 0){

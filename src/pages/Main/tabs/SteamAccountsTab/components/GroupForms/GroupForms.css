@@ -1,17 +1,32 @@
+/* Формы групп: тот же язык, что у форм аккаунта (заголовки разделов, липкая нижняя панель). */
+.group-form-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .group-form {
   display: flex;
   flex-direction: column;
-  padding: 20px 22px 22px;
+  gap: 16px;
+  padding: 16px 24px;
   box-sizing: border-box;
 }
 
 .group-form__caption {
-  margin-bottom: 18px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sda-text-muted);
+}
+
+.group-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .group-form__section-title {
-  margin-bottom: 10px;
-  margin-top: 2px;
+  margin: 0px;
 }
 
 .group-form__list {
@@ -26,24 +41,32 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: #2c1935;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: var(--sda-radius);
+  background: var(--sda-surface-3);
   cursor: pointer;
   border: 1px solid transparent;
+  outline: none;
+  transition: border-color var(--sda-transition), background-color var(--sda-transition);
 }
 
 .group-form__item:hover {
-  background: #372447;
+  border-color: var(--sda-border-strong);
+}
+.group-form__item:focus-visible {
+  box-shadow: var(--sda-focus-ring);
 }
 
-.group-form__item_active {
-  border-color: #7c5cbf;
-  background: #372447;
+.group-form__item_active,
+.group-form__item_active:hover {
+  border-color: var(--sda-accent);
+  background: var(--sda-surface-4);
 }
 
 .group-form__item-name {
-  color: #fff;
+  min-width: 0;
+  color: var(--sda-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -52,11 +75,12 @@
 .group-form__item-count {
   flex-shrink: 0;
   margin-left: 12px;
-}
-
-.group-form__buttons {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 22px;
+  min-width: 24px;
+  padding: 0px 8px;
+  border-radius: 999px;
+  background: var(--sda-surface-2);
+  color: var(--sda-text-muted);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
 }

@@ -1,3 +1,20 @@
 .steam-account_edit-form {
-    padding: 20px 0px 0px 0px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0px;
+}
+.steam-account_edit-form .steam-account_edit-form__avatar {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--sda-border-strong);
+    background: var(--sda-surface-0);
+}
+.steam-account_edit-form .import-account {
+    margin-top: 12px;
+}
+.steam-account_edit-form .proxy-block .account-creation-navigation {
+    margin-bottom: 12px;
 }
