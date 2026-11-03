@@ -9,6 +9,8 @@ import './css/CircleAnimation.css';
 
 //import { GlobalStyle } from './css/GlobalStyle';
 //import App from './components/App';
+// Переводы инициализируются до Router: язык берётся синхронно из main, первая отрисовка уже на нём.
+import './i18n/i18n';
 import Router from './Router';
 import { GlobalStyle } from './css/GlobalStyle';
 

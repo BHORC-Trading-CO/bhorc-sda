@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { ipcMain } from 'electron';
-import { onTrusted, onceTrusted, handleTrusted } from '../trustedIpc';
+import { onTrusted, onceTrusted, handleTrusted, onTrustedSync } from '../trustedIpc';
 import SteamAccountChannels from '../../../interfaces/IpcChannels/SteamAccountChannels';
 import steamAccountConfirmListener from '../../SteamAccount/Listeners/steamAccountConfirmListener';
 import steamAccountManager from '../../SteamAccount/steamAccountManager';
@@ -124,4 +124,25 @@ it('в electron нет прямых регистраций ipcMain вне truste
     };
     visit(root);
     expect(offenders).toEqual([]);
+});
+
+it('onTrustedSync всегда заполняет returnValue: иначе sendSync повесит окно', () => {
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    const handler = jest.fn(() => 'value');
+    onTrustedSync('TEST_SYNC', handler, 'fallback');
+    const ok: any = trusted();
+    ipcMain.emit('TEST_SYNC', ok, 1);
+    expect(ok.returnValue).toBe('value');
+    expect(handler).toHaveBeenCalledWith(ok, 1);
+
+    const untrusted: any = foreign();
+    ipcMain.emit('TEST_SYNC', untrusted);
+    expect(untrusted.returnValue).toBe('fallback');
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    ipcMain.removeAllListeners('TEST_SYNC');
+    onTrustedSync('TEST_SYNC', () => { throw new Error('boom'); }, 'fallback');
+    const failing: any = trusted();
+    ipcMain.emit('TEST_SYNC', failing);
+    expect(failing.returnValue).toBe('fallback');
 });

@@ -4,12 +4,13 @@ import SessionInterface from "../../interfaces/SteamAccount/SessionInterface";
 import ProxySetupInterface from "../../interfaces/Proxy/ProxySetupInterface";
 import sanitizeAvatarUrl from "./sanitizeAvatarUrl";
 import { getSteamID64 } from "./steamAccountSearch";
+import { t } from "../../i18n";
 
 type Data = Record<string, unknown>;
 
 function object(value: unknown): Data {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
-        throw new Error("Неправильный объект в smaFile");
+        throw new Error(t("errors.smaFile.invalidObject"));
     }
     return value as Data;
 }
@@ -24,7 +25,7 @@ function own(data: Data, key: string): unknown {
 function string(data: Data, key: string, fallback = ""): string {
     const value = own(data, key);
     if (value === undefined) return fallback;
-    if (typeof value !== "string") throw new Error(`Неправильное поле ${key}`);
+    if (typeof value !== "string") throw new Error(t("errors.smaFile.invalidField", { field: key }));
     return value;
 }
 
@@ -48,7 +49,7 @@ function identifier(value: unknown): string {
             const digits = getSteamID64({ Session: { SteamID: { c: chunks } } } as any);
             const exponent = own(value as Data, "e");
             const sign = own(value as Data, "s");
-            if (sign !== undefined && sign !== 1) throw new Error("Отрицательный идентификатор maFile");
+            if (sign !== undefined && sign !== 1) throw new Error(t("errors.smaFile.negativeId"));
             if (exponent === undefined) return digits;
             // BigNumber удаляет хвостовые нулевые чанки. Восстанавливаем их по экспоненте,
             // ограничивая длину недоверенного числа и не принимая дробные идентификаторы.
@@ -58,7 +59,7 @@ function identifier(value: unknown): string {
             }
         }
     }
-    throw new Error("Неправильный числовой идентификатор maFile");
+    throw new Error(t("errors.smaFile.invalidNumericId"));
 }
 
 function sanitizeSession(value: unknown): SessionInterface {
@@ -90,13 +91,13 @@ function sanitizeMaFile(value: unknown): MaFileInterface {
     }
     if (own(source, "server_time") !== undefined && !(typeof source.server_time === "string" ||
         (typeof source.server_time === "number" && Number.isFinite(source.server_time)))) {
-        throw new Error("Неправильное поле server_time");
+        throw new Error(t("errors.smaFile.invalidField", { field: "server_time" }));
     }
     if (own(source, "status") !== undefined && !(typeof source.status === "number" && Number.isFinite(source.status))) {
-        throw new Error("Неправильное поле status");
+        throw new Error(t("errors.smaFile.invalidField", { field: "status" }));
     }
     if (own(source, "fully_enrolled") !== undefined && typeof source.fully_enrolled !== "boolean") {
-        throw new Error("Неправильное поле fully_enrolled");
+        throw new Error(t("errors.smaFile.invalidField", { field: "fully_enrolled" }));
     }
     if (own(source, "Session") !== undefined && source.Session !== null) result.Session = sanitizeSession(source.Session);
     return result as unknown as MaFileInterface;
@@ -111,14 +112,14 @@ export function sanitizeProxySetup(value: unknown): ProxySetupInterface {
     // host/port встраиваются в URL прокси; разделители URL и unix-сокеты здесь недопустимы.
     if (!host || /[\s/\\?#@%]/.test(host) ||
         !/^[0-9]{1,5}$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
-        throw new Error("Неправильный адрес прокси");
+        throw new Error(t("errors.smaFile.invalidProxyAddress"));
     }
     // URL проверяет также IPv6, IDN и абсолютные DNS-имена с точкой на конце.
     try {
         const address = new URL(`http://${host}:${port}`);
         if (!address.hostname || address.username || address.password || address.pathname !== "/") throw new Error();
     } catch {
-        throw new Error("Неправильный адрес прокси");
+        throw new Error(t("errors.smaFile.invalidProxyAddress"));
     }
     return { host, port, username: string(source, "username"), password: string(source, "password") };
 }
@@ -128,7 +129,7 @@ export default function sanitizeSmaFile(value: unknown): SmaFileInterface {
     const secondary = object(own(source, "secondary"));
     const accountName = string(source, "accountName");
     const password = string(source, "password");
-    if (!accountName || !password) throw new Error("Не указаны логин или пароль аккаунта");
+    if (!accountName || !password) throw new Error(t("errors.smaFile.missingCredentials"));
     // PIN приходит и числом (старые файлы), и строкой из окна ввода PIN. Строку оставляем
     // строкой: в числе пропали бы ведущие нули ("0123" -> 123), и Steam отклонил бы PIN.
     const rawPin = own(source, "familyViewPin");
@@ -136,7 +137,7 @@ export default function sanitizeSmaFile(value: unknown): SmaFileInterface {
     const pin = trimmedPin === "" ? undefined : trimmedPin;
     if (pin !== undefined && !(typeof pin === "number" && Number.isInteger(pin) && pin >= 0 && pin <= 9999) &&
         !(typeof pin === "string" && /^[0-9]{1,8}$/.test(pin))) {
-        throw new Error("Неправильный familyViewPin");
+        throw new Error(t("errors.smaFile.invalidFamilyViewPin"));
     }
     const result: SmaFileInterface = {
         accountName,

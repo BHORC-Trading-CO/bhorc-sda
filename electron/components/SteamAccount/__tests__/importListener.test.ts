@@ -10,6 +10,10 @@ import steamAccountImport from "../Processes/steamAccountImport";
 import proxyManager from "../../Proxy/proxyManager";
 import Manager from "../../manager/manager";
 import { DEFAULT_AVATAR_URL } from "../../Functions/sanitizeAvatarUrl";
+import { setMainLanguage } from "../../../i18n";
+
+// Сообщения проверяем на русском: ru — прежний текст без изменений (SDA-18).
+beforeAll(() => setMainLanguage("ru"));
 
 const file = () => ({
     accountName: "account", password: "password", maFile: {},

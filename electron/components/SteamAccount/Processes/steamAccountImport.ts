@@ -2,6 +2,7 @@ import SmaFileInterface from "../../../interfaces/SteamAccount/SmaFileInterface"
 import SteamAccountStorage from "../../newStorage/SteamAccountStorage";
 import SteamAccount from "../SteamAccount";
 import steamAccountManager from "../steamAccountManager";
+import { t } from "../../../i18n";
 
 const steamAccountImport = (smaFile: SmaFileInterface) => {
     try {
@@ -13,7 +14,7 @@ const steamAccountImport = (smaFile: SmaFileInterface) => {
         SteamAccountStorage.Save(steamAccountParams.id, steamAccountParams);
         return steamAccountParams;
     } catch (err){
-        throw new Error(`Ошибка в функции импорта стим аккаунта: ${err}`);
+        throw new Error(t('errors.importAccount', { error: String(err) }));
     }
 }
 

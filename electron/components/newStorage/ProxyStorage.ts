@@ -2,6 +2,7 @@ import createStore from "./createStore";
 import assertStorageId from "./assertStorageId";
 import ProxyInterface from '../../interfaces/Proxy/ProxyInterface';
 import cryptoUserData from './cryptoUserData';
+import { t } from "../../i18n";
 const store = createStore();
 
 class ProxyStorage {
@@ -29,7 +30,7 @@ class ProxyStorage {
     static Save(id: string, proxy: ProxyInterface) {
         assertStorageId(id);
         assertStorageId(proxy.id);
-        if (proxy.id !== id) throw new Error("Идентификатор записи не совпадает с ключом");
+        if (proxy.id !== id) throw new Error(t("errors.storage.idMismatch"));
         const encryptedProxy = cryptoUserData.encryptObject(proxy);
         store.set(`proxies.${id}`, encryptedProxy);
     }

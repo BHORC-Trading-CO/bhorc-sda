@@ -4,6 +4,7 @@ import steamAccountImport from "../Processes/steamAccountImport";
 import steamAccountManager from "../steamAccountManager";
 import proxyManager from "../../Proxy/proxyManager";
 import sanitizeSmaFile from "../../Functions/sanitizeSmaFile";
+import { t } from "../../../i18n";
 
 export default (event: Electron.IpcMainEvent, accounts: [{ smaFile: SmaFileInterface, links: { proxyId: string | null, profileId: string | null } }]) => {
     // Каждый аккаунт отдельно: один неправильный файл не должен обрывать импорт остальных.
@@ -31,5 +32,5 @@ export default (event: Electron.IpcMainEvent, accounts: [{ smaFile: SmaFileInter
     } catch (err) {
         event.reply('ERROR', err);
     }
-    if (rejected.length) event.reply('ERROR', new Error(`Не импортировано аккаунтов: ${rejected.length}. ${rejected.join("; ")}`));
+    if (rejected.length) event.reply('ERROR', new Error(t("errors.importRejected", { total: rejected.length, details: rejected.join("; ") })));
 }

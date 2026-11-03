@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import InfoType from "../components/application/askInfo/InfoType";
 import WindowsChannels from "../interfaces/IpcChannels/WindowsChannels";
 import AskSomethingChannels from "../interfaces/IpcChannels/AskSomethigChannels";
+import { exposeLanguageApi } from './languageBridge';
 
 /** Методы для работы с беком приложения */
 const askFamilyPinApi = {
@@ -40,4 +41,5 @@ const windowApi = {
 export default { askFamilyPinApi, windowApi };
 
 contextBridge.exposeInMainWorld('AskFamilyPin', { askFamilyPinApi, windowApi });
+exposeLanguageApi();
 contextBridge.exposeInMainWorld('getWindowName', () => 'askFamilyPin');

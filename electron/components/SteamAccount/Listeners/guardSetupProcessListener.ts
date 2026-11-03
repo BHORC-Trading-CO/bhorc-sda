@@ -12,6 +12,7 @@ import steamAccountManager from "../steamAccountManager";
 import Proxy from "../../Proxy/Proxy";
 import ProxyStorage from "../../newStorage/ProxyStorage";
 import GuardSetupResultInterface from "../../../interfaces/SteamAccount/GuardSetupResultInterface";
+import { t } from "../../../i18n";
 
 export default async (event: Electron.IpcMainEvent, params: { accountName: string, password: string, links: { proxyId: string | null, profileId: string | null, newProxy: ProxySetupInterface | null } }) => {
     try {
@@ -49,6 +50,6 @@ export default async (event: Electron.IpcMainEvent, params: { accountName: strin
         application.sendToMain(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT, result);
         nextStep("end");
     } catch (err) {
-        if (err != 'abort') event.reply(SteamAccountChannels.GUARD_SETUP_PROCESS_ERROR, `Ошибка при подключении Guard: ${err}`)
+        if (err != 'abort') event.reply(SteamAccountChannels.GUARD_SETUP_PROCESS_ERROR, t('errors.guardSetup', { error: String(err) }))
     }
 }

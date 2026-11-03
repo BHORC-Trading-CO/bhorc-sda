@@ -1,0 +1,15 @@
+{
+  "navigation": {
+    "steamAccounts": "Акаунти Steam",
+    "proxies": "Проксі",
+    "editGroup": "Редагувати групу"
+  },
+  "languageSwitcher": {
+    "label": "Мова інтерфейсу",
+    "names": {
+      "en": "English",
+      "uk": "Українська",
+      "ru": "Русский"
+    }
+  }
+}

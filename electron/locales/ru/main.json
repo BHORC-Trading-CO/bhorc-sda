@@ -1,0 +1,58 @@
+{
+  "startup": {
+    "dataDirNotPinned": "Данные открыты не из папки {{dir}} ({{paths}}). Запуск остановлен, чтобы не потерять аккаунты."
+  },
+  "errors": {
+    "steamAccountNotFound": "Такого стим аккаунта #{{id}} не существует",
+    "proxyNotFound": "Прокси #{{id}} не существует",
+    "proxyLinkMissing": "Прокси #{{proxyId}} не существует: связь с аккаунтом #{{steamAccountId}} не установлена (запросы шли бы напрямую)",
+    "directRequestForbidden": "RequestPromise: запрос без прокси запрещён (защита от утечки реального IP). Передайте прокси или allowDirect=true.",
+    "guardCode": "Ошибка при генерации Guard кода: {{error}}",
+    "createAccount": "Ошибка при создании аккаунта: {{error}}",
+    "guardSetup": "Ошибка при подключении Guard: {{error}}",
+    "importAccount": "Ошибка в функции импорта стим аккаунта: {{error}}",
+    "importRejected": "Не импортировано аккаунтов: {{total}}. {{details}}",
+    "proxiesRejected": "Не добавлено прокси: {{total}}. {{details}}",
+    "saveSession": "Не удалось сохранить сессию: {{error}}",
+    "wrongPin": "Неправильный пин",
+    "askAborted": {
+      "familyPin": "Добавление пин кода от семейного доступа прервано",
+      "mailCode": "Ввод кода с почты прерван",
+      "smsCode": "Ввод кода из SMS прерван",
+      "none": "Ввод прерван"
+    },
+    "secretKeyTooShort": "Ключ некорректный. Нужно минимум 8 символов",
+    "totpNotAccepted": "Steam не принял ни один код TOTP за 30 попыток",
+    "balance": {
+      "notFound": "Не удалось получить баланс",
+      "format": "Не получилось отформатировать"
+    },
+    "tradeState": {
+      "unknown": "eligibilitycheck: allowed=0, reason={{reason}}, статус неизвестен",
+      "noCookie": "eligibilitycheck {{status}}: нет cookie webTradeEligibility"
+    },
+    "chromium": {
+      "tooManyRedirects": "Слишком много редиректов: {{url}}",
+      "httpStatus": "{{url}} ответил {{status}}",
+      "revision": "Не удалось определить ревизию Chromium для arm64: получено \"{{revision}}\"",
+      "binaryMissing": "В скачанном архиве Chromium нет бинарника: {{binary}}"
+    },
+    "avatar": {
+      "invalidUrl": "downloadImage: недопустимый URL аватара",
+      "httpStatus": "downloadImage: неожиданный HTTP-статус"
+    },
+    "storage": {
+      "idMismatch": "Идентификатор записи не совпадает с ключом",
+      "invalidId": "Недопустимый идентификатор хранилища"
+    },
+    "smaFile": {
+      "invalidObject": "Неправильный объект в smaFile",
+      "invalidField": "Неправильное поле {{field}}",
+      "negativeId": "Отрицательный идентификатор maFile",
+      "invalidNumericId": "Неправильный числовой идентификатор maFile",
+      "invalidProxyAddress": "Неправильный адрес прокси",
+      "missingCredentials": "Не указаны логин или пароль аккаунта",
+      "invalidFamilyViewPin": "Неправильный familyViewPin"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "startup": {
+    "dataDirNotPinned": "Data was opened outside the {{dir}} folder ({{paths}}). Startup was stopped so that no accounts are lost."
+  },
+  "errors": {
+    "steamAccountNotFound": "Steam account #{{id}} does not exist",
+    "proxyNotFound": "Proxy #{{id}} does not exist",
+    "proxyLinkMissing": "Proxy #{{proxyId}} does not exist: account #{{steamAccountId}} was not linked (requests would go directly)",
+    "directRequestForbidden": "RequestPromise: requests without a proxy are forbidden (protects your real IP). Pass a proxy or allowDirect=true.",
+    "guardCode": "Failed to generate the Guard code: {{error}}",
+    "createAccount": "Failed to create the account: {{error}}",
+    "guardSetup": "Failed to set up Steam Guard: {{error}}",
+    "importAccount": "Steam account import failed: {{error}}",
+    "importRejected": "Accounts not imported: {{total}}. {{details}}",
+    "proxiesRejected": "Proxies not added: {{total}}. {{details}}",
+    "saveSession": "Failed to save the session: {{error}}",
+    "wrongPin": "Wrong PIN",
+    "askAborted": {
+      "familyPin": "Entering the Family View PIN was cancelled",
+      "mailCode": "Entering the email code was cancelled",
+      "smsCode": "Entering the SMS code was cancelled",
+      "none": "Input was cancelled"
+    },
+    "secretKeyTooShort": "Invalid key. It must be at least 8 characters long",
+    "totpNotAccepted": "Steam did not accept any TOTP code in 30 attempts",
+    "balance": {
+      "notFound": "Failed to get the balance",
+      "format": "Failed to parse the balance"
+    },
+    "tradeState": {
+      "unknown": "eligibilitycheck: allowed=0, reason={{reason}}, status unknown",
+      "noCookie": "eligibilitycheck {{status}}: no webTradeEligibility cookie"
+    },
+    "chromium": {
+      "tooManyRedirects": "Too many redirects: {{url}}",
+      "httpStatus": "{{url}} responded with {{status}}",
+      "revision": "Failed to determine the Chromium revision for arm64: got \"{{revision}}\"",
+      "binaryMissing": "The downloaded Chromium archive has no executable: {{binary}}"
+    },
+    "avatar": {
+      "invalidUrl": "downloadImage: invalid avatar URL",
+      "httpStatus": "downloadImage: unexpected HTTP status"
+    },
+    "storage": {
+      "idMismatch": "Record ID does not match its key",
+      "invalidId": "Invalid storage ID"
+    },
+    "smaFile": {
+      "invalidObject": "Invalid object in smaFile",
+      "invalidField": "Invalid field {{field}}",
+      "negativeId": "Negative maFile identifier",
+      "invalidNumericId": "Invalid numeric maFile identifier",
+      "invalidProxyAddress": "Invalid proxy address",
+      "missingCredentials": "Account login or password is missing",
+      "invalidFamilyViewPin": "Invalid familyViewPin"
+    }
+  }
+}

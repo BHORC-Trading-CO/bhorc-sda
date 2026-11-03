@@ -21,6 +21,7 @@ import TableOptions from '../interfaces/TableOptions/TableOptions';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import path from "path";
 import createStore from "../components/newStorage/createStore";
+import { exposeLanguageApi } from './languageBridge';
 
 const SteamTotp = require('steam-totp');
 
@@ -317,4 +318,5 @@ const mainApi = {
 export default mainApi;
 
 contextBridge.exposeInMainWorld('Main', mainApi);
+exposeLanguageApi();
 contextBridge.exposeInMainWorld('getWindowName', () => 'main');

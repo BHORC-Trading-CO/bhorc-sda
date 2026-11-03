@@ -11,12 +11,13 @@ import SuperMethods from '../../SuperMethods/SuperMethods';
 import ProxyChannels from '../../../interfaces/IpcChannels/ProxyChannels';
 import proxyGetTableOptionsListener from '../../Proxy/listeners/proxyGetTableOptionsListener';
 import proxySetTableOptionsListener from '../../Proxy/listeners/proxySetTableOptionsListener';
+import { t } from "../../../i18n";
 
 export default () => {
     onTrusted('TEST_PROXY', async (event, id: string) => {
         try {
             const proxy = proxyManager.getById(id);
-            if (!proxy) throw new Error(`Прокси #${id} не существует`);
+            if (!proxy) throw new Error(t('errors.proxyNotFound', { id }));
             //await SuperMethods.Sleep(3000);
             const testResult = await proxy.test();
             event.reply('TEST_PROXY', { id, testResult });
@@ -90,7 +91,7 @@ export default () => {
         } catch (err) {
             event.reply('ERROR', err);
         }
-        if (rejected.length) event.reply('ERROR', new Error(`Не добавлено прокси: ${rejected.length}. ${rejected.join("; ")}`));
+        if (rejected.length) event.reply('ERROR', new Error(t("errors.proxiesRejected", { total: rejected.length, details: rejected.join("; ") })));
     });
     onTrusted('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds: string[] } }) => {
         try {

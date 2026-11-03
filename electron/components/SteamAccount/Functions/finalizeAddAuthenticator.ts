@@ -1,6 +1,7 @@
 import request from "request";
 import SteamTotp from "steam-totp";
 import { STEAM_MOBILE_USER_AGENT, STEAM_ACCEPT_ENCODING } from "./steamUserAgent";
+import { t } from "../../../i18n";
 
 /**
  * Завершает подключение аутентификатора (ITwoFactorService/FinalizeAddAuthenticator).
@@ -80,7 +81,7 @@ export default function finalizeAddAuthenticator(params: {
                     if (response.want_more) {
                         attemptsLeft--;
                         if (attemptsLeft <= 0) {
-                            return reject(new Error("Steam не принял ни один код TOTP за 30 попыток"));
+                            return reject(new Error(t("errors.totpNotAccepted")));
                         }
                         offset += 30;
                         return attempt();

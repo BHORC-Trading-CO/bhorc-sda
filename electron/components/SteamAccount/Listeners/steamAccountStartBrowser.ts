@@ -1,11 +1,12 @@
 import { IpcMainEvent } from 'electron';
 import steamAccountManager from '../steamAccountManager';
 import proxyManager from '../../Proxy/proxyManager';
+import { t } from "../../../i18n";
 
 export default async (event: IpcMainEvent, id: string) => {
     try {
         const steamAccount = steamAccountManager.getById(id);
-        if (!steamAccount) throw new Error(`Такого стим аккаунта #${id} не существует`);
+        if (!steamAccount) throw new Error(t('errors.steamAccountNotFound', { id: id }));
         const cookies = steamAccount.params.useSteamCookies ? await steamAccount.getBrowserCookies() : [];
         // Без прокси гео не определяем — браузер стартует с системной TZ/локалью.
         const geo = steamAccount.proxy ? await proxyManager.getProxyGeo(steamAccount.proxy.id) : null;

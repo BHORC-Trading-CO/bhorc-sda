@@ -1,0 +1,58 @@
+{
+  "startup": {
+    "dataDirNotPinned": "Дані відкрито не з папки {{dir}} ({{paths}}). Запуск зупинено, щоб не втратити акаунти."
+  },
+  "errors": {
+    "steamAccountNotFound": "Акаунта Steam #{{id}} не існує",
+    "proxyNotFound": "Проксі #{{id}} не існує",
+    "proxyLinkMissing": "Проксі #{{proxyId}} не існує: зв’язок з акаунтом #{{steamAccountId}} не встановлено (запити йшли б напряму)",
+    "directRequestForbidden": "RequestPromise: запити без проксі заборонені (захист від витоку реальної IP-адреси). Передайте проксі або allowDirect=true.",
+    "guardCode": "Не вдалося згенерувати код Guard: {{error}}",
+    "createAccount": "Не вдалося створити акаунт: {{error}}",
+    "guardSetup": "Не вдалося підключити Steam Guard: {{error}}",
+    "importAccount": "Помилка імпорту акаунта Steam: {{error}}",
+    "importRejected": "Не імпортовано акаунтів: {{total}}. {{details}}",
+    "proxiesRejected": "Не додано проксі: {{total}}. {{details}}",
+    "saveSession": "Не вдалося зберегти сесію: {{error}}",
+    "wrongPin": "Неправильний PIN",
+    "askAborted": {
+      "familyPin": "Введення PIN-коду сімейного перегляду перервано",
+      "mailCode": "Введення коду з пошти перервано",
+      "smsCode": "Введення коду з SMS перервано",
+      "none": "Введення перервано"
+    },
+    "secretKeyTooShort": "Некоректний ключ. Потрібно щонайменше 8 символів",
+    "totpNotAccepted": "Steam не прийняв жодного коду TOTP за 30 спроб",
+    "balance": {
+      "notFound": "Не вдалося отримати баланс",
+      "format": "Не вдалося розібрати баланс"
+    },
+    "tradeState": {
+      "unknown": "eligibilitycheck: allowed=0, reason={{reason}}, статус невідомий",
+      "noCookie": "eligibilitycheck {{status}}: немає cookie webTradeEligibility"
+    },
+    "chromium": {
+      "tooManyRedirects": "Забагато перенаправлень: {{url}}",
+      "httpStatus": "{{url}} відповів {{status}}",
+      "revision": "Не вдалося визначити ревізію Chromium для arm64: отримано \"{{revision}}\"",
+      "binaryMissing": "У завантаженому архіві Chromium немає виконуваного файлу: {{binary}}"
+    },
+    "avatar": {
+      "invalidUrl": "downloadImage: неприпустима URL-адреса аватара",
+      "httpStatus": "downloadImage: неочікуваний HTTP-статус"
+    },
+    "storage": {
+      "idMismatch": "Ідентифікатор запису не збігається з ключем",
+      "invalidId": "Неприпустимий ідентифікатор сховища"
+    },
+    "smaFile": {
+      "invalidObject": "Неправильний об’єкт у smaFile",
+      "invalidField": "Неправильне поле {{field}}",
+      "negativeId": "Від’ємний ідентифікатор maFile",
+      "invalidNumericId": "Неправильний числовий ідентифікатор maFile",
+      "invalidProxyAddress": "Неправильна адреса проксі",
+      "missingCredentials": "Не вказано логін або пароль акаунта",
+      "invalidFamilyViewPin": "Неправильний familyViewPin"
+    }
+  }
+}

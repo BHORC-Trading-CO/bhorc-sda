@@ -19,6 +19,7 @@ import askFamilyPin from "../../application/askInfo/askFamilyPin";
 import { EAuthSessionGuardType, EAuthTokenPlatformType, LoginSession } from "steam-session";
 import askMailCode from "../../application/askInfo/askMailCode";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
+import { t } from "../../../i18n";
 
 type AbortChannelType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT | SteamAccountChannels.GUARD_SETUP_PROCESS_ABORT;
 type StepType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP | SteamAccountChannels.GUARD_SETUP_PROCESS_STEP;
@@ -141,7 +142,7 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                             })
                             .catch((err) => {
                                 if (err.message == "Incorrect PIN") {
-                                    application.sendToMain('ERROR', 'Неправильный пин');
+                                    application.sendToMain('ERROR', t('errors.wrongPin'));
                                 } else {
                                     reject(err);
                                 }

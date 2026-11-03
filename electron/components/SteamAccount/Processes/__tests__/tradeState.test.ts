@@ -4,6 +4,10 @@ import nock from "nock";
 import request from "request";
 import SteamCommunity from "steamcommunity";
 import { getTradeState, parseTradeEligibility, tradeStateFromEligibility } from "../loadSteamAccountData";
+import { setMainLanguage } from "../../../../i18n";
+
+// Сообщения проверяем на русском: ru — прежний текст без изменений (SDA-18).
+beforeAll(() => setMainLanguage("ru"));
 
 // Настоящий steamcommunity + request с jar, Steam подменён nock: так проверяются
 // followRedirect, Set-Cookie, jar и редирект на /login, а не только наш разбор.

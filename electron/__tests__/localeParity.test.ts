@@ -1,0 +1,139 @@
+import fs from "fs";
+import path from "path";
+import ts from "typescript";
+
+// Переводы (SDA-18): в каждом пространстве имён у всех трёх языков один и тот же набор ключей
+// и одни и те же {{параметры}}. Формы множественного числа (_one/_few/_many/_other) у каждого
+// языка свои — по правилам Intl.PluralRules, но сама группа ключей должна быть у всех.
+const ROOT = path.join(__dirname, "../..");
+const LANGUAGES = ["en", "uk", "ru"];
+const NAMESPACES = [
+    { name: "main", dir: "electron/locales" },
+    { name: "common", dir: "src/locales" },
+    { name: "shell", dir: "src/locales" },
+];
+const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
+
+type Flat = Record<string, string>;
+
+function flatten(value: unknown, prefix: string, out: Flat, errors: string[]): Flat {
+    if (typeof value === "string") {
+        out[prefix] = value;
+    } else if (value && typeof value === "object" && !Array.isArray(value)) {
+        for (const [key, child] of Object.entries(value)) flatten(child, prefix ? `${prefix}.${key}` : key, out, errors);
+    } else {
+        errors.push(`${prefix}: значение должно быть строкой или объектом`);
+    }
+    return out;
+}
+
+function load(dir: string, language: string, ns: string, errors: string[]): Flat {
+    const file = path.join(ROOT, dir, language, `${ns}.json`);
+    if (!fs.existsSync(file)) {
+        errors.push(`${path.relative(ROOT, file)}: файла нет`);
+        return {};
+    }
+    return flatten(JSON.parse(fs.readFileSync(file, "utf8")), "", {}, errors);
+}
+
+function placeholders(text: string): string[] {
+    return [...text.matchAll(/\{\{\s*([\w.]+)[^}]*\}\}/g)].map((m) => m[1]);
+}
+
+// Ключ без суффикса множественного числа -> { формы, параметры (кроме count, его в формах можно опускать) }.
+function groups(flat: Flat) {
+    const result = new Map<string, { forms: Set<string>; params: Set<string> }>();
+    for (const [key, text] of Object.entries(flat)) {
+        const match = key.match(PLURAL_SUFFIX);
+        const base = match ? key.slice(0, -match[0].length) : key;
+        const group = result.get(base) || { forms: new Set<string>(), params: new Set<string>() };
+        if (match) group.forms.add(match[1]);
+        for (const name of placeholders(text)) if (!(match && name === "count")) group.params.add(name);
+        result.set(base, group);
+    }
+    return result;
+}
+
+const sorted = (values: Iterable<string>) => [...values].sort();
+
+describe.each(NAMESPACES)("переводы: пространство имён $name", ({ name, dir }) => {
+    const errors: string[] = [];
+    const byLanguage = Object.fromEntries(LANGUAGES.map((language) => [language, groups(load(dir, language, name, errors))]));
+
+    it("файлы есть и разбираются", () => {
+        expect(errors).toEqual([]);
+    });
+
+    it("у всех языков одинаковые ключи", () => {
+        const reference = sorted(byLanguage.en.keys());
+        for (const language of LANGUAGES) {
+            expect({ language, keys: sorted(byLanguage[language].keys()) }).toEqual({ language, keys: reference });
+        }
+    });
+
+    it("у каждого ключа одинаковые {{параметры}} во всех языках", () => {
+        const mismatches: string[] = [];
+        for (const [key, group] of byLanguage.en) {
+            for (const language of LANGUAGES) {
+                const other = byLanguage[language].get(key);
+                if (other && sorted(other.params).join() !== sorted(group.params).join()) {
+                    mismatches.push(`${key}: en {${sorted(group.params)}} ≠ ${language} {${sorted(other.params)}}`);
+                }
+            }
+        }
+        expect(mismatches).toEqual([]);
+    });
+
+    it("формы множественного числа соответствуют правилам языка", () => {
+        const mismatches: string[] = [];
+        for (const language of LANGUAGES) {
+            const required = sorted(new Intl.PluralRules(language).resolvedOptions().pluralCategories);
+            for (const [key, group] of byLanguage[language]) {
+                if (group.forms.size && sorted(group.forms).join() !== required.join()) {
+                    mismatches.push(`${language} ${key}: ${sorted(group.forms)} вместо ${required}`);
+                }
+            }
+        }
+        expect(mismatches).toEqual([]);
+    });
+});
+
+describe("ключи t() в electron/ есть в main", () => {
+    // Литеральные ключи t("...") / t('...'); ключи из шаблонов (`errors.askAborted.${type}`) — по префиксу.
+    function usedKeys(): { key: string; where: string; prefix: boolean }[] {
+        const out: { key: string; where: string; prefix: boolean }[] = [];
+        const walk = (dir: string) => {
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                const full = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    if (!["__tests__", "locales", "node_modules"].includes(entry.name)) walk(full);
+                    continue;
+                }
+                if (!/\.ts$/.test(entry.name)) continue;
+                const sf = ts.createSourceFile(full, fs.readFileSync(full, "utf8"), ts.ScriptTarget.Latest, true);
+                const visit = (node: ts.Node) => {
+                    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "t" && node.arguments[0]) {
+                        const arg = node.arguments[0];
+                        const where = `${path.relative(ROOT, full)}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}`;
+                        if (ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg)) out.push({ key: arg.text, where, prefix: false });
+                        else if (ts.isTemplateExpression(arg)) out.push({ key: arg.head.text, where, prefix: true });
+                    }
+                    ts.forEachChild(node, visit);
+                };
+                visit(sf);
+            }
+        };
+        walk(path.join(ROOT, "electron"));
+        return out;
+    }
+
+    it("каждый ключ существует в en/main.json", () => {
+        const keys = Object.keys(flatten(JSON.parse(fs.readFileSync(path.join(ROOT, "electron/locales/en/main.json"), "utf8")), "", {}, []));
+        const used = usedKeys();
+        expect(used.length).toBeGreaterThan(20);
+        const missing = used
+            .filter(({ key, prefix }) => prefix ? !keys.some((k) => k.startsWith(key)) : !keys.includes(key))
+            .map(({ key, where }) => `${where}: ${key}`);
+        expect(missing).toEqual([]);
+    });
+});

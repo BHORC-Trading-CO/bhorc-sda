@@ -35,6 +35,27 @@ export function onceTrusted(channel: string, handler: Listener): () => void {
     return () => { ipcMain.removeListener(channel, listener); };
 }
 
+/**
+ * Для ipcRenderer.sendSync: отправитель ждёт event.returnValue и без него зависнет. Поэтому
+ * недоверенному отправителю и при исключении в обработчике отдаём fallback.
+ */
+export function onTrustedSync(channel: string, handler: (event: IpcMainEvent, ...args: any[]) => unknown, fallback: unknown): () => void {
+    const listener: Listener = (event, ...args) => {
+        if (!isTrusted(channel, event)) {
+            event.returnValue = fallback;
+            return;
+        }
+        try {
+            event.returnValue = handler(event, ...args);
+        } catch (err) {
+            console.log(`Ошибка в синхронном обработчике ${channel}: ${err}`);
+            event.returnValue = fallback;
+        }
+    };
+    ipcMain.on(channel, listener);
+    return () => { ipcMain.removeListener(channel, listener); };
+}
+
 export function handleTrusted(channel: string, handler: InvokeHandler): void {
     ipcMain.handle(channel, (event, ...args) => {
         if (isTrusted(channel, event)) return handler(event, ...args);

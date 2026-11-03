@@ -3,6 +3,7 @@ import { Response } from "request";
 import SecondaryInterface from "../../../interfaces/SteamAccount/SecondaryInterface";
 import ChangableSecondaryInterface from "../../../interfaces/SteamAccount/ChangableSecondaryInterface";
 import sanitizeAvatarUrl, { DEFAULT_AVATAR_URL } from "../../Functions/sanitizeAvatarUrl";
+import { t } from "../../../i18n";
 
 export async function getSecondaries(community: SteamCommunity, prev?: SecondaryInterface): Promise<SecondaryInterface> {
     // Дедуп запросов: раньше профиль /profiles/{id}/ дёргался ТРИЖДЫ (ник, уровень, аватар),
@@ -154,7 +155,7 @@ async function getSteamBalance(community: SteamCommunity): Promise<{ balance: nu
                         if (body.includes('<div class="accountData price">'))
                             var balanceInfo: string = body.split('<div class="accountData price">')[1].split("</div>")[0];
                         else
-                            return reject(Error("Не удалось получить баланс"));
+                            return reject(Error(t("errors.balance.notFound")));
                     const balance: number = formatBalance(balanceInfo);
                     const currency: string = formatCurrency(balanceInfo);
                     resolve({ balance: balance, currency: currency });
@@ -171,7 +172,7 @@ async function getSteamBalance(community: SteamCommunity): Promise<{ balance: nu
 function formatCurrency(balanceInfo: string): string {
     var rawCurrency = balanceInfo.replace(/\d+,+\d+|\d+\.+\d+|\d+/, "");
     switch (rawCurrency) {
-        case " pуб.":
+        case " pуб.": // i18n-ok: так Steam пишет валюту на странице, это не текст интерфейса
             return "₽";
         case "$ USD":
             return "$";
@@ -184,7 +185,7 @@ function formatBalance(balanceInfo: string): number {
     var rawBalance = /\d+,+\d+|\d+\.+\d+|\d+/.exec(balanceInfo);
     if (rawBalance)
         return parseFloat(rawBalance[0].replace(",", "."));
-    throw new Error("Не получилось отформатировать");
+    throw new Error(t("errors.balance.format"));
 }
 
 function parseKtState(body: string): boolean {
@@ -261,7 +262,7 @@ export function tradeStateFromEligibility(eligibility: TradeEligibility): boolea
     // Трейды доступны, только если ВСЕ причины из списка «только маркет». Временный сбой,
     // проблема с cookie, пустая причина и биты, которых Valve ещё не было, — статус неизвестен.
     if (reason === 0 || reason & (REASON_TEMPORARY_FAILURE | REASON_INVALID_COOKIE) || reason & ~MARKET_ONLY_REASONS) {
-        throw new Error(`eligibilitycheck: allowed=0, reason=${reason}, статус неизвестен`);
+        throw new Error(t("errors.tradeState.unknown", { reason }));
     }
     return true;
 }
@@ -302,7 +303,7 @@ export async function getTradeState(community: SteamCommunity): Promise<boolean>
             // туда прошлый вердикт нельзя.
             const eligibility = parseTradeEligibility(fromHeader ? fromHeader[1] : null);
             if (!eligibility) {
-                return reject(new Error(`eligibilitycheck ${response.statusCode}: нет cookie webTradeEligibility`));
+                return reject(new Error(t("errors.tradeState.noCookie", { status: response.statusCode })));
             }
             try {
                 resolve(tradeStateFromEligibility(eligibility));

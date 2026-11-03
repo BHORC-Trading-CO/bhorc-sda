@@ -2,6 +2,7 @@ import request, { RequestAPI, Request, CoreOptions, RequiredUriUrl, Options, Res
 import ProxySetupInterface from '../../interfaces/Proxy/ProxySetupInterface';
 import buildProxyUrl from '../Proxy/proxyUrl';
 import { STEAM_MOBILE_USER_AGENT, STEAM_ACCEPT_ENCODING } from '../SteamAccount/Functions/steamUserAgent';
+import { t } from "../../i18n";
 
 class RequestPromise {
     object: RequestAPI<Request, CoreOptions, RequiredUriUrl>;
@@ -19,7 +20,7 @@ class RequestPromise {
         } else if (allowDirect) {
             this.object = request.defaults(commonDefaults);
         } else {
-            throw new Error('RequestPromise: запрос без прокси запрещён (защита от утечки реального IP). Передайте прокси или allowDirect=true.');
+            throw new Error(t('errors.directRequestForbidden'));
         }
     }
 

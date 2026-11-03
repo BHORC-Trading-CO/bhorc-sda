@@ -5,6 +5,7 @@ import https from "https";
 import os from "os";
 import path from "path";
 import { app } from "electron";
+import { t } from "../../../i18n";
 
 const chromium = require("chromium");
 
@@ -70,12 +71,12 @@ function httpsGet(url: string, onResponse: (res: any) => void, reject: (err: any
       const status = res.statusCode || 0;
       if (status >= 300 && status < 400 && res.headers.location) {
         res.resume();
-        if (redirectsLeft <= 0) return reject(new Error(`Слишком много редиректов: ${url}`));
+        if (redirectsLeft <= 0) return reject(new Error(t("errors.chromium.tooManyRedirects", { url })));
         return httpsGet(res.headers.location, onResponse, reject, redirectsLeft - 1);
       }
       if (status !== 200) {
         res.resume();
-        return reject(new Error(`${url} ответил ${status}`));
+        return reject(new Error(t("errors.chromium.httpStatus", { url, status })));
       }
       onResponse(res);
     })
@@ -168,7 +169,7 @@ export async function resolveBrowserPath(
 
   const revision = await deps.fetchText(`${SNAPSHOTS_BASE}/${MAC_ARM_BRANCH}/LAST_CHANGE`);
   if (!/^\d+$/.test(revision)) {
-    throw new Error(`Не удалось определить ревизию Chromium для arm64: получено "${revision}"`);
+    throw new Error(t("errors.chromium.revision", { revision }));
   }
 
   const revisionDir = path.join(deps.cacheRoot, revision);
@@ -192,7 +193,7 @@ export async function resolveBrowserPath(
   const binary = path.join(revisionDir, BINARY_INSIDE_ARCHIVE);
   if (!fs.existsSync(binary)) {
     await fsp.rm(revisionDir, { recursive: true, force: true });
-    throw new Error(`В скачанном архиве Chromium нет бинарника: ${binary}`);
+    throw new Error(t("errors.chromium.binaryMissing", { binary }));
   }
 
   console.log(`arm64-сборка Chromium готова: ${binary}`);

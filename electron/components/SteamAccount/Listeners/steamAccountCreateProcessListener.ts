@@ -12,6 +12,7 @@ import proxyManager from "../../Proxy/proxyManager";
 import ProxySetupInterface from "../../../interfaces/Proxy/ProxySetupInterface";
 import Proxy from "../../Proxy/Proxy";
 import ProxyStorage from "../../newStorage/ProxyStorage";
+import { t } from "../../../i18n";
 
 export default async (event: Electron.IpcMainEvent, params: { steamAccount: SteamAccountSetupInterface, links: { proxyId: string | null, profileId: string | null, newProxy: ProxySetupInterface | null  } }) => {
     try {
@@ -51,6 +52,6 @@ export default async (event: Electron.IpcMainEvent, params: { steamAccount: Stea
         steamAccountManager.sendAccountsToFront();
         nextStep("end");
     } catch (err) {
-        if (err != 'abort') event.reply(SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ERROR, `Ошибка при создании аккаунта: ${err}`);
+        if (err != 'abort') event.reply(SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ERROR, t('errors.createAccount', { error: String(err) }));
     }
 }

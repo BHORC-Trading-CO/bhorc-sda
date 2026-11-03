@@ -1,6 +1,8 @@
 import AvalibleFieldTypes from "../AvalibleFieldTypes";
 import Field from "../Field";
 
+// title — только запасной вариант: интерфейс показывает название колонки по type
+// (renderer: fields.<table>.<type> в locales). У старых пользователей в config.json лежат русские title.
 const steamAccountsTableFields: Field[] = [
     {
         type: AvalibleFieldTypes.number,
@@ -11,28 +13,28 @@ const steamAccountsTableFields: Field[] = [
     },
     {
         type: AvalibleFieldTypes.startButton,
-        title: "Кнопка запуска браузера",
+        title: "Browser start button",
         isSortable: false,
         isVisible: true,
         showTtitleInTable: false
     },
     {
         type: AvalibleFieldTypes.steamAccountAvatar,
-        title: "Аватар Steam",
+        title: "Steam avatar",
         isSortable: false,
         isVisible: true,
         showTtitleInTable: false
     },
     {
         type: AvalibleFieldTypes.steamGuard,
-        title: "Guard код",
+        title: "Guard code",
         isSortable: false,
         isVisible: true,
         showTtitleInTable: false
     },
     {
         type: AvalibleFieldTypes.steamAccountButtons,
-        title: "Функционал Guard",
+        title: "Guard actions",
         isSortable: false,
         isVisible: true,
         showTtitleInTable: false
@@ -46,21 +48,21 @@ const steamAccountsTableFields: Field[] = [
     },
     {
         type: AvalibleFieldTypes.steamAccountName,
-        title: "Логин Steam",
+        title: "Steam login",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleFieldTypes.steamAccountBalance,
-        title: "Баланс Steam",
+        title: "Steam balance",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleFieldTypes.steamPassword,
-        title: "Пароль Steam",
+        title: "Steam password",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
@@ -68,21 +70,21 @@ const steamAccountsTableFields: Field[] = [
 
     {
         type: AvalibleFieldTypes.ktState,
-        title: "Статус КТ",
+        title: "Account lock status",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleFieldTypes.tpState,
-        title: "Статус ТП",
+        title: "Market status",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleFieldTypes.tradeState,
-        title: "Статус обменов",
+        title: "Trade status",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
@@ -90,7 +92,7 @@ const steamAccountsTableFields: Field[] = [
 
     {
         type: AvalibleFieldTypes.steamAccountNickname,
-        title: "Ник Steam",
+        title: "Steam nickname",
         isSortable: true,
         isVisible: false,
         showTtitleInTable: true
@@ -104,28 +106,28 @@ const steamAccountsTableFields: Field[] = [
     },
     {
         type: AvalibleFieldTypes.mail,
-        title: "Почта",
+        title: "Email",
         isSortable: true,
         isVisible: false,
         showTtitleInTable: true
     },
     {
         type: AvalibleFieldTypes.mailPassword,
-        title: "Почта (пароль)",
+        title: "Email password",
         isSortable: false,
         isVisible: false,
         showTtitleInTable: true
     },
     {
         type: AvalibleFieldTypes.linkedProxies,
-        title: "Подключенный прокси",
+        title: "Linked proxy",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true
     },
     {
         type: AvalibleFieldTypes.group,
-        title: "Группа",
+        title: "Group",
         isSortable: true,
         isVisible: true,
         showTtitleInTable: true

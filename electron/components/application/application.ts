@@ -10,6 +10,8 @@ import { testCrypto } from "../newStorage/cryptoUserData";
 import { getAppEntries } from "./appEntries";
 import { installNavigationGuard, isAppUrl } from "./navigationGuard";
 import { onceTrusted } from "./trustedIpc";
+import { initLanguage, localeToLanguage } from "../language/languageManager";
+import { setMainLanguage, t } from "../../i18n";
 
 class Application {
   object: App;
@@ -39,11 +41,15 @@ class Application {
     if (!isPrimary) return;
     app.on("ready", async () => {
       if (!areDataPathsPinned(app.getPath("userData"), getCreatedStorePaths())) {
-        dialog.showErrorBox("BHORC SDA", `Данные открыты не из папки ${LEGACY_DATA_DIR_NAME} (${getCreatedStorePaths().join(", ") || app.getPath("userData")}). Запуск остановлен, чтобы не потерять аккаунты.`);
+        // Хранилище открыто не там, поэтому язык из него не читаем и не сохраняем — только язык системы.
+        setMainLanguage(localeToLanguage(app.getLocale()));
+        dialog.showErrorBox("BHORC SDA", t("startup.dataDirNotPinned", { dir: LEGACY_DATA_DIR_NAME, paths: getCreatedStorePaths().join(", ") || app.getPath("userData") }));
         app.quit();
         return;
       }
       restrictSecretFiles(createStore());
+      // До создания окон: первая отрисовка запрашивает язык синхронно.
+      initLanguage(app.getLocale(), (channel, payload) => this.windowsManager.broadcast(channel, payload));
       this.windowsManager.createMain();
       //this.decrypt(cb);
       this.secondStage(cb);

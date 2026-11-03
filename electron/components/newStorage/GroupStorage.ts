@@ -1,6 +1,7 @@
 import createStore from "./createStore";
 import assertStorageId from "./assertStorageId";
 import GroupInterface from '../../interfaces/Group/GroupInterface';
+import { t } from "../../i18n";
 
 const store = createStore();
 
@@ -26,7 +27,7 @@ class GroupStorage {
     static Save(id: string, group: GroupInterface) {
         assertStorageId(id);
         assertStorageId(group.id);
-        if (group.id !== id) throw new Error("Идентификатор записи не совпадает с ключом");
+        if (group.id !== id) throw new Error(t("errors.storage.idMismatch"));
         store.set(`groups.${id}`, group);
     }
     static Delete(id: string) {
