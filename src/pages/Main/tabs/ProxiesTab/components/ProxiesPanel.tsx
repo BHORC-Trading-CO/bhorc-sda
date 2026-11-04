@@ -59,7 +59,7 @@ const ProxiesPanel = observer(() => {
                         }}
                     />
 
-                    <Search onChange={(value) => {
+                    <Search value={store.proxiesTable.searchString} onChange={(value) => {
                         store.proxiesTable.search(value);
                     }}></Search>
 

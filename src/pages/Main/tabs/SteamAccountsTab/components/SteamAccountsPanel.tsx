@@ -83,6 +83,7 @@ const ProxiesPanel = observer(() => {
 
                     <Search
                         placeholder={t("accounts.panel.searchPlaceholder")}
+                        value={store.steamAccountsTable.searchString}
                         onChange={(value) => {
                             console.log(value);
                             store.steamAccountsTable.search(value);

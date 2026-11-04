@@ -31,6 +31,7 @@ import sanitizeSmaFile from "../Functions/sanitizeSmaFile";
 import { t } from "../../i18n";
 import application from "../application/application";
 import SteamAccountChannels from "../../interfaces/IpcChannels/SteamAccountChannels";
+import notifyBrowserRouteChanged from "./Chrome/notifyBrowserRouteChanged";
 const SteamTotp = require('steam-totp');
 
 class SteamAccount {
@@ -167,6 +168,16 @@ class SteamAccount {
             : request.defaults({ headers: STEAM_WEB_HEADERS });
         return new SteamCommunity({ request: req, userAgent: STEAM_MOBILE_USER_AGENT });
     }
+    reloadParams(params: SteamAccountInterface) {
+        this.params = stripLegacyMarketData(params);
+        this.setupParams = {
+            accountName: this.params.accountName, password: this.params.password,
+            maFile: this.params.maFile, familyViewPin: this.params.familyViewPin,
+            useSteamCookies: this.params.useSteamCookies
+        };
+        this.chrome.params = this.params;
+        return this.setProxy();
+    }
     private resolvedRouteKey(links: ReturnType<typeof Manager.GetSteamAccountLinkedData>) {
         return `${links.proxyState}:${links.proxyState === "ok" ? buildProxyUrl(links.proxy) : ""}`;
     }
@@ -175,7 +186,7 @@ class SteamAccount {
         const routeKey = this.resolvedRouteKey(links);
         this.proxy = links.proxy;
         this.proxyId = links.proxyId;
-        if (routeKey === this.routeKey) return;
+        if (routeKey === this.routeKey) return false;
         this.proxyState = links.proxyState;
         this.routeKey = routeKey;
         this.stopBrowserForRouteChange();
@@ -193,16 +204,19 @@ class SteamAccount {
                 SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id: this.params.id, err: String(err) }
             ));
         }
+        return true;
     }
     private stopBrowserForRouteChange() {
         // A launch in progress is cancelled too; Chromium cannot switch routes live.
         if (this.chrome.workStatus !== "notworking" || this.chrome.browser) {
-            this.chrome.stop().catch(err => application.sendToMain("ERROR", String(err)));
-            application.sendToMain("ERROR", t("errors.browserRouteChanged"));
+            this.chrome.stop("routeChanged").catch(err => console.log(`Browser stop after route change: ${String(err)}`));
+            notifyBrowserRouteChanged();
         }
     }
     blockProxy() {
         this.stopBrowserForRouteChange();
+        this.proxyId = Manager.GetSteamAccountLinkedData(this.params.id).proxyId;
+        this.proxy = null;
         this.proxyState = "missing";
         this.routeKey = "missing:";
         this.session = blockedSession(this.proxyId);

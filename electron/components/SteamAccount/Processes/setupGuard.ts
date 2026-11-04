@@ -161,7 +161,6 @@ export default async function setupGuard(
               }
               //@ts-ignore
               const rawMaFile: TwoFactorResponseInterface = response;
-              onRecovery?.(rawMaFile.revocation_code, session.steamID.getSteamID64());
               // Секреты на диск ПЕРВЫМ делом: Steam отдаёт shared_secret и revocation_code
               // ровно один раз, и всё, что идёт ниже (ввод кода, finalize), может оборваться.
               const backupFile = savePendingAuthenticator(
@@ -169,6 +168,7 @@ export default async function setupGuard(
                 rawMaFile,
                 session.steamID.getSteamID64()
               );
+              onRecovery?.(rawMaFile.revocation_code, session.steamID.getSteamID64());
               console.log(
                 backupFile
                   ? `${steamAccountParams.accountName} - секреты аутентификатора сохранены: ${backupFile}`

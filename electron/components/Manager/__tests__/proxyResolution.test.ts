@@ -19,6 +19,7 @@ const proxy = { id: "p1", host: "proxy.test", port: "8080", username: "", passwo
 const params = () => ({ id: "a1", accountName: "test", maFile: {}, secondary: {}, changableSecondary: { steam: {} } } as any);
 const links = (id?: string | null) => LinksStorage.Save({ steamAccounts: id === undefined ? {} : { a1: id }, profiles: {}, groups: {} });
 beforeEach(() => {
+    new (require("electron-store"))().clear();
     links();
     SteamAccountStorage.Save("a1", params());
     ProxyStorage.Save("p1", { ...proxy });
@@ -142,6 +143,72 @@ function addLinked(id: string, proxyId: string | null = "p1") {
     steamAccountManager.addNew(account);
     return account;
 }
+it.each(["link", "delete"])("R2 F4 accounts Refresh retains the browser owner before %s", async action => {
+    const account = addLinked("a1", action === "link" ? null : "p1");
+    const chrome = account.chrome;
+    const browser = { close: jest.fn().mockResolvedValue(undefined) };
+    chrome.browser = browser as any;
+    chrome.workStatus = "working";
+    jest.spyOn(account, "initSession").mockResolvedValue(undefined);
+    SteamAccountStorage.EditData("a1", { password: "updated", useSteamCookies: true });
+    await steamAccountManager.load();
+    const reloaded = steamAccountManager.getById("a1")!;
+    expect(reloaded.chrome).toBe(chrome);
+    expect(chrome.params).toMatchObject({ password: "updated", useSteamCookies: true });
+    expect(browser.close).not.toHaveBeenCalled();
+    if (action === "link") Manager.LinkProxyToSteamAccount("a1", "p1");
+    else proxyManager.delete("p1");
+    expect(browser.close).toHaveBeenCalledTimes(1);
+    expect(chrome.workStatus).toBe("notworking");
+});
+it("R2 F4 accounts Refresh detects an externally changed route during a pending start", async () => {
+    const account = addLinked("a1", null);
+    account.chrome.workStatus = "load";
+    const stop = jest.spyOn(account.chrome, "stop");
+    links("gone");
+    await steamAccountManager.load();
+    expect(steamAccountManager.getById("a1")).toBe(account);
+    expect(account.proxyState).toBe("missing");
+    expect(stop).toHaveBeenCalledWith("routeChanged");
+});
+it("R2 F4 accounts Refresh stops browsers belonging to removed records", async () => {
+    const account = addLinked("a1", null);
+    const browser = { close: jest.fn().mockResolvedValue(undefined) };
+    account.chrome.browser = browser as any;
+    account.chrome.workStatus = "working";
+    SteamAccountStorage.Delete("a1");
+    await steamAccountManager.load();
+    expect(browser.close).toHaveBeenCalledTimes(1);
+    expect(steamAccountManager.getById("a1")).toBeNull();
+});
+it("R2 N2 a route edit affecting multiple browsers emits one non-blocking notice per event", async () => {
+    const accounts = [addLinked("a1"), addLinked("a2")];
+    for (const account of accounts) {
+        account.chrome.browser = { close: jest.fn().mockResolvedValue(undefined) } as any;
+        account.chrome.workStatus = "working";
+    }
+    proxyManager.edit("p1", { host: "replacement.test" });
+    await Promise.resolve();
+    const notices = () => (application.sendToMain as jest.Mock).mock.calls.filter(([channel]) => channel === SteamAccountChannels.BROWSER_ROUTE_CHANGED);
+    expect(notices()).toHaveLength(1);
+    expect(notices()[0][1]).toEqual(expect.any(String));
+    expect(application.sendToMain).not.toHaveBeenCalledWith("ERROR", expect.anything());
+    for (const account of accounts) {
+        account.chrome.browser = { close: jest.fn().mockResolvedValue(undefined) } as any;
+        account.chrome.workStatus = "working";
+    }
+    proxyManager.delete("p1");
+    await Promise.resolve();
+    expect(notices()).toHaveLength(2);
+});
+it("R2 N7 failed client rebuild publishes the blocked state immediately and on table refresh", () => {
+    const account = addLinked("a1", null);
+    jest.spyOn(account, "setProxy").mockImplementationOnce(() => { throw new Error("rebuild failed"); });
+    expect(() => Manager.LinkProxyToSteamAccount("a1", "p1")).toThrow("rebuild failed");
+    expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_EDIT_PROXY,
+        { id: "a1", proxyId: "p1", proxyState: "missing", proxy: null });
+    expect(SteamAccountManager.CompileObject(account)).toMatchObject({ proxyId: "p1", proxyState: "missing", proxy: null });
+});
 it("F3 validates every requested id before changing endpoint or links", async () => {
     const a1 = addLinked("a1"), a2 = addLinked("a2");
     const event = { reply: jest.fn() };
@@ -224,7 +291,7 @@ it("F6 relinking missing to ok reinitializes and reports failures as strings", a
     expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR,
         { id: "a1", err: "Error: cookie failure" });
 });
-it.each(["link", "unlink", "delete", "endpoint", "credentials"])("F4 route transition %s stops the running browser", transition => {
+it.each(["link", "unlink", "delete", "endpoint", "credentials"])("F4 route transition %s stops the running browser", async transition => {
     const account = addLinked("a1", transition === "link" ? null : "p1");
     account.chrome.workStatus = "working";
     const stop = jest.spyOn(account.chrome, "stop").mockResolvedValue(undefined);
@@ -234,7 +301,9 @@ it.each(["link", "unlink", "delete", "endpoint", "credentials"])("F4 route trans
     if (transition === "endpoint") proxyManager.edit("p1", { host: "replacement.test" });
     if (transition === "credentials") proxyManager.edit("p1", { password: "changed" });
     expect(stop).toHaveBeenCalledTimes(1);
-    expect(application.sendToMain).toHaveBeenCalledWith("ERROR", expect.any(String));
+    await Promise.resolve();
+    expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.BROWSER_ROUTE_CHANGED, expect.any(String));
+    expect(application.sendToMain).not.toHaveBeenCalledWith("ERROR", expect.anything());
 });
 it("F4/F6 unchanged route keeps the running browser", () => {
     const account = addLinked("a1");

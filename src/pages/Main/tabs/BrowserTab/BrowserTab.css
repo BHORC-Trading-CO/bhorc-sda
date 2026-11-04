@@ -1,0 +1,406 @@
+/* Страница Browser (SDA-6). Цвета, радиусы и переходы — только токены из tokens.css.
+   Картинки-маски задаются из TSX (style), а не url() здесь: так же, как в GlobalStyle.ts. */
+
+.browser-tab {
+  min-height: 0;
+  font-family: var(--sda-font);
+}
+
+/* Шапка: заголовок и под ним, что делает страница и когда применяются изменения. */
+.browser-panel {
+  flex: 0 0 auto;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.browser-panel__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.browser-panel .panel-text_main {
+  margin-right: 0;
+}
+.browser-panel__subtitle {
+  font-size: 14px;
+  line-height: 19px;
+  color: var(--sda-text-muted);
+}
+
+/* Прокручивается только тело страницы, шапка остаётся на месте. */
+.browser-tab__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 17px;
+}
+.browser-tab__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+/* Узкое окно (навигация уже свёрнута в иконки): блоки друг под другом. */
+@media (max-width: 1200px) {
+  .browser-tab__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Блок: стартовые страницы или расширения --- */
+.browser-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 18px 18px;
+  border-radius: var(--sda-radius-lg);
+  background: var(--sda-surface-1);
+}
+.browser-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+}
+.browser-card__title {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--sda-text);
+}
+.browser-card__badge {
+  flex-shrink: 0;
+  padding: 0 8px;
+  border: 1px solid var(--sda-border-strong);
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--sda-text-muted);
+  white-space: nowrap;
+}
+.browser-card__action {
+  margin-left: auto;
+}
+.browser-card__hint {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--sda-text-muted);
+}
+
+/* --- Строки списков --- */
+.browser-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+}
+.browser-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius);
+  background: var(--sda-surface-2);
+}
+.browser-row__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.browser-link__index {
+  flex-shrink: 0;
+  width: 20px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--sda-text-muted);
+}
+.browser-link__url {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--sda-font-mono);
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--sda-text);
+}
+.browser-link__edit {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.browser-link__edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Расширение: переключатель, состояние словом, имя/версия/папка, «Убрать». */
+.browser-extension__state {
+  flex-shrink: 0;
+  min-width: 46px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sda-text);
+}
+.browser-extension--off .browser-extension__state {
+  color: var(--sda-text-muted);
+}
+.browser-extension__info {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.browser-extension__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.browser-extension__name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--sda-text);
+}
+.browser-extension--off .browser-extension__name {
+  color: var(--sda-text-muted);
+}
+.browser-extension__version {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sda-text-muted);
+}
+.browser-extension__path {
+  direction: rtl;
+  text-align: left;
+  overflow: hidden;
+  font-family: var(--sda-font-mono);
+  font-size: 12px;
+  line-height: 17px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--sda-text-muted);
+}
+.browser-extension__status {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--sda-warning);
+}
+
+/* --- Предупреждение о доверии к расширениям: заметно, но без тревожной модалки --- */
+.browser-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--sda-warning);
+  border-radius: var(--sda-radius-sm);
+  background: var(--sda-warning-bg);
+}
+.browser-note__mark {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--sda-warning);
+  color: var(--sda-surface-0);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+}
+.browser-note__text {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sda-text);
+}
+
+.browser-empty {
+  padding: 12px 14px;
+  border: 1px dashed var(--sda-border-strong);
+  border-radius: var(--sda-radius);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--sda-text-muted);
+}
+
+/* --- Поле адреса и строка «Добавить» --- */
+.browser-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.browser-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--sda-border-strong);
+  border-radius: var(--sda-radius);
+  outline: none;
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
+  font-family: var(--sda-font-mono);
+  font-size: 13px;
+  transition: border-color var(--sda-transition), box-shadow var(--sda-transition);
+}
+.browser-input::placeholder {
+  color: var(--sda-text-muted);
+}
+.browser-input:hover:not(:disabled) {
+  border-color: var(--sda-surface-4);
+}
+.browser-input:focus {
+  border-color: var(--sda-accent);
+  box-shadow: var(--sda-focus-ring);
+}
+.browser-input[aria-invalid="true"] {
+  border-color: var(--sda-danger);
+}
+.browser-input:disabled {
+  opacity: 0.5;
+}
+.browser-field-error {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--sda-danger);
+}
+
+/* --- Кнопки --- */
+.browser-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--sda-border-strong);
+  border-radius: var(--sda-radius);
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
+  font-family: var(--sda-font);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--sda-transition), border-color var(--sda-transition), box-shadow var(--sda-transition);
+}
+.browser-button:hover:not(:disabled) {
+  border-color: var(--sda-text-muted);
+}
+/* Главное действие — тёмная заливка с градиентной рамкой, как выбранный язык в навигации:
+   белый текст на самом градиенте не добирает 4.5:1. */
+.browser-button--accent {
+  border-color: transparent;
+  background: linear-gradient(var(--sda-surface-4), var(--sda-surface-4)) padding-box,
+    var(--sda-accent-gradient) border-box;
+}
+.browser-button--accent:hover:not(:disabled) {
+  border-color: transparent;
+  box-shadow: var(--sda-focus-ring);
+}
+.browser-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.browser-button__plus {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+.browser-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: var(--sda-radius-sm);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--sda-transition);
+}
+.browser-icon-button:hover:not(:disabled) {
+  background: var(--sda-surface-3);
+}
+.browser-icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.browser-icon-button__icon {
+  width: 18px;
+  height: 18px;
+  background-color: var(--sda-text-muted);
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  transition: background-color var(--sda-transition);
+}
+.browser-icon-button__icon--flip {
+  transform: rotate(180deg);
+}
+.browser-icon-button:hover:not(:disabled) .browser-icon-button__icon {
+  background-color: var(--sda-text);
+}
+.browser-icon-button--danger:hover:not(:disabled) .browser-icon-button__icon {
+  background-color: var(--sda-danger);
+}
+
+/* --- Переключатель расширения --- */
+.browser-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 38px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--sda-border-strong);
+  border-radius: 999px;
+  background: var(--sda-surface-4);
+  cursor: pointer;
+  transition: border-color var(--sda-transition);
+}
+.browser-switch:hover {
+  border-color: var(--sda-text-muted);
+}
+.browser-switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--sda-text-muted);
+  transition: transform var(--sda-transition), background-color var(--sda-transition);
+}
+.browser-switch--on {
+  border-color: transparent;
+  background: var(--sda-accent-gradient);
+}
+.browser-switch--on .browser-switch__knob {
+  background: var(--sda-text);
+  transform: translateX(16px);
+}

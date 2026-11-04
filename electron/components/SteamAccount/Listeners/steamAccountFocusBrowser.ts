@@ -6,8 +6,8 @@ export default async (event: IpcMainEvent, id: string) => {
     try {
         const steamAccount = steamAccountManager.getById(id);
         if (!steamAccount) throw new Error(t('errors.steamAccountNotFound', { id: id }));
-        steamAccount.chrome.focus();
+        await steamAccount.chrome.focus();
     } catch (err) {
-        event.reply('ERROR', err);
+        event.reply('ERROR', String(err));
     }
 }

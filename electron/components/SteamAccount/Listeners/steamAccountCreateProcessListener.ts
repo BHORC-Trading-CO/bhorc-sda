@@ -27,14 +27,17 @@ export default async (event: Electron.IpcMainEvent, params: { steamAccount: Stea
         }
         if (params.links.newProxy){
             proxy = Proxy.Generate(params.links.newProxy);
-            ProxyStorage.Save(proxy.id, proxy);
-            proxyManager.addNew(new Proxy(proxy));
             console.log(`generate new proxy: ${proxy.id}`);
         }
         const smaFile = await maFileLogin(params.steamAccount, {
             stepChannel: SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP,
             abortChannel: SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT
         }, proxy);
+        // A failed/aborted login must not persist an unused new proxy.
+        if (params.links.newProxy && proxy) {
+            ProxyStorage.Save(proxy.id, proxy);
+            proxyManager.addNew(new Proxy(proxy));
+        }
         nextStep("import");
         steamAccountImport(smaFile, proxy?.id ?? null);
         nextStep("link");
