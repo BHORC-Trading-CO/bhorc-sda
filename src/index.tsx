@@ -17,6 +17,12 @@ import './i18n/i18n';
 import Router from './Router';
 import { GlobalStyle } from './css/GlobalStyle';
 
+// Платформа окна для CSS ([data-platform] на <html>): рамка окна и место под системные кнопки.
+// У каждого окна свой preload, поэтому берём platform из того моста, который есть.
+const platform = window.Main?.platform ?? window.Confirmations?.platform
+  ?? window.AskFamilyPin?.platform ?? window.ErrorWindow?.platform;
+if (platform) document.documentElement.dataset.platform = platform;
+
 ReactDOM.render(
   <>
     <GlobalStyle />

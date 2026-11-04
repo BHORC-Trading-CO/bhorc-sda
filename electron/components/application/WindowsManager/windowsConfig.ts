@@ -1,3 +1,4 @@
+// Рамка окна (frame, titleBarStyle) задаётся по платформе в windowChrome.ts.
 export default {
     mainWindow: {
         width: 1920,
@@ -6,7 +7,6 @@ export default {
         minHeight: 768,
         maxWidth: 3840,
         maxHeight: 2160,
-        frame: false,
         resizable: true,
         icon: './assets/newIcon.png'
     },
@@ -17,7 +17,6 @@ export default {
         minHeight: 200,
         maxWidth: 3840,
         maxHeight: 2160,
-        frame: false,
         resizable: true,
         icon: './assets/newIcon.png'
     },
@@ -28,9 +27,8 @@ export default {
         minHeight: 660,
         maxWidth: 3840,
         maxHeight: 2160,
-        frame: false,
         resizable: true,
-        icon: './assets/confirmationsIcon.png'    
+        icon: './assets/confirmationsIcon.png'
     },
     authWindow: {
         width: 360,
@@ -39,9 +37,7 @@ export default {
         minHeight: 450,
         maxWidth: 3840,
         maxHeight: 2160,
-        frame: false,
         resizable: true,
-        transparent: true,
         icon: './assets/newIcon.png'
     },
     errorWindow: {
@@ -51,9 +47,7 @@ export default {
         minHeight: 200,
         maxWidth: 3840,
         maxHeight: 2160,
-        frame: false,
         resizable: true,
-        transparent: true,
         icon: './assets/newIcon.png'
     }
 }

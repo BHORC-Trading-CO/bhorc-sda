@@ -281,18 +281,6 @@ const window = {
   close: () => {
     ipcRenderer.send(WindowsChannels.CLOSE_MAIN_WINDOW);
   },
-  /** Отцентрировать главное окно */
-  centerize: () => {
-    ipcRenderer.send(WindowsChannels.CENTERIZE_MAIN_WINDOW);
-  },
-  /** Сделать размер главного окна минимально возможным */
-  minimize: () => {
-    ipcRenderer.send(WindowsChannels.MINIMIZE_MAIN_WINDOW);
-  },
-  /** Сделать размер главного окна максимально возможным */
-  maximize: () => {
-    ipcRenderer.send(WindowsChannels.MAXIMIZE_MAIN_WINDOW);
-  },
   onGetSecretKey: (listener: (event: IpcRendererEvent) => void) => {
     ipcRenderer.on(WindowsChannels.GET_SECRET_KEY, listener);
   },
@@ -341,6 +329,8 @@ const mainApi = {
   browser,
   /**Методы для подключения гуарда */
   guardConnection,
+  /** Платформа для рамки окна: отступ полосы TitleBar под системные кнопки */
+  platform: process.platform,
 
   setRequestHeaders,
 

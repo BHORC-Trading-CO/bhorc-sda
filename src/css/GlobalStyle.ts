@@ -10,16 +10,6 @@ export const GlobalStyle = createGlobalStyle`
     background-repeat: no-repeat;
     background-position: center;
   }
-  /* Window button icons are masks; Attic.css sets their colour from tokens. */
-  .attic-button_minimize::before {
-    -webkit-mask-image: url(./assets/img/Line5.svg);
-  }
-  .attic-button_maximize::before {
-    -webkit-mask-image: url(./assets/img/Square2.svg);
-  }
-  .attic-button_close::before {
-    -webkit-mask-image: url(./assets/img/Cross.svg);
-  }
   .form-cross {
     background-image: url(./assets/img/Cross.svg);
     background-size: 10px;

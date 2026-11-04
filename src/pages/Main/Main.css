@@ -1,14 +1,15 @@
+/* Полоса TitleBar идёт на всю ширину окна, поэтому отступ справа — у .content, а не у .layout. */
 .layout {
   width: 100%;
   height: 100%;
-  padding-right: 20px;
   background: var(--sda-surface-0);
   border-radius: 30px;
 }
 
 .layout .content {
   width: 100%;
-  height: calc(100% - 35px);
+  height: calc(100% - var(--sda-titlebar-height));
+  padding-right: 20px;
   display: flex;
   justify-content: space-between;
 }

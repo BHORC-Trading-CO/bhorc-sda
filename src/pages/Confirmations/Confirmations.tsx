@@ -1,6 +1,6 @@
 import react, { FC, useEffect, useState } from 'react';
 import CConfirmation from 'steamcommunity/classes/CConfirmation';
-import Attic from '../../globalComponents/Attic/Attic';
+import TitleBar from '../../globalComponents/TitleBar/TitleBar';
 import Button from '../../globalComponents/Button/Button';
 import "./Confirmation.css"
 import SellItem from './SellItem/SellItem';
@@ -68,7 +68,7 @@ const Confirmations: FC = () => {
 
     return (
         <div className='confirmation-wrapper'>
-            <Attic id={id} windowName="confirmations" title={t('confirmations.title')}></Attic>
+            <TitleBar platform={window.Confirmations.platform} title={t('confirmations.title')} />
             <div className='confirmation-container'>
                 <div className='confirmation-info-container'>
                     <div className='info-account-name'>

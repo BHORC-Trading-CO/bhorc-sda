@@ -7,8 +7,6 @@ import { observer } from 'mobx-react';
 import Error from './pages/Error/Error';
 
 const Router: FC = observer(() => {
-    const root = document.getElementById('root');
-
     switch (window.getWindowName()) {
         case "confirmations":
             return <Confirmations />;
@@ -17,7 +15,6 @@ const Router: FC = observer(() => {
         case "main":
             return <Main />;
         case "error":
-            root!.style.borderRadius = '20px';
             return <Error />
         default:
             return <>no element</>;

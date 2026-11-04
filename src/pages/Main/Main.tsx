@@ -1,4 +1,4 @@
-import Attic from "../../globalComponents/Attic/Attic";
+import TitleBar from "../../globalComponents/TitleBar/TitleBar";
 import "./Main.css";
 import "../../css/Form.css";
 import Navigation from "./components/Navigation/Navigation";
@@ -16,7 +16,7 @@ const Main = observer(() => {
   return (
     <div className="layout">
       <DndProvider backend={HTML5Backend}>
-        <Attic windowName="main" />
+        <TitleBar platform={window.Main.platform} />
         <div className="content">
           <Navigation />
           {store.tabs.active === "steamAccounts" ? <SteamAccountsTab /> : <></>}

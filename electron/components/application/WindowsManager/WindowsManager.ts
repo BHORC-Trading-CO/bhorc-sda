@@ -1,6 +1,7 @@
 import path from 'path';
 import { BrowserWindow, IpcMainEvent } from 'electron';
 import windowsConfig from './windowsConfig';
+import { windowChrome } from './windowChrome';
 import WindowChannels from '../../../interfaces/IpcChannels/WindowsChannels';
 import InfoType from '../askInfo/InfoType';
 import AskSomethingChannels from '../../../interfaces/IpcChannels/AskSomethigChannels';
@@ -52,6 +53,7 @@ class WindowsManager {
         const winId = uuidv4();
         this.errorWindows[winId] = new BrowserWindow({
             ...windowsConfig.errorWindow,
+            ...windowChrome(process.platform),
             icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
             webPreferences: {
                 nodeIntegration: false,
@@ -67,12 +69,17 @@ class WindowsManager {
                 errorWindow.webContents.send(WindowChannels.GET_ERROR_WINDOW_PARAMS, { id: winId, title, text  });
             }, 50);
         });
+        // Системная кнопка закрытия не проходит через closeErrorWindowListener: освобождаем запись здесь.
+        this.errorWindows[winId].on('closed', () => {
+            delete (this.errorWindows[winId]);
+        });
         this.errorWindows[winId].focus();
         this.errorWindows[winId].loadURL(ERROR_WINDOW_WEBPACK_ENTRY);
     }
     createAuthWindow() {
         this.authWindow = new BrowserWindow({
             ...windowsConfig.authWindow,
+            ...windowChrome(process.platform),
             icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
             webPreferences: {
                 nodeIntegration: false,
@@ -86,6 +93,7 @@ class WindowsManager {
     createMain() {
         this.mainWindow = new BrowserWindow({
             ...windowsConfig.mainWindow,
+            ...windowChrome(process.platform),
             icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
             webPreferences: {
                 nodeIntegration: false,
@@ -100,6 +108,7 @@ class WindowsManager {
         return new Promise((resolve) => {
             const confirmationsWindow = new BrowserWindow({
                 ...windowsConfig.confirmationsWindow,
+                ...windowChrome(process.platform),
                 icon: path.join(__dirname, "../renderer/assets/confirmationsIcon.png"),
                 webPreferences: {
                     nodeIntegration: false,
@@ -126,6 +135,7 @@ class WindowsManager {
         return new Promise((resolve) => {
             const askWindow = new BrowserWindow({
                 ...windowsConfig.askPinWindow,
+                ...windowChrome(process.platform),
                 icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
                 webPreferences: {
                     nodeIntegration: false,

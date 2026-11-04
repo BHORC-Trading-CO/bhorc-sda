@@ -3,14 +3,14 @@
    иначе поле остаётся белым браузерным. */
 @import "../globalComponents/TextArea/TextArea.css";
 
-/* Модальное окно (MiniWindow). Центр области под заголовком окна (.attic, 35px),
-   высота ограничена окном: содержимое прокручивается внутри .form-content. */
+/* Модальное окно (MiniWindow). Центр области под полосой заголовка окна (.titlebar,
+   --sda-titlebar-height), высота ограничена окном: содержимое прокручивается внутри .form-content. */
 .form {
-    top: calc(50% + 17px);
+    top: calc(50% + var(--sda-titlebar-height) / 2);
     left: 50%;
     transform: translate(-50%, -50%);
     max-width: calc(100vw - 32px);
-    max-height: calc(100vh - 35px - 24px);
+    max-height: calc(100vh - var(--sda-titlebar-height) - 24px);
     display: flex;
     flex-direction: column;
     border-radius: var(--sda-radius-lg);
