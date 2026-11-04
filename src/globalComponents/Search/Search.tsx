@@ -14,7 +14,7 @@ interface SearchPropsInterface {
 const Search: FC<SearchPropsInterface> = (props) => {
   return (
     <div className="search">
-      <Icon name="search" className="search-img" />
+      <Icon name="search" size={14} className="search-img" />
       <input
         type="text"
         className="search-input text-white-medium"

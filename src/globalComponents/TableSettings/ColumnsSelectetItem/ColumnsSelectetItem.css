@@ -5,12 +5,12 @@
   padding: 0 10px 0 8px;
   display: flex;
   align-items: center;
-  background: var(--sda-surface-3);
+  background: var(--sda-surface-1);
   border: 1px solid var(--sda-border);
   border-radius: var(--sda-radius-sm);
   margin-bottom: 4px;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 13px;
+  line-height: 18px;
   color: var(--sda-text);
   cursor: grab;
   transition: border-color var(--sda-transition), background-color var(--sda-transition), box-shadow var(--sda-transition);
@@ -22,7 +22,7 @@
 
 .columns-selected-item:hover {
   border-color: var(--sda-border-strong);
-  background: var(--sda-surface-4);
+  background: var(--sda-surface-3);
 }
 
 .columns-selected-item:focus {
@@ -36,7 +36,7 @@
 /* Во время перетаскивания: поднятая карточка с акцентной рамкой */
 .columns-selected-item--dragging,
 .columns-selected-item--dragging:hover {
-  background: var(--sda-surface-4);
+  background: var(--sda-surface-3);
   border-color: var(--sda-accent);
   box-shadow: 0 8px 24px var(--sda-overlay);
   cursor: grabbing;
@@ -48,7 +48,7 @@
   width: 10px;
   height: 15px;
   margin-right: 10px;
-  background-image: radial-gradient(circle, var(--sda-text-muted) 1.4px, transparent 1.7px);
+  background-image: radial-gradient(circle, var(--sda-text-subtle) 1.4px, transparent 1.7px);
   background-size: 5px 5px;
 }
 

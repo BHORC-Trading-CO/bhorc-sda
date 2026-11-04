@@ -25,7 +25,7 @@ const Checkbox: FC<{ isChecked?: boolean | null | undefined, onChange: (isChecke
                 }
             }}
         >
-            {props.isChecked ? <Icon name="check" size={14} /> : null}
+            {props.isChecked ? <Icon name="check" size={13} /> : null}
         </div>
 
     );

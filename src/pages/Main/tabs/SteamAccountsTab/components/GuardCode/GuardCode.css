@@ -1,0 +1,88 @@
+/* Код Guard (макет main-v2: .code + .ring): циановый Geist Mono, кольцо 16 px, копирование по клику */
+.guard-code {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 8px;
+    border-radius: var(--sda-radius-sm);
+    font-family: var(--sda-font-mono);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 20px;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+    color: var(--sda-accent);
+    cursor: pointer;
+    transition: background-color var(--sda-transition);
+}
+
+.guard-code:hover {
+    background: rgba(34, 211, 238, 0.08);
+}
+
+.guard-code:focus {
+    outline: none;
+}
+
+.guard-code:focus-visible {
+    box-shadow: var(--sda-focus-ring);
+}
+
+/* Кольцо: старт сверху, по часовой стрелке пустеет за 30 с. Одна анимация на строку;
+   фазу задаёт отрицательный animation-delay из GuardCode.tsx (guardSecondsLeft). */
+.guard-code__ring {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    transform: rotate(-90deg);
+}
+
+.guard-code__ring circle {
+    fill: none;
+    stroke-width: 2.5;
+}
+
+.guard-code__ring-track {
+    stroke: var(--sda-border-strong);
+}
+
+/* Длина окружности r=7 — 43,98: штрих 44 закрывает её целиком. Последние 5 с кольцо жёлтое,
+   как раньше (смена цвета внутри той же анимации, без таймера). */
+.guard-code__ring-fill {
+    stroke: var(--sda-accent);
+    stroke-dasharray: 44;
+    stroke-dashoffset: 0;
+    animation: sda-guard-tick 30s linear infinite;
+}
+
+@keyframes sda-guard-tick {
+    0% { stroke-dashoffset: 0; stroke: var(--sda-accent); }
+    83.33% { stroke: var(--sda-accent); }
+    83.34% { stroke: var(--sda-warning); }
+    100% { stroke-dashoffset: 44; stroke: var(--sda-warning); }
+}
+
+.guard-code__value {
+    white-space: nowrap;
+}
+
+.guard-code__copy {
+    display: inline-flex;
+    color: var(--sda-text-subtle);
+    transition: color var(--sda-transition);
+}
+
+.guard-code:hover .guard-code__copy {
+    color: var(--sda-accent);
+}
+
+.guard-code--copied .guard-code__copy,
+.guard-code--copied:hover .guard-code__copy {
+    color: var(--sda-success);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .guard-code__ring-fill {
+        animation: none;
+    }
+}

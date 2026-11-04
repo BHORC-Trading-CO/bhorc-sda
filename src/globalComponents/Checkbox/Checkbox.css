@@ -1,7 +1,13 @@
+/* Чекбокс QBS (макет main-v2: .cb): 16 px, рамка zinc-600, отмеченный — синий с белой галочкой.
+   Нет в tokens.css: zinc-600 (#52525b) — рамка пустого чекбокса; локальная переменная. */
+.sda-checkbox {
+    --checkbox-border: #52525b;
+}
+
 .checkbox-default, .checkbox-checked {
-    width: 22px;
-    height: 22px;
-    border-radius: 5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -11,23 +17,25 @@
     vertical-align: middle;
 }
 
-/* Пустой чекбокс раньше был svg тёмным по тёмному: рисуем рамку токенами */
 .sda-checkbox.checkbox-default {
-    background-color: var(--sda-surface-3);
-    border-radius: var(--sda-radius-sm);
-    box-shadow: inset 0 0 0 1.5px var(--sda-text-muted);
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--checkbox-border);
     transition: box-shadow var(--sda-transition), background-color var(--sda-transition);
 }
 
 .sda-checkbox.checkbox-default:hover {
-    box-shadow: inset 0 0 0 1.5px var(--sda-text);
+    box-shadow: inset 0 0 0 1.5px var(--sda-text-muted);
 }
 
-/* Отмеченный: белая галочка lucide на основном синем (раньше svg с розовым градиентом). */
+/* Отмеченный: белая галочка lucide на основном синем */
 .sda-checkbox.checkbox-checked {
-    border-radius: var(--sda-radius-sm);
     background-color: var(--sda-primary);
     color: #fff;
+    transition: background-color var(--sda-transition);
+}
+
+.sda-checkbox.checkbox-checked:hover {
+    background-color: var(--sda-primary-hover);
 }
 
 .sda-checkbox:focus {
@@ -39,7 +47,7 @@
 }
 
 .sda-checkbox.checkbox-default:focus-visible {
-    box-shadow: inset 0 0 0 1.5px var(--sda-text), var(--sda-focus-ring);
+    box-shadow: inset 0 0 0 1.5px var(--sda-text-muted), var(--sda-focus-ring);
 }
 
 .sda-checkbox--disabled.checkbox-default {
@@ -47,5 +55,5 @@
 }
 
 .sda-checkbox--disabled.checkbox-default:hover {
-    box-shadow: inset 0 0 0 1.5px var(--sda-text-muted);
+    box-shadow: inset 0 0 0 1.5px var(--checkbox-border);
 }

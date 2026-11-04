@@ -1,11 +1,18 @@
+/* Подвал таблицы слева (макет main-v2: .footer, .pg): 12 px zinc-400, кнопки страниц 26 px с рамкой.
+   Нет в tokens.css: zinc-300 (#d4d4d8) — подписи; локальная переменная. */
 .table-footer-left {
+    --pager-text-soft: #d4d4d8;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 6px 14px;
+    font-family: var(--sda-font);
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--sda-text-muted);
 }
 
-/* Подпись и значение не переносятся по словам (раньше «Усього елементів» ломалось в две строки) */
+/* Подпись и значение не переносятся по словам */
 .table-footer-left_item {
     display: flex;
     align-items: center;
@@ -13,36 +20,44 @@
     white-space: nowrap;
 }
 
-.table-footer-left_item .text-grey-large {
-    font-size: 14px;
-}
-
 .table-footer-value {
-    color: var(--sda-text);
-    font-size: 14px;
+    color: var(--pager-text-soft);
+    font-family: var(--sda-font-mono);
     font-variant-numeric: tabular-nums;
 }
 
-.table-footer-img-item {
-    gap: 2px;
+.table-footer-pager {
+    gap: 4px;
+}
+
+/* Текущая страница между стрелками */
+.table-footer-page {
+    min-width: 36px;
+    padding: 0 4px;
+    text-align: center;
+    color: var(--sda-text);
+    font-family: var(--sda-font-mono);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
 }
 
 .page-switcher-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     padding: 0;
-    border: none;
+    border: 1px solid var(--sda-border);
     border-radius: var(--sda-radius-sm);
     background: transparent;
     cursor: pointer;
-    transition: background-color var(--sda-transition);
+    transition: background-color var(--sda-transition), border-color var(--sda-transition);
 }
 
 .page-switcher-btn:hover:not([aria-disabled]) {
     background: var(--sda-surface-3);
+    border-color: var(--sda-border-strong);
 }
 
 .page-switcher-btn[aria-disabled] {
@@ -57,14 +72,15 @@
     box-shadow: var(--sda-focus-ring);
 }
 
-/* Стрелка: светлая у активной кнопки, бледная у неактивной (раньше — пара svg на каждую). */
+/* Стрелка: светлая у активной кнопки, бледная у неактивной */
 .page-switcher-img {
     display: block;
-    color: var(--sda-text);
+    color: var(--pager-text-soft);
 }
 
 .page-switcher-btn[aria-disabled] .page-switcher-img {
     color: var(--sda-text-subtle);
+    opacity: 0.5;
 }
 
 /* Выпадающий список «Элементов на странице» в тёмной палитре */
@@ -77,43 +93,49 @@
     overflow: hidden;
     cursor: pointer;
     outline: none;
-    font-size: 14px;
-    line-height: 20px;
-    padding: 4px 26px 4px 10px;
+    height: 26px;
+    font-family: var(--sda-font-mono);
+    font-size: 12px;
+    line-height: 24px;
+    padding: 0 22px 0 8px;
+    border: 1px solid var(--sda-border);
     border-radius: var(--sda-radius-sm);
-    background: var(--sda-surface-3);
+    background: transparent;
     color: var(--sda-text);
     font-variant-numeric: tabular-nums;
-    transition: background-color var(--sda-transition);
+    transition: background-color var(--sda-transition), border-color var(--sda-transition);
 }
 
 .Dropdown-control:hover {
-    background: var(--sda-surface-4);
+    background: var(--sda-surface-3);
+    border-color: var(--sda-border-strong);
 }
 
 .Dropdown-arrow {
     border-color: var(--sda-text-muted) transparent transparent;
     border-style: solid;
-    border-width: 5px 5px 0;
+    border-width: 4px 4px 0;
     content: ' ';
     display: block;
     height: 0;
     position: absolute;
-    right: 10px;
-    top: 12px;
+    right: 8px;
+    top: 10px;
     width: 0
 }
 
 .is-open .Dropdown-arrow {
     border-color: transparent transparent var(--sda-text-muted);
-    border-width: 0 5px 5px;
+    border-width: 0 4px 4px;
 }
 
 /* Меню открывается вверх ровно над полем (раньше было белым и с фиксированным сдвигом -210px) */
 .Dropdown-menu {
-    background-color: var(--sda-modal);
+    background-color: var(--sda-surface-3);
     border: 1px solid var(--sda-border-strong);
     border-radius: var(--sda-radius-sm);
+    font-family: var(--sda-font-mono);
+    font-size: 12px;
     box-shadow: 0 8px 24px var(--sda-overlay);
     box-sizing: border-box;
     max-height: 240px;
@@ -138,12 +160,12 @@
     color: var(--sda-text-muted);
     cursor: pointer;
     display: block;
-    padding: 6px 12px;
+    padding: 5px 10px;
     font-variant-numeric: tabular-nums;
 }
 
 .Dropdown-option:hover {
-    background-color: var(--sda-surface-3);
+    background-color: var(--sda-surface-4);
     color: var(--sda-text);
 }
 

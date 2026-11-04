@@ -1,0 +1,116 @@
+/* Панель над таблицей аккаунтов (макет main-v2: .toolbar): заголовок со счётчиком, поиск, иконки,
+   синяя «Добавить аккаунт». Без своей карточки; поля по бокам задаёт .main. */
+.accounts-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 14px 0 12px;
+    user-select: none;
+}
+
+/* Заголовок со счётчиком не сжимается (иначе счётчик уезжал под поиск в окне 1024 px) */
+.accounts-toolbar__title {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 8px;
+    margin-right: 6px;
+}
+
+.accounts-toolbar__heading {
+    margin: 0;
+    font-family: var(--sda-font);
+    font-size: 18px;
+    font-weight: 650;
+    line-height: 24px;
+    color: var(--sda-text);
+    white-space: nowrap;
+}
+
+.accounts-toolbar__count {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--sda-surface-3);
+    color: var(--sda-text-muted);
+    font-family: var(--sda-font-mono);
+    font-size: 11px;
+    line-height: 14px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Поиск занимает свободное место, но не уже 140 px: в узком окне сжимается он, а не кнопки */
+.accounts-toolbar .search {
+    flex: 1 1 auto;
+    min-width: 140px;
+    margin-left: auto;
+}
+
+.accounts-toolbar__icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.accounts-toolbar__tip {
+    display: inline-flex;
+}
+
+.accounts-toolbar__icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--sda-border-strong);
+    border-radius: var(--sda-radius-sm);
+    background: transparent;
+    color: var(--sda-text-muted);
+    cursor: pointer;
+    transition: background-color var(--sda-transition), color var(--sda-transition);
+}
+
+.accounts-toolbar__icon:hover {
+    background: var(--sda-surface-3);
+    color: var(--sda-text);
+}
+
+/* Архивные показаны: переключатель включён */
+.accounts-toolbar__icon--active,
+.accounts-toolbar__icon--active:hover {
+    background: var(--sda-surface-3);
+    color: var(--sda-accent);
+}
+
+.accounts-toolbar__icon:focus {
+    outline: none;
+}
+
+.accounts-toolbar__icon:focus-visible {
+    box-shadow: var(--sda-focus-ring);
+}
+
+/* Основная кнопка 34 px, радиус 6 px; селекторы сильнее Button.css, чтобы размер не зависел от неё */
+.accounts-toolbar .button.accounts-toolbar__add {
+    flex-shrink: 0;
+    min-width: 0;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: var(--sda-radius-sm);
+    background: var(--sda-primary);
+}
+
+.accounts-toolbar .button.accounts-toolbar__add:hover {
+    background: var(--sda-primary-hover);
+}
+
+.accounts-toolbar .accounts-toolbar__add .button__text {
+    max-width: none;
+    font-size: 13px;
+    font-weight: 550;
+}
+
+.accounts-toolbar .accounts-toolbar__add .button__icon + .button__text {
+    margin-left: 6px;
+}
