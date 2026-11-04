@@ -24,7 +24,8 @@ const puppeteer = require("puppeteer-extra");
 
 const tempDirs: string[] = [];
 function extensionDir(name: string, manifest: object | null = { manifest_version: 3, name, version: "1.0" }) {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `sda-chrome-ext-${name}-`));
+    // Канонический путь, как его сохраняет выбор в диалоге.
+    const dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), `sda-chrome-ext-${name}-`)));
     tempDirs.push(dir);
     if (manifest) fs.writeFileSync(path.join(dir, "manifest.json"), JSON.stringify(manifest));
     return dir;
@@ -180,6 +181,30 @@ describe("Chrome.start — стартовые ссылки и опции зап�
         });
         await startAndSettle(chrome, 3);
         expect(gotoOrder).toEqual(["https://a.test/", "https://b.test/", "https://c.test/"]);
+    });
+
+    it("первая страница не загрузилась (DNS, прокси) — остальные всё равно открываются, запуск не падает", async () => {
+        const links = ["https://unreachable.test/", "https://b.test/", "https://c.test/"];
+        mockSettings.current.startLinks = links;
+        const originalLaunch = puppeteer.launch;
+        puppeteer.launch = jest.fn(async (options: any) => {
+            const browser = await originalLaunch(options);
+            const newPage = browser.newPage;
+            browser.newPage = jest.fn(async () => {
+                const page = await newPage();
+                if (pages.length === 1) page.goto.mockImplementation(async (url: string) => {
+                    gotoOrder.push(url);
+                    throw new Error("net::ERR_NAME_NOT_RESOLVED");
+                });
+                return page;
+            });
+            return browser;
+        });
+        await startAndSettle(makeChrome(), 3);
+        expect(gotoOrder).toEqual(links);
+        expect(pages).toHaveLength(3);
+        expect(pages[0].bringToFront).toHaveBeenCalled();
+        expect(log).toHaveBeenCalledWith(expect.stringContaining("ERR_NAME_NOT_RESOLVED"));
     });
 
     it("без расширений ignoreDefaultArgs не передаём", async () => {

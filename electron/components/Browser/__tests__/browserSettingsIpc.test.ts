@@ -16,8 +16,9 @@ import { setMainLanguage } from "../../../i18n";
 beforeAll(() => setMainLanguage("en"));
 
 const tempDirs: string[] = [];
+/** Папка по каноническому пути — так её сохраняет выбор в диалоге. */
 function extensionDir(manifest: object | null) {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sda-browser-ipc-"));
+    const dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "sda-browser-ipc-")));
     tempDirs.push(dir);
     if (manifest) fs.writeFileSync(path.join(dir, "manifest.json"), JSON.stringify(manifest));
     return dir;
@@ -60,11 +61,24 @@ describe("IPC страницы Browser", () => {
 
     it("save с корректными данными сохраняет и отвечает новым видом", () => {
         const dir = extensionDir({ manifest_version: 3, name: "Helper", version: "2.0" });
+        BrowserSettingsStorage.Save({ startLinks: [DEFAULT_START_LINK], extensions: [{ path: dir, enabled: true }] });
+        const event = makeEvent();
+        browserSettingsSaveListener(event, { startLinks: ["https://a.test/"], extensions: [{ path: dir, enabled: false }] });
+        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR)).toEqual([]);
+        expect(BrowserSettingsStorage.Get()).toEqual({ startLinks: ["https://a.test/"], extensions: [{ path: dir, enabled: false }] });
+        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)[0].extensions[0]).toMatchObject({ name: "Helper", version: "2.0", status: "ok" });
+    });
+
+    it("save не добавляет расширение мимо диалога, даже правильную папку: отказ, хранилище не меняется", () => {
+        const dir = extensionDir({ manifest_version: 3, name: "Sneaky", version: "1.0" });
         const event = makeEvent();
         browserSettingsSaveListener(event, { startLinks: ["https://a.test/"], extensions: [{ path: dir, enabled: true }] });
-        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR)).toEqual([]);
-        expect(BrowserSettingsStorage.Get()).toEqual({ startLinks: ["https://a.test/"], extensions: [{ path: dir, enabled: true }] });
-        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)[0].extensions[0]).toMatchObject({ name: "Helper", version: "2.0", status: "ok" });
+        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR)).toEqual([
+            { section: "extensions", message: `Extensions are added only through the folder dialog. This one was not saved: ${dir}` },
+        ]);
+        expect(BrowserSettingsStorage.Get()).toEqual({ startLinks: [DEFAULT_START_LINK], extensions: [] });
+        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)).toEqual([{ startLinks: [DEFAULT_START_LINK], extensions: [] }]);
+        expect(showOpenDialog).not.toHaveBeenCalled();
     });
 
     it("save с плохой ссылкой не сохраняет: ошибка и прежнее состояние", () => {
@@ -84,6 +98,15 @@ describe("IPC страницы Browser", () => {
         expect(showOpenDialog).toHaveBeenCalledWith(expect.objectContaining({ properties: ["openDirectory"] }));
         expect(BrowserSettingsStorage.Get().extensions).toEqual([{ path: dir, enabled: true }]);
         expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)[0].extensions).toHaveLength(1);
+    });
+
+    it("pickExtension: выбрана ссылка — сохраняется канонический путь цели", async () => {
+        const dir = extensionDir({ manifest_version: 3, name: "Linked", version: "1.0" });
+        const link = path.join(extensionDir(null), "link-to-ext");
+        fs.symlinkSync(dir, link);
+        showOpenDialog.mockResolvedValueOnce({ canceled: false, filePaths: [link] });
+        await browserPickExtensionListener(makeEvent());
+        expect(BrowserSettingsStorage.Get().extensions).toEqual([{ path: dir, enabled: true }]);
     });
 
     it("pickExtension: папка без manifest — ошибка, список не меняется", async () => {

@@ -520,7 +520,7 @@
       "remove": "Remove {{name}} from the list",
       "status": {
         "missing": "Folder or manifest.json not found. Skipped at launch.",
-        "invalid": "manifest.json is not valid. Skipped at launch."
+        "invalid": "The folder or its manifest.json no longer passes the check. Skipped at launch."
       }
     }
   },

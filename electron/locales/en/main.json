@@ -56,6 +56,10 @@
         "badJson": "manifest.json in {{folder}} is not valid JSON.",
         "manifestVersion": "manifest.json in {{folder}} has an unsupported manifest_version (2 or 3 is required).",
         "noName": "manifest.json in {{folder}} has no extension name.",
+        "notCanonical": "The path {{folder}} now leads to a different place (a link in it was changed). Remove the extension and add the folder again.",
+        "manifestNotFile": "manifest.json in {{folder}} is not a regular file.",
+        "manifestTooLarge": "manifest.json in {{folder}} is larger than 1 MB.",
+        "notPicked": "Extensions are added only through the folder dialog. This one was not saved: {{folder}}",
         "duplicate": "{{name}} is already in the list."
       }
     },

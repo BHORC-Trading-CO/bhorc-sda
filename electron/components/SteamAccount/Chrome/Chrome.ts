@@ -291,7 +291,11 @@ export default class Chrome {
         // Стартовые ссылки со страницы Browser (SDA-6). Первая — в этой вкладке, где выставлены
         // cookie Steam (раньше тут всегда был steamcommunity.com/my/, пустой список — он же).
         const [firstLink, ...otherLinks] = effectiveStartLinks(BrowserSettingsStorage.Get().startLinks);
-        await this.page.goto(firstLink);
+        // Как и остальные вкладки: загрузку не ждём, ошибку (DNS, прокси, таймаут) только пишем
+        // в лог — браузер уже открыт, страница ошибки видна во вкладке, остальные ссылки открываются.
+        this.page.goto(firstLink).catch((pageErr) => {
+          console.log(`${this.params.id} - первая стартовая страница не загрузилась: ${pageErr}`);
+        });
         // Остальные — новыми вкладками по порядку. Прокси и отпечаток настраиваем до загрузки,
         // загрузку не ждём: медленная страница не держит следующие. Ошибка вкладки не роняет запуск.
         for (const link of otherLinks) {

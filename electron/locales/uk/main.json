@@ -56,6 +56,10 @@
         "badJson": "manifest.json у папці {{folder}} — некоректний JSON.",
         "manifestVersion": "manifest.json у папці {{folder}} має непідтримувану manifest_version (потрібна 2 або 3).",
         "noName": "У manifest.json у папці {{folder}} немає назви розширення.",
+        "notCanonical": "Шлях {{folder}} тепер веде в інше місце (у ньому змінили посилання). Приберіть розширення й додайте папку знову.",
+        "manifestNotFile": "manifest.json у папці {{folder}} — не звичайний файл.",
+        "manifestTooLarge": "manifest.json у папці {{folder}} більший за 1 МБ.",
+        "notPicked": "Розширення додаються лише через вибір папки. Це не збережено: {{folder}}",
         "duplicate": "{{name}} вже є в списку."
       }
     },
