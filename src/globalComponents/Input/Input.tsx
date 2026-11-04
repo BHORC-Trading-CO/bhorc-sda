@@ -1,6 +1,7 @@
 import react, { FC, useState } from 'react';
 import { observer } from 'mobx-react';
 import { useTranslation } from 'react-i18next';
+import Icon from '../Icon/Icon';
 import './input.css';
 
 const Input: FC<{ value: string, type?: react.HTMLInputTypeAttribute, style?: React.CSSProperties, onChange?: (newValue: string) => void, placeholder?: string, readonly?: boolean }> = observer((props) => {
@@ -33,8 +34,8 @@ const Input: FC<{ value: string, type?: react.HTMLInputTypeAttribute, style?: Re
                 title={eyeLabel}
                 onClick={() => { isShown ? setInputType('password') : setInputType('text') }}
             >
-                {/* Иконка-маска: цвет задаёт токен в input.css, а не сам SVG. */}
-                <span className='input-eye__icon' style={{ WebkitMaskImage: `url(${isShown ? "./assets/img/Password_show.svg" : "./assets/img/Password_hide.svg"})` }}></span>
+                {/* Иконка — действие кнопки: пароль виден — «скрыть», скрыт — «показать». Цвет в input.css. */}
+                <Icon name={isShown ? 'eyeOff' : 'eye'} size={14} className='input-eye__icon' />
             </button>
             : <></>}
         </div>

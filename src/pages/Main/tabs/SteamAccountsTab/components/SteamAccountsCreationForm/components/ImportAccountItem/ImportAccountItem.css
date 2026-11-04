@@ -73,6 +73,7 @@
   height: 24px;
   border-radius: var(--sda-radius-sm);
   background: var(--sda-surface-4);
+  color: var(--sda-text);
   cursor: pointer;
 }
 .imported-steam-account-item .proxy-item-button-expand:hover {
@@ -84,9 +85,13 @@
 }
 
 .imported-steam-account-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 32px;
   height: 32px;
   border: 1px solid var(--sda-border-strong);
   border-radius: 50%;
   background: var(--sda-surface-0);
+  color: var(--sda-text-muted);
 }

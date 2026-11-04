@@ -9,13 +9,13 @@
     text-align: center;
 }
 
+/* Крупная декоративная иконка: размер из CSS поверх атрибутов svg, линия тоньше, чтобы
+   при 40px она не выглядела жирнее остальных иконок (2px на 24 → ~2.5px на 40). */
 .sda-empty-state__icon {
     width: 40px;
     height: 40px;
-    background-color: var(--sda-text-muted);
-    -webkit-mask-position: center;
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-size: contain;
+    stroke-width: 1.5;
+    color: var(--sda-text-muted);
 }
 
 /* Одна строка; длинный поисковый запрос обрезается многоточием, а не переносится */

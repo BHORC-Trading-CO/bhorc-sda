@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useFormContext } from "react-hook-form";
+import Icon from "../Icon/Icon";
 import "./InputImg.css";
 
 function InputImg(props: inputImgInterface) {
@@ -39,7 +40,7 @@ function InputImg(props: inputImgInterface) {
     <div className="input-img__container">
       <div className="input-img" onClick={() => FindFile()}>
         {img == "" ? (
-          <img src="./assets/img/Photo.svg"></img>
+          <Icon name="image" size={20} />
         ) : (
           <img src={img} className="input-img__preview"></img>
         )}

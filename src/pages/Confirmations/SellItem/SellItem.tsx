@@ -4,6 +4,7 @@ import Button from "../../../globalComponents/Button/Button";
 import "./SellItem.css";
 import { useTranslation } from "react-i18next";
 import useAccountImage from "../../../globalComponents/Images/useAccountImage";
+import Icon from "../../../globalComponents/Icon/Icon";
 
 interface Item { selected: boolean, confirmation: CConfirmation };
 
@@ -15,7 +16,9 @@ function SellItem(props: sellItemInterface) {
   return (
     <div className={`sell-item-container${item.selected ? " sell-item-container--selected" : ""}`}>
       <div className="sell-item-logo">
-        <img src={icon.src || './assets/img/Photo.svg'} onError={icon.onError} style={{ width: "50px" }} alt="" />
+        {icon.src
+          ? <img src={icon.src} onError={icon.onError} style={{ width: "50px" }} alt="" />
+          : <Icon name="image" size={20} className="sell-item-logo__placeholder" />}
       </div>
       <div className="sell-item-info">
         <div className="sell-item-name text-medium-white" title={item.confirmation.title}>

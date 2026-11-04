@@ -22,16 +22,9 @@
 }
 .error-container h1 { color: var(--sda-text); overflow-wrap: anywhere; }
 .error-warning-icon {
-    width: 24px;
-    height: 24px;
     margin-right: 10px;
     vertical-align: middle;
     color: var(--sda-warning);
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.7;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 }
 .error-container-text {
     color: var(--sda-text-muted);

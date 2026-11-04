@@ -39,7 +39,9 @@ it('the five formerly remote image sites use routed data or local placeholders',
         expect(source).not.toContain('sanitizeAvatarUrl');
         expect(source).not.toMatch(/src=\{(?:item\.confirmation\.icon|[^}]*avatarUrl)/);
     }
-    expect(imported).toContain('src="./assets/img/User.svg"');
+    // Импортируемый аккаунт аватар не грузит: только локальная заглушка — иконка lucide.
+    expect(imported).toContain('<Icon name="user" />');
+    expect(imported).not.toMatch(/<img\b/);
     expect(imported).not.toContain('useAccountImage');
     expect(read('src/pages/Confirmations/Confirmations.tsx')).toContain('accountId={id}');
     expect(sell).toContain("useAccountImage('icon', accountId, item.confirmation.icon)");

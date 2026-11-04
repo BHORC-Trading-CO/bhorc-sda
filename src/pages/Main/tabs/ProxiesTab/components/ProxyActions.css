@@ -15,11 +15,6 @@
   transition: background var(--sda-transition), color var(--sda-transition), border-color var(--sda-transition);
 }
 
-.proxy-action svg {
-  width: 21px;
-  height: 21px;
-}
-
 .proxy-action:hover {
   background: var(--sda-surface-4);
   color: var(--sda-text);
@@ -86,12 +81,3 @@
 }
 .proxy-test-selected.button:hover { background: var(--sda-surface-4); }
 .proxy-test-selected.button:focus-visible { outline: none; box-shadow: var(--sda-focus-ring); }
-.proxy-test-selected svg {
-  width: 24px;
-  height: 24px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}

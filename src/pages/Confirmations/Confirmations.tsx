@@ -2,6 +2,7 @@ import react, { FC, useEffect, useState } from 'react';
 import CConfirmation from 'steamcommunity/classes/CConfirmation';
 import TitleBar from '../../globalComponents/TitleBar/TitleBar';
 import Button from '../../globalComponents/Button/Button';
+import Icon from '../../globalComponents/Icon/Icon';
 import "./Confirmation.css"
 import SellItem from './SellItem/SellItem';
 import LoadingIcons from 'react-loading-icons';
@@ -72,7 +73,7 @@ const Confirmations: FC = () => {
             <div className='confirmation-container'>
                 <div className='confirmation-info-container'>
                     <div className='info-account-name'>
-                        <img src='./assets/img/User.svg' className='info-account-logo' alt='' aria-hidden='true' />
+                        <Icon name='user' className='info-account-logo' />
                         <span className='text-medium-white' title={name}>{name}</span>
                     </div>
                     <div className='confirmation-toolbar'>
@@ -89,21 +90,21 @@ const Confirmations: FC = () => {
                             }
                         }}
                             >
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 8l2 2 5-4M8 15h8" /></svg>
+                            <Icon name='check' size={20} motion='pop' />
                         </button>
                         <button type='button' className='confirmation-icon-button' disabled={isLoading} title={t('confirmations.refresh')} aria-label={t('confirmations.refresh')} onClick={refresh}>
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5v6h-6M20 11a8 8 0 1 0-1 7" /></svg>
+                            <Icon name='refresh' size={20} motion='spin' />
                         </button>
                     </div>
                 </div>
                 <div className='sell-items-container'>
                     {error && !isLoading ? <div className='centered-block confirmation-state confirmation-state--error' role='alert'>
-                        <svg className='confirmation-state-icon' viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3ZM12 9v5M12 17h.01" /></svg>
+                        <Icon name='alert' size={20} className='confirmation-state-icon' />
                         <div className='confirmation-state-message'>{stripLeadingEmoji(String(error)) || t('confirmations.error')}</div>
                         <button type='button' className='confirmation-retry' onClick={refresh}>{t('confirmations.retry')}</button>
                     </div> : (!isLoading && !isResponding ?
                         (items.length > 0 ? <Items accountId={id} items={items} setItems={setItems} /> : <div className='centered-block confirmation-state' role='status'>
-                            <svg className='confirmation-state-icon' viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 11l3 3 5-6" /></svg>
+                            <Icon name='shieldCheck' size={20} className='confirmation-state-icon' />
                             <div>{t('confirmations.empty')}</div>
                         </div>) :
                         <div className='centered-block confirmation-state' role='status'>

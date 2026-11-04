@@ -47,8 +47,6 @@
   box-shadow: var(--sda-focus-ring);
 }
 
-.proxy-panel-cta img { width: 18px; height: 18px; }
-
 @media (max-width: 1200px) {
   .proxies-panel { padding: 14px 17px; }
   .proxies-panel .panel-content { flex-wrap: wrap; gap: 12px; }

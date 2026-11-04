@@ -7,6 +7,7 @@ import ProxyItem from "./ProxyItem";
 import store from "../../../../../../../../store/store";
 import { observer } from "mobx-react";
 import Button from "../../../../../../../../globalComponents/Button/Button";
+import Icon from "../../../../../../../../globalComponents/Icon/Icon";
 import { useTranslation } from "react-i18next";
 
 const ImportAccountItem = observer(
@@ -29,11 +30,10 @@ const ImportAccountItem = observer(
       <div className="imported-steam-account-item__container">
         <div className={`imported-steam-account-item text-white-medium${isMaFileOpen || isProxyOpen ? " imported-steam-account-item_open" : ""}`}>
           <div className="imported-steam-account-cell imported-steam-account-avatar-container">
-            <img
-              src="./assets/img/User.svg"
-              className="imported-steam-account-avatar"
-              alt=""
-            ></img>
+            {/* Аватар импортируемого аккаунта не грузим: локальная заглушка. */}
+            <span className="imported-steam-account-avatar" aria-hidden="true">
+              <Icon name="user" />
+            </span>
           </div>
           <div className="imported-steam-account-cell" title={smaFile.accountName}>
             <span className="imported-steam-account-cell__text">{smaFile.accountName}</span>
@@ -54,7 +54,7 @@ const ImportAccountItem = observer(
                 setIsMaFileOpen(false);
               }}
             >
-              <img src="./assets/img/AddNewAccount.svg" alt=""></img>
+              <Icon name="plus" size={14} motion="pop" />
             </button>
             <span className="imported-steam-account-cell__text">
               {activeProxy
@@ -75,19 +75,13 @@ const ImportAccountItem = observer(
               className="imported-steam-account-button text-white-medium"
             >
               {t("accounts.import.view")}
-              <img
-                src="./assets/img/ArrowDown.svg"
-                alt=""
-                style={{
-                  transform: isMaFileOpen ? "rotate(180deg)" : "",
-                }}
-              ></img>
+              <Icon name={isMaFileOpen ? "chevronUp" : "chevronDown"} />
             </button>
           </div>
           <div className="imported-steam-account-cell-button">
             <Button
               size="tiny"
-              img="./assets/img/Trash.svg"
+              icon="trash"
               view="icon"
               color="grey"
               hoverColor="light-grey"

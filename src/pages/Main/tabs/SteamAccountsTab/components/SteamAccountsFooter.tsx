@@ -45,8 +45,8 @@ const SteamAccountsFooter: FC = observer(() => {
                         color="grey"
                         hoverColor="grey"
                         className="footer__button"
-                        iconMask
-                        img="./assets/img/refreshSession.svg"
+                        icon="refresh"
+                        iconMotion="spin"
                         text={t("accounts.footer.refreshSession")}
                         onClick={() => {
                             const selected = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected && !p.deleted);
@@ -83,8 +83,7 @@ const SteamAccountsFooter: FC = observer(() => {
                         color="grey"
                         hoverColor="danger"
                         className="footer__button"
-                        iconMask
-                        img="./assets/img/Trash.svg"
+                        icon="trash"
                         text={t("common.buttons.delete")}
                         onClick={() => {
                             const selectedSteamAccounts = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected);

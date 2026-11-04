@@ -19,7 +19,7 @@ const MaFileImport: FC<{ currentMaFile: MaFileInterface | null, onChange: (newMa
             <div className="import-account__row">
                 <Button
                     size="medium"
-                    img="./assets/img/Download.svg"
+                    icon="upload"
                     className="import-account__file"
                     text={
                         currentMaFile

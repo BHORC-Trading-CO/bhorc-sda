@@ -31,19 +31,13 @@
 }
 
 .mini_notification__icon {
-    flex: 0 0 22px;
-    width: 22px;
-    height: 22px;
-    background-color: var(--sda-info);
-    -webkit-mask-position: center;
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-size: contain;
+    color: var(--sda-info);
 }
 .mini_notification_success .mini_notification__icon {
-    background-color: var(--sda-success);
+    color: var(--sda-success);
 }
 .mini_notification_error .mini_notification__icon {
-    background-color: var(--sda-danger);
+    color: var(--sda-danger);
 }
 
 .mini_notification__text {

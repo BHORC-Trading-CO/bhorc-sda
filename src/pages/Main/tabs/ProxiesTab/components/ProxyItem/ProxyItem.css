@@ -98,7 +98,7 @@
 }
 
 .proxies-form .proxy-item { color: var(--sda-text); }
-.proxies-form .proxy-item-button-expand { cursor: pointer; }
+.proxies-form .proxy-item-button-expand { cursor: pointer; color: var(--sda-text); }
 .proxies-form .proxy-item-button-expand:focus-visible { box-shadow: var(--sda-focus-ring); }
 .proxies-form .proxy-item-test { overflow: visible; }
 .proxies-form .proxy-item .accounts-header { color: var(--sda-text-muted); }

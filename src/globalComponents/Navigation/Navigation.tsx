@@ -24,6 +24,7 @@ const Navigation: FC<{
                 size="medium"
                 color={props.selectedId === button.id ? 'gradient' : 'grey'}
                 text={button.text}
+                testId={`tab-${button.id}`}
                 onClick={() => {
                   props.onChange(button.id);
                 }}

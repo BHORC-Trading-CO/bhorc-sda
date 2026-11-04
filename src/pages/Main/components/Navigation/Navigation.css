@@ -34,14 +34,12 @@
   white-space: nowrap;
 }
 
-/* Иконка пункта — маска из SVG (url в GlobalStyle.ts), цвет задаёт фон: токены вместо зашитых в SVG цветов. */
-.navigation-img {
-  width: 24px;
-  height: 24px;
+/* Иконка пункта — lucide 20px в слоте 24px (отступ 2px), цвет — currentColor пункта:
+   приглушённый, белый на ховере, циановый у активного (motion.css, .sda-nav-activate). */
+.navigation-img,
+.navigation-group-icon {
   flex-shrink: 0;
-  background: var(--sda-text-muted);
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
+  margin: 2px;
 }
 
 .navigation-items {
@@ -101,9 +99,6 @@
   background: var(--sda-surface-2);
   color: var(--sda-text);
 }
-.navigation-item:hover .navigation-img {
-  background: var(--sda-text);
-}
 .navigation-item_active,
 .navigation-item_active:hover {
   background: var(--sda-surface-3);
@@ -112,10 +107,6 @@
 .navigation-item_active .button__text_navigation,
 .navigation-item_active .navigation-group-name {
   font-weight: 600;
-}
-.navigation-item_active .navigation-img,
-.navigation-item_active:hover .navigation-img {
-  background: var(--sda-accent);
 }
 /* Метка активного пункта слева. */
 .navigation-item_active::before {
@@ -137,19 +128,6 @@
   min-height: 38px;
   margin-bottom: 6px;
 }
-.navigation-group-icon {
-  width: 24px;
-  height: 24px;
-  color: var(--sda-text-muted);
-  flex-shrink: 0;
-}
-.navigation-item:hover .navigation-group-icon {
-  color: var(--sda-text);
-}
-.navigation-item_active .navigation-group-icon,
-.navigation-item_active:hover .navigation-group-icon {
-  color: var(--sda-accent);
-}
 .navigation-group-name {
   margin-left: 12px;
   flex: 1;
@@ -165,6 +143,9 @@
   font-size: 13px;
 }
 .navigation-group-edit {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
   margin-left: auto;
   opacity: 0;
   cursor: pointer;

@@ -5,9 +5,16 @@ import { observer } from "mobx-react";
 import { useTranslation } from "react-i18next";
 import ReactTooltip from "react-tooltip";
 import LanguageSwitcher from "./LanguageSwitcher";
+import Icon, { IconName } from "../../../../globalComponents/Icon/Icon";
 
 // Один тултип на все пункты узкой навигации, где видны только иконки.
 const TOOLTIP_ID = "navigation-tooltip";
+
+// Иконка пункта: подпрыгивает при наведении, у активного (aria-current) — циановая, пружиной
+// увеличена и со свечением (motion.css). Цвет покоя и ховера — от пункта (Navigation.css).
+const NavIcon = ({ name, className = "navigation-img" }: { name: IconName; className?: string }) => (
+  <Icon name={name} size={20} motion="pop" className={`${className} sda-nav-activate`} />
+);
 
 // Пункты меню — div с role="button": Enter и пробел делают то же, что клик.
 const onActivateKey = (handler: () => void) => (event: KeyboardEvent) => {
@@ -76,7 +83,7 @@ const Navigation = observer(() => {
               store.groups.setActiveGroup(null);
             })}
           >
-            <div className="navigation-img" id="navigation-steam-accounts"></div>
+            <NavIcon name="users" />
             {isCompress ? (
               ""
             ) : (
@@ -105,20 +112,7 @@ const Navigation = observer(() => {
                   isCompress ? "" : " navigation-group-button"
                 )}
               >
-                <svg
-                  className="navigation-group-icon"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2c.4 0 .78.16 1.06.44L11 6.7c.28.28.66.44 1.06.44h6.44A1.5 1.5 0 0 1 20 8.64V17.5A1.5 1.5 0 0 1 18.5 19h-14A1.5 1.5 0 0 1 3 17.5v-11z"
-                    fill="currentColor"
-                  />
-                </svg>
+                <NavIcon name="folder" className="navigation-group-icon" />
                 {isCompress ? (
                   ""
                 ) : (
@@ -144,7 +138,7 @@ const Navigation = observer(() => {
                         onActivateKey(openEditForm)(e);
                       }}
                     >
-                      ✎
+                      <Icon name="pencil" size={14} />
                     </div>
                   </>
                 )}
@@ -156,7 +150,7 @@ const Navigation = observer(() => {
               store.tabs.setActive("proxies");
             })}
           >
-            <div className="navigation-img" id="navigation-proxy"></div>
+            <NavIcon name="link" />
             {isCompress ? (
               ""
             ) : (
@@ -173,7 +167,7 @@ const Navigation = observer(() => {
             })}
             data-testid="nav-browser"
           >
-            <div className="navigation-img" id="navigation-extension"></div>
+            <NavIcon name="globe" />
             {isCompress ? (
               ""
             ) : (

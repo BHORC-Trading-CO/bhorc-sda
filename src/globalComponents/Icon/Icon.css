@@ -1,0 +1,6 @@
+/* Иконка lucide (Icon.tsx): не сжимается во flex-строке и стоит по центру строки текста. */
+.sda-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}

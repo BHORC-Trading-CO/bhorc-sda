@@ -26,6 +26,12 @@
   to { transform: rotate(180deg); }
 }
 
+/* У выключенной кнопки иконка на наведение не отвечает (цвет ховера у них тоже не меняется). */
+:disabled .sda-anim-pop,
+:disabled .sda-anim-spin {
+  animation: none;
+}
+
 /* Загрузка: крутится всегда. */
 .sda-spin {
   animation: sda-spin 1s linear infinite;

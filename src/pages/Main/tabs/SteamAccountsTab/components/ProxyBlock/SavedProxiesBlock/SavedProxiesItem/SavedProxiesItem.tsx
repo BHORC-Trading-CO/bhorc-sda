@@ -3,6 +3,7 @@ import ProxyInterface from "../../../../../../../../../electron/interfaces/Proxy
 import TableProxyInterface from "../../../../../../../../../electron/interfaces/Proxy/TableProxyInterface";
 import "./SavedProxiesItem.css";
 import store from "../../../../../../../../store/store";
+import Icon from "../../../../../../../../globalComponents/Icon/Icon";
 
 const SavedProxiesItem: FC<{
   proxy: TableProxyInterface,
@@ -36,7 +37,9 @@ const SavedProxiesItem: FC<{
         })}
       </div>
       <div className="saved-proxies-item-cell saved-proxies-item-check">
-        <div className={isActive ? "checkbox-circle-checked" : "checkbox-circle-default"}></div>
+        <div className={isActive ? "checkbox-circle-checked" : "checkbox-circle-default"}>
+          {isActive ? <Icon name="check" size={14} /> : null}
+        </div>
       </div>
     </div>
   );

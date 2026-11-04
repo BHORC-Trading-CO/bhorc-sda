@@ -1,5 +1,5 @@
 /* Страница Browser (SDA-6). Цвета, радиусы и переходы — только токены из tokens.css.
-   Картинки-маски задаются из TSX (style), а не url() здесь: так же, как в GlobalStyle.ts. */
+   Иконки — lucide (globalComponents/Icon), рисуются currentColor. */
 
 .browser-tab {
   min-height: 0;
@@ -319,16 +319,6 @@
   opacity: 0.5;
   cursor: default;
 }
-.browser-button__plus {
-  width: 13px;
-  height: 13px;
-  flex-shrink: 0;
-  background-color: currentColor;
-  -webkit-mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
-}
-
 .browser-icon-button {
   display: inline-flex;
   align-items: center;
@@ -350,22 +340,14 @@
   cursor: default;
 }
 .browser-icon-button__icon {
-  width: 18px;
-  height: 18px;
-  background-color: var(--sda-text-muted);
-  -webkit-mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
-  transition: background-color var(--sda-transition);
-}
-.browser-icon-button__icon--flip {
-  transform: rotate(180deg);
+  color: var(--sda-text-muted);
+  transition: color var(--sda-transition);
 }
 .browser-icon-button:hover:not(:disabled) .browser-icon-button__icon {
-  background-color: var(--sda-text);
+  color: var(--sda-text);
 }
 .browser-icon-button--danger:hover:not(:disabled) .browser-icon-button__icon {
-  background-color: var(--sda-danger);
+  color: var(--sda-danger);
 }
 
 /* --- Переключатель расширения --- */

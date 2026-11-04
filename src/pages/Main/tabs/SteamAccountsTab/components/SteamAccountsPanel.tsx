@@ -23,8 +23,7 @@ const ProxiesPanel = observer(() => {
                     hoverColor="gradient"
                     color="grey"
                     size="large"
-                    img="./assets/img/Shield.png"
-                    hoverImg="./assets/img/ShieldHov.png"
+                    icon="shieldCheck"
                     className="button-default"
                     onClick={() => {
                         store.windows.prompt({
@@ -44,8 +43,7 @@ const ProxiesPanel = observer(() => {
                         hoverColor="gradient"
                         color="grey"
                         size="large"
-                        img="./assets/img/Folder.png"
-                        hoverImg="./assets/img/FolderHov.png"
+                        icon="folder"
                         className="button-default"
                         onClick={() => {
                             window.Main.window.openAppdata();
@@ -57,9 +55,9 @@ const ProxiesPanel = observer(() => {
                         hoverColor="gradient"
                         color="grey"
                         size="large"
-                        img="./assets/img/SettingsA.svg"
-                        hoverImg="./assets/img/SettingsA_hov.svg"
+                        icon="sliders"
                         className="button-default"
+                        testId="table-settings"
                         onClick={() => {
                             store.steamAccountsTable.settingsForm.open();
                         }}
@@ -71,8 +69,8 @@ const ProxiesPanel = observer(() => {
                         hoverColor="gradient"
                         color="grey"
                         size="large"
-                        img="./assets/img/Refresh.svg"
-                        hoverImg="./assets/img/Refresh_hov.svg"
+                        icon="refresh"
+                        iconMotion="spin"
                         className="button-default"
                         onClick={() => {
                             console.log('send refresh req')
@@ -92,7 +90,7 @@ const ProxiesPanel = observer(() => {
 
                     <Button
                         size="large"
-                        img="./assets/img/Mark.svg"
+                        icon="plus"
                         text={t("accounts.panel.add")}
                         className="headline-button_gradient"
                         testId="add-account"
@@ -106,9 +104,10 @@ const ProxiesPanel = observer(() => {
                         hoverColor="light-grey"
                         color="grey"
                         size="large"
-                        img={store.steamAccountsTable.showDeleted ? "./assets/img/Open.svg" : "./assets/img/Hide.svg"}
+                        icon={store.steamAccountsTable.showDeleted ? "eye" : "eyeOff"}
                         altText={store.steamAccountsTable.showDeleted ? t("accounts.panel.hideArchived") : t("accounts.panel.showArchived")}
                         className="button-default"
+                        testId="show-archived"
                         onClick={() => {
                             if (store.steamAccountsTable.showDeleted)
                                 for (var i = store.steamAccountsTable.activePage; i >= 1; i--) {

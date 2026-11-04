@@ -57,10 +57,14 @@
     box-shadow: var(--sda-focus-ring);
 }
 
+/* Стрелка: светлая у активной кнопки, бледная у неактивной (раньше — пара svg на каждую). */
 .page-switcher-img {
     display: block;
-    width: 15px;
-    height: 15px;
+    color: var(--sda-text);
+}
+
+.page-switcher-btn[aria-disabled] .page-switcher-img {
+    color: var(--sda-text-subtle);
 }
 
 /* Выпадающий список «Элементов на странице» в тёмной палитре */

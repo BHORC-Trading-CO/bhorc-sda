@@ -1,13 +1,14 @@
 import React, { FC, ReactNode, useEffect, useState } from "react";
 import Button from "../Button/Button";
+import Icon, { IconName } from "../Icon/Icon";
 import "./EmptyState.css";
 
-// Иконки — существующие svg из assets/img, рисуются маской приглушённым цветом.
-const icons = {
-  accounts: "./assets/img/SteamAccount.svg",
-  proxies: "./assets/img/Proxy.svg",
-  search: "./assets/img/Search.svg",
-  archive: "./assets/img/Hide.svg",
+// Иконки lucide, те же, что у разделов навигации; приглушённый цвет задаёт EmptyState.css.
+const icons: Record<"accounts" | "proxies" | "search" | "archive", IconName> = {
+  accounts: "users",
+  proxies: "link",
+  search: "search",
+  archive: "archive",
 };
 
 export type EmptyStateIcon = keyof typeof icons;
@@ -22,14 +23,14 @@ export interface EmptyStateAction {
 /** Пустая таблица: приглушённая иконка, одна строка о том, что происходит, и одно действие. */
 const EmptyState: FC<{ icon: EmptyStateIcon; text: ReactNode; action?: EmptyStateAction }> = ({ icon, text, action }) => (
   <div className="sda-empty-state" role="status" data-testid="empty-state">
-    <span className="sda-empty-state__icon" aria-hidden="true" style={{ WebkitMaskImage: `url(${icons[icon]})` }} />
+    <Icon name={icons[icon]} size={20} className="sda-empty-state__icon" />
     <p className="sda-empty-state__text">{text}</p>
     {action ? (
       <Button
         size="small"
         color={action.primary ? "gradient" : "grey"}
         hoverColor={action.primary ? "gradient" : "grey"}
-        img={action.primary ? "./assets/img/Mark.svg" : undefined}
+        icon={action.primary ? "plus" : undefined}
         text={action.text}
         className="sda-empty-state__action"
         testId="empty-state-action"

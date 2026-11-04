@@ -5,6 +5,7 @@ import ProxySetupInterface from '../../../../../../../electron/interfaces/Proxy/
 import "./ProxyItem.css";
 import { observer } from "mobx-react-lite";
 import { ProxyTestButton } from "../ProxyActionButton";
+import Icon from "../../../../../../globalComponents/Icon/Icon";
 import { useTranslation } from "react-i18next";
 
 const ProxyItem = observer((props: {
@@ -56,7 +57,7 @@ const ProxyItem = observer((props: {
                 : setNavigation("accounts");
             }}
           >
-            <img src="./assets/img/AddNewAccount.svg" alt="" aria-hidden="true" />
+            <Icon name="plus" size={14} motion="pop" />
           </button>
 
           <span className={`proxy-linked-cell${linkedAccounts ? '' : ' proxy-empty-cell'}`} title={linkedAccounts || t('proxies.links.empty')}>

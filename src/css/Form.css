@@ -44,14 +44,22 @@
 }
 .form .form-caption .form-cross {
     flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 52px;
     height: 44px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--sda-text-muted);
     cursor: pointer;
     border-radius: 0px var(--sda-radius-lg) 0px 0px;
-    transition: background-color var(--sda-transition);
+    transition: background-color var(--sda-transition), color var(--sda-transition);
 }
 .form .form-caption .form-cross:hover {
     background-color: var(--sda-danger);
+    color: var(--sda-text);
 }
 /* Колонка: короткое содержимое (формы групп) растягивается до min-height окна,
    и нижняя панель встаёт к низу, а не повисает над пустым местом. */

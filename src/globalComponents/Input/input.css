@@ -67,13 +67,8 @@
   box-shadow: var(--sda-focus-ring);
 }
 .input-eye__icon {
-  width: 14px;
-  height: 12px;
-  background-color: var(--sda-text-muted);
-  -webkit-mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
+  color: var(--sda-text-muted);
 }
 .input-eye:hover .input-eye__icon {
-  background-color: var(--sda-text);
+  color: var(--sda-text);
 }

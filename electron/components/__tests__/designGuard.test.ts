@@ -65,6 +65,28 @@ describe("design guard", () => {
         expect(findHits([/url\(\s*['"]?\s*(https?:)?\/\//i, /fonts\.googleapis/i])).toEqual([]);
     });
 
+    test("no legacy assets/img icons in UI", () => {
+        // Иконки — только lucide через src/globalComponents/Icon. Исключение — логотип: его заменяет
+        // задача про логотип, до тех пор Navigation.tsx остаётся на Logo.svg.
+        // Второй шаблон ловит имя файла иконки строкой (icon="Trash.svg"): путь к нему достраивался в другом месте.
+        const allowed = new Set(["src/pages/Main/components/Navigation/Navigation.tsx:./assets/img/Logo.svg"]);
+        const iconRef = /assets\/img\/|['"`][\w./-]*\.(svg|png)['"`]/;
+        const hits = findHits([iconRef]).filter((hit) => {
+            // Путь с прямыми слэшами и на Windows (path.relative там даёт обратные).
+            const file = hit.split(":")[0].split(path.sep).join("/");
+            const refs = hit.match(/['"`(][\w./-]*\.(svg|png)/g) || [];
+            return !(refs.length > 0 && refs.every((ref) => allowed.has(`${file}:${ref.slice(1)}`)));
+        });
+        expect(hits).toEqual([]);
+    });
+
+    test("lucide-react only through the Icon wrapper", () => {
+        const hits = findHits([/from\s+["']lucide-react/]).filter(
+            (hit) => hit.split(":")[0].split(path.sep).join("/") !== "src/globalComponents/Icon/Icon.tsx"
+        );
+        expect(hits).toEqual([]);
+    });
+
     test("Geist is declared", () => {
         const fontsCssPath = path.join(ROOT, "src/css/fonts.css");
         expect(fs.existsSync(fontsCssPath)).toBe(true);

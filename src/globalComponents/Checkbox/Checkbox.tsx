@@ -1,4 +1,5 @@
 import react, { FC } from 'react';
+import Icon from '../Icon/Icon';
 import './Checkbox.css';
 
 const Checkbox: FC<{ isChecked?: boolean | null | undefined, onChange: (isChecked: boolean) => void, disabled?: boolean, ariaLabel?: string }> = (props) => {
@@ -23,7 +24,9 @@ const Checkbox: FC<{ isChecked?: boolean | null | undefined, onChange: (isChecke
                     toggle();
                 }
             }}
-        ></div>
+        >
+            {props.isChecked ? <Icon name="check" size={14} /> : null}
+        </div>
 
     );
 }
