@@ -33,9 +33,10 @@ function SellItem(props: sellItemInterface) {
         <div className="sell-item-name" title={item.confirmation.title}>
           {item.confirmation.title}
         </div>
-        <div className="sell-item-price-container">
+        {/* steamcommunity заполняет receiving только у обменов; у лотов и прочих он пустой — строку не рисуем. */}
+        {item.confirmation.receiving ? <div className="sell-item-price-container">
           <div className="sell-item-price-new" title={item.confirmation.receiving}>{item.confirmation.receiving}</div>
-        </div>
+        </div> : null}
         <div className="sell-item-date-container">
           {item.confirmation.time}
         </div>
