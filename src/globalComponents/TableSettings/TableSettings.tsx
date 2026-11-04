@@ -82,6 +82,10 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
     }
 
     function handleOnDragEnd(result: DropResult, provided: ResponderProvided) {
+      // Перетаскивание отменено (Esc) или брошено вне списка: порядок не меняется. Раньше
+      // колонка вырезалась и не возвращалась — пропадала из обоих списков, а после «Сохранить»
+      // и из таблицы; повторная галочка падала на undefined в updateColumnList.
+      if (!result.destination) return;
       const items = Array.from(columnsList.filter(f => f.isVisible));
       const hidenItems = Array.from(columnsList.filter(f => !f.isVisible));
       const [reorderItem] = items.splice(result.source.index, 1);
