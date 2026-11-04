@@ -364,8 +364,12 @@ describe("папка из диалога", () => {
         fs.writeFileSync(path.join(lexical, "manifest.json"), JSON.stringify({ ...GOOD, name: "Lexical" }));
         const raw = `${path.join(root, "link")}${path.sep}..${path.sep}ext`;
         const update = addExtensionDir(raw, { startLinks: [], extensions: [] });
-        expect(update.ok && update.settings.extensions).toEqual([{ path: physical, enabled: true }]);
-        expect(buildBrowserSettingsView(update.ok ? update.settings : { startLinks: [], extensions: [] }).extensions[0].name).toBe("Physical");
+        // Windows сворачивает «..» до перехода по ссылке (root/ext), POSIX — после (root/a/ext).
+        // Важно одно: сохраняется та папка, которую откроет ОС, и проверен её же manifest.
+        const opened = process.platform === "win32" ? { dir: lexical, name: "Lexical" } : { dir: physical, name: "Physical" };
+        expect(fs.realpathSync.native(raw)).toBe(fs.realpathSync.native(opened.dir));
+        expect(update.ok && update.settings.extensions).toEqual([{ path: fs.realpathSync.native(opened.dir), enabled: true }]);
+        expect(buildBrowserSettingsView(update.ok ? update.settings : { startLinks: [], extensions: [] }).extensions[0].name).toBe(opened.name);
     });
     it("плохая папка — отказ с текстом про manifest", () => {
         const dir = extensionDir({ ...GOOD, manifest_version: 1 });
