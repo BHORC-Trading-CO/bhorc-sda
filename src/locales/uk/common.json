@@ -62,8 +62,10 @@
   },
   "tableSettings": {
     "title": "Налаштування таблиці",
-    "allFields": "Усі доступні поля:",
-    "selectedColumns": "Вибрано колонок"
+    "allFields": "Усі доступні поля",
+    "selectedColumns": "Вибрано колонок",
+    "reset": "Скинути до стандартних",
+    "dragHint": "Перетягніть, щоб змінити порядок"
   },
   "fields": {
     "steamAccounts": {

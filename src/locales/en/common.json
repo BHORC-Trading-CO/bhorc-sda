@@ -62,8 +62,10 @@
   },
   "tableSettings": {
     "title": "Table settings",
-    "allFields": "All available fields:",
-    "selectedColumns": "Columns selected"
+    "allFields": "All available fields",
+    "selectedColumns": "Columns selected",
+    "reset": "Reset to default",
+    "dragHint": "Drag to reorder"
   },
   "fields": {
     "steamAccounts": {

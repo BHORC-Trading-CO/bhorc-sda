@@ -5,25 +5,35 @@ import { observer } from "mobx-react";
 import MiniWindow from "../../pages/Main/components/MiniWindow/MiniWindow";
 import Field from "../../../electron/interfaces/TableFields/Field";
 import AvalibleFieldTypes from "../../../electron/interfaces/TableFields/AvalibleFieldTypes";
-import Search from "../Search/Search";
 import { DragDropContext, Droppable, Draggable, DropResult, ResponderProvided } from "react-beautiful-dnd";
-import Delimeter from "../Delimeter/Delimeter";
 import ColumnsSelectetItem from "./ColumnsSelectetItem/ColumnsSelectetItem";
 import Button from "../Button/Button";
 import TableSettingsItem from "./TableSettingsItem/TableSettingsItem";
 import { useTranslation } from "react-i18next";
 import { FieldsTable } from "../Table/fieldTitle";
 
+// Высота окна по числу полей, чтобы списки не обрезались и под ними не было пустоты.
+// Строка списка 28px + 4px отступ (ColumnsSelectetItem.css, TableSettingsItem.css).
+// 206px — всё остальное (tableSettings.css): шапка 44 + рамка 2 + отступ сверху 16 +
+// заголовок и поля панели 52 + нижняя панель 90 + 2 запаса. Окна выше 820px не делаем
+// (все 19 полей аккаунтов помещаются в окне приложения 1512×949);
+// в низком окне приложения .form ограничен по высоте, и списки прокручиваются.
+const ROW_PITCH = 32;
+const CHROME_HEIGHT = 206;
+const MAX_HEIGHT = 820;
+
 const TableSettings: FC<TableSettingsProps> = observer(
   (props: TableSettingsProps) => {
     const { t } = useTranslation();
     if (!props.isOpen) return <></>;
+    const rows = Math.max(props.fields.length, props.currentFields.length);
+    const height = Math.min(MAX_HEIGHT, CHROME_HEIGHT + rows * ROW_PITCH);
 
     return (
       <MiniWindow
         title={t("tableSettings.title")}
         width={"800px"}
-        height={"600px"}
+        height={`${height}px`}
         content={
           <TableSettingsContent
             fields={props.fields}
@@ -48,8 +58,6 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
     const [columnsList, setColumnsList] = useState<Array<Field>>(
       props.currentFields
     );
-
-    console.log(columnsList);
 
     function updateColumnList(action: string, field: Field) {
       if (action == "add") {
@@ -83,11 +91,23 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
       setColumnsList([...hidenItems, ...items]);
     }
 
+    // Стандартный набор — props.fields (списки по умолчанию из electron/interfaces/TableFields/defaults):
+    // их порядок и видимость; title и sortDirection берутся у текущих колонок. Как и всё в этом
+    // окне, применяется только по «Сохранить».
+    function resetToDefault() {
+      const current = new Map(columnsList.map((f) => [f.type, f]));
+      const defaultTypes = new Set(props.fields.map((f) => f.type));
+      const defaults = props.fields.map((d) => ({ ...(current.get(d.type) || d), isVisible: d.isVisible }));
+      setColumnsList([...defaults, ...columnsList.filter((f) => !defaultTypes.has(f.type))]);
+    }
+
     return (
-      <div className="table-settings">
+      <div className="table-settings-body">
         <div className="table-settings-content">
-          <div className="table-settings-left">
-            <div className="table-settings-heading">{t("tableSettings.allFields")}</div>
+          <div className="table-settings-panel">
+            <div className="table-settings-panel__head">
+              <div className="table-settings-heading">{t("tableSettings.allFields")}</div>
+            </div>
 
             <div className="table-settings-list">
               <form>
@@ -106,9 +126,9 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
             </div>
           </div>
 
-          <div className="table-settings-right">
-            <div className="table-settings_counter">
-              <div className="table-settings_counter-text">{t("tableSettings.selectedColumns")}</div>
+          <div className="table-settings-panel">
+            <div className="table-settings-panel__head">
+              <div className="table-settings-heading">{t("tableSettings.selectedColumns")}</div>
               <div className="table-settings_counter-counter">
                 {columnsList.filter(f => f.isVisible).length}
               </div>
@@ -131,6 +151,7 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
                     draggableProps={provided.draggableProps}
                     dragHandleProps={provided.dragHandleProps}
                     innerRef={provided.innerRef}
+                    isDragging={snapshot.isDragging}
                   ></ColumnsSelectetItem>
                 )}
               >
@@ -153,6 +174,7 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
                             draggableProps={provided.draggableProps}
                             dragHandleProps={provided.dragHandleProps}
                             innerRef={provided.innerRef}
+                            isDragging={snapshot.isDragging}
                           ></ColumnsSelectetItem>
                         )}
                       </Draggable>
@@ -165,9 +187,16 @@ const TableSettingsContent: FC<TableSettingsProps> = observer(
           </div>
         </div>
 
-        <Delimeter marginTop="30px" marginBottom="20px"></Delimeter>
-
         <div className="table-settings-footer">
+          <button
+            type="button"
+            className="table-settings__reset"
+            data-testid="table-settings-reset"
+            onClick={() => resetToDefault()}
+          >
+            {t("tableSettings.reset")}
+          </button>
+
           <Button
             size="large"
             color="grey"
