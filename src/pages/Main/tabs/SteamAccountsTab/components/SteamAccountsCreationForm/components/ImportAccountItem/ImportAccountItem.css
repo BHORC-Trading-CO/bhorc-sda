@@ -3,20 +3,22 @@
   flex-direction: column;
 }
 
-/* Сетка колонок общая со шапкой: см. DataFilling.css. */
+/* Сетка колонок общая со шапкой: см. DataFilling.css. Строка — рамка #27272a, ховер как
+   у строки таблицы QBS, раскрытая — рамка #3f3f46. */
 .imported-steam-account-item {
-  background: var(--sda-surface-3);
-  border: 1px solid transparent;
-  border-radius: var(--sda-radius);
+  background: transparent;
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius-sm);
   margin-bottom: 5px;
-  min-height: 48px;
-  transition: border-color var(--sda-transition);
+  min-height: 46px;
+  font-size: 13px;
+  transition: border-color var(--sda-transition), background-color var(--sda-transition);
 }
 .imported-steam-account-item:hover {
-  border-color: var(--sda-border-strong);
+  background: rgba(39, 39, 42, 0.45);
 }
 .imported-steam-account-item_open {
-  border-color: var(--sda-surface-4);
+  border-color: var(--sda-border-strong);
 }
 
 .imported-steam-account_item:last-child {
@@ -47,21 +49,29 @@
   min-width: 0;
 }
 
+/* «Просмотр»: маленькая контурная кнопка (рамка #3f3f46, текст #d4d4d8). */
 .imported-steam-account-button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 30px;
-  padding: 0px 12px;
-  background: var(--sda-surface-2);
+  gap: 6px;
+  height: 28px;
+  padding: 0px 10px;
+  background: transparent;
+  border: 1px solid var(--sda-border-strong);
   border-radius: var(--sda-radius-sm);
   outline: none;
-  border: none;
-  transition: background-color var(--sda-transition);
+  font-size: 13px;
+  transition: background-color var(--sda-transition), color var(--sda-transition);
+}
+.imported-steam-account-button.text-white-medium {
+  color: #d4d4d8;
 }
 
 .imported-steam-account-button:hover {
-  background: var(--sda-surface-4);
+  background: var(--sda-surface-3);
+}
+.imported-steam-account-button.text-white-medium:hover {
+  color: var(--sda-text);
 }
 .imported-steam-account-button:focus-visible,
 .imported-steam-account-item .proxy-item-button-expand:focus-visible {
@@ -72,26 +82,28 @@
   width: 24px;
   height: 24px;
   border-radius: var(--sda-radius-sm);
-  background: var(--sda-surface-4);
-  color: var(--sda-text);
+  background: var(--sda-surface-3);
+  color: var(--sda-text-muted);
   cursor: pointer;
+  transition: background-color var(--sda-transition), color var(--sda-transition);
 }
 .imported-steam-account-item .proxy-item-button-expand:hover {
-  background: var(--sda-surface-2);
+  background: var(--sda-surface-4);
+  color: var(--sda-text);
 }
 
 .imported-steam-account-avatar-container {
   justify-content: center;
 }
 
+/* Заглушка аватара — круг 28 px, как в таблице аккаунтов макета. */
 .imported-steam-account-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--sda-border-strong);
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: var(--sda-surface-0);
+  background: linear-gradient(135deg, var(--sda-surface-4), var(--sda-surface-3));
   color: var(--sda-text-muted);
 }

@@ -27,6 +27,7 @@ const Button: FC<IButtonProps> = (props: IButtonProps) => {
     isNonGuardButton = true,
     altText,
     ariaLabel,
+    pressed,
     testId
   } = props;
 
@@ -37,7 +38,12 @@ const Button: FC<IButtonProps> = (props: IButtonProps) => {
     `button--size-${size}`,
     `button--hoverColor-${disabled || isLoad || inactive ? color : hoverColor}`,
     `${className}`,
-    { "button--inactive": inactive, "button--loading": isLoad }
+    {
+      "button--inactive": inactive,
+      "button--loading": isLoad,
+      // Блик при наведении (motion.css) — только у живой основной кнопки
+      "sda-sweep": color === "gradient" && !disabled && !inactive && !isLoad,
+    }
   );
 
   // Кнопке без текста имя для скринридера берём из подсказки
@@ -50,6 +56,7 @@ const Button: FC<IButtonProps> = (props: IButtonProps) => {
       aria-disabled={inactive || undefined}
       aria-label={label}
       aria-busy={isLoad || undefined}
+      aria-pressed={pressed}
       data-testid={testId}
       className={buttonClass}
       onClick={onClick}
@@ -59,7 +66,7 @@ const Button: FC<IButtonProps> = (props: IButtonProps) => {
     >
       {
         isLoad ?
-          <Icon name="loader" size={18} motion="spinAlways" className="button__loader" /> :
+          <Icon name="loader" size={16} motion="spinAlways" className="button__loader" /> :
           <>
             {/* Цвет иконки (покой, ховер, опасное действие) задаёт Button.css через currentColor */}
             {icon ? <Icon name={icon} size={16} motion={iconMotion} className="button__icon" /> : null}
@@ -104,6 +111,8 @@ interface IButtonProps {
   isNonGuardButton?: boolean;
   altText?: string,
   ariaLabel?: string,
+  /** Кнопка-переключатель (например, «Показать архив»): состояние для скринридера и вид «нажата» */
+  pressed?: boolean,
   testId?: string
 }
 

@@ -1,34 +1,37 @@
-.proxies-panel .panel-content__options {
-  min-width: 0;
-  align-items: center;
-  gap: 10px;
-}
-
-.proxies-panel .button-default { margin-right: 0; }
+/* Тулбар вкладки «Прокси» — как у аккаунтов (макет main-v2): заголовок и счётчик, поиск,
+   кнопки-иконки, контурная «Импорт списка» и синяя «Добавить прокси» с бликом. */
 .proxies-panel .search { min-width: 100px; }
 
 .proxies-panel .proxy-panel-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   flex: 0 0 auto;
-  min-height: 43px;
-  padding: 0 18px;
+  height: 34px;
+  padding: 0 14px;
   border: 1px solid var(--sda-border-strong);
-  border-radius: var(--sda-radius);
-  background: var(--sda-surface-1);
-  color: var(--sda-text);
-  font: inherit;
-  font-size: 14px;
+  border-radius: var(--sda-radius-sm);
+  background: transparent;
+  color: #d4d4d8;
+  font-family: var(--sda-font);
+  font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
-  transition: background var(--sda-transition), border-color var(--sda-transition);
+  transition: background-color var(--sda-transition), border-color var(--sda-transition), color var(--sda-transition);
+}
+
+.proxies-panel .proxy-panel-cta--secondary:hover {
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
 }
 
 .proxies-panel .proxy-panel-cta--primary {
   background: var(--sda-primary);
   border-color: var(--sda-primary);
+  color: #fff;
+  font-weight: 550;
 }
 
 .proxies-panel .proxy-panel-cta--primary:hover {
@@ -36,20 +39,13 @@
   border-color: var(--sda-primary-hover);
 }
 
-.proxies-panel .proxy-panel-cta--secondary:hover {
-  background: var(--sda-surface-3);
-  border-color: var(--sda-text-muted);
-}
-
-.proxies-panel .proxy-panel-cta--primary:hover,
 .proxies-panel .proxy-panel-cta:focus-visible {
   outline: none;
   box-shadow: var(--sda-focus-ring);
 }
 
 @media (max-width: 1200px) {
-  .proxies-panel { padding: 14px 17px; }
-  .proxies-panel .panel-content { flex-wrap: wrap; gap: 12px; }
+  .proxies-panel .panel-content { flex-wrap: wrap; row-gap: 10px; }
   .proxies-panel .panel-content__options { flex-wrap: wrap; }
   .proxies-panel .search { flex: 1; }
 }

@@ -1,21 +1,34 @@
-/* Окно подтверждения. Высота по содержимому (длинные uk/ru тексты не обрезаются),
-   но не больше окна: длинный текст прокручивается. */
+/* Окно подтверждения — диалог QBS: #18181b, рамка #27272a, радиус 10, появление с проявлением
+   и ростом от 95 % (выключено при prefers-reduced-motion). Высота по содержимому (длинные uk/ru
+   тексты не обрезаются), но не больше окна: длинный текст прокручивается. */
 .notification {
     position: fixed;
-    width: 480px;
+    width: 440px;
     max-width: calc(100vw - 32px);
     max-height: calc(100vh - var(--sda-titlebar-height) - 32px);
     display: flex;
     flex-direction: column;
     background-color: var(--sda-modal);
     border: 1px solid var(--sda-border);
-    border-radius: var(--sda-radius-lg);
-    box-shadow: 0 24px 64px var(--sda-overlay);
+    border-radius: var(--sda-radius);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
     left: 50%;
     top: calc(50% + var(--sda-titlebar-height) / 2);
     transform: translate(-50%, -50%);
     padding: 24px;
     color: var(--sda-text);
+    animation: sda-prompt-in 200ms ease-out;
+}
+
+@keyframes sda-prompt-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
 }
 
 .notification .notification_content {
@@ -24,25 +37,26 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
-/* Иконка окна — lucide в круглой подложке: вопрос — нейтральная, остальные — бейдж состояния
-   (фон -900/50, иконка -400); опасное действие — красная. */
+/* Иконка окна — lucide в круглой подложке: вопрос — нейтральная (#27272a, иконка #a1a1aa),
+   информация — циановая иконка; ошибка, опасное действие и успех — бейдж состояния
+   (фон -900/50, иконка -400). */
 .notification_icon {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 4px;
     border-radius: 50%;
     background-color: var(--sda-surface-3);
     color: var(--sda-text-muted);
 }
 .notification_info .notification_icon {
-    background-color: var(--sda-info-bg);
-    color: var(--sda-info);
+    color: var(--sda-accent);
 }
 .notification_error .notification_icon,
 .notification_danger .notification_icon {
@@ -55,10 +69,10 @@
 }
 
 .notification .notification_content .notification_title {
-    margin: 4px 0px 0px;
-    font-size: 17px;
-    font-weight: 700;
-    line-height: 24px;
+    margin: 0px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 22px;
     overflow-y: hidden;
     overflow-x: hidden;
     overflow-wrap: anywhere;
@@ -67,32 +81,23 @@
 .notification .notification_content .notification_text {
     min-height: 0;
     overflow-y: auto;
-    margin-bottom: 8px;
-    font-size: 14px;
-    line-height: 20px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 19px;
     color: var(--sda-text-muted);
     overflow-wrap: anywhere;
 }
 
-.notification .notification_content .notification_text::-webkit-scrollbar {
-    height: 3px;
-    width: 3px;
-    background-color: var(--sda-surface-2);
-}
-
-.notification .notification_content .notification_text::-webkit-scrollbar-thumb {
-    background: var(--sda-accent);
-    border-radius: 2px;
-}
-
+.notification .notification_content .notification_text::-webkit-scrollbar,
 .notification .notification_content .notification_title::-webkit-scrollbar {
     height: 3px;
     width: 3px;
     background-color: var(--sda-surface-2);
 }
 
+.notification .notification_content .notification_text::-webkit-scrollbar-thumb,
 .notification .notification_content .notification_title::-webkit-scrollbar-thumb {
-    background: var(--sda-accent);
+    background: var(--sda-text-subtle);
     border-radius: 2px;
 }
 
@@ -101,13 +106,14 @@
     display: flex;
     flex-direction: row;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
     width: 100%;
 }
 .notification__buttons .button {
     flex: 1 1 0;
     min-width: 0;
-    max-width: 210px;
+    max-width: 200px;
+    height: 36px;
     padding: 0px 16px;
 }
 .notification__buttons_input {
@@ -126,18 +132,27 @@
     box-shadow: var(--sda-focus-ring);
 }
 
-/* Опасное подтверждение (удаление, прерывание): красный контур, заливка при наведении. */
+/* Опасное подтверждение (удаление, прерывание): красная кнопка — фон red-900/50 и текст #f87171,
+   при наведении фон плотнее; блик основной кнопки здесь не нужен. */
+/* :hover:not(:disabled) — выше специфичности ховера основной кнопки в Button.css. */
 .notification .notification__accept_danger.button,
-.notification .notification__accept_danger.button:hover {
+.notification .notification__accept_danger.button:hover:not(:disabled) {
     background: var(--sda-danger-bg);
-    box-shadow: inset 0 0 0 1px var(--sda-danger);
+    border-color: transparent;
+    color: var(--sda-danger);
 }
-.notification .notification__accept_danger.button:hover {
-    background: var(--sda-danger);
-}
-.notification .notification__accept_danger.button:hover .button__text {
-    color: var(--sda-modal);
+.notification .notification__accept_danger.button:hover:not(:disabled) {
+    background: rgba(127, 29, 29, 0.8);
 }
 .notification .notification__accept_danger.button:focus-visible {
-    box-shadow: inset 0 0 0 1px var(--sda-danger), var(--sda-focus-ring);
+    box-shadow: var(--sda-focus-ring);
+}
+.notification .notification__accept_danger.sda-sweep::after {
+    display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .notification {
+        animation: none;
+    }
 }

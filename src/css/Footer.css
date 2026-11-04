@@ -1,15 +1,17 @@
+/* Футер под таблицей — как в макете main-v2: без своей подложки, текст 12–13 px #a1a1aa,
+   справа массовые действия контурными кнопками (удаление — красный текст). */
 .footer {
-    min-height: 68px;
+    min-height: 54px;
     width: 100%;
-    background: var(--sda-surface-1);
-    border-radius: var(--sda-radius-lg);
-    margin-bottom: 17px;
-    padding: 10px 16px;
+    margin-bottom: 8px;
+    padding: 10px 0px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 10px 16px;
+    color: var(--sda-text-muted);
+    font-size: 13px;
   }
 
 .footer__accounts-number{
@@ -17,16 +19,18 @@
 }
 
 .footer__select-number{
-  margin-right: 8px;
+  margin-right: 4px;
   white-space: nowrap;
 }
 
 .footer__select-number .text-grey-large{
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .footer__info{
     margin-left: 5px;
+    font-family: var(--sda-font-mono);
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
 }
 
@@ -45,11 +49,11 @@
   min-width: 0;
 }
 
-/* Кнопки массовых действий: по содержимому, а не по 200px, чтобы влезали в узкое окно */
+/* Кнопки массовых действий: по содержимому, высота 34 px */
 .footer__button.button--view-default.button--size-large{
-  min-width: 130px;
-  height: 40px;
-  padding: 0 16px;
+  min-width: 0;
+  height: 34px;
+  padding: 0 12px;
 }
 
 .footer__button{

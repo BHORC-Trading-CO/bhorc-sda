@@ -23,9 +23,10 @@
   width: 100%;
   padding: 0px 8px;
 }
+/* Заголовки колонок — как в таблицах QBS: 11 px, прописные, #71717a. */
 .imported-steam-accounts_header {
   min-height: 32px;
-  color: var(--sda-text-muted);
+  color: var(--sda-text-subtle);
 }
 
 .imported-steam-accounts_header-text {
@@ -33,7 +34,11 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   line-height: 32px;
+  text-transform: uppercase;
 }
 
 .imported-steam-account__container {

@@ -1,3 +1,5 @@
+/* Формы прокси (новый, массово, правка) в стиле диалогов QBS: поле #27272a с рамкой #3f3f46,
+   заголовки колонок 11 px прописными #71717a, кнопки высотой 36 px внизу. */
 .proxies-form.proxy__container {
   display: flex;
   align-items: center;
@@ -9,42 +11,48 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  padding: 24px 28px 0;
+  padding: 20px 20px 0;
 }
 
 .proxies-form .proxy-field-label {
   margin-bottom: 8px;
   color: var(--sda-text);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .proxies-form.proxy__container .proxy-create-input {
-  background: var(--sda-surface-2);
+  background: var(--sda-surface-3);
   color: var(--sda-text);
-  border: 1px solid var(--sda-border);
-  border-radius: var(--sda-radius);
+  border: 1px solid var(--sda-border-strong);
+  border-radius: var(--sda-radius-sm);
   outline: none;
-  padding: 10px 14px;
-  height: 50px;
-  margin-bottom: 10px;
+  padding: 0 12px;
+  height: 36px;
+  margin-bottom: 8px;
+  font-family: var(--sda-font-mono);
+  font-size: 13px;
   transition: border-color var(--sda-transition), box-shadow var(--sda-transition);
 }
 
-.proxies-form.proxy__container .proxy-create-input::placeholder { color: var(--sda-text-subtle); }
+.proxies-form.proxy__container .proxy-create-input::placeholder {
+  color: var(--sda-text-subtle);
+  font-family: var(--sda-font);
+}
 .proxies-form.proxy__container .proxy-create-input:focus {
-  border-color: var(--sda-border-strong);
+  border-color: var(--sda-accent);
   box-shadow: var(--sda-focus-ring);
 }
 
 .proxies-form.proxy__container .proxy-data-example {
   color: var(--sda-text-muted);
+  font-size: 13px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .proxies-form .proxy-table__container {
-  padding: 0 28px;
+  padding: 0 20px;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -58,8 +66,13 @@
   justify-content: center;
   flex: 1 1 0;
   min-width: 0;
-  padding: 0 5px 12px;
-  color: var(--sda-text-muted);
+  padding: 0 5px 10px;
+  color: var(--sda-text-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .proxies-form .proxy-item__container {
@@ -70,18 +83,19 @@
 }
 
 .proxies-form .proxy-button__container {
-  padding: 0 28px;
-  margin-bottom: 20px;
+  padding: 0 20px;
+  margin-bottom: 16px;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
 
 .proxies-form .proxy-button__container .button {
-  border-radius: var(--sda-radius);
-  transition: background var(--sda-transition), box-shadow var(--sda-transition);
+  min-width: 120px;
+  height: 36px;
+  padding: 0 16px;
 }
 
 .proxies-form .proxy-button__container .button:focus-visible {

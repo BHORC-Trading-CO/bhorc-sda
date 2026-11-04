@@ -422,7 +422,10 @@
       "title": "Proxies",
       "add": "Add proxy",
       "bulkHint": "Add proxies in bulk (one proxy per line)",
-      "importList": "Import list"
+      "importList": "Import list",
+      "showArchived": "Show archived proxies",
+      "hideArchived": "Hide archived proxies",
+      "searchPlaceholder": "Search by proxy host"
     },
     "empty": {
       "none": "No proxies yet",
@@ -542,6 +545,7 @@
     "extensions": {
       "title": "Extensions",
       "count": "{{on}} of {{total}} on",
+      "countRich": "<n>{{on}}</n> of <n>{{total}}</n> on",
       "add": "Add extension",
       "picking": "Choosing a folder…",
       "warning": "Extensions run inside every account's browser and can read its Steam session. Add only extensions you trust.",

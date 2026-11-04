@@ -1,42 +1,57 @@
-/* Тост: внизу по центру, над футером таблицы (~90px). Вверху он закрывал кнопки шапки
-   (папка, настройки таблицы, обновление) и перехватывал клики; внизу под ним только данные
-   строк, кнопки футера и действия строк справа остаются свободными. Ширина не больше окна. */
+/* Тост в стиле QBS: #18181b, рамка #27272a, иконка состояния в круглом бейдже (фон -900/50,
+   иконка -400; информация — циан на #27272a). Внизу по центру, над футером таблицы (~90px):
+   вверху он закрывал кнопки шапки и перехватывал клики. Ширина не больше окна. */
 .mini_notification {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    width: 460px;
+    gap: 10px;
+    width: 440px;
     max-width: calc(100vw - 32px);
     min-height: 48px;
     max-height: 320px;
     border-radius: var(--sda-radius);
     position: fixed;
     z-index: 1000;
-    background-color: var(--sda-surface-2);
-    border: 1px solid var(--sda-border-strong);
-    border-left: 4px solid var(--sda-info);
-    box-shadow: 0 12px 32px var(--sda-overlay);
+    background-color: var(--sda-surface-1);
+    border: 1px solid var(--sda-border);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
     left: 50%;
     transform: translate(-50%);
     bottom: 112px;
-    padding: 12px 16px 12px 12px;
-    color: var(--sda-text);
+    padding: 12px 14px 12px 12px;
+    color: #f4f4f5;
+    animation: sda-toast-in 200ms ease-out;
 }
 
-.mini_notification_success {
-    border-left-color: var(--sda-success);
-}
-.mini_notification_error {
-    border-left-color: var(--sda-danger);
+@keyframes sda-toast-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 8px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
 }
 
+/* Бейдж 24 px с иконкой lucide 14 px по центру. */
 .mini_notification__icon {
-    color: var(--sda-info);
+    flex: 0 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--sda-surface-3);
+    color: var(--sda-accent);
 }
 .mini_notification_success .mini_notification__icon {
+    background: var(--sda-success-bg);
     color: var(--sda-success);
 }
 .mini_notification_error .mini_notification__icon {
+    background: var(--sda-danger-bg);
     color: var(--sda-danger);
 }
 
@@ -46,8 +61,9 @@
     overflow-y: auto;
     overflow-x: hidden;
     overflow-wrap: anywhere;
-    font-size: 14px;
-    line-height: 22px;
+    padding-top: 2px;
+    font-size: 13px;
+    line-height: 20px;
 }
 
 .mini_notification__bad {
@@ -63,6 +79,12 @@
     background-color: var(--sda-surface-2);
 }
 .mini_notification div::-webkit-scrollbar-thumb {
-    background: var(--sda-accent);
+    background: var(--sda-text-subtle);
     border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mini_notification {
+        animation: none;
+    }
 }

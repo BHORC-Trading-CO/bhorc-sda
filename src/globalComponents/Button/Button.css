@@ -1,11 +1,25 @@
+/* Кнопка в стиле QBS (редизайн R4). Вид задаёт color из Button.tsx:
+   - gradient — основная: синяя заливка, при наведении светлее и с бликом (.sda-sweep, motion.css);
+   - grey — контурная: рамка #3f3f46, текст #d4d4d8; у кнопки-иконки (view="icon") иконка #a1a1aa;
+     при наведении фон #27272a и белый текст;
+   - light-grey — приподнятая заливка #3f3f46; dark-pink — выбранный вариант (синий, без блика);
+   - hoverColor="danger" — красный текст (#f87171): у кнопки с подписью всегда, у иконки при наведении.
+   Текст и иконка рисуются currentColor кнопки. Высота 34 px, радиус 6 px. */
 .button {
   white-space: nowrap;
   display: flex;
   align-items: center;
-  border-radius: var(--sda-radius);
-  border: none;
   justify-content: center;
-  transition: background-color var(--sda-transition), box-shadow var(--sda-transition), opacity var(--sda-transition);
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--sda-radius-sm);
+  color: var(--sda-text);
+  font-family: var(--sda-font);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  transition: background-color var(--sda-transition), border-color var(--sda-transition), color var(--sda-transition), box-shadow var(--sda-transition), opacity var(--sda-transition);
 }
 
 .button:focus {
@@ -34,142 +48,140 @@
   margin-right: 0px;
 }
 
-/* Акцентный вариант (выбранное подтверждение): должен отличаться от light-grey */
-.button--dark-pink {
-  background: var(--sda-primary);
+.headline-button_gradient {
+  margin-right: 13px;
+  margin-left: 13px;
 }
 
-/* Основная кнопка: синяя заливка вместо прежнего розово-фиолетового градиента. */
+/* --- Основная --- */
 .button--gradient {
   background: var(--sda-primary);
+  border-color: var(--sda-primary);
+  color: #fff;
+  font-weight: 550;
 }
 
+/* Выбранный вариант (подтверждения): тот же синий, отличается от контурной */
+.button--dark-pink {
+  background: var(--sda-primary);
+  border-color: var(--sda-primary);
+  color: #fff;
+}
+
+.button--gradient.button--hoverColor-gradient:hover:not(:disabled),
+.button--hoverColor-darkPink:hover:not(:disabled),
+.button--hoverColor-dark-pink:hover:not(:disabled) {
+  background: var(--sda-primary-hover);
+  border-color: var(--sda-primary-hover);
+  color: #fff;
+}
+
+/* Неактивная или загружающаяся основная кнопка на ховере не светлеет: Button.tsx ставит ей
+   hoverColor, равный color, то есть ховер должен выглядеть как покой. */
+.button--gradient.button--inactive:hover:not(:disabled),
+.button--gradient.button--loading:hover:not(:disabled) {
+  background: var(--sda-primary);
+  border-color: var(--sda-primary);
+}
+
+/* --- Контурная («btn-o» макета) и кнопка-иконка («ghost») --- */
 .button--grey {
-  background: var(--sda-surface-3);
+  background: transparent;
+  border-color: var(--sda-border-strong);
+  color: #d4d4d8;
 }
 
+.button--view-icon.button--grey {
+  color: var(--sda-text-muted);
+}
+
+/* Приподнятая заливка */
 .button--light-grey {
   background: var(--sda-surface-4);
+  border-color: var(--sda-surface-4);
+}
+
+/* Ховер контурной: фон #27272a, белый текст. hoverColor="gradient" у серой кнопки-иконки
+   (панели вкладок) — тот же ховер, синим становится только основная. */
+.button--hoverColor-grey:hover:not(:disabled),
+.button--hoverColor-light-grey:hover:not(:disabled),
+.button--grey.button--hoverColor-gradient:hover:not(:disabled) {
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
+}
+
+/* Нажатая кнопка-переключатель (prop pressed, aria-pressed): фон ховера и белая иконка */
+.button[aria-pressed="true"] {
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
+}
+
+/* --- Опасное действие: красный текст --- */
+.button--view-default.button--hoverColor-danger {
+  color: var(--sda-danger);
+}
+
+.button--hoverColor-danger:hover:not(:disabled) {
+  background: var(--sda-danger-bg);
+  color: var(--sda-danger);
+}
+
+/* --- Размеры --- */
+.button--view-icon {
+  padding: 0;
+}
+
+.button--view-icon.button--size-tiny {
+  min-width: 28px;
+  min-height: 28px;
+}
+
+.button--view-icon.button--size-small,
+.button--view-icon.button--size-medium,
+.button--view-icon.button--size-large {
+  min-width: 34px;
+  min-height: 34px;
+}
+
+/* Маленькая иконка в списке — без рамки, как действия строки */
+.button--view-icon.button--size-tiny.button--grey {
+  border-color: transparent;
+}
+
+.button--view-default.button--size-tiny,
+.button--view-default.button--size-small {
+  min-width: 82px;
+  height: 34px;
+}
+
+.button--view-default.button--size-medium,
+.button--view-default.button--size-large {
+  min-width: 120px;
+  height: 34px;
 }
 
 .button__text {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-
-  max-width: 90%;
-  font-family: var(--sda-font);
-  font-style: normal;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 19px;
-  color: var(--sda-text);
+  max-width: 100%;
+  color: inherit;
 }
 
-.headline-button_gradient {
-  margin-right: 13px;
-  margin-left: 13px;
-}
-
-.button--hoverColor-light-grey:hover {
-  background: var(--sda-surface-4);
-}
-
-.button--hoverColor-darkPink:hover,
-.button--hoverColor-dark-pink:hover {
-  background: var(--sda-primary-hover);
-}
-
-.button--hoverColor-gradient:hover {
-  background: var(--sda-primary-hover);
-  border-radius: var(--sda-radius);
-}
-
-/* Выключенная, неактивная или загружающаяся основная кнопка на ховере не светлеет: Button.tsx
-   ставит ей hoverColor, равный color, то есть ховер должен выглядеть как покой. */
-.button--gradient:disabled:hover,
-.button--gradient.button--inactive:hover,
-.button--gradient.button--loading:hover {
-  background: var(--sda-primary);
-}
-
-.button--hoverColor-grey:hover {
-  background: var(--sda-surface-4);
-}
-
-.button--hoverColor-danger:hover {
-  background: var(--sda-danger-bg);
-  box-shadow: inset 0 0 0 1px var(--sda-danger);
-}
-
-.button--hoverColor-danger:hover .button__text {
-  color: var(--sda-danger);
-}
-
-.button--view-icon.button--size-small {
-  min-width: 37px;
-  min-height: 37px;
-}
-
-.button--view-icon.button--size-tiny {
-  min-width: 29px;
-  min-height: 29px;
-}
-
-.button--view-icon.button--size-large {
-  min-width: 43px;
-  min-height: 43px;
-}
-
-.button--view-default.button--size-small {
-  min-width: 82px;
-  height: 37px;
-}
-
-.button--view-default.button--size-medium {
-  min-width: 200px;
-  height: 31px;
-}
-
-.button--view-default.button--size-large {
-  min-width: 200px;
-  height: 43px;
-}
-
-.button--view-default .button__icon+.button__text {
-  margin-left: 15px;
-}
-
-/* Иконка lucide (Icon): рисуется currentColor. Покой — приглушённая, ховер — светлая,
-   опасное действие — красная. На основной (синей) кнопке — белая, как текст. */
 .button__icon,
 .button__loader {
-  color: var(--sda-text-muted);
-  transition: color var(--sda-transition);
+  color: inherit;
 }
 
-.button--gradient .button__icon,
-.button--dark-pink .button__icon,
-.button--gradient .button__loader,
-.button--dark-pink .button__loader {
-  color: var(--sda-text);
-}
-
-.button:hover:not(:disabled) .button__icon {
-  color: var(--sda-text);
-}
-
-.button--hoverColor-danger:hover:not(:disabled) .button__icon {
-  color: var(--sda-danger);
-}
-
-/* Иконки действий в строке таблицы: один размер и один отклик на ховер */
+/* Иконки действий в строке таблицы: 28 px, без рамки; ховер — фон #27272a и белая иконка,
+   удаление — красная */
 .button.row-action {
-  width: 26px;
-  height: 26px;
-  min-width: 26px;
-  min-height: 26px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
   padding: 0;
+  border-color: transparent;
   border-radius: var(--sda-radius-sm);
   flex-shrink: 0;
 }

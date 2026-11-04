@@ -33,14 +33,14 @@
   align-items: center;
   gap: 2px;
   min-height: 25px;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 20px;
-  color: var(--sda-text);
+  color: #d4d4d8;
 }
 
 .steam-data-navigation__wrapper {
   background: var(--sda-surface-3);
-  border-radius: var(--sda-radius);
+  border-radius: 8px;
   padding: 6px 15px;
   display: flex;
   justify-content: space-between;

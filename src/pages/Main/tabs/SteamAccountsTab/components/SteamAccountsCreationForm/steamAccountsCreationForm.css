@@ -13,7 +13,7 @@
     width: 100%;
 }
 .steam-data-form .caption {
-    padding: 16px 24px 4px;
+    padding: 16px 20px 4px;
     display: flex;
     justify-content: flex-start;
 }
@@ -22,11 +22,11 @@
     border-top: 0px;
 }
 .import-steam-account-block {
-    padding: 12px 24px 16px;
+    padding: 12px 20px 16px;
 }
 /* Кнопка загрузки .smaFile — той же высоты, что поля ввода и кнопка maFile. */
 .import-steam-account-block > .button {
-    height: 40px;
+    height: 36px;
 }
 .import-steam-account-block > .button:focus-visible {
     outline: none;

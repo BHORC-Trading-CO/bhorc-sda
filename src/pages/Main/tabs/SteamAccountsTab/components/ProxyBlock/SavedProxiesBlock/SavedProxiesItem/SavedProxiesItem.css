@@ -1,31 +1,33 @@
-/* Сетка колонок общая со шапкой: см. SavedProxies.css. Вся строка кликабельна. */
+/* Сетка колонок общая со шапкой: см. SavedProxies.css. Вся строка кликабельна.
+   Строка — рамка #27272a, ховер как у строки таблицы QBS, выбранная — синий фон
+   выделенной строки rgba(37,99,235,.10) и галочка. */
 .saved-proxies-item-container {
   min-height: 44px;
-  background: var(--sda-surface-3);
-  border: 1px solid transparent;
-  border-radius: var(--sda-radius);
+  background: transparent;
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius-sm);
   margin-bottom: 5px;
   cursor: pointer;
   outline: none;
   transition: border-color var(--sda-transition), background-color var(--sda-transition);
 }
 .saved-proxies-item-container:hover {
-  border-color: var(--sda-border-strong);
+  background: rgba(39, 39, 42, 0.45);
 }
 .saved-proxies-item-container:focus-visible {
   box-shadow: var(--sda-focus-ring);
 }
 .saved-proxies-item-container_active,
 .saved-proxies-item-container_active:hover {
-  background: var(--sda-surface-4);
-  border-color: var(--sda-accent);
+  background: rgba(37, 99, 235, 0.1);
+  border-color: var(--sda-border-strong);
 }
 
 .saved-proxies-item-cell {
   min-width: 0;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 20px;
-  color: var(--sda-text);
+  color: #d4d4d8;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -36,7 +38,7 @@
   justify-content: flex-end;
 }
 
-/* Выбор прокси (радио): пустой — кольцо, выбранный — белая галочка lucide на синем круге. */
+/* Выбор прокси (радио): пустой — кольцо 1 px #3f3f46, выбранный — белая галочка lucide на синем круге. */
 .checkbox-circle-default,
 .checkbox-circle-checked {
   width: 22px;
@@ -50,8 +52,15 @@
 }
 
 .checkbox-circle-default {
-  background: var(--sda-surface-2);
-  box-shadow: inset 0 0 0 1.5px var(--sda-text-muted);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--sda-border-strong);
+}
+
+/* Номер, адрес и порт — Geist Mono с табличными цифрами. */
+.saved-proxies-item-cell:nth-child(-n + 3) {
+  font-family: var(--sda-font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .checkbox-circle-checked {
@@ -64,17 +73,17 @@
   flex-wrap: wrap;
   gap: 4px;
 }
+/* Номера аккаунтов — пилюли на #27272a. */
 .saved-proxies-item-container .proxy-account-item {
   min-width: 22px;
   width: auto;
-  height: 22px;
+  height: 20px;
   margin-left: 0px;
-  padding: 0px 6px;
-  border-radius: var(--sda-radius-sm);
-  background: var(--sda-surface-4);
-  color: var(--sda-text);
-  font-size: 12px;
-}
-.saved-proxies-item-container_active .proxy-account-item {
-  background: var(--sda-surface-2);
+  padding: 0px 7px;
+  border-radius: 999px;
+  background: var(--sda-surface-3);
+  color: #d4d4d8;
+  font-family: var(--sda-font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }

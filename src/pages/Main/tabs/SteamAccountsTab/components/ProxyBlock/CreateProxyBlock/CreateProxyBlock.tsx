@@ -53,8 +53,8 @@ export const CreateProxyBlock: FC<{
             <div className="proxy-item__container">
               <div className="proxy-item text-white-medium">
                 <div className="proxy-item-row">
-                  <div className="proxy-item-cell" title={proxy.host}>{proxy.host}</div>
-                  <div className="proxy-item-cell">{proxy.port}</div>
+                  <div className="proxy-item-cell proxy-item-cell_mono" title={proxy.host}>{proxy.host}</div>
+                  <div className="proxy-item-cell proxy-item-cell_mono">{proxy.port}</div>
                   <div className="proxy-item-cell" title={proxy.username}>{proxy.username}</div>
                   <div className="proxy-item-cell">{proxy.password}</div>
                   <div className="proxy-item-cell"><Button onClick={() => {

@@ -9,10 +9,13 @@ import { useTranslation } from 'react-i18next';
 
 const ProxiesPanel = observer(() => {
     const { t } = useTranslation();
+    const activeCount = store.proxiesTable.getProxies().filter((proxy) => !proxy.deleted).length;
+    const archivedLabel = store.proxiesTable.showDeleted ? t("proxies.panel.hideArchived") : t("proxies.panel.showArchived");
     return (
         <div className="panel proxies-panel">
             <div className="panel-content">
                 <h1 className="panel-text_main">{t("proxies.panel.title")}</h1>
+                <span className="panel-count" data-testid="proxies-count">{activeCount}</span>
                 <div className="panel-content__options">
                     {/* <div className="header-content__buttons-container">
             <div className="button-default" id="panel_settings" onClick={()=>{
@@ -61,7 +64,7 @@ const ProxiesPanel = observer(() => {
                         altText={t("common.reloadAll")}
                     />
 
-                    <Search value={store.proxiesTable.searchString} onChange={(value) => {
+                    <Search placeholder={t("proxies.panel.searchPlaceholder")} value={store.proxiesTable.searchString} onChange={(value) => {
                         store.proxiesTable.search(value);
                     }}></Search>
 
@@ -78,7 +81,7 @@ const ProxiesPanel = observer(() => {
 
                     <button
                         type="button"
-                        className="proxy-panel-cta proxy-panel-cta--primary"
+                        className="proxy-panel-cta proxy-panel-cta--primary sda-sweep"
                         data-testid="add-proxy"
                         onClick={() => {
                             store.proxiesTable.openCreationForm();
@@ -96,6 +99,9 @@ const ProxiesPanel = observer(() => {
                         icon={store.proxiesTable.showDeleted ? "eye" : "eyeOff"}
                         className="button-default"
                         testId="show-archived"
+                        pressed={store.proxiesTable.showDeleted}
+                        ariaLabel={archivedLabel}
+                        altText={archivedLabel}
                         onClick={() => {
                             if (store.proxiesTable.showDeleted)
                                 for (var i = store.proxiesTable.activePage; i >= 1; i--) {

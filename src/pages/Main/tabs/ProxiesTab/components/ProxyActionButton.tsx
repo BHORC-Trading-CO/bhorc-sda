@@ -12,9 +12,13 @@ const ACTION_ICONS: Record<Action, IconName> = {
     restore: 'archiveRestore',
 };
 
-export const ProxyActionButton = ({ icon, label, className = '', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { icon: Action, label: string }) => (
+// Кнопка действия в строке: 28 px без рамки, как действия строки аккаунтов (редизайн R4).
+// busy — идёт проверка: вместо иконки крутится лоадер.
+export const ProxyActionButton = ({ icon, label, busy = false, className = '', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { icon: Action, label: string, busy?: boolean }) => (
     <button {...props} type="button" className={`proxy-action proxy-action--${icon} ${className}`} title={label} aria-label={label}>
-        <Icon name={ACTION_ICONS[icon]} size={18} motion="pop" />
+        {busy
+            ? <Icon name="loader" size={16} motion="spinAlways" />
+            : <Icon name={ACTION_ICONS[icon]} size={16} motion="pop" />}
     </button>
 );
 
@@ -25,7 +29,8 @@ export const ProxyTestButton = ({ isTesting, isWorking, onClick }: { isTesting: 
 
     return (
         <div className={`proxy-test-control proxy-test-control--${state}`}>
-            <ProxyActionButton icon="test" label={`${t('proxies.actions.test')}: ${status}`} aria-busy={isTesting} onClick={onClick} />
+            <ProxyActionButton icon="test" label={`${t('proxies.actions.test')}: ${status}`} aria-busy={isTesting} busy={isTesting} onClick={onClick} />
+            {/* Результат — бейдж состояния: работает — зелёный, сбой — красный, иначе нейтральный. */}
             <span className="proxy-test-state" role="status">{status}</span>
         </div>
     );

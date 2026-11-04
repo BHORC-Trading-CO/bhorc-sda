@@ -1,18 +1,36 @@
+/* Панель над таблицей — тулбар макета main-v2: без своей подложки, на фоне окна; заголовок
+   18 px, пилюля счётчика, поиск, кнопки-иконки высотой 34 px и основная кнопка справа. */
 .panel {
-  min-height: 80px;
-  border-radius: var(--sda-radius-lg);
-  background: var(--sda-surface-1);
+  min-height: 60px;
   width: 100%;
-  margin-bottom: 14px;
-  padding: 0px 17px 0px 29px;
+  margin-bottom: 0px;
+  padding: 14px 0px 12px;
   display: flex;
   align-items: center;
   user-select: none;
 }
 
 .panel-text_main {
-  margin-right: 30px;
+  margin: 0px 10px 0px 0px;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 24px;
+  color: var(--sda-text);
   white-space: nowrap;
+}
+
+/* Пилюля со счётчиком рядом с заголовком: Geist Mono 11 px на #27272a. */
+.panel-count {
+  flex-shrink: 0;
+  margin-right: 10px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--sda-surface-3);
+  color: var(--sda-text-muted);
+  font-family: var(--sda-font-mono);
+  font-size: 11px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
 }
 
 .panel-content {
@@ -25,6 +43,7 @@
 .panel-content__options {
   display: flex;
   align-items: center;
+  gap: 10px;
   width: 100%;
   justify-content: flex-end;
   min-width: 0;
@@ -33,6 +52,11 @@
 /* Иконки панели не сжимаются, когда окно узкое: сжимается поле поиска */
 .panel-content__options > .button {
   flex-shrink: 0;
+}
+
+.panel-content__options .button-default,
+.panel-content__options .headline-button_gradient {
+  margin: 0px;
 }
 
 .panel-content__options .search {

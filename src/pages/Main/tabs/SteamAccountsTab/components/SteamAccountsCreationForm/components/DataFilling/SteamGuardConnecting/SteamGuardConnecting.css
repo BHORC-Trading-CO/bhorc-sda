@@ -12,8 +12,8 @@
 }
 
 .steam-data-code__title {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   line-height: 20px;
   color: var(--sda-text);
 }
@@ -22,11 +22,12 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 10px 14px;
-  border-radius: var(--sda-radius);
-  background: var(--sda-surface-2);
-  font-size: 14px;
-  line-height: 20px;
+  padding: 10px 12px;
+  border-radius: var(--sda-radius-sm);
+  background: var(--sda-surface-3);
+  color: #d4d4d8;
+  font-size: 13px;
+  line-height: 19px;
   overflow-wrap: anywhere;
 }
 
@@ -36,15 +37,15 @@
   gap: 12px;
 }
 .steam-data-code__actions .button {
-  min-width: 160px;
+  min-width: 140px;
   height: 36px;
-  padding: 0px 18px;
+  padding: 0px 16px;
 }
 
 .steam-data-code__button{
     margin-top: 7px;
     width: 100%;
-    height: 40px;
+    height: 36px;
 }
 .import-account {
   display: flex;

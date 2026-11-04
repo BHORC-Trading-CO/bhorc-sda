@@ -1,6 +1,7 @@
 /*
  * react-circular-progressbar styles
  * All of the styles in this file are configurable!
+ * Цвета по умолчанию — палитра QBS (редизайн R4): дуга циан, дорожка #3f3f46.
  */
 
  .CircularProgressbar {
@@ -17,27 +18,27 @@
   }
   
   .CircularProgressbar .CircularProgressbar-path {
-    stroke: #3e98c7;
+    stroke: var(--sda-accent);
     stroke-linecap: round;
     -webkit-transition: stroke-dashoffset 0.5s ease 0s;
     transition: stroke-dashoffset 0.5s ease 0s;
   }
   
   .CircularProgressbar .CircularProgressbar-trail {
-    stroke: #d6d6d6;
+    stroke: var(--sda-border-strong);
     /* Used when trail is not full diameter, i.e. when props.circleRatio is set */
     stroke-linecap: round;
   }
   
   .CircularProgressbar .CircularProgressbar-text {
-    fill: #3e98c7;
+    fill: var(--sda-accent);
     font-size: 20px;
     dominant-baseline: middle;
     text-anchor: middle;
   }
   
   .CircularProgressbar .CircularProgressbar-background {
-    fill: #d6d6d6;
+    fill: var(--sda-surface-3);
   }
   
   /*
@@ -50,15 +51,15 @@
    *   />
    */
   .CircularProgressbar.CircularProgressbar-inverted .CircularProgressbar-background {
-    fill: #3e98c7;
+    fill: var(--sda-accent);
   }
   
   .CircularProgressbar.CircularProgressbar-inverted .CircularProgressbar-text {
-    fill: #fff;
+    fill: var(--sda-text);
   }
   
   .CircularProgressbar.CircularProgressbar-inverted .CircularProgressbar-path {
-    stroke: #fff;
+    stroke: var(--sda-text);
   }
   
   .CircularProgressbar.CircularProgressbar-inverted .CircularProgressbar-trail {

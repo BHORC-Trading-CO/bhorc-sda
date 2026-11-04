@@ -7,12 +7,12 @@
 .import-account__row .import-account__file.button {
     flex: 1 1 auto;
     min-width: 0;
-    height: 40px;
+    height: 36px;
 }
 .import-account__row .import-account__toggle.button {
     flex: 0 0 auto;
-    min-width: 140px;
-    height: 40px;
+    min-width: 120px;
+    height: 36px;
 }
 .import-account__row .button:focus {
     outline: none;
