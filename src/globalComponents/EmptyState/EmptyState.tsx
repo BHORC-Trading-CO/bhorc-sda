@@ -3,7 +3,7 @@ import Button from "../Button/Button";
 import Icon, { IconName } from "../Icon/Icon";
 import "./EmptyState.css";
 
-// Иконки lucide, те же, что у разделов навигации; приглушённый цвет задаёт EmptyState.css.
+// Иконки lucide, те же, что у разделов навигации; плитку и приглушённый цвет задаёт EmptyState.css.
 const icons: Record<"accounts" | "proxies" | "search" | "archive", IconName> = {
   accounts: "users",
   proxies: "link",
@@ -16,14 +16,16 @@ export type EmptyStateIcon = keyof typeof icons;
 export interface EmptyStateAction {
   text: string;
   onClick: () => void;
-  /** Главное действие (добавить первый аккаунт/прокси) — градиентная кнопка, остальные серые */
+  /** Главное действие (добавить первый аккаунт/прокси) — синяя кнопка с бликом, остальные контурные */
   primary?: boolean;
 }
 
 /** Пустая таблица: приглушённая иконка, одна строка о том, что происходит, и одно действие. */
 const EmptyState: FC<{ icon: EmptyStateIcon; text: ReactNode; action?: EmptyStateAction }> = ({ icon, text, action }) => (
   <div className="sda-empty-state" role="status" data-testid="empty-state">
-    <Icon name={icons[icon]} size={20} className="sda-empty-state__icon" />
+    <span className="sda-empty-state__badge" aria-hidden="true">
+      <Icon name={icons[icon]} size={20} />
+    </span>
     <p className="sda-empty-state__text">{text}</p>
     {action ? (
       <Button
@@ -32,7 +34,7 @@ const EmptyState: FC<{ icon: EmptyStateIcon; text: ReactNode; action?: EmptyStat
         hoverColor={action.primary ? "gradient" : "grey"}
         icon={action.primary ? "plus" : undefined}
         text={action.text}
-        className="sda-empty-state__action"
+        className={`sda-empty-state__action${action.primary ? " sda-sweep" : ""}`}
         testId="empty-state-action"
         onClick={action.onClick}
       />

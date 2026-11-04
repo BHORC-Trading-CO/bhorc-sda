@@ -5,12 +5,12 @@
   padding: 0 10px 0 8px;
   display: flex;
   align-items: center;
-  background: var(--sda-surface-3);
-  border: 1px solid var(--sda-border);
+  background: var(--sda-surface-4);
+  border: 1px solid var(--sda-border-strong);
   border-radius: var(--sda-radius-sm);
   margin-bottom: 4px;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 13px;
+  line-height: 18px;
   color: var(--sda-text);
   cursor: grab;
   transition: border-color var(--sda-transition), background-color var(--sda-transition), box-shadow var(--sda-transition);
@@ -21,7 +21,7 @@
 }
 
 .columns-selected-item:hover {
-  border-color: var(--sda-border-strong);
+  border-color: var(--sda-text-subtle);
   background: var(--sda-surface-4);
 }
 

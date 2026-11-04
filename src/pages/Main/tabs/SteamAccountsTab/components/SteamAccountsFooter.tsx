@@ -1,5 +1,5 @@
 import react, { FC } from 'react';
-import '../../../../../css/Footer.css';
+import './SteamAccountsFooter.css';
 import { observer } from 'mobx-react';
 import store from '../../../../../store/store';
 import Button from '../../../../../globalComponents/Button/Button';
@@ -10,6 +10,7 @@ const SteamAccountsFooter: FC = observer(() => {
     const { t } = useTranslation();
     const steamAccounts = store.steamAccountsTable.getSteamAccounts();
     const steamAccountsByPage = store.steamAccountsTable.getSteamAccountsByPages();
+    // Всего — как раньше: все аккаунты, кроме архивных (с архивными, если они показаны); без фильтров группы и поиска
     const visibleSteamAccounts = Object.values(steamAccounts).filter(p => !p.deleted || store.steamAccountsTable.showDeleted);
     const selectedSteamAccounts = visibleSteamAccounts.filter(p => p.isSelected);
     // Ничего не выбрано: кнопки выглядят неактивными, но клики работают как раньше (напр. тост «не выбрано»)
@@ -18,22 +19,18 @@ const SteamAccountsFooter: FC = observer(() => {
 
     return (
         <>
-            <div className="footer">
-                <div className="footer__accounts-number">
-                    <TablePageSwitcher numberOfElements={visibleSteamAccounts.length} numberOfPages={steamAccountsByPage.length} options={{ avalible: [5, 10, 15, 20, 40, 100] }} pageSize={store.steamAccountsTable.pageSize} activePageNumber={store.steamAccountsTable.activePage} onChangeActivePage={(activePage) => {
-                        store.steamAccountsTable.setActivePage(activePage, true);
-                    }}
-                        onChangePageSize={(newPageSize) => {
-                            console.log(newPageSize);
-                            store.steamAccountsTable.setPageSize(newPageSize, true)
-                        }} />
-                </div>
+            <div className="accounts-footer">
+                <TablePageSwitcher numberOfElements={visibleSteamAccounts.length} countText={t("accounts.count", { count: visibleSteamAccounts.length })} numberOfPages={steamAccountsByPage.length} options={{ avalible: [5, 10, 15, 20, 40, 100] }} pageSize={store.steamAccountsTable.pageSize} activePageNumber={store.steamAccountsTable.activePage} onChangeActivePage={(activePage) => {
+                    store.steamAccountsTable.setActivePage(activePage, true);
+                }}
+                    onChangePageSize={(newPageSize) => {
+                        store.steamAccountsTable.setPageSize(newPageSize, true)
+                    }} />
 
-
-                <div className="footer__control">
-                    <div className="footer__select-number">
-                        <span className="text-grey-large">{t("common.selected")}</span>
-                        <span className={`text-white-large footer__info${nothingSelected ? "" : " footer__info--active"}`}>{selectedSteamAccounts.length}</span>
+                <div className="accounts-footer__bulk">
+                    <div className="accounts-footer__selected">
+                        <span>{t("common.selected")}</span>
+                        <span className={`accounts-footer__selected-value${nothingSelected ? "" : " accounts-footer__selected-value--active"}`}>{selectedSteamAccounts.length}</span>
                     </div>
 
                     <Button
@@ -44,7 +41,7 @@ const SteamAccountsFooter: FC = observer(() => {
                         size="large"
                         color="grey"
                         hoverColor="grey"
-                        className="footer__button"
+                        className="accounts-footer__button"
                         icon="refresh"
                         iconMotion="spin"
                         text={t("accounts.footer.refreshSession")}
@@ -63,7 +60,8 @@ const SteamAccountsFooter: FC = observer(() => {
                         size="large"
                         color="grey"
                         hoverColor="grey"
-                        className="footer__button"
+                        className="accounts-footer__button"
+                        icon="folder"
                         text={t("accounts.footer.toGroup")}
                         onClick={() => {
                             const selected = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected && !p.deleted);
@@ -82,7 +80,7 @@ const SteamAccountsFooter: FC = observer(() => {
                         size="large"
                         color="grey"
                         hoverColor="danger"
-                        className="footer__button"
+                        className="accounts-footer__button accounts-footer__button--danger"
                         icon="trash"
                         text={t("common.buttons.delete")}
                         onClick={() => {
@@ -92,7 +90,7 @@ const SteamAccountsFooter: FC = observer(() => {
                             store.windows.prompt({
                                 type: 'question',
                                 title: t('accounts.archiveSelected.title', { count: selectedSteamAccounts.length }),
-                                text: t(selectedSteamAccounts.length === 1 ? 'accounts.archiveSelected.textSingle' : 'accounts.archiveSelected.textMany', { numbers: selectedSteamAccounts.map(p => p.number).join(', ') }),
+                                text: t(selectedSteamAccounts.length === 1 ? 'accounts.archiveSelected.textSingleArchiveIcon' : 'accounts.archiveSelected.textManyArchiveIcon', { numbers: selectedSteamAccounts.map(p => p.number).join(', ') }),
                                 acceptButtonText: t('accounts.archiveSelected.accept', { count: selectedSteamAccounts.length }),
                                 cancelButtonText: t('prompt.cancel'),
                                 cb: () => {

@@ -1,0 +1,84 @@
+/* Подвал аккаунтов (макет main-v2: .footer): слева число, страницы и размер страницы,
+   справа «Выбрано N» и контурные кнопки массовых действий. Без своей карточки.
+   В одну строку от 1024 px (ru тоже); уже — правая группа переносится целиком и прижата вправо.
+   Нет в tokens.css: zinc-300 (#d4d4d8) — текст контурных кнопок; локальная переменная. */
+.accounts-footer {
+    --accounts-footer-text: #d4d4d8;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    min-width: 0;
+    padding: 0 0 12px;
+}
+
+.accounts-footer__bulk {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-left: auto;
+    min-width: 0;
+}
+
+.accounts-footer__selected {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-right: 2px;
+    white-space: nowrap;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--sda-text-muted);
+}
+
+.accounts-footer__selected-value {
+    color: var(--accounts-footer-text);
+    font-family: var(--sda-font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.accounts-footer__selected-value--active {
+    color: var(--sda-text);
+    font-weight: 600;
+}
+
+/* Контурная кнопка 34 px; селекторы сильнее Button.css, чтобы вид не зависел от её правок */
+.accounts-footer .button.accounts-footer__button {
+    min-width: 0;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: var(--sda-radius-sm);
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--sda-border-strong);
+}
+
+.accounts-footer .button.accounts-footer__button:hover:not(.button--inactive) {
+    background: var(--sda-surface-3);
+}
+
+.accounts-footer .accounts-footer__button .button__text {
+    max-width: none;
+    font-size: 13px;
+    color: var(--accounts-footer-text);
+}
+
+.accounts-footer .accounts-footer__button .button__icon {
+    color: var(--sda-text-muted);
+}
+
+.accounts-footer .accounts-footer__button .button__icon + .button__text {
+    margin-left: 6px;
+}
+
+/* Удаление — красный текст и иконка, на ховере красная подложка */
+.accounts-footer .accounts-footer__button--danger .button__text,
+.accounts-footer .accounts-footer__button--danger .button__icon {
+    color: var(--sda-danger);
+}
+
+.accounts-footer .button.accounts-footer__button--danger:hover:not(.button--inactive) {
+    background: var(--sda-danger-bg);
+}

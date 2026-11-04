@@ -1,0 +1,316 @@
+/* Ячейки таблицы аккаунтов (редизайн R3, макет main-v2). Общий вид таблицы — globalComponents/Table.
+   Нет в tokens.css: zinc-300 (#d4d4d8, вторичный светлый текст) и green-800 (#166534, рамка
+   «Старт» на ховере) — локальные переменные этого файла. */
+.list--steamAccounts {
+    --accounts-text-soft: #d4d4d8;
+    --accounts-start-hover-border: #166534;
+}
+
+/* ---------- Колонки ---------- */
+
+.list--steamAccounts .list-item--steamAccountName {
+    color: var(--sda-text);
+    font-weight: 500;
+}
+
+.list--steamAccounts .list-item--steamAccountBalance {
+    color: var(--sda-text);
+    font-family: var(--sda-font-mono);
+    font-size: 12px;
+}
+
+.list--steamAccounts .list-item--steamAccountLevel {
+    font-family: var(--sda-font-mono);
+    font-size: 12px;
+}
+
+/* ---------- Старт / Работает / Стоп ---------- */
+
+.browser-cell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.browser-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 26px;
+    padding: 0 9px;
+    border: 1px solid var(--sda-border-strong);
+    border-radius: var(--sda-radius-sm);
+    background: transparent;
+    font-family: var(--sda-font);
+    font-size: 12px;
+    font-weight: 550;
+    line-height: 1;
+    white-space: nowrap;
+    transition: background-color var(--sda-transition), border-color var(--sda-transition);
+}
+
+.browser-btn--start {
+    color: var(--sda-success);
+    cursor: pointer;
+}
+
+.browser-btn--start:hover {
+    background: var(--sda-success-bg);
+    border-color: var(--accounts-start-hover-border);
+}
+
+.browser-btn:focus {
+    outline: none;
+}
+
+.browser-btn:focus-visible {
+    box-shadow: var(--sda-focus-ring);
+}
+
+/* Запущен: статус-пилюля, а не кнопка (фон yellow-900/50, текст yellow-400, как бейджи статусов);
+   точка пульсирует (.sda-pulse из motion.css). Рядом остаются Стоп и Фокус. */
+.browser-btn--running {
+    height: 24px;
+    padding: 0 10px 0 9px;
+    border-color: transparent;
+    border-radius: 999px;
+    background: var(--sda-warning-bg);
+    color: var(--sda-warning);
+    cursor: default;
+}
+
+.browser-btn__dot {
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--sda-warning);
+}
+
+.browser-btn--checking {
+    min-width: 34px;
+    color: var(--sda-text-subtle);
+    cursor: default;
+}
+
+/* Стоп рядом с меткой: квадрат 28 px, на ховере красный */
+.browser-stop-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: var(--sda-radius-sm);
+    background: transparent;
+    color: var(--sda-text-muted);
+    cursor: pointer;
+    transition: background-color var(--sda-transition), color var(--sda-transition);
+}
+
+.browser-stop-btn:hover {
+    background: var(--sda-danger-bg);
+    color: var(--sda-danger);
+}
+
+.browser-stop-btn:focus {
+    outline: none;
+}
+
+.browser-stop-btn:focus-visible {
+    box-shadow: var(--sda-focus-ring);
+}
+
+/* ---------- Аватар с уровнем ---------- */
+
+.account-avatar {
+    position: relative;
+    display: inline-flex;
+    vertical-align: middle;
+}
+
+.account-avatar__level {
+    position: absolute;
+    right: -4px;
+    bottom: -3px;
+    min-width: 15px;
+    padding: 0 4px;
+    border: 1px solid var(--sda-border-strong);
+    border-radius: 999px;
+    background: var(--sda-surface-3);
+    color: var(--accounts-text-soft);
+    font-family: var(--sda-font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    line-height: 13px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Действия Guard в строке ---------- */
+
+.row-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Иконки действий строки (подтверждения, обновить, войти, maFile, фокус, экспорт, правка, удаление):
+   28 px, без заливки в покое, на ховере плитка zinc-800 и подпрыгивающая иконка (Button: pop/spin).
+   Селектор сильнее .button.row-action из Button.css (R4), чтобы размеры не зависели от её правок. */
+.list--steamAccounts .button.row-action {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+    border-radius: var(--sda-radius-sm);
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.list--steamAccounts .button.row-action:hover:not(:disabled) {
+    background: var(--sda-surface-3);
+}
+
+.list--steamAccounts .button.row-action.button--hoverColor-danger:hover:not(:disabled) {
+    background: var(--sda-danger-bg);
+    box-shadow: none;
+}
+
+/* ---------- Прокси ---------- */
+
+.proxy-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 210px;
+    vertical-align: middle;
+}
+
+.proxy-cell__dot {
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--sda-text-subtle);
+}
+
+.proxy-cell--ok .proxy-cell__dot {
+    background: var(--sda-success);
+}
+
+.proxy-cell--missing {
+    color: var(--sda-danger);
+    cursor: help;
+}
+
+.proxy-cell--missing .proxy-cell__dot {
+    background: var(--sda-danger);
+}
+
+.list-item--linkedProxies .proxy-cell__address {
+    min-width: 0;
+    font-family: var(--sda-font-mono);
+    font-size: 12px;
+}
+
+/* ---------- Группа ---------- */
+
+.list-item--group .cell-text.group-pill {
+    display: inline-block;
+    max-width: 140px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--sda-surface-3);
+    color: var(--accounts-text-soft);
+    font-size: 11.5px;
+    line-height: 16px;
+    vertical-align: middle;
+}
+
+/* ---------- Экспорт, правка, удаление справа ---------- */
+
+/* Прилипают к правому краю при горизонтальной прокрутке (колонок много). Ширины ячеек заданы явно,
+   чтобы сдвиги right сходились: удаление 28 + 12, правка 28 + 2, экспорт 8 + 28 + 2.
+   Кнопки появляются на ховере строки и при фокусе с клавиатуры. Пока строка не под курсором,
+   ячейки прозрачные: колонки под ними (прокси, группа) видны, а не закрыты пустой плашкой. */
+.list--steamAccounts .list-item--exportButton,
+.list--steamAccounts .list-item--editingButton,
+.list--steamAccounts .list-item--deleteButton,
+.list--steamAccounts .list-headline--exportButton,
+.list--steamAccounts .list-headline--editingButton,
+.list--steamAccounts .list-headline--deleteButton {
+    position: sticky;
+    z-index: 1;
+    background: transparent;
+}
+
+/* Ширины явные и у шапки: в пустой таблице без кнопок ячейки шапки иначе узкие, и сдвиги right
+   разносят их с разрывами в линии под шапкой */
+.list--steamAccounts .list-item--deleteButton,
+.list--steamAccounts .list-headline--deleteButton {
+    right: 0;
+    width: 40px;
+    padding-left: 0;
+    padding-right: 12px;
+}
+
+.list--steamAccounts .list-item--editingButton,
+.list--steamAccounts .list-headline--editingButton {
+    right: 40px;
+    width: 30px;
+    padding-left: 0;
+    padding-right: 2px;
+}
+
+.list--steamAccounts .list-item--exportButton,
+.list--steamAccounts .list-headline--exportButton {
+    right: 70px;
+    width: 38px;
+    padding-left: 8px;
+    padding-right: 2px;
+}
+
+.list--steamAccounts .list-item--exportButton .button,
+.list--steamAccounts .list-item--editingButton .button,
+.list--steamAccounts .list-item--deleteButton .button {
+    opacity: 0;
+    transition: opacity var(--sda-transition), background-color var(--sda-transition);
+}
+
+/* Строка под курсором: ячейки берут непрозрачный фон строки и закрывают то, что под ними */
+.list--steamAccounts .list-item-row:hover > .list-item--exportButton,
+.list--steamAccounts .list-item-row:hover > .list-item--editingButton,
+.list--steamAccounts .list-item-row:hover > .list-item--deleteButton {
+    background: inherit;
+}
+
+.list--steamAccounts .list-item-row:hover > .list-item--exportButton .button,
+.list--steamAccounts .list-item-row:hover > .list-item--editingButton .button,
+.list--steamAccounts .list-item-row:hover > .list-item--deleteButton .button {
+    opacity: 1;
+}
+
+/* Фокус с клавиатуры (не после клика мышью): кнопка видна на своей непрозрачной плитке */
+.list--steamAccounts .list-item--exportButton .button:focus-visible,
+.list--steamAccounts .list-item--editingButton .button:focus-visible,
+.list--steamAccounts .list-item--deleteButton .button:focus-visible {
+    opacity: 1;
+    background: var(--sda-surface-3);
+}
+
+/* Тень-разделитель: только у строки под курсором и только когда под кнопками спрятаны колонки */
+.list--steamAccounts.list--clipped-right .list-item-row:hover > .list-item--exportButton {
+    box-shadow: -12px 0 10px -6px var(--sda-overlay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .list--steamAccounts .list-item--exportButton .button,
+    .list--steamAccounts .list-item--editingButton .button,
+    .list--steamAccounts .list-item--deleteButton .button {
+        transition: none;
+    }
+}

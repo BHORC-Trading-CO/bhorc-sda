@@ -1,6 +1,5 @@
 import useAccountImage from "../../../../../globalComponents/Images/useAccountImage";
-import react, { FC, useEffect, useState } from "react";
-import { CircularProgressbar } from "react-circular-progressbar";
+import react, { FC } from "react";
 import Table, { Line, Cell } from "../../../../../globalComponents/Table/Table";
 import { Tip, CellText, StatusBadge } from "../../../../../globalComponents/Table/Cells";
 import Icon from "../../../../../globalComponents/Icon/Icon";
@@ -14,10 +13,10 @@ import { observer, useLocalObservable } from "mobx-react";
 import TableSteamAccountInterface from "../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface";
 import convertMaFileToStr from "../../../../../../electron/components/Functions/converMaFileToStr";
 import { getSteamID64 } from "../../../../../../electron/components/Functions/steamAccountSearch";
-import LoadingIcons from "react-loading-icons";
-import { toJS } from "mobx";
 import { useTranslation } from "react-i18next";
 import EmptyState, { TableWithEmptyState } from "../../../../../globalComponents/EmptyState/EmptyState";
+import GuardCode from "./GuardCode/GuardCode";
+import "./SteamAccountsTable.css";
 
 const SteamAccountsTableWrapper: FC = () => {
   const fields = store.steamAccountsTable.getFields();
@@ -252,72 +251,6 @@ const generateLine = (
   return line;
 };
 
-const GUARD_PERIOD = 30;
-const secondsLeftNow = () =>
-  GUARD_PERIOD - (Math.floor(Date.now() / 1000) % GUARD_PERIOD);
-
-// Код Guard: кольцо с секундами до смены кода, сам код моноширинным, значок копирования.
-// Клик по ячейке копирует код (как раньше), значок на 1,5 с меняется на галочку.
-const GuardCode: FC<{ code: string }> = observer(({ code }) => {
-  const { t } = useTranslation();
-  const [secondsLeft, setSecondsLeft] = useState(secondsLeftNow);
-  const [isCopied, setIsCopied] = useState(false);
-
-  // Один таймер на ячейку, снимается при размонтировании
-  useEffect(() => {
-    const timer = setInterval(() => setSecondsLeft(secondsLeftNow()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!isCopied) return;
-    const timer = setTimeout(() => setIsCopied(false), 1500);
-    return () => clearTimeout(timer);
-  }, [isCopied]);
-
-  const copy = () => {
-    setIsCopied(true);
-    navigator.clipboard.writeText(code);
-  };
-
-  const className = [
-    "guard-code",
-    secondsLeft <= 5 ? "guard-code--ending" : "",
-    isCopied ? "guard-code--copied" : "",
-  ].filter(Boolean).join(" ");
-
-  return (
-    <Tip tip={isCopied ? t("guard.code.copied") : t("guard.code.copy")}>
-      <span
-        className={className}
-        role="button"
-        tabIndex={0}
-        aria-label={`${t("guard.code.copy")}: ${code}`}
-        onClick={copy}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            copy();
-          }
-        }}
-      >
-        <span className="guard-code__ring" aria-hidden="true">
-          <CircularProgressbar
-            strokeWidth={14}
-            counterClockwise
-            value={(secondsLeft / GUARD_PERIOD) * 100}
-            text={String(secondsLeft)}
-          />
-        </span>
-        <span className="guard-code__value">{code}</span>
-        <span className="guard-code__copy">
-          {isCopied ? <Icon name="check" size={13} /> : <Icon name="copy" size={13} motion="pop" />}
-        </span>
-      </span>
-    </Tip>
-  );
-});
-
 // Аватар Steam; вместо стандартного «?» Steam (и при ошибке загрузки) — нейтральная заглушка
 const Avatar: FC<{ accountId: string, url?: string, routeKey: string }> = ({ accountId, url, routeKey }) => {
   const { t } = useTranslation();
@@ -330,7 +263,7 @@ const Avatar: FC<{ accountId: string, url?: string, routeKey: string }> = ({ acc
         role="img"
         aria-label={t("accounts.table.noAvatar")}
       >
-        <Icon name="user" />
+        <Icon name="user" size={14} />
       </span>
     );
   }
@@ -344,10 +277,31 @@ const Avatar: FC<{ accountId: string, url?: string, routeKey: string }> = ({ acc
   );
 };
 
+// Аватар 28 px с чипом уровня Steam (макет main-v2: .ava em). Колонка уровня остаётся как была.
+const AccountAvatar: FC<{ steamAccount: TableSteamAccountInterface }> = ({ steamAccount }) => {
+  const { t } = useTranslation();
+  if (steamAccount.isLoadSecondary) {
+    return (
+      <span className="account-avatar">
+        <span className="steam-account-avatar steam-account-avatar--placeholder">
+          <Icon name="loader" size={14} motion="spinAlways" />
+        </span>
+      </span>
+    );
+  }
+  const level = steamAccount.secondary?.level;
+  const hasLevel = typeof level === "number";
+  return (
+    <span className="account-avatar" title={hasLevel ? t("accounts.table.level", { level }) : undefined}>
+      <Avatar accountId={steamAccount.id} url={steamAccount.secondary?.avatarUrl} routeKey={`${steamAccount.proxyState}:${steamAccount.proxyId}`} />
+      {hasLevel ? <span className="account-avatar__level" aria-hidden="true">{level}</span> : null}
+    </span>
+  );
+};
+
+// Загрузка в ячейке: крутящаяся иконка lucide вместо react-loading-icons
 const Loading: FC = () => (
-  <div>
-    <LoadingIcons.ThreeDots className="micro-download" />
-  </div>
+  <Icon name="loader" size={14} motion="spinAlways" className="cell-loader" />
 );
 
 const CellJSX: FC<{
@@ -560,7 +514,7 @@ const CellJSX: FC<{
       return <Password password={steamAccount.password} />;
     case AvalibleTypes.steamAccountNickname:
       return steamAccount.isLoadSecondary ? (
-        <LoadingIcons.ThreeDots className="micro-download" />
+        <Loading />
       ) : (
         <CellText text={steamAccount.secondary.nickname} />
       );
@@ -572,42 +526,47 @@ const CellJSX: FC<{
       return (
         <>
           {steamAccount.isLoadSecondary ? (
-            <LoadingIcons.ThreeDots className="micro-download" />
+            <Loading />
           ) : (
             steamAccount.secondary.level
           )}
         </>
       );
     case AvalibleTypes.steamAccountAvatar:
-      return (
-        <>
-          {steamAccount.isLoadSecondary ? (
-            <div className="steam-account-avatar steam-account-avatar--placeholder">
-              <LoadingIcons.ThreeDots className="micro-download" />
-            </div>
-          ) : (
-            <Avatar accountId={steamAccount.id} url={steamAccount.secondary?.avatarUrl} routeKey={`${steamAccount.proxyState}:${steamAccount.proxyId}`} />
-          )}
-        </>
-      );
+      return <AccountAvatar steamAccount={steamAccount} />;
     case AvalibleTypes.linkedProxies:
+      // Состояния SDA-21: missing — прокси удалён, соединения заблокированы (красный);
+      // привязан — адрес моноширинным с зелёной точкой; нет прокси — серая точка.
       if (steamAccount.proxyState === "missing") {
-        return <span style={{ color: "var(--sda-danger)", background: "var(--sda-surface-2)", borderRadius: "var(--sda-radius-sm)", padding: "2px 4px" }} title={t("accounts.table.proxyMissingHint")}>{t("accounts.table.proxyMissing")}</span>;
+        return (
+          <span className="proxy-cell proxy-cell--missing" title={t("accounts.table.proxyMissingHint")}>
+            <span className="proxy-cell__dot" aria-hidden="true" />
+            {t("accounts.table.proxyMissing")}
+          </span>
+        );
       }
       if (steamAccount.proxy) {
         const address = `${steamAccount.proxy.host}:${steamAccount.proxy.port}`;
         return (
-          <CellText text={`(#${steamAccount.proxy.number}) ${address}`}>
-            <span className="cell-muted">(#{steamAccount.proxy.number})</span>{" "}
-            {address}
-          </CellText>
+          <span className="proxy-cell proxy-cell--ok">
+            <span className="proxy-cell__dot" aria-hidden="true" />
+            <CellText text={`(#${steamAccount.proxy.number}) ${address}`} className="proxy-cell__address">
+              <span className="cell-muted">(#{steamAccount.proxy.number})</span>{" "}
+              {address}
+            </CellText>
+          </span>
         );
       } else {
-        return <span className="cell-muted">{t("common.none")}</span>;
+        return (
+          <span className="proxy-cell proxy-cell--none">
+            <span className="proxy-cell__dot" aria-hidden="true" />
+            <span className="cell-muted">{t("common.none")}</span>
+          </span>
+        );
       }
     case AvalibleTypes.group:
       return steamAccount.group ? (
-        <CellText text={steamAccount.group.name} />
+        <CellText text={steamAccount.group.name} className="group-pill" />
       ) : (
         <span className="cell-muted">—</span>
       );
@@ -681,17 +640,24 @@ const CellJSX: FC<{
     case AvalibleTypes.startButton:
       switch (browserStatus) {
         case "working":
+          // Браузер запущен: жёлтая метка с пульсирующей точкой, рядом Стоп и Фокус (как раньше)
           return (
             <div className="browser-cell">
+              <span className="browser-btn browser-btn--running" role="status">
+                <span className="browser-btn__dot sda-pulse" aria-hidden="true" />
+                {t("accounts.table.browser.running")}
+              </span>
               <Tip tip={t("accounts.table.browser.stopHint")}>
                 <button
                   type="button"
-                  className="browser-btn stop-browser-btn"
+                  className="browser-stop-btn"
+                  data-testid="row-browser-stop"
+                  aria-label={t("accounts.table.browser.stop")}
                   onClick={() => {
                     window.Main.steamAccounts.stopBrowser(steamAccount.id);
                   }}
                 >
-                  {t("accounts.table.browser.stop")}
+                  <Icon name="square" size={13} motion="pop" />
                 </button>
               </Tip>
               <Button
@@ -715,11 +681,13 @@ const CellJSX: FC<{
               <Tip tip={t("accounts.table.browser.startHint")}>
                 <button
                   type="button"
-                  className="browser-btn start-browser-btn"
+                  className="browser-btn browser-btn--start"
+                  data-testid="row-browser-start"
                   onClick={() => {
                     window.Main.steamAccounts.startBrowser(steamAccount.id);
                   }}
                 >
+                  <Icon name="play" size={13} motion="pop" />
                   {t("accounts.table.browser.start")}
                 </button>
               </Tip>
@@ -732,13 +700,13 @@ const CellJSX: FC<{
           if (steamAccount.deleted) return <></>;
           return (
             <Tip tip={t("accounts.table.browser.checking")}>
-              <div
-                className="browser-btn download-browser-btn"
+              <span
+                className="browser-btn browser-btn--checking"
                 role="img"
                 aria-label={t("accounts.table.browser.checking")}
               >
-                <LoadingIcons.Bars />
-              </div>
+                <Icon name="loader" size={13} motion="spinAlways" />
+              </span>
             </Tip>
           );
       }
@@ -813,7 +781,7 @@ const CellJSX: FC<{
               store.windows.prompt({
                 type: "question",
                 title: t("accounts.delete.archiveTitle", { number: steamAccount.number }),
-                text: t("common.archiveHint"),
+                text: t("accounts.delete.archiveHint"),
                 acceptButtonText: t("common.buttons.archiveIt"),
                 cancelButtonText: t("prompt.cancel"),
                 cb: () => {

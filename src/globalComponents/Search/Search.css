@@ -1,41 +1,48 @@
-.search{
-    min-height: 43px;
-    width: 100%;
-    max-width: 500px;
-    background: var(--sda-surface-3);
-    border-radius: var(--sda-radius);
-    padding-left: 16px;
-    padding-right: 15px;
-    border: none;
+/* Поиск (макет main-v2: .search): поле zinc-800 с рамкой zinc-700, высота 34 px, радиус 6 px */
+.search {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    transition: box-shadow var(--sda-transition);
+    gap: 8px;
+    width: 100%;
+    max-width: 440px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--sda-border-strong);
+    border-radius: var(--sda-radius-sm);
+    background: var(--sda-surface-3);
+    transition: border-color var(--sda-transition), box-shadow var(--sda-transition);
 }
 
-.search:focus-within{
-  box-shadow: var(--sda-focus-ring);
+.search:focus-within {
+    border-color: var(--sda-accent);
+    box-shadow: var(--sda-focus-ring);
 }
 
-.search-input{
-  background: var(--sda-surface-3);
-  border: none;
-  width: 100%;
-  min-width: 0;
-  text-overflow: ellipsis;
+.search .search-input {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-family: var(--sda-font);
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--sda-text);
+    text-overflow: ellipsis;
 }
 
-.search-input::placeholder{
-  color: var(--sda-text-muted);
-  opacity: 0.85;
+.search-input::placeholder {
+    color: var(--sda-text-subtle);
+    opacity: 1;
 }
 
-.search-input:focus-visible{
-  outline: none;
+.search-input:focus-visible {
+    outline: none;
 }
 
-.search-img{
-  margin-right: 12px;
-  flex-shrink: 0;
-  color: var(--sda-text-muted);
+.search-img {
+    flex-shrink: 0;
+    color: var(--sda-text-subtle);
 }

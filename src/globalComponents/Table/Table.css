@@ -1,44 +1,48 @@
+/* Таблица (редизайн R3, макет main-v2): карточка #18181b с рамкой 1 px и радиусом 10 px,
+   шапка 11 px капсом, строки разделены линией. Тот же вид у аккаунтов и прокси.
+   Нет в tokens.css: zinc-300 (#d4d4d8) — текст ячеек; локальная переменная этого файла. */
 .list-container {
+    --list-cell-text: #d4d4d8;
     /* Своя стековая область: прилипшие шапка и кнопки не вылезают поверх модальных окон */
     isolation: isolate;
     display: flex;
     height: 100%;
-    border-radius: var(--sda-radius-lg);
-    overflow-y: hidden;
+    min-height: 0;
+    border: 1px solid var(--sda-border);
+    border-radius: var(--sda-radius);
+    overflow: hidden;
     align-items: flex-start;
     background: var(--sda-surface-1);
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 }
+
 .list-container .list-content {
     width: 100%;
     height: 100%;
     display: flex;
     position: relative;
-    overflow-x: auto;
-
+    overflow: auto;
 }
+
 .list {
     width: 100%;
-    padding: 4px 4px 10px;
     display: table;
     position: absolute;
-    margin-bottom: 17px;
     border-collapse: separate;
-    border-spacing: 0 4px;
-    font-size: 14px;
-    line-height: 20px;
-    color: var(--sda-text);
+    border-spacing: 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--list-cell-text);
 }
 
 /* ---------- Заголовки ---------- */
 
 .list-headline-row {
     display: table-row;
-    height: 44px;
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--sda-modal);
+    background: var(--sda-surface-1);
 }
 
 .list-headline-container {
@@ -50,19 +54,35 @@
 .list-headline {
     display: table-cell;
     vertical-align: middle;
-    padding-right: 8px;
+    height: 36px;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--sda-border);
     white-space: nowrap;
-    font-size: 13px;
+    text-align: left;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--sda-text-muted);
+    line-height: 16px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--sda-text-subtle);
 }
 
 .list-headline:first-child {
-    padding-left: 10px;
+    padding-left: 12px;
 }
 
 .list-headline:last-child {
-    padding-right: 10px;
+    padding-right: 12px;
+}
+
+/* Подсказка к колонке живёт внутри заголовка: не наследует его капс и разрядку */
+.list-headline .__react_component_tooltip {
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 18px;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: normal;
 }
 
 .sort-header {
@@ -78,8 +98,12 @@
     cursor: pointer;
 }
 
-.sort-header--sortable:hover,
-.sort-header--active {
+.sort-header--sortable:hover {
+    color: var(--list-cell-text);
+}
+
+.sort-header--active,
+.sort-header--active:hover {
     color: var(--sda-text);
 }
 
@@ -97,13 +121,13 @@
     left: 100%;
     margin-left: 2px;
     opacity: 0;
-    font-size: 12px;
+    font-size: 11px;
     transition: opacity var(--sda-transition);
 }
 
 .sort-header--sortable:hover .sort-header__arrow,
 .sort-header--sortable:focus-visible .sort-header__arrow {
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 .sort-header--active .sort-header__arrow,
@@ -121,32 +145,27 @@
 
 /* ---------- Строки ---------- */
 
+/* Фон строки непрозрачный (слой поверх карточки): его наследуют прилипшие ячейки справа,
+   и прокрученные колонки под ними не просвечивают. Цвета ховера и выделения — из макета. */
 .list-item-row {
     display: table-row;
-    height: 48px;
-    background: var(--sda-surface-2);
-    transition: background-color var(--sda-transition);
+    background: var(--sda-surface-1);
 }
 
-/* Ховер светлее плиток кнопок (surface-3), чтобы они не сливались со строкой */
 .list-item-row:hover {
-    background: linear-gradient(var(--sda-border), var(--sda-border)), var(--sda-surface-2);
+    background: linear-gradient(rgba(39, 39, 42, 0.45), rgba(39, 39, 42, 0.45)), var(--sda-surface-1);
 }
 
 .list-item-row--selected,
 .list-item-row--selected:hover {
-    background: var(--sda-surface-4);
+    background: linear-gradient(rgba(37, 99, 235, 0.10), rgba(37, 99, 235, 0.10)), var(--sda-surface-1);
 }
 
-.list-item-row--selected .list-item:first-child {
-    box-shadow: inset 3px 0 0 var(--sda-accent);
-}
-
-/* Архивный аккаунт: штриховка как раньше, но из токенов */
+/* Архивный аккаунт: штриховка, приглушённый текст */
 .list-item-row--deleted,
 .list-item-row--deleted:hover {
-    background: repeating-linear-gradient(-60deg, var(--sda-border-strong) 0, var(--sda-border-strong) 1px, transparent 1px, transparent 6px), var(--sda-surface-2);
-    color: var(--sda-text-muted);
+    background: repeating-linear-gradient(-60deg, var(--sda-border) 0, var(--sda-border) 1px, transparent 1px, transparent 6px), var(--sda-surface-1);
+    color: var(--sda-text-subtle);
 }
 
 .list-item-container {
@@ -158,18 +177,18 @@
 .list-item {
     display: table-cell;
     vertical-align: middle;
-    padding-right: 8px;
+    height: 44px;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--sda-border);
     white-space: nowrap;
 }
 
 .list-item:first-child {
-    border-radius: var(--sda-radius) 0 0 var(--sda-radius);
-    padding-left: 10px;
+    padding-left: 12px;
 }
 
 .list-item:last-child {
-    border-radius: 0 var(--sda-radius) var(--sda-radius) 0;
-    padding-right: 10px;
+    padding-right: 12px;
 }
 
 /* ---------- Колонки ---------- */
@@ -186,7 +205,9 @@
 }
 
 .list-item--number {
-    color: var(--sda-text-muted);
+    color: var(--sda-text-subtle);
+    font-family: var(--sda-font-mono);
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
 
@@ -196,7 +217,8 @@
 }
 
 .list-item--steamId {
-    color: var(--sda-text-muted);
+    color: var(--sda-text-subtle);
+    font-family: var(--sda-font-mono);
     font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
@@ -215,7 +237,7 @@
     width: 1%;
 }
 
-/* Кнопки справа (экспорт, правка, удаление): компактные ячейки одного размера */
+/* Кнопки справа (экспорт, правка, удаление, проверка прокси): компактные ячейки одного размера */
 .list-item--exportButton,
 .list-item--editingButton,
 .list-item--deleteButton,
@@ -237,53 +259,13 @@
 
 .list-item--deleteButton:last-child,
 .list-headline--deleteButton:last-child {
-    padding-right: 10px;
-}
-
-/* В таблице аккаунтов колонок много: кнопки справа прилипают к краю при горизонтальной прокрутке */
-.list--steamAccounts .list-item--exportButton,
-.list--steamAccounts .list-item--editingButton,
-.list--steamAccounts .list-item--deleteButton,
-.list--steamAccounts .list-headline--exportButton,
-.list--steamAccounts .list-headline--editingButton,
-.list--steamAccounts .list-headline--deleteButton {
-    position: sticky;
-    z-index: 1;
-    background: inherit;
-}
-
-/* Отступы ячеек: удаление 26 + 10, правка 26 + 4, экспорт 8 + 26 + 4 */
-.list--steamAccounts .list-item--deleteButton,
-.list--steamAccounts .list-headline--deleteButton {
-    right: 0;
-}
-
-.list--steamAccounts .list-item--editingButton,
-.list--steamAccounts .list-headline--editingButton {
-    right: 36px;
-}
-
-.list--steamAccounts .list-item--exportButton,
-.list--steamAccounts .list-headline--exportButton {
-    right: 66px;
-}
-
-/* Тень-разделитель только когда под кнопками действительно спрятаны колонки */
-.list--clipped-right .list-item--exportButton,
-.list--clipped-right .list-headline--exportButton {
-    box-shadow: -12px 0 10px -6px var(--sda-overlay);
-}
-
-.list--steamAccounts .list-headline--exportButton,
-.list--steamAccounts .list-headline--editingButton,
-.list--steamAccounts .list-headline--deleteButton {
-    background: var(--sda-modal);
+    padding-right: 12px;
 }
 
 /* ---------- Содержимое ячеек ---------- */
 
 .cell-muted {
-    color: var(--sda-text-muted);
+    color: var(--sda-text-subtle);
 }
 
 .cell-text {
@@ -310,6 +292,11 @@
     max-width: 200px;
 }
 
+/* Загрузка в ячейке: крутящаяся иконка */
+.cell-loader {
+    color: var(--sda-text-subtle);
+}
+
 .alt-text-title {
     display: block;
     margin-bottom: 2px;
@@ -319,45 +306,46 @@
     max-width: 320px;
     white-space: normal;
     text-align: left;
+    font-family: var(--sda-font);
     font-size: 13px;
     line-height: 18px;
-    /* подсказка живёт внутри бейджа/кнопки: не наследуем их капс и жирность */
+    /* подсказка живёт внутри бейджа/кнопки: не наследуем их капс, разрядку и жирность */
     font-weight: 400;
     letter-spacing: normal;
     text-transform: none;
 }
 
-/* Бейдж статуса: свой тёмный фон, чтобы контраст не зависел от ховера и выделения строки */
+/* Бейдж статуса: пилюля, фон -900/50 и текст -400 (общий паттерн статусов QBS) */
 .status-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 32px;
-    height: 22px;
-    padding: 0 7px;
-    border-radius: var(--sda-radius-sm);
+    min-width: 34px;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 999px;
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1;
     letter-spacing: 0.03em;
     text-transform: uppercase;
+    white-space: nowrap;
     cursor: default;
 }
 
 .status-badge--success {
     color: var(--sda-success);
-    background: linear-gradient(var(--sda-success-bg), var(--sda-success-bg)), var(--sda-surface-0);
+    background: var(--sda-success-bg);
 }
 
 .status-badge--danger {
     color: var(--sda-danger);
-    background: linear-gradient(var(--sda-danger-bg), var(--sda-danger-bg)), var(--sda-surface-0);
-    box-shadow: inset 0 0 0 1px var(--sda-danger);
+    background: var(--sda-danger-bg);
 }
 
 .status-badge--warning {
     color: var(--sda-warning);
-    background: linear-gradient(var(--sda-warning-bg), var(--sda-warning-bg)), var(--sda-surface-0);
+    background: var(--sda-warning-bg);
 }
 
 /* Баланс не загрузился: приглушённый прочерк и значок, причина в подсказке */
@@ -372,7 +360,7 @@
     color: var(--sda-warning);
 }
 
-/* Аватар и заглушка без «?» */
+/* Аватар Steam 28 px и заглушка без «?» (заглушку использует и форма правки аккаунта) */
 .steam-account-avatar {
     display: block;
     width: 28px;
@@ -380,7 +368,6 @@
     border-radius: 50%;
     object-fit: cover;
     background: var(--sda-surface-3);
-    box-shadow: 0 0 0 1px var(--sda-border-strong);
 }
 
 .steam-account-avatar--placeholder {
@@ -388,155 +375,8 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    color: var(--sda-text-subtle);
-}
-
-.steam-account-avatar .micro-download {
-    width: 16px;
-}
-
-/* Код Guard: кольцо таймера, код моноширинным, значок копирования */
-.guard-code {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 2px 6px 2px 2px;
-    border-radius: var(--sda-radius-sm);
-    cursor: pointer;
-    transition: background-color var(--sda-transition);
-}
-
-.guard-code:hover {
-    background: var(--sda-surface-4);
-}
-
-.guard-code:focus {
-    outline: none;
-}
-
-.guard-code:focus-visible {
-    box-shadow: var(--sda-focus-ring);
-}
-
-.guard-code__ring {
-    width: 24px;
-    height: 24px;
-    flex-shrink: 0;
-}
-
-.guard-code__ring .CircularProgressbar-path {
-    stroke: var(--sda-accent);
-    stroke-linecap: round;
-    transition: stroke-dashoffset 0.3s linear;
-}
-
-.guard-code__ring .CircularProgressbar-trail {
-    stroke: var(--sda-border-strong);
-}
-
-.guard-code__ring .CircularProgressbar-text {
-    fill: var(--sda-text);
-    font-family: var(--sda-font);
-    font-size: 38px;
-    font-weight: 700;
-}
-
-.guard-code--ending .guard-code__ring .CircularProgressbar-path {
-    stroke: var(--sda-warning);
-}
-
-.guard-code__value {
-    font-family: var(--sda-font-mono);
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--sda-text);
-}
-
-.guard-code__copy {
-    display: inline-flex;
-    color: var(--sda-text-subtle);
-    transition: color var(--sda-transition);
-}
-
-.guard-code:hover .guard-code__copy {
-    color: var(--sda-text);
-}
-
-.guard-code--copied .guard-code__copy,
-.guard-code--copied:hover .guard-code__copy {
-    color: var(--sda-success);
-}
-
-/* Группа действий Guard в строке */
-.row-actions {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-}
-
-/* Кнопка браузера START/STOP: обводка зелёная/красная, размер как у кнопок действий */
-.browser-cell {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-}
-
-.browser-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 52px;
-    height: 26px;
-    padding: 0 8px;
-    border: 1px solid currentColor;
-    border-radius: var(--sda-radius-sm);
-    font-family: var(--sda-font);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background var(--sda-transition), color var(--sda-transition);
-}
-
-.browser-btn:focus {
-    outline: none;
-}
-
-.browser-btn:focus-visible {
-    box-shadow: var(--sda-focus-ring);
-}
-
-.start-browser-btn {
-    color: var(--sda-success);
-    background: linear-gradient(var(--sda-success-bg), var(--sda-success-bg)), var(--sda-surface-0);
-}
-
-.start-browser-btn:hover {
-    background: var(--sda-success);
-    color: var(--sda-surface-0);
-}
-
-.stop-browser-btn {
-    color: var(--sda-danger);
-    background: linear-gradient(var(--sda-danger-bg), var(--sda-danger-bg)), var(--sda-surface-0);
-}
-
-.stop-browser-btn:hover {
-    background: var(--sda-danger);
-    color: var(--sda-surface-0);
-}
-
-.download-browser-btn {
-    color: var(--sda-warning);
-    background: linear-gradient(var(--sda-warning-bg), var(--sda-warning-bg)), var(--sda-surface-0);
-    cursor: default;
-}
-
-.download-browser-btn svg {
-    width: 16px;
-    height: 16px;
+    background: linear-gradient(135deg, var(--sda-surface-4), var(--sda-surface-3));
+    color: var(--sda-text-muted);
 }
 
 /* Пароль в ячейке — размером таблицы, а не 15px глобального класса */
