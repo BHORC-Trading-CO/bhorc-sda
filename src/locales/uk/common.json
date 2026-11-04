@@ -518,7 +518,12 @@
     "declining_one": "Відхиляємо вибране: {{count}}",
     "declining_few": "Відхиляємо вибране: {{count}}",
     "declining_many": "Відхиляємо вибране: {{count}}",
-    "declining_other": "Відхиляємо вибране: {{count}}"
+    "declining_other": "Відхиляємо вибране: {{count}}",
+    "types": {
+      "trade": "Обмін",
+      "listing": "Продаж на ринку",
+      "unknown": "Підтвердження"
+    }
   },
   "browser": {
     "title": "Браузер",

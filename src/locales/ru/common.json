@@ -518,7 +518,12 @@
     "declining_one": "Отклоняем выбранное: {{count}}",
     "declining_few": "Отклоняем выбранное: {{count}}",
     "declining_many": "Отклоняем выбранное: {{count}}",
-    "declining_other": "Отклоняем выбранное: {{count}}"
+    "declining_other": "Отклоняем выбранное: {{count}}",
+    "types": {
+      "trade": "Обмен",
+      "listing": "Продажа на рынке",
+      "unknown": "Подтверждение"
+    }
   },
   "browser": {
     "title": "Браузер",

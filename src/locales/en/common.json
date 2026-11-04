@@ -502,7 +502,12 @@
     "confirming_one": "Confirming selected: {{count}}",
     "confirming_other": "Confirming selected: {{count}}",
     "declining_one": "Declining selected: {{count}}",
-    "declining_other": "Declining selected: {{count}}"
+    "declining_other": "Declining selected: {{count}}",
+    "types": {
+      "trade": "Trade",
+      "listing": "Market listing",
+      "unknown": "Confirmation"
+    }
   },
   "browser": {
     "title": "Browser",
