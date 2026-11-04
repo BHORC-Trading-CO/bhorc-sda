@@ -102,6 +102,15 @@ describe("design guard", () => {
         expect(polygons(fs.readFileSync(brandPath, "utf8"))).toEqual(mark);
     });
 
+    test("icon tile outline uses the --sda-border colour", () => {
+        const tokens = fs.readFileSync(path.join(ROOT, "src/css/tokens.css"), "utf8");
+        const script = fs.readFileSync(path.join(ROOT, "scripts/make-icons.mjs"), "utf8");
+        const border = (tokens.match(/--sda-border:\s*(#[0-9a-f]{6})/i) || [])[1];
+        expect(border).toBeDefined();
+        expect((script.match(/const BORDER = "(#[0-9a-f]{6})"/i) || [])[1]).toBe(border);
+        expect(script).toContain('stroke="${BORDER}"');
+    });
+
     test("app icons forge packages are generated", () => {
         // forge.config.js: icon "assets/icon" — packager дописывает .icns на macOS и .ico на Windows.
         const pngSize = (file: string) => {

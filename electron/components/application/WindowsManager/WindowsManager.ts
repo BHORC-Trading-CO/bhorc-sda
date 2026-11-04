@@ -1,7 +1,6 @@
-import path from 'path';
 import { BrowserWindow, IpcMainEvent } from 'electron';
 import windowsConfig from './windowsConfig';
-import { windowChrome } from './windowChrome';
+import { windowChrome, windowIcon } from './windowChrome';
 import WindowChannels from '../../../interfaces/IpcChannels/WindowsChannels';
 import InfoType from '../askInfo/InfoType';
 import AskSomethingChannels from '../../../interfaces/IpcChannels/AskSomethigChannels';
@@ -54,7 +53,7 @@ class WindowsManager {
         this.errorWindows[winId] = new BrowserWindow({
             ...windowsConfig.errorWindow,
             ...windowChrome(process.platform),
-            icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
+            icon: windowIcon(process.platform, 'error'),
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
@@ -80,7 +79,7 @@ class WindowsManager {
         this.authWindow = new BrowserWindow({
             ...windowsConfig.authWindow,
             ...windowChrome(process.platform),
-            icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
+            icon: windowIcon(process.platform, 'auth'),
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
@@ -94,7 +93,7 @@ class WindowsManager {
         this.mainWindow = new BrowserWindow({
             ...windowsConfig.mainWindow,
             ...windowChrome(process.platform),
-            icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
+            icon: windowIcon(process.platform, 'main'),
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
@@ -109,7 +108,7 @@ class WindowsManager {
             const confirmationsWindow = new BrowserWindow({
                 ...windowsConfig.confirmationsWindow,
                 ...windowChrome(process.platform),
-                icon: path.join(__dirname, "../renderer/assets/confirmationsIcon.png"),
+                icon: windowIcon(process.platform, 'confirmations'),
                 webPreferences: {
                     nodeIntegration: false,
                     contextIsolation: true,
@@ -136,7 +135,7 @@ class WindowsManager {
             const askWindow = new BrowserWindow({
                 ...windowsConfig.askPinWindow,
                 ...windowChrome(process.platform),
-                icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
+                icon: windowIcon(process.platform, 'ask'),
                 webPreferences: {
                     nodeIntegration: false,
                     contextIsolation: true,

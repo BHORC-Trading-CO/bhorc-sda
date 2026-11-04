@@ -7,8 +7,10 @@ jest.mock('electron', () => {
     }) };
 });
 
+import fs from 'fs';
+import path from 'path';
 import { BrowserWindow } from 'electron';
-import { windowChrome } from '../windowChrome';
+import { AppWindowKind, windowChrome, windowIcon } from '../windowChrome';
 import windowsConfig from '../windowsConfig';
 import WindowsManager from '../WindowsManager';
 import InfoType from '../../askInfo/InfoType';
@@ -69,4 +71,41 @@ it.each(['darwin', 'win32', 'linux'] as NodeJS.Platform[])('every window gets th
         expect(option.frame).not.toBe(false);
         expect(option).not.toHaveProperty('transparent');
     }
+});
+
+// Иконки окон: на Windows все окна — assets/icon.ico (16–256, крупный знак до 32 px), иначе png 512.
+// Порядок окон — порядок вызовов в createAllWindows.
+const kinds: AppWindowKind[] = ['main', 'confirmations', 'ask', 'error', 'auth'];
+const createAllWindows = () => {
+    const windows = new WindowsManager();
+    windows.createMain();
+    windows.createConfirmationsWindow('a', 'account');
+    windows.createAskWindow('a', 'account', 'familyPin' as InfoType);
+    windows.createErrorWindow('Error', 'test');
+    windows.createAuthWindow();
+    return (BrowserWindow as unknown as jest.Mock).mock.calls.map(([options]) => options);
+};
+// Хвост пути от каталога ассетов сборки (.webpack/renderer/assets), со слэшами и на Windows.
+const assetTail = (file: string) => {
+    const posix = file.split(path.sep).join('/');
+    return posix.slice(posix.lastIndexOf('/renderer/assets/'));
+};
+
+it.each([
+    ['win32', ['icon.ico', 'icon.ico', 'icon.ico', 'icon.ico', 'icon.ico']],
+    ['darwin', ['newIcon.png', 'confirmationsIcon.png', 'newIcon.png', 'newIcon.png', 'newIcon.png']],
+    ['linux', ['newIcon.png', 'confirmationsIcon.png', 'newIcon.png', 'newIcon.png', 'newIcon.png']],
+] as [NodeJS.Platform, string[]][])('%s: window icons of main, confirmations, ask, error and auth', (platform, files) => {
+    setPlatform(platform);
+    const icons = createAllWindows().map(option => assetTail(option.icon));
+    expect(icons).toEqual(files.map(file => `/renderer/assets/${file}`));
+    expect(kinds.map(kind => assetTail(windowIcon(platform, kind)))).toEqual(icons);
+});
+
+it('window icons exist in assets/ and are set only by windowIcon', () => {
+    const assets = path.join(__dirname, '../../../../../assets');
+    for (const platform of ['win32', 'darwin', 'linux'] as NodeJS.Platform[]) {
+        for (const kind of kinds) expect(fs.existsSync(path.join(assets, path.basename(windowIcon(platform, kind))))).toBe(true);
+    }
+    for (const config of Object.values(windowsConfig)) expect(config).not.toHaveProperty('icon');
 });

@@ -1,3 +1,4 @@
+import path from 'path';
 import type { BrowserWindowConstructorOptions } from 'electron';
 
 /**
@@ -17,4 +18,19 @@ export function windowChrome(platform: NodeJS.Platform): Partial<BrowserWindowCo
         default:
             return { frame: true };
     }
+}
+
+/** Окна приложения: иконка окна подтверждений — с галочкой. */
+export type AppWindowKind = 'main' | 'ask' | 'confirmations' | 'auth' | 'error';
+
+/**
+ * Иконка окна (BrowserWindow.icon), единственное место, где она задаётся. assets копируются в сборку
+ * рядом с main: .webpack/renderer/assets (renderer.webpack.js).
+ * - Windows: assets/icon.ico — размеры 16–256, до 32 px знак крупнее (scripts/make-icons.mjs).
+ *   Одну png 512 Windows сам уменьшает для заголовка и панели задач, и «S» там не читается.
+ * - macOS BrowserWindow.icon не использует (иконка из бандла, icon.icns); остальные — png 512.
+ */
+export function windowIcon(platform: NodeJS.Platform, kind: AppWindowKind): string {
+    const file = platform === 'win32' ? 'icon.ico' : kind === 'confirmations' ? 'confirmationsIcon.png' : 'newIcon.png';
+    return path.join(__dirname, '../renderer/assets', file);
 }

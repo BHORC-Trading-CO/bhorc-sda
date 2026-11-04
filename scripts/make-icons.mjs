@@ -17,6 +17,7 @@ import sharp from "sharp";
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ASSETS = path.join(ROOT, "assets");
 const UNITS = 1024; // координаты плитки; рендер в нужный размер задают width/height
+const BORDER = "#27272a"; // обводка плитки = --sda-border (src/css/tokens.css), сверяет designGuard.test.ts
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
 const ICONSET = [
     [16, "16x16"], [32, "16x16@2x"], [32, "32x32"], [64, "32x32@2x"], [128, "128x128"],
@@ -87,7 +88,7 @@ ${shadow}
 </defs>
 ${shadowShape}
 <path d="${shape}" fill="url(#bg)"/>
-<path d="${shape}" fill="none" stroke="#2f2f35" stroke-width="${(stroke * 2).toFixed(2)}" clip-path="url(#tile)"/>
+<path d="${shape}" fill="none" stroke="${BORDER}" stroke-width="${(stroke * 2).toFixed(2)}" clip-path="url(#tile)"/>
 <svg x="${markAt}" y="${markAt}" width="${markSide}" height="${markSide}" viewBox="0 0 64 64">${markInner}</svg>
 ${badgeSvg}
 </svg>`;
