@@ -11,12 +11,9 @@ import SavedProxiesBlock from '../ProxyBlock/SavedProxiesBlock/SavedProxies';
 import Navigation from '../../../../../../globalComponents/Navigation/Navigation';
 import Button from '../../../../../../globalComponents/Button/Button';
 import Icon from '../../../../../../globalComponents/Icon/Icon';
-import TableSteamAccountInterface from '../../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface';
 import MaFileImport from '../MaFileImport/MaFileImport';
 import Checkbox from '../../../../../../globalComponents/Checkbox/Checkbox';
 import { Trans, useTranslation } from 'react-i18next';
-
-const changeThisProperties: { [K in keyof TableSteamAccountInterface]?: TableSteamAccountInterface[K] } = {};
 
 const SteamAccountsEditForm: FC = observer(() => {
     const { t } = useTranslation();
@@ -34,8 +31,9 @@ const SteamAccountsEditForm: FC = observer(() => {
 
 const EditFormContent = observer(() => {
     const { t } = useTranslation();
-    const content = store.steamAccountsTable.editingForm.getContent();
-    const switches = store.steamAccountsTable.editingForm.getSwitches();
+    const form = store.steamAccountsTable.editingForm;
+    const content = form.getContent();
+    const switches = form.getSwitches();
     const steamAccount = content.steamAccount;
     const steamAccountInStorage = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(sa => sa.id === steamAccount.id)[0];
     const avatar = useAccountImage('avatar', steamAccount.id, steamAccount.secondary?.avatarUrl, `${steamAccountInStorage.proxyState}:${steamAccountInStorage.proxyId}`);
@@ -49,25 +47,20 @@ const EditFormContent = observer(() => {
                 {avatar.src
                     ? <img src={avatar.src} onError={avatar.onError} alt="" className='steam-account-avatar steam-account_edit-form__avatar' />
                     : <span className='steam-account-avatar steam-account-avatar--placeholder steam-account_edit-form__avatar' aria-hidden='true'><Icon name='user' size={20} /></span>}
+                {/* Правки идут в патч этой сессии окна (EditingFormStore.changes), не в общий объект. */}
                 <Input value={steamAccount.accountName} placeholder={t('accounts.form.steamLogin')} onChange={(newValue) => {
-                    store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, accountName: newValue } });
-                    changeThisProperties.accountName = newValue;
+                    form.editSteamAccountField('accountName', newValue);
                 }} />
                 <Input type='password' value={steamAccount.password} placeholder={t('accounts.form.steamPassword')} onChange={(newValue) => {
-                    store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, password: newValue } });
-                    changeThisProperties.password = newValue;
+                    form.editSteamAccountField('password', newValue);
                 }} />
                 {
                     steamAccountInStorage.familyViewPin ?
                         <Input type='password' value={pin} placeholder={t('accounts.form.pin')} onChange={(newValue) => {
                             if (newValue != '' && !Number(newValue)) return;
                             if (newValue.length > 4) return;
-                            if (newValue.length === 0) {
-                                changeThisProperties.familyViewPin = null;
-                                return store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, familyViewPin: null } });
-                            }
-                            store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, familyViewPin: Number(newValue) } });
-                            changeThisProperties.familyViewPin = Number(newValue);
+                            if (newValue.length === 0) return form.editSteamAccountField('familyViewPin', null);
+                            form.editSteamAccountField('familyViewPin', Number(newValue));
                         }} />
                         :
                         <></>
@@ -82,8 +75,7 @@ const EditFormContent = observer(() => {
                         text: t('accounts.form.maFileNameMismatch')
                     })
                 }
-                store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...content.steamAccount, maFile: newMaFile } });
-                changeThisProperties.maFile = newMaFile;
+                form.editSteamAccountField('maFile', newMaFile);
             }} />
         </section>
         <section className='sda-form-section steam-data-block'>
@@ -93,18 +85,15 @@ const EditFormContent = observer(() => {
             </div>
             <div className="steam-data-input__wrapper">
                 <Input value={steamAccount.mail ? steamAccount.mail : ""} placeholder={t('accounts.form.mail')} onChange={(newValue) => {
-                    store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, mail: newValue } });
-                    changeThisProperties.mail = newValue;
+                    form.editSteamAccountField('mail', newValue);
                 }} />
                 <Input type="password" value={steamAccount.mailPassword ? steamAccount.mailPassword : ""} placeholder={t('accounts.form.mailPassword')} onChange={(newValue) => {
-                    store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, mailPassword: newValue } });
-                    changeThisProperties.mailPassword = newValue;
+                    form.editSteamAccountField('mailPassword', newValue);
                 }} />
             </div>
             <div className="steam-data-checkbox">
                 <Checkbox isChecked={steamAccount.useSteamCookies} onChange={(newValue) => {
-                    store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, useSteamCookies: newValue } });
-                    changeThisProperties.useSteamCookies = newValue;
+                    form.editSteamAccountField('useSteamCookies', newValue);
                 }} /><span>{t('accounts.form.useSteamCookies')}</span>
             </div>
         </section>
@@ -142,27 +131,29 @@ const EditFormContent = observer(() => {
         {/* Отмена слева, основное действие справа; панель липкая при прокрутке. */}
         <div className='sda-form-footer'>
             <Button text={t('common.buttons.cancel')} size='medium' color='grey' hoverColor='light-grey' onClick={() => {
-                store.steamAccountsTable.editingForm.close();
+                form.close();
             }} />
             <Button text={t('common.buttons.saveChanges')} size='medium' color='gradient' hoverColor='gradient' onClick={() => {
-                if (store.steamAccountsTable.editingForm.switches.proxy === "newProxy") {
+                // Только правки этой сессии; close() ниже выбрасывает патч.
+                const changes = form.getChanges();
+                if (form.switches.proxy === "newProxy") {
                     store.proxiesTable.createNew(content.proxy.new, { steamAccountIds: [steamAccount.id], profileIds: [] });
-                    window.Main.steamAccounts.edit(steamAccount.id, changeThisProperties);
-                    store.steamAccountsTable.editSteamAccount(steamAccount.id, changeThisProperties);
-                    store.steamAccountsTable.editingForm.close();
+                    window.Main.steamAccounts.edit(steamAccount.id, changes);
+                    store.steamAccountsTable.editSteamAccount(steamAccount.id, changes);
+                    form.close();
                     return;
-                } else if (store.steamAccountsTable.editingForm.switches.proxy === "savedProxy") {
+                } else if (form.switches.proxy === "savedProxy") {
                     if (!content.proxy.savedId && !(steamAccount.proxyState === "missing" && content.proxy.savedId === steamAccount.proxyId)) {
                         store.windows.openMiniNotification({ type: 'error', text: t('accounts.table.proxyMissingHint') });
                         return;
                     }
                 }
 
-                const links = store.steamAccountsTable.editingForm.getProxyLinkChange();
-                if (links) window.Main.steamAccounts.edit(steamAccount.id, changeThisProperties, links);
-                else window.Main.steamAccounts.edit(steamAccount.id, changeThisProperties);
-                store.steamAccountsTable.editSteamAccount(steamAccount.id, changeThisProperties);
-                store.steamAccountsTable.editingForm.close();
+                const links = form.getProxyLinkChange();
+                if (links) window.Main.steamAccounts.edit(steamAccount.id, changes, links);
+                else window.Main.steamAccounts.edit(steamAccount.id, changes);
+                store.steamAccountsTable.editSteamAccount(steamAccount.id, changes);
+                form.close();
             }} />
         </div>
     </div>;
