@@ -489,7 +489,8 @@
     },
     "links": {
       "empty": "None linked",
-      "manage": "Manage linked accounts"
+      "manage": "Manage linked accounts",
+      "toggle": "Link {{name}}"
     },
     "form": {
       "label": "Proxy connection string"
