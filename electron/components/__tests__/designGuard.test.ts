@@ -26,18 +26,53 @@ function rendererFiles(): string[] {
     return [...walk(path.join(ROOT, "src")), ...html];
 }
 
-/** Строки вида "src/x.css:12: <строка>", где встречается хотя бы один из шаблонов. */
+/**
+ * Совпадения шаблонов во всём тексте файла, а не построчно: объявление может занимать несколько
+ * строк (url(\n  "https://…")). Номер строки — по смещению начала совпадения.
+ */
+function scanText(text: string, patterns: RegExp[]): { line: number, text: string }[] {
+    const lines = text.split("\n");
+    const found = new Map<number, string>();
+    for (const re of patterns) {
+        const global = new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`);
+        for (const match of text.matchAll(global)) {
+            const line = text.slice(0, match.index).split("\n").length;
+            found.set(line, lines[line - 1].trim().slice(0, 120));
+        }
+    }
+    return [...found.entries()].sort((a, b) => a[0] - b[0]).map(([line, text]) => ({ line, text }));
+}
+
+/** Строки вида "src/x.css:12: <строка>", где начинается совпадение хотя бы одного из шаблонов. */
 function findHits(patterns: RegExp[]): string[] {
     const hits: string[] = [];
     for (const file of rendererFiles()) {
-        const lines = fs.readFileSync(file, "utf8").split("\n");
-        lines.forEach((line, i) => {
-            if (patterns.some((re) => re.test(line))) {
-                hits.push(`${path.relative(ROOT, file)}:${i + 1}: ${line.trim().slice(0, 120)}`);
-            }
-        });
+        for (const hit of scanText(fs.readFileSync(file, "utf8"), patterns)) {
+            hits.push(`${path.relative(ROOT, file)}:${hit.line}: ${hit.text}`);
+        }
     }
     return hits;
+}
+
+/**
+ * Записи .icns: заголовок "icns" и длина файла, затем записи (тип 4 байта, длина 4 байта, данные).
+ * Каждая запись должна целиком лежать в файле, а последняя — заканчиваться ровно на его конце.
+ */
+function icnsRecords(icns: Buffer): string[] {
+    if (icns.length < 8 || icns.subarray(0, 4).toString("latin1") !== "icns") throw new Error("not an icns file");
+    if (icns.readUInt32BE(4) !== icns.length) throw new Error(`header length ${icns.readUInt32BE(4)} != file length ${icns.length}`);
+    const types: string[] = [];
+    let at = 8;
+    while (at < icns.length) {
+        if (at + 8 > icns.length) throw new Error(`truncated record header at ${at}`);
+        const type = icns.subarray(at, at + 4).toString("latin1");
+        const size = icns.readUInt32BE(at + 4);
+        if (size <= 8) throw new Error(`record ${type} at ${at} has length ${size}`);
+        if (at + size > icns.length) throw new Error(`record ${type} at ${at} runs past the end (${at + size} > ${icns.length})`);
+        types.push(type);
+        at += size;
+    }
+    return types;
 }
 
 describe("design guard", () => {
@@ -60,9 +95,20 @@ describe("design guard", () => {
         expect(findHits([/Nunito/])).toEqual([]);
     });
 
+    // url(http://…), url("https://…") и протокол-относительный url(//…), в том числе через перенос строки.
+    const REMOTE_URL = /url\(\s*['"]?\s*(https?:)?\/\//i;
+
+    test("the scanner sees a remote url( split across lines and reports its first line", () => {
+        const css = ".a { color: red; }\n@font-face {\n  src: url(\n    \"https://cdn.example.invalid/x.woff2\"\n  );\n}\n.b { background: url(//cdn.example.invalid/y.png); }\n";
+        expect(scanText(css, [REMOTE_URL])).toEqual([
+            { line: 3, text: "src: url(" },
+            { line: 7, text: ".b { background: url(//cdn.example.invalid/y.png); }" },
+        ]);
+        expect(scanText("src: url(\n  './fonts/Geist.woff2'\n);", [REMOTE_URL])).toEqual([]);
+    });
+
     test("fonts and icons are bundled", () => {
-        // url(http://…), url("https://…") и протокол-относительный url(//…).
-        expect(findHits([/url\(\s*['"]?\s*(https?:)?\/\//i, /fonts\.googleapis/i])).toEqual([]);
+        expect(findHits([REMOTE_URL, /fonts\.googleapis/i])).toEqual([]);
     });
 
     test("no legacy assets/img icons in UI", () => {
@@ -133,18 +179,10 @@ describe("design guard", () => {
         expect(pngSize("assets/newIcon.png")).toEqual([512, 512]);
         expect(pngSize("assets/confirmationsIcon.png")).toEqual([512, 512]);
 
-        // .icns: "icns", длина файла, затем записи (тип, длина); ic10 — 1024 px (512@2x).
+        // .icns: записи в границах файла (icnsRecords); ic10 — 1024 px (512@2x).
         const icnsPath = path.join(ROOT, "assets/icon.icns");
         expect(fs.existsSync(icnsPath)).toBe(true);
-        const icns = fs.readFileSync(icnsPath);
-        expect(icns.subarray(0, 4).toString("latin1")).toBe("icns");
-        expect(icns.readUInt32BE(4)).toBe(icns.length);
-        const types: string[] = [];
-        for (let at = 8; at < icns.length; at += icns.readUInt32BE(at + 4)) {
-            types.push(icns.subarray(at, at + 4).toString("latin1"));
-            expect(icns.readUInt32BE(at + 4)).toBeGreaterThan(8);
-        }
-        expect(types).toContain("ic10");
+        expect(icnsRecords(fs.readFileSync(icnsPath))).toContain("ic10");
 
         // .ico: 7 размеров, каждая запись — PNG своего размера (ширина 0 в каталоге означает 256).
         const ico = fs.readFileSync(path.join(ROOT, "assets/icon.ico"));
@@ -162,6 +200,35 @@ describe("design guard", () => {
             sizes.push(size);
         }
         expect(sizes).toEqual([16, 24, 32, 48, 64, 128, 256]);
+    });
+
+    test("the icns reader rejects records past the end and bytes after the last record", () => {
+        const record = (type: string, data: number[]) => {
+            const head = Buffer.alloc(8);
+            head.write(type, 0, "latin1");
+            head.writeUInt32BE(8 + data.length, 4);
+            return Buffer.concat([head, Buffer.from(data)]);
+        };
+        const file = (body: Buffer, declared?: number) => {
+            const head = Buffer.alloc(8);
+            head.write("icns", 0, "latin1");
+            head.writeUInt32BE(declared ?? 8 + body.length, 4);
+            return Buffer.concat([head, body]);
+        };
+        const good = Buffer.concat([record("ic10", [1, 2, 3]), record("ic09", [4])]);
+        expect(icnsRecords(file(good))).toEqual(["ic10", "ic09"]);
+        // Длина записи больше, чем осталось в файле.
+        const long = record("ic10", [1, 2, 3]);
+        long.writeUInt32BE(64, 4);
+        expect(() => icnsRecords(file(long))).toThrow(/runs past the end/);
+        // После последней записи остались байты, которых не хватает на заголовок записи.
+        expect(() => icnsRecords(file(Buffer.concat([good, Buffer.from([0, 0, 0])])))).toThrow(/truncated record header/);
+        // Длина в заголовке файла не совпадает с настоящей.
+        expect(() => icnsRecords(file(good, 8 + good.length + 4))).toThrow(/header length/);
+        // Запись нулевой длины зациклила бы старый разбор.
+        const empty = record("ic10", []);
+        empty.writeUInt32BE(0, 4);
+        expect(() => icnsRecords(file(empty))).toThrow(/has length 0/);
     });
 
     test("Geist is declared", () => {

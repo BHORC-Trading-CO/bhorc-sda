@@ -110,9 +110,26 @@ it('error window closed natively frees errorWindows[id]', () => {
     manager.createErrorWindow('title', 'message');
     const [id] = Object.keys(manager.errorWindows);
     const window = manager.errorWindows[id];
+    // Страница загрузилась: параметры уходят через 50 мс. Окно закрывают раньше, и отложенный
+    // вызов застаёт уже освобождённую запись — без отправки и без исключения.
+    window.webContents.emit('dom-ready');
 
     closeNatively(window);
 
     expect(manager.errorWindows).not.toHaveProperty(id);
     expect(() => jest.advanceTimersByTime(50)).not.toThrow();
+    expect(window.webContents.send).not.toHaveBeenCalled();
+});
+
+// Контроль к тесту выше: без закрытия тот же отложенный вызов отправляет параметры окну.
+it('error window left open receives its params 50 ms after dom-ready', () => {
+    const manager = new WindowsManager();
+    manager.createErrorWindow('title', 'message');
+    const [id] = Object.keys(manager.errorWindows);
+    const window = manager.errorWindows[id];
+    window.webContents.emit('dom-ready');
+    expect(window.webContents.send).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(50);
+    expect(window.webContents.send).toHaveBeenCalledTimes(1);
+    expect(window.webContents.send).toHaveBeenCalledWith(expect.any(String), { id, title: 'title', text: 'message' });
 });
