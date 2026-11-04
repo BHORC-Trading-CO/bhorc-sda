@@ -68,11 +68,26 @@ it('ask window closed natively before its page loads still rejects the pending a
     jest.advanceTimersByTime(50);
     for (let i = 0; i < 10; i++) await Promise.resolve();
 
-    expect(outcome).not.toBe('pending');
-    expect(outcome).toHaveProperty('error');
+    // Отмена без причины — как и при закрытии после загрузки.
+    expect(outcome).toStrictEqual({ error: undefined });
     expect(manager.askWindows).not.toHaveProperty('account');
     expect(ipcMain.listenerCount(AskSomethingChannels.ASK_WINDOW_SEND_DATA)).toBe(0);
     expect(ipcMain.listenerCount(AskSomethingChannels.ASK_WINDOW_ABORT_SENDING_DATA)).toBe(0);
+});
+
+it('ask window creation failure reaches the caller with its original cause', async () => {
+    const cause = new Error('BrowserWindow init failed');
+    // Тот же экземпляр модуля, что видит WindowsManager (jest.requireMock вернул бы отдельный).
+    const electron = require('electron');
+    const spy = jest.spyOn(electron, 'BrowserWindow').mockImplementationOnce(() => { throw cause; });
+    try {
+        const manager = new WindowsManager();
+        await expect(manager.askSomething('account', 'name', 'familyPin' as InfoType)).rejects.toBe(cause);
+        expect(manager.askWindows).not.toHaveProperty('account');
+        expect(ipcMain.listenerCount(AskSomethingChannels.ASK_WINDOW_SEND_DATA)).toBe(0);
+    } finally {
+        spy.mockRestore();
+    }
 });
 
 it('confirmations window closed natively frees confirmationsWindows[id]', () => {

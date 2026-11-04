@@ -153,10 +153,11 @@ class WindowsManager {
                 }, 50);
             });
             // Системные кнопки окна видны до загрузки страницы: закрытое до отправки параметров окно
-            // не дождётся dom-ready. После resolve этот reject ничего не меняет.
+            // не дождётся dom-ready. Отмена без причины, как и при закрытии позже (askSomething);
+            // после resolve этот reject ничего не меняет.
             askWindow.once('closed', () => {
                 if (this.askWindows[id] === askWindow) delete (this.askWindows[id]);
-                reject(new Error('ask window closed before it loaded'));
+                reject();
             });
             this.askWindows[id] = askWindow;
         });
@@ -166,9 +167,10 @@ class WindowsManager {
             let askPinWindow: BrowserWindow;
             try {
                 askPinWindow = await this.createAskWindow(accountId, accountName, infoType);
-            } catch {
-                // Окно закрыли до загрузки: как и при закрытии позже, запрос отклоняется.
-                return reject();
+            } catch (err) {
+                // Закрытие до загрузки приходит без причины (отмена); ошибку создания окна
+                // передаём вызывающему как есть.
+                return reject(err);
             }
             let isGetInfo = false;
 
