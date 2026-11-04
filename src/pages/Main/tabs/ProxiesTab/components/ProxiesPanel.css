@@ -31,6 +31,11 @@
   border-color: var(--sda-primary);
 }
 
+.proxies-panel .proxy-panel-cta--primary:hover {
+  background: var(--sda-primary-hover);
+  border-color: var(--sda-primary-hover);
+}
+
 .proxies-panel .proxy-panel-cta--secondary:hover {
   background: var(--sda-surface-3);
   border-color: var(--sda-text-muted);

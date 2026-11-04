@@ -85,6 +85,14 @@
   border-radius: var(--sda-radius);
 }
 
+/* Выключенная, неактивная или загружающаяся основная кнопка на ховере не светлеет: Button.tsx
+   ставит ей hoverColor, равный color, то есть ховер должен выглядеть как покой. */
+.button--gradient:disabled:hover,
+.button--gradient.button--inactive:hover,
+.button--gradient.button--loading:hover {
+  background: var(--sda-primary);
+}
+
 .button--hoverColor-grey:hover {
   background: var(--sda-surface-4);
 }
