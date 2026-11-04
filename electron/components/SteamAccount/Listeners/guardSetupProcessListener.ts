@@ -20,10 +20,7 @@ export default async (event: Electron.IpcMainEvent, params: { accountName: strin
         nextStep("start");
         await SuperMethods.Sleep(3000);
 
-        let proxy: ProxyInterface | undefined;
-        if (params.links.proxyId) {
-            proxy = proxyManager.getById(params.links.proxyId)?.params;
-        }
+        let proxy: ProxyInterface | null = Manager.RequireProxy(params.links.proxyId);
         if (params.links.newProxy) {
             const newProxy = Proxy.Generate(params.links.newProxy);
             ProxyStorage.Save(newProxy.id, newProxy);

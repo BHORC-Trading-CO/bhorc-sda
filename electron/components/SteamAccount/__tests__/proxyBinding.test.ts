@@ -49,7 +49,7 @@ jest.mock("request", () => {
 const mockLinked: { proxy: any } = { proxy: null };
 jest.mock("../../Manager/Manager", () => ({
   __esModule: true,
-  default: { GetSteamAccountLinkedData: () => ({ proxy: mockLinked.proxy }) },
+  default: { GetSteamAccountLinkedData: () => ({ proxy: mockLinked.proxy, proxyState: mockLinked.proxy ? "ok" : "none", proxyId: mockLinked.proxy?.id ?? null }) },
 }));
 
 import SteamAccount from "../SteamAccount";
@@ -98,7 +98,8 @@ describe("Привязанный прокси используется всем�
     const acc = makeAccount();
     expect(acc.proxyUrl()).toBeNull();
 
-    acc.setProxy(PROXY);
+    mockLinked.proxy = PROXY;
+    acc.setProxy();
 
     expect(lastSession().options.httpProxy).toBe("http://user:pass@10.0.0.1:8888");
     expect(lastRequestDefaults().proxy).toBe("http://user:pass@10.0.0.1:8888");
@@ -111,9 +112,9 @@ describe("Привязанный прокси используется всем�
     expect(lastRequestDefaults().proxy).toBeUndefined();
   });
 
-  it("setProxy(undefined) не оставляет состояние \"прокси есть, а трафик прямой\"", () => {
+  it("setProxy re-resolves the stored link", () => {
     const acc = makeAccount();
-    acc.setProxy(undefined as any);
+    acc.setProxy();
     expect(acc.proxy).toBeNull();
     expect(acc.proxyUrl()).toBeNull();
   });

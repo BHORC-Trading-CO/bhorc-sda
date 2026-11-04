@@ -35,9 +35,9 @@ class EditingFormStore {
     open(steamAccount: TableSteamAccountInterface) {
         this.isOpen = true;
         this.content.steamAccount = steamAccount;
-        this.content.proxy.savedId = steamAccount.proxy ? steamAccount.proxy.id : null;
+        this.content.proxy.savedId = steamAccount.proxyId;
         this.content.proxy.new = { host: '', port: '', username: '', password: '' };
-        if (steamAccount.proxy) {
+        if (steamAccount.proxyState !== "none") {
             this.switches.proxy = 'savedProxy';
         } else {
             this.switches.proxy = 'noProxy';

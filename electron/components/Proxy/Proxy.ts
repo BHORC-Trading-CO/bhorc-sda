@@ -8,11 +8,10 @@ import { sanitizeProxySetup } from "../Functions/sanitizeSmaFile";
 
 class Proxy {
     params: ProxyInterface;
-    request: RequestPromise;
+    get request(): RequestPromise { return new RequestPromise(this.params); }
 
     constructor(proxy: ProxyInterface) {
         this.params = proxy;
-        this.request = new RequestPromise(this.params);
     }
 
     editParams(newParams: { [K in keyof ProxyInterface]?: ProxyInterface[K] }) {

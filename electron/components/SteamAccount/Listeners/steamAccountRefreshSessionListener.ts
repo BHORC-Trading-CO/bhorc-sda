@@ -9,6 +9,6 @@ export default async (event: Electron.IpcMainEvent, id: string) => {
         await steamAccount.loginByPassword();
         event.reply(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION, id);
     } catch (err) {
-        event.reply(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id, err });
+        event.reply(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id, err: String(err) });
     }
 }

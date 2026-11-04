@@ -21,9 +21,8 @@ export default async (event: Electron.IpcMainEvent, params: { steamAccount: Stea
         console.log('create new account');
         await SuperMethods.Sleep(3000);
 
-        let proxy: ProxyInterface | undefined;
+        let proxy: ProxyInterface | null = Manager.RequireProxy(params.links.proxyId);
         if (params.links.proxyId){
-            proxy = proxyManager.getById(params.links.proxyId)?.params;
             console.log(`link proxy: ${proxy?.id}`);
         }
         if (params.links.newProxy){

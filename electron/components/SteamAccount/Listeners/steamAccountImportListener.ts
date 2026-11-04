@@ -12,6 +12,7 @@ export default (event: Electron.IpcMainEvent, accounts: [{ smaFile: SmaFileInter
     for (var account of accounts) {
         try {
             const smaFile = sanitizeSmaFile(account.smaFile);
+            if (!smaFile.proxy) Manager.RequireProxy(account.links.proxyId);
             const steamAccount = steamAccountImport(smaFile);
 
             // Прокси из .smaFile имеет приоритет: резолвим в локальный (существующий или новый)

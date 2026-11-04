@@ -10,7 +10,7 @@ jest.mock("../../application/application", () => ({ __esModule: true, default: {
 const mockProxy = { id: "p1", number: 1, host: "127.0.0.1", port: "9", username: "u", password: "p", deleted: false };
 jest.mock("../../manager/manager", () => ({
     __esModule: true,
-    default: { GetSteamAccountLinkedData: () => ({ proxy: mockProxy }), GetSteamAccountGroup: () => null },
+    default: { GetSteamAccountLinkedData: () => ({ proxy: mockProxy, proxyState: "ok", proxyId: mockProxy.id }), GetSteamAccountGroup: () => null },
 }));
 // Сам SteamAccount тут не нужен (тянет сеть и браузер): менеджеру хватает params и getSmaFile.
 jest.mock("../../SteamAccount/SteamAccount", () => ({ __esModule: true, default: class {} }));

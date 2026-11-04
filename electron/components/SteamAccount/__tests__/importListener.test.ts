@@ -3,7 +3,7 @@ jest.mock("../steamAccountManager", () => ({ __esModule: true, default: { sendAc
 jest.mock("../../Proxy/proxyManager", () => ({ __esModule: true, default: {
     getOrCreateBySetup: jest.fn(() => ({ params: { id: "generated-proxy" } })), sendProxiesToFront: jest.fn(),
 } }));
-jest.mock("../../manager/manager", () => ({ __esModule: true, default: { LinkProxyToSteamAccount: jest.fn() } }));
+jest.mock("../../manager/manager", () => ({ __esModule: true, default: { RequireProxy: jest.fn(), LinkProxyToSteamAccount: jest.fn() } }));
 
 import importListener from "../Listeners/steamAccountImportListener";
 import steamAccountImport from "../Processes/steamAccountImport";

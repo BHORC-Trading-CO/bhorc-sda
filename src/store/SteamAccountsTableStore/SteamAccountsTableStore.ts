@@ -138,8 +138,8 @@ class SteamAccountsTableStore {
       this.setPageSize(options.pageSize, false);
       this.setActivePage(options.activePage, false);
     });
-    window.Main.steamAccounts.onEditProxy((event, { id, proxy }) => {
-      this.editSteamAccount(id, { proxy });
+    window.Main.steamAccounts.onEditProxy((event, { id, proxy, proxyState, proxyId }) => {
+      this.editSteamAccount(id, { proxy, proxyState, proxyId });
     });
   }
 

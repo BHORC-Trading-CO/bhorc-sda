@@ -1,6 +1,6 @@
 // Прокси опционален: доменные методы работают и без прокси (прямое соединение —
 // осознанный выбор пользователя), и по-прежнему работают с прокси. Также проверяем
-// пересоздание сетевых клиентов в setProxy(null) (LOW-1).
+// пересоздание сетевых клиентов в setProxy after explicit unlink (LOW-1).
 // steamcommunity замокан спаем, чтобы проверить, что методы доходят до него.
 
 jest.mock("steamcommunity", () =>
@@ -13,10 +13,13 @@ jest.mock("steamcommunity", () =>
   }))
 );
 
+const mockLinked = { proxy: null as any };
+beforeEach(() => { mockLinked.proxy = null; });
+
 // Контролируем привязку прокси через Manager (по умолчанию — нет прокси).
 jest.mock("../../Manager/Manager", () => ({
   __esModule: true,
-  default: { GetSteamAccountLinkedData: () => ({ proxy: null }) },
+  default: { GetSteamAccountLinkedData: () => ({ proxy: mockLinked.proxy, proxyState: mockLinked.proxy ? "ok" : "none", proxyId: mockLinked.proxy?.id ?? null }) },
 }));
 
 import SteamAccount from "../SteamAccount";
@@ -63,21 +66,24 @@ describe("SteamAccount без прокси — методы работают н�
 describe("SteamAccount с прокси — методы работают через прокси", () => {
   it("getConfirmations доходит до community", async () => {
     const acc = makeAccount();
-    acc.setProxy(proxy);
+    mockLinked.proxy = proxy;
+    acc.setProxy();
     const spy = (acc as any).community.getConfirmations;
     await expect(acc.getConfirmations()).resolves.toEqual([]);
     expect(spy).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("setProxy(null) пересоздаёт сетевые клиенты (LOW-1)", () => {
+describe("setProxy after explicit unlink пересоздаёт сетевые клиенты (LOW-1)", () => {
   it("после снятия прокси community/session — новые инстансы, операции работают напрямую", async () => {
     const acc = makeAccount();
-    acc.setProxy(proxy);
+    mockLinked.proxy = proxy;
+    acc.setProxy();
     const communityWithProxy = (acc as any).community;
     const sessionWithProxy = (acc as any).session;
 
-    acc.setProxy(null);
+    mockLinked.proxy = null;
+    acc.setProxy();
 
     expect(acc.proxy).toBeNull();
     expect((acc as any).community).not.toBe(communityWithProxy);

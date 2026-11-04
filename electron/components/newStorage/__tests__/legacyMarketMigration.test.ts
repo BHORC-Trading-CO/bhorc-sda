@@ -29,7 +29,7 @@ jest.mock("../cryptoUserData", () => ({
 jest.mock("../../SteamAccount/Chrome/Chrome", () => jest.fn());
 jest.mock("../../manager/manager", () => ({
     __esModule: true,
-    default: { GetSteamAccountLinkedData: () => ({ proxy: null }) },
+    default: { GetSteamAccountLinkedData: () => ({ proxy: null, proxyState: "none", proxyId: null }) },
 }));
 jest.mock("../../SteamAccount/steamAccountManager", () => ({
     __esModule: true,

@@ -24,11 +24,11 @@ import { t } from "../../../i18n";
 type AbortChannelType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT | SteamAccountChannels.GUARD_SETUP_PROCESS_ABORT;
 type StepType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP | SteamAccountChannels.GUARD_SETUP_PROCESS_STEP;
 
-export default async function maFileLogin(steamAccountParams: SteamAccountSetupInterface, options?: { abortChannel?: AbortChannelType, stepChannel?: StepType }, proxy?: ProxySetupInterface): Promise<SmaFileInterface> {
+export default async function maFileLogin(steamAccountParams: SteamAccountSetupInterface, options?: { abortChannel?: AbortChannelType, stepChannel?: StepType }, proxy?: ProxySetupInterface | null): Promise<SmaFileInterface> {
+        const proxyUrl = buildProxyUrl(proxy);
     return new Promise<SmaFileInterface>(async (resolve, reject) => {
         // Прокси опционален: если передан — весь трафик идёт через него, если нет —
         // напрямую с реального IP (осознанный выбор пользователя).
-        const proxyUrl = buildProxyUrl(proxy);
         const session = new LoginSession(EAuthTokenPlatformType.MobileApp, {
             httpProxy: proxyUrl ? proxyUrl : undefined
         });

@@ -55,7 +55,9 @@ export class SteamAccountManager {
             
             for (var object of objectsArray) {
                 const steamAccount = new SteamAccount(object);
-                steamAccount.initSession();
+                steamAccount.initSession().catch(err => {
+                    application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id: steamAccount.params.id, err: String(err) });
+                });
                 this.addNew(steamAccount);
             }
             this.sendAccountsToFront();
@@ -91,7 +93,7 @@ export class SteamAccountManager {
         const compiledObject: CompiledSteamAccountInterface = {
             ...object.params,
             smaFile: object.getSmaFile(),
-            proxy: linkedData.proxy,
+            ...linkedData,
             group: Manager.GetSteamAccountGroup(object.params.id)
         }
        

@@ -18,6 +18,7 @@ import { app } from "electron";
 import SteamAccountInterface from "../../../interfaces/SteamAccount/SteamAccountInterface";
 import Manager from "../../manager/manager";
 import buildProxyUrl from "../../Proxy/proxyUrl";
+import ProxyUnavailableError from "../../Proxy/ProxyUnavailableError";
 import application from "../../application/application";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import path from "path";
@@ -182,14 +183,18 @@ export default class Chrome {
   }
   /** URL прокси для сетевых запросов профиля (аватар). null — прокси не привязан. */
   private proxyUrl(): string | null {
-    if (!this.proxy) return null;
-    const [host, port] = this.proxy.server.split(":");
-    return buildProxyUrl({ host, port, username: this.proxy.username, password: this.proxy.password });
+    const links = Manager.GetSteamAccountLinkedData(this.params.id);
+    if (links.proxyState === "missing") throw new ProxyUnavailableError(links.proxyId);
+    return buildProxyUrl(links.proxy);
   }
   setupProxy(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       try {
         const links = Manager.GetSteamAccountLinkedData(this.params.id);
+        if (links.proxyState === "missing") {
+          this.proxy = undefined;
+          throw new ProxyUnavailableError(links.proxyId);
+        }
         // Присваиваем всегда, в т.ч. undefined: иначе после отвязки прокси в объекте
         // остался бы прошлый и браузер стартовал бы через уже не привязанный прокси.
         this.proxy = links.proxy
@@ -208,6 +213,7 @@ export default class Chrome {
   start(webCookies: string[] = [], geo?: ProxyGeo | null): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
       try {
+        await this.setupProxy();
         const executablePath = await resolveBrowserPath();
         console.log("path: ", executablePath);
         // Локаль под гео прокси — нужна ДО запуска (флаг --lang), задаётся в generateChromeFlags.

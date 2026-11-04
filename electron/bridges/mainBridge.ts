@@ -138,7 +138,7 @@ const steamAccounts = {
   setTableOptions(options: TableOptions) {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_SAVE_TABLE_OPTIONS, options);
   },
-  onEditProxy(listener: (event: IpcRendererEvent, data: { id: string, proxy: TableProxyInterface | null }) => void) {
+  onEditProxy(listener: (event: IpcRendererEvent, data: { id: string, proxy: TableProxyInterface | null, proxyState: "none" | "ok" | "missing", proxyId: string | null }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_EDIT_PROXY, listener);
   }
 }

@@ -96,9 +96,13 @@ export default () => {
     onTrusted('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds: string[] } }) => {
         try {
             proxyManager.edit(params.id, params.proxy);
-            Manager.ResetProxy(params.id);
-            for (var steamAccountId of params.links.steamAccountIds) {
-                Manager.LinkProxyToSteamAccount(steamAccountId, params.id);
+            // Archive/restore is not a deliberate account-list edit.
+            if (!(Object.keys(params.proxy).length === 1 && "deleted" in params.proxy)) {
+                Manager.RequireProxy(params.id);
+                Manager.ResetProxy(params.id);
+                for (var steamAccountId of params.links.steamAccountIds) {
+                    Manager.LinkProxyToSteamAccount(steamAccountId, params.id);
+                }
             }
             proxyManager.sendProxiesToFront();
         } catch (err) {
@@ -107,7 +111,6 @@ export default () => {
     });
     onTrusted('DELETE_PROXY', async (event, id: string) => {
         try {
-            Manager.ResetProxy(id);
             proxyManager.delete(id);
         } catch (err) {
             event.reply('ERROR', err);

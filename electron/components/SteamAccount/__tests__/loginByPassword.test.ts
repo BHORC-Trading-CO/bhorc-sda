@@ -60,7 +60,7 @@ jest.mock("../Functions/getCommunityWebCookies", () => ({
 
 jest.mock("../../Manager/Manager", () => ({
   __esModule: true,
-  default: { GetSteamAccountLinkedData: () => ({ proxy: null }) },
+  default: { GetSteamAccountLinkedData: () => ({ proxy: null, proxyState: "none", proxyId: null }) },
 }));
 
 import SteamAccount from "../SteamAccount";
