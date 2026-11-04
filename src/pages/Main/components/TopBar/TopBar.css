@@ -36,7 +36,9 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  padding: 6px 10px;
+  /* Кнопки 34px (34–36 по требованиям), полоса заголовка остаётся 48px. */
+  height: 34px;
+  padding: 0 10px;
   border: none;
   border-radius: var(--sda-radius-sm);
   background: transparent;
@@ -61,9 +63,11 @@
   color: var(--sda-text);
 }
 
-/* Узкое окно: только иконка, квадратная кнопка. */
+/* Узкое окно: только иконка, квадратная кнопка 34×34. */
 .topbar-nav-item_compact {
-  padding: 7px;
+  width: 34px;
+  padding: 0;
+  justify-content: center;
 }
 
 .topbar-right {
@@ -95,7 +99,7 @@
 
 .language-menu-button {
   width: 34px;
-  height: 32px;
+  height: 34px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -116,7 +120,7 @@
 .language-menu-button_open:hover {
   background: var(--sda-surface-3);
   color: var(--sda-text);
-  border-color: #52525b;
+  border-color: var(--sda-border-strong);
 }
 
 /* Список под кнопкой, правым краем по кнопке: на Windows кнопка стоит левее кнопок заголовка,
@@ -130,7 +134,7 @@
   padding: 4px;
   background: var(--sda-surface-1);
   border: 1px solid var(--sda-border);
-  border-radius: 8px;
+  border-radius: var(--sda-radius);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
   font-family: var(--sda-font);
 }
@@ -151,7 +155,7 @@
   gap: 10px;
   padding: 7px 8px;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--sda-radius-sm);
   background: transparent;
   color: #d4d4d8;
   font-family: var(--sda-font);
