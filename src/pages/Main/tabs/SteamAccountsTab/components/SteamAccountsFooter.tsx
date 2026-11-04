@@ -10,8 +10,7 @@ const SteamAccountsFooter: FC = observer(() => {
     const { t } = useTranslation();
     const steamAccounts = store.steamAccountsTable.getSteamAccounts();
     const steamAccountsByPage = store.steamAccountsTable.getSteamAccountsByPages();
-    // Строк в текущем списке (группа, поиск, архив) по всем страницам — то же число, что у заголовка
-    const rowsCount = steamAccountsByPage.reduce((total, page) => total + page.length, 0);
+    // Всего — как раньше: все аккаунты, кроме архивных (с архивными, если они показаны); без фильтров группы и поиска
     const visibleSteamAccounts = Object.values(steamAccounts).filter(p => !p.deleted || store.steamAccountsTable.showDeleted);
     const selectedSteamAccounts = visibleSteamAccounts.filter(p => p.isSelected);
     // Ничего не выбрано: кнопки выглядят неактивными, но клики работают как раньше (напр. тост «не выбрано»)
@@ -21,7 +20,7 @@ const SteamAccountsFooter: FC = observer(() => {
     return (
         <>
             <div className="accounts-footer">
-                <TablePageSwitcher numberOfElements={rowsCount} countText={t("accounts.count", { count: rowsCount })} numberOfPages={steamAccountsByPage.length} options={{ avalible: [5, 10, 15, 20, 40, 100] }} pageSize={store.steamAccountsTable.pageSize} activePageNumber={store.steamAccountsTable.activePage} onChangeActivePage={(activePage) => {
+                <TablePageSwitcher numberOfElements={visibleSteamAccounts.length} countText={t("accounts.count", { count: visibleSteamAccounts.length })} numberOfPages={steamAccountsByPage.length} options={{ avalible: [5, 10, 15, 20, 40, 100] }} pageSize={store.steamAccountsTable.pageSize} activePageNumber={store.steamAccountsTable.activePage} onChangeActivePage={(activePage) => {
                     store.steamAccountsTable.setActivePage(activePage, true);
                 }}
                     onChangePageSize={(newPageSize) => {
@@ -91,7 +90,7 @@ const SteamAccountsFooter: FC = observer(() => {
                             store.windows.prompt({
                                 type: 'question',
                                 title: t('accounts.archiveSelected.title', { count: selectedSteamAccounts.length }),
-                                text: t(selectedSteamAccounts.length === 1 ? 'accounts.archiveSelected.textSingle' : 'accounts.archiveSelected.textMany', { numbers: selectedSteamAccounts.map(p => p.number).join(', ') }),
+                                text: t(selectedSteamAccounts.length === 1 ? 'accounts.archiveSelected.textSingleArchiveIcon' : 'accounts.archiveSelected.textManyArchiveIcon', { numbers: selectedSteamAccounts.map(p => p.number).join(', ') }),
                                 acceptButtonText: t('accounts.archiveSelected.accept', { count: selectedSteamAccounts.length }),
                                 cancelButtonText: t('prompt.cancel'),
                                 cb: () => {

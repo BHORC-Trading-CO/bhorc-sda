@@ -68,8 +68,14 @@
     box-shadow: var(--sda-focus-ring);
 }
 
-/* Запущен: метка, а не кнопка; точка пульсирует (.sda-pulse из motion.css) */
+/* Запущен: статус-пилюля, а не кнопка (фон yellow-900/50, текст yellow-400, как бейджи статусов);
+   точка пульсирует (.sda-pulse из motion.css). Рядом остаются Стоп и Фокус. */
 .browser-btn--running {
+    height: 24px;
+    padding: 0 10px 0 9px;
+    border-color: transparent;
+    border-radius: 999px;
+    background: var(--sda-warning-bg);
     color: var(--sda-warning);
     cursor: default;
 }
@@ -216,8 +222,8 @@
 .list-item--group .cell-text.group-pill {
     display: inline-block;
     max-width: 140px;
-    padding: 2px 8px;
-    border-radius: var(--sda-radius-sm);
+    padding: 2px 9px;
+    border-radius: 999px;
     background: var(--sda-surface-3);
     color: var(--accounts-text-soft);
     font-size: 11.5px;

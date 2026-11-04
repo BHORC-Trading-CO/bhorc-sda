@@ -34,8 +34,8 @@ const ToolbarIconButton: FC<{
 const SteamAccountsPanel = observer(() => {
     const { t } = useTranslation();
     const table = store.steamAccountsTable;
-    // Сколько аккаунтов в текущем списке (группа, поиск, архив) — столько же строк по всем страницам
-    const count = table.getSteamAccountsByPages().reduce((total, page) => total + page.length, 0);
+    // То же число, что «всего» в подвале: все аккаунты, кроме архивных (с архивными, если они показаны)
+    const count = Object.values(table.steamAccounts).filter((sa) => !sa.deleted || table.showDeleted).length;
 
     return (
         <div className="accounts-toolbar">
