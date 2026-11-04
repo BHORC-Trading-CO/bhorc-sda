@@ -45,12 +45,6 @@
     background: var(--sda-surface-1);
 }
 
-.list-headline-container {
-    display: flex;
-    max-height: 52px;
-    margin-bottom: 15px;
-}
-
 .list-headline {
     display: table-cell;
     vertical-align: middle;
@@ -138,11 +132,6 @@
     color: var(--sda-accent);
 }
 
-.list-headline-wrapper {
-    display: flex;
-    align-items: center;
-}
-
 /* ---------- Строки ---------- */
 
 /* Фон строки непрозрачный (слой поверх карточки): его наследуют прилипшие ячейки справа,
@@ -166,12 +155,6 @@
 .list-item-row--deleted:hover {
     background: repeating-linear-gradient(-60deg, var(--sda-border) 0, var(--sda-border) 1px, transparent 1px, transparent 6px), var(--sda-surface-1);
     color: var(--sda-text-subtle);
-}
-
-.list-item-container {
-    display: flex;
-    max-height: 52px;
-    margin-bottom: 15px;
 }
 
 .list-item {

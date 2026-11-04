@@ -21,10 +21,6 @@
   border-color: var(--sda-border-strong);
 }
 
-.imported-steam-account_item:last-child {
-  margin-bottom: 0px;
-}
-
 .imported-steam-account-cell {
   display: flex;
   align-items: center;

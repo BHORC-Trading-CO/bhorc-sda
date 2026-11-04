@@ -33,10 +33,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-.footer__info--active{
-    font-weight: 700;
-}
-
 /* Ряд кнопок сам переносится, если не влезает: ни одна кнопка не обрезается краем футера */
 .footer__control{
   display: flex;

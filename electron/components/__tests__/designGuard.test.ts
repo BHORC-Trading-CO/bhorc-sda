@@ -79,6 +79,17 @@ describe("design guard", () => {
         expect(hits).toEqual([]);
     });
 
+    test("no library spinners or CSS-in-JS: loaders are the Icon loader", () => {
+        // Спиннеры react-loading-icons и styled-components (GlobalStyle) заменены в редизайне:
+        // загрузка — <Icon name="loader" motion="spinAlways" />, стили — обычный CSS с токенами.
+        const removed = ["react-loading-icons", "styled-components", "react-circular-progressbar"];
+        const importRe = new RegExp(`(from\\s+|require\\(\\s*|import\\s+)["'](${removed.join("|")})["'/]`);
+        expect(findHits([importRe])).toEqual([]);
+        const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+        const declared = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
+        expect(declared.filter((name) => removed.includes(name) || name === "@types/styled-components")).toEqual([]);
+    });
+
     test("brand mark: angular S, white bars and the cyan middle bar", () => {
         const markPath = path.join(ROOT, "assets/logo/sda-mark.svg");
         expect(fs.existsSync(markPath)).toBe(true);

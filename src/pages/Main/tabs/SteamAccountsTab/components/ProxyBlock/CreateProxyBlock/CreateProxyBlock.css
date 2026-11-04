@@ -48,22 +48,6 @@
   padding-bottom: 15px;
 }
 
-.proxy-item__container__creation {
-  display: flex;
-  flex-direction: column;
-  overflow: scroll;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  height: 300px;
-}
-
-.proxy-button__container__creation {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .proxy-item {
   display: flex;
   flex-direction: column;

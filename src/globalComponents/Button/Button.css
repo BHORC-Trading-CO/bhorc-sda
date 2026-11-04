@@ -48,11 +48,6 @@
   margin-right: 0px;
 }
 
-.headline-button_gradient {
-  margin-right: 13px;
-  margin-left: 13px;
-}
-
 /* --- Основная --- */
 .button--gradient {
   background: var(--sda-primary);
@@ -69,7 +64,6 @@
 }
 
 .button--gradient.button--hoverColor-gradient:hover:not(:disabled),
-.button--hoverColor-darkPink:hover:not(:disabled),
 .button--hoverColor-dark-pink:hover:not(:disabled) {
   background: var(--sda-primary-hover);
   border-color: var(--sda-primary-hover);

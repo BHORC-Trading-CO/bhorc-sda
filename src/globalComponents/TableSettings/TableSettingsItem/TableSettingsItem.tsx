@@ -1,6 +1,5 @@
 import React from "react";
 import Field from "../../../../electron/interfaces/TableFields/Field";
-// import Checkbox from "../../Table/Fields/Checkbox";
 import Checkbox from "../../Checkbox/Checkbox";
 
 import './TableSettingsItem.css'
