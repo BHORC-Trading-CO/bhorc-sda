@@ -1,4 +1,4 @@
-import sanitizeAvatarUrl from "../../../../../../../electron/components/Functions/sanitizeAvatarUrl";
+import useAccountImage from "../../../../../../globalComponents/Images/useAccountImage";
 import React from "react";
 import SteamAccountInterface from "../../../../../../../electron/interfaces/SteamAccount/SteamAccountInterface";
 import TableSteamAccountInterface from "../../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface";
@@ -15,12 +15,15 @@ const AccountItem = observer((props: {
 }) => {
   const { steamAccount, links, setLinks } = props;
   const { t } = useTranslation();
+  const avatar = useAccountImage('avatar', steamAccount.id, steamAccount.secondary?.avatarUrl, `${steamAccount.proxyState}:${steamAccount.proxyId}`);
 
   return (
     <div className="account-item">
       <div className="account-wrapper text-white-medium">
         <img
-          src={sanitizeAvatarUrl(steamAccount.secondary?.avatarUrl)}
+          src={avatar.src || './assets/img/User.svg'}
+          onError={avatar.onError}
+          alt=""
           className="account-logo"
         ></img>
         <div className="account-item-text">

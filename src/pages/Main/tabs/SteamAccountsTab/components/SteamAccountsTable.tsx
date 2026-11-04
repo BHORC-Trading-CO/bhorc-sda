@@ -1,4 +1,4 @@
-import sanitizeAvatarUrl, { DEFAULT_AVATAR_URL } from "../../../../../../electron/components/Functions/sanitizeAvatarUrl";
+import useAccountImage from "../../../../../globalComponents/Images/useAccountImage";
 import react, { FC, useEffect, useState } from "react";
 import { CircularProgressbar } from "react-circular-progressbar";
 import Table, { Line, Cell } from "../../../../../globalComponents/Table/Table";
@@ -271,12 +271,11 @@ const GuardCode: FC<{ code: string }> = observer(({ code }) => {
 });
 
 // Аватар Steam; вместо стандартного «?» Steam (и при ошибке загрузки) — нейтральная заглушка
-const Avatar: FC<{ url?: string }> = ({ url }) => {
+const Avatar: FC<{ accountId: string, url?: string, routeKey: string }> = ({ accountId, url, routeKey }) => {
   const { t } = useTranslation();
-  const src = sanitizeAvatarUrl(url);
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const { src, onError } = useAccountImage('avatar', accountId, url, routeKey);
 
-  if (src === DEFAULT_AVATAR_URL || failedSrc === src) {
+  if (!src) {
     return (
       <span
         className="steam-account-avatar steam-account-avatar--placeholder"
@@ -292,7 +291,7 @@ const Avatar: FC<{ url?: string }> = ({ url }) => {
       src={src}
       className="steam-account-avatar"
       alt={t("fields.steamAccounts.steamAccountAvatar")}
-      onError={() => setFailedSrc(src)}
+      onError={onError}
     />
   );
 };
@@ -542,7 +541,7 @@ const CellJSX: FC<{
               <LoadingIcons.ThreeDots className="micro-download" />
             </div>
           ) : (
-            <Avatar url={steamAccount.secondary?.avatarUrl} />
+            <Avatar accountId={steamAccount.id} url={steamAccount.secondary?.avatarUrl} routeKey={`${steamAccount.proxyState}:${steamAccount.proxyId}`} />
           )}
         </>
       );

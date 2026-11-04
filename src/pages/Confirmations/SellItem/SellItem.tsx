@@ -3,17 +3,19 @@ import CConfirmation from "steamcommunity/classes/CConfirmation";
 import Button from "../../../globalComponents/Button/Button";
 import "./SellItem.css";
 import { useTranslation } from "react-i18next";
+import useAccountImage from "../../../globalComponents/Images/useAccountImage";
 
 interface Item { selected: boolean, confirmation: CConfirmation };
 
 function SellItem(props: sellItemInterface) {
-  const { item, onChange } = props;
+  const { item, onChange, accountId } = props;
   const { t } = useTranslation();
+  const icon = useAccountImage('icon', accountId, item.confirmation.icon);
 
   return (
     <div className={`sell-item-container${item.selected ? " sell-item-container--selected" : ""}`}>
       <div className="sell-item-logo">
-        <img src={item.confirmation.icon} style={{ width: "50px" }} alt="" />
+        <img src={icon.src || './assets/img/Photo.svg'} onError={icon.onError} style={{ width: "50px" }} alt="" />
       </div>
       <div className="sell-item-info">
         <div className="sell-item-name text-medium-white" title={item.confirmation.title}>
@@ -42,6 +44,7 @@ function SellItem(props: sellItemInterface) {
 }
 
 interface sellItemInterface {
+  accountId: string;
   item: Item;
   onChange: (isSelect: boolean) => void;
 }

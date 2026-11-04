@@ -4,9 +4,14 @@ import CConfirmation from 'steamcommunity/classes/CConfirmation';
 import SteamAccountChannels from '../interfaces/IpcChannels/SteamAccountChannels';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import { exposeLanguageApi } from './languageBridge';
+import ImageChannels from '../interfaces/IpcChannels/ImageChannels';
+import { requestImage } from './imageBridge';
 
 /** Методы для работы с беком приложения */
 const api = {
+  getIcon(accountId: string, url: string) {
+    return requestImage(ImageChannels.GET_CONFIRMATION_ICON, { accountId, url });
+  },
   getParams(id: string) { ipcRenderer.send(WindowsChannels.GET_CONFIRMATIONS_WINDOW_PARMAS, id); },
   onGetParams(listener: (event: IpcRendererEvent, params: { id: string, steamAccountName: string }) => void) {
     ipcRenderer.on(WindowsChannels.GET_CONFIRMATIONS_WINDOW_PARMAS, listener);

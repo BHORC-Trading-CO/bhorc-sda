@@ -1,4 +1,3 @@
-import sanitizeAvatarUrl from "../../../../../../../../../electron/components/Functions/sanitizeAvatarUrl";
 import React, { useState } from "react";
 import TableProxyInterface from "../../../../../../../../../electron/interfaces/Proxy/TableProxyInterface";
 import SmaFileInterface from "../../../../../../../../../electron/interfaces/SteamAccount/SmaFileInterface";
@@ -31,7 +30,7 @@ const ImportAccountItem = observer(
         <div className={`imported-steam-account-item text-white-medium${isMaFileOpen || isProxyOpen ? " imported-steam-account-item_open" : ""}`}>
           <div className="imported-steam-account-cell imported-steam-account-avatar-container">
             <img
-              src={sanitizeAvatarUrl(smaFile.secondary?.avatarUrl)}
+              src="./assets/img/User.svg"
               className="imported-steam-account-avatar"
               alt=""
             ></img>

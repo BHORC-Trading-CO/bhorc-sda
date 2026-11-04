@@ -23,6 +23,8 @@ import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import path from "path";
 import createStore from "../components/newStorage/createStore";
 import { exposeLanguageApi } from './languageBridge';
+import ImageChannels from '../interfaces/IpcChannels/ImageChannels';
+import { requestImage } from './imageBridge';
 
 const SteamTotp = require('steam-totp');
 
@@ -41,6 +43,9 @@ const setRequestHeaders = () => {
 }
 
 const steamAccounts = {
+  getAvatar(accountId: string) {
+    return requestImage(ImageChannels.GET_AVATAR, { accountId });
+  },
   getBrowserStatus(id: string) {
     ipcRenderer.send(SteamAccountChannels.GET_BROWSER_STARTUS, id);
   },
