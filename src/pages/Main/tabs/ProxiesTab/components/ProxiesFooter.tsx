@@ -34,15 +34,15 @@ const ProxiesFooter: FC = observer(() => {
 
                     <button
                         type="button"
-                        className="button button--view-default button--size-large footer__button proxy-test-selected"
+                        className="button button--view-default button--size-large button--grey button--hoverColor-grey footer__button proxy-test-selected"
                         onClick={() => {
                             const selectedProxies = store.proxiesTable.getProxies().filter(p => p.isSelected && !p.deleted);
                             if (selectedProxies.length === 0) return;
                             store.proxiesTable.testSelected();
                         }}
                     >
-                        <Icon name="activity" size={18} motion="pop" />
-                        <span>{t("proxies.footer.testAll")}</span>
+                        <Icon name="activity" size={16} motion="pop" className="button__icon" />
+                        <span className="button__text">{t("proxies.footer.testAll")}</span>
                     </button>
 
                     <Button
@@ -50,7 +50,7 @@ const ProxiesFooter: FC = observer(() => {
                         view="default"
                         size="large"
                         color="grey"
-                        hoverColor="grey"
+                        hoverColor="danger"
                         className="footer__button"
                         icon="trash"
                         text={t("common.buttons.delete")}

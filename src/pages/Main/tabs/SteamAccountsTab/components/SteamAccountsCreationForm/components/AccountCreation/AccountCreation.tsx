@@ -2,7 +2,6 @@ import react, { FC, useState } from 'react';
 import { observer } from 'mobx-react';
 import store from '../../../../../../../../store/store';
 import CreationStepType from '../../../../../../../../../electron/interfaces/SteamAccount/CreationStepType';
-import LoadingIcons from 'react-loading-icons'
 import './AccountCreation.css';
 import Button from '../../../../../../../../globalComponents/Button/Button';
 import { useTranslation } from 'react-i18next';
@@ -56,7 +55,10 @@ const Step: FC<{ title: string, text: string }> = (props) => {
     return <div className='account-creation_step'>
         <div className='title'>{title}</div>
         <div className='text'>{text}</div>
-        <LoadingIcons.BallTriangle style={{ width: '50px', height: '50px', marginBottom: '30px' }} />
+        {/* Шаг идёт: кольцо с циановой дугой крутится классом .sda-spin (motion.css, выключено при
+            reduced motion). Только CSS, без импорта Icon: GuardSetup рендерится в jest-тесте без
+            загрузчика CSS. Декоративное: что происходит, говорит заголовок шага. */}
+        <span className='account-creation_loader sda-spin' aria-hidden='true'></span>
         <Button size='medium' text={t('accounts.creation.abort')} color='grey' hoverColor='light-grey' onClick={() => {
             store.steamAccountsTable.creationForm.close();
         }} />

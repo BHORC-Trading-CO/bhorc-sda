@@ -5,23 +5,24 @@
   align-items: center;
 }
 
-/* Высота, рамка, плейсхолдер и фокус одинаковые во всех формах (SDA-9). */
+/* Поле QBS: #27272a, рамка #3f3f46, радиус 6, плейсхолдер #71717a, фокус — циановая рамка
+   и кольцо. Одинаковое во всех формах. */
 .input-container .input-text {
   width: 100%;
-  height: 40px;
+  height: 36px;
   outline: none;
   background: var(--sda-surface-3);
   border: 1px solid var(--sda-border-strong);
-  border-radius: var(--sda-radius);
-  padding: 0px 14px;
+  border-radius: var(--sda-radius-sm);
+  padding: 0px 12px;
   color: var(--sda-text);
+  font-family: var(--sda-font);
+  font-size: 13px;
+  line-height: 18px;
   transition: border-color var(--sda-transition), box-shadow var(--sda-transition);
 }
 .input-container .input-text::placeholder {
-  color: var(--sda-text-muted);
-}
-.input-container .input-text:hover {
-  border-color: var(--sda-surface-4);
+  color: var(--sda-text-subtle);
 }
 .input-container .input-text:focus {
   border-color: var(--sda-accent);
@@ -31,20 +32,23 @@
   color: var(--sda-text-muted);
   background: var(--sda-surface-2);
 }
+.input-container select.input-text {
+  cursor: pointer;
+}
 .input-container .input-text[aria-invalid="true"] {
   border-color: var(--sda-danger);
 }
 .input-container .input-text_with-eye {
-  padding-right: 42px;
+  padding-right: 40px;
 }
 
 /* Кнопка «показать пароль»: иконка-маска окрашивается токеном, фокус виден. */
 .input-eye {
   position: absolute;
   top: 50%;
-  right: 6px;
-  width: 30px;
-  height: 30px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
   margin: 0px;
   padding: 0px;
   transform: translateY(-50%);

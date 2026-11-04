@@ -4,13 +4,21 @@
     flex-direction: column;
     padding: 0px;
 }
+/* Аватар 36 px — по высоте полей ввода рядом; заглушка — круг с градиентом, как в таблице. */
 .steam-account_edit-form .steam-account_edit-form__avatar {
-    flex: 0 0 40px;
-    width: 40px;
-    height: 40px;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    border: 1px solid var(--sda-border-strong);
-    background: var(--sda-surface-0);
+    border: none;
+    background: linear-gradient(135deg, var(--sda-surface-4), var(--sda-surface-3));
+    color: var(--sda-text-muted);
+    object-fit: cover;
+}
+.steam-account_edit-form span.steam-account_edit-form__avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .steam-account_edit-form .import-account {
     margin-top: 12px;

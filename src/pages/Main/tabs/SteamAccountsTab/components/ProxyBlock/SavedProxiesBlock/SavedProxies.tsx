@@ -56,9 +56,9 @@ const SavedProxiesBlock: FC<{
                 <div className="proxy-item__container">
                   <div className="proxy-item text-white-medium">
                     <div className="proxy-item-row">
-                      <div className="proxy-item-cell proxy-table-cell_number">{activeProxy.number}</div>
-                      <div className="proxy-item-cell" title={activeProxy.host}>{activeProxy.host}</div>
-                      <div className="proxy-item-cell">{activeProxy.port}</div>
+                      <div className="proxy-item-cell proxy-item-cell_mono proxy-table-cell_number">{activeProxy.number}</div>
+                      <div className="proxy-item-cell proxy-item-cell_mono" title={activeProxy.host}>{activeProxy.host}</div>
+                      <div className="proxy-item-cell proxy-item-cell_mono">{activeProxy.port}</div>
                       <div className="proxy-item-cell"><Password style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }} password={activeProxy.username} /></div>
                       <div className="proxy-item-cell"><Password style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }} password={activeProxy.password} /></div>
                       <div className="proxy-item-cell"><Button onClick={() => {

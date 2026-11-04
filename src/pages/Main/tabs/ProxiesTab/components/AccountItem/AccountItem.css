@@ -1,14 +1,20 @@
+/* Аккаунт в списке привязки: строка #18181b, ховер как у строки таблицы QBS. */
 .proxies-form .account-item {
   display: flex;
   width: 100%;
   min-height: 40px;
   flex-shrink: 0;
-  background: var(--sda-surface-3);
-  border-radius: var(--sda-radius);
-  margin-bottom: 5px;
+  background: var(--sda-surface-1);
+  border-radius: var(--sda-radius-sm);
+  margin-bottom: 4px;
+  transition: background-color var(--sda-transition);
   padding-left: 6px;
   align-items: center;
   justify-content: space-between;
+}
+
+.proxies-form .account-item:hover {
+  background: var(--sda-surface-3);
 }
 
 .proxies-form .account-item:last-child {
@@ -16,11 +22,12 @@
 }
 
 .proxies-form .account-logo {
-  border-radius: var(--sda-radius-lg);
-  border: 1px solid var(--sda-border-strong);
-  width: 32px;
-  height: 32px;
+  border-radius: 50%;
+  border: none;
+  width: 28px;
+  height: 28px;
   margin-right: 16px;
+  object-fit: cover;
 }
 
 .proxies-form .account-logo--placeholder {
@@ -29,7 +36,7 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  background: var(--sda-surface-2);
+  background: linear-gradient(135deg, var(--sda-surface-4), var(--sda-surface-3));
   color: var(--sda-text-muted);
 }
 
@@ -55,7 +62,7 @@
 .proxies-form .account-item .checkbox-checked {
   width: 22px;
   height: 22px;
-  border-radius: var(--sda-radius-sm);
+  border-radius: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -63,9 +70,13 @@
   margin-right: 10px;
 }
 
+/* Пустая галочка — рамка #52525b как у чекбокса таблицы в макете, галочка не видна. */
 .proxies-form .checkbox-default__proxy {
-  background: var(--sda-surface-2);
-  box-shadow: inset 0 0 0 1px var(--sda-border-strong);
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px #52525b;
+  color: transparent;
+}
+.proxies-form .checkbox-default__proxy:hover {
   color: var(--sda-text-subtle);
 }
 
@@ -75,6 +86,6 @@
 }
 
 .proxies-form .account-item .account-wrapper { min-width: 0; }
-.proxies-form .account-item .account-wrapper:first-child { flex: 1; color: var(--sda-text); }
+.proxies-form .account-item .account-wrapper:first-child { flex: 1; color: #d4d4d8; font-size: 13px; }
 .proxies-form .account-item .account-item-text { min-width: 0; white-space: nowrap; }
-.proxies-form .account-item .account-item-proxy { width: 250px; }
+.proxies-form .account-item .account-item-proxy { width: 250px; font-family: var(--sda-font-mono); font-size: 12px; font-variant-numeric: tabular-nums; }

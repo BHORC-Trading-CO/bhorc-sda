@@ -16,8 +16,7 @@ body {
   height: 20px;
 }
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
+  font-family: var(--sda-font-mono);
 }
 html {
   overflow: hidden;
@@ -124,13 +123,32 @@ p {
   color: #ffffff;
 }
 
+/* Затемнение под модальными окнами (MiniWindow, Prompt): чёрный 50 %, как у диалога QBS,
+   проявляется вместе с окном. Класс проверяется в onClick (клик мимо окна закрывает его),
+   поэтому других классов на этом элементе нет. */
 .darkBackground {
   user-select: none;
   top: 0%;
   position: fixed;
   width: 100vw;
   height: 100vh;
-  background: var(--sda-overlay);
+  background: rgba(0, 0, 0, 0.5);
+  animation: sda-overlay-in 200ms ease-out;
+}
+
+@keyframes sda-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .darkBackground {
+    animation: none;
+  }
 }
 
 /* --- Глобальные состояния (SDA-9) --- */

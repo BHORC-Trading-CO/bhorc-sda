@@ -93,9 +93,9 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
         case AvalibleTypes.number:
             return <>{proxy.number}</>;
         case AvalibleTypes.proxyHost:
-            return <>{proxy.host}</>;
+            return <span className='proxy-mono'>{proxy.host}</span>;
         case AvalibleTypes.proxyPort:
-            return <>{proxy.port}</>;
+            return <span className='proxy-mono'>{proxy.port}</span>;
         case AvalibleTypes.proxyUsername:
             return <>{proxy.username}</>;
         case AvalibleTypes.proxyPassword:
@@ -122,16 +122,20 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
         case AvalibleTypes.deleteButton:
             return <ProxyActionButton icon='delete' label={t(proxy.deleted ? 'proxies.actions.delete' : 'proxies.actions.archive')} data-testid='proxy-archive' onClick={() => {
                 if (proxy.deleted) {
-                    store.windows.prompt({
-                        type: 'question',
+                    // danger: только вид кнопки подтверждения в Prompt (красная), поведение то же.
+                    // Объект в переменной, как в GroupEditForm: в PromptInterface поля danger нет.
+                    const content = {
+                        type: 'question' as const,
                         title: t('proxies.delete.permanentTitle', { number: proxy.number }),
                         text: proxy.steamAccountIds.length ? t('proxies.deleteLinkedWarning', { count: proxy.steamAccountIds.length }) : t('common.irreversible'),
                         acceptButtonText: t('common.buttons.deleteIt'),
                         cancelButtonText: t('prompt.cancel'),
+                        danger: true,
                         cb: () => {
                             store.proxiesTable.deleteProxy(proxy.id);
                         }
-                    });
+                    };
+                    store.windows.prompt(content);
                 } else {
                     store.windows.prompt({
                         type: 'question',

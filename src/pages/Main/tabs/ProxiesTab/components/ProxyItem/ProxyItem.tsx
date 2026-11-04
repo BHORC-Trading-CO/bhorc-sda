@@ -37,8 +37,8 @@ const ProxyItem = observer((props: {
   return (
     <div className="proxy-item text-white-medium">
       <div className="proxy-item-row">
-        <div className="proxy-item-cell" title={proxyData.host}>{proxyData.host || <span className="proxy-empty-cell">—</span>}</div>
-        <div className="proxy-item-cell" title={proxyData.port}>{proxyData.port || <span className="proxy-empty-cell">—</span>}</div>
+        <div className="proxy-item-cell proxy-item-cell_mono" title={proxyData.host}>{proxyData.host || <span className="proxy-empty-cell">—</span>}</div>
+        <div className="proxy-item-cell proxy-item-cell_mono" title={proxyData.port}>{proxyData.port || <span className="proxy-empty-cell">—</span>}</div>
         <div className="proxy-item-cell" title={proxyData.username}>{proxyData.username || <span className="proxy-empty-cell">—</span>}</div>
         <div className="proxy-item-cell" title={proxyData.password}>{proxyData.password || <span className="proxy-empty-cell">—</span>}</div>
         <div

@@ -1,16 +1,16 @@
-/* Страница Browser (SDA-6). Цвета, радиусы и переходы — только токены из tokens.css.
+/* Страница Browser (SDA-6) в стиле QBS (редизайн R4): карточки #18181b с рамкой #27272a и
+   радиусом 10, строки с рамкой #27272a, кнопки и поля высотой 34 px с радиусом 6.
    Иконки — lucide (globalComponents/Icon), рисуются currentColor. */
 
 .browser-tab {
   min-height: 0;
   font-family: var(--sda-font);
+  font-size: 13px;
 }
 
 /* Шапка: заголовок и под ним, что делает страница и когда применяются изменения. */
 .browser-panel {
   flex: 0 0 auto;
-  padding-top: 14px;
-  padding-bottom: 14px;
 }
 .browser-panel__titles {
   display: flex;
@@ -22,9 +22,11 @@
   margin-right: 0;
 }
 .browser-panel__subtitle {
-  font-size: 14px;
+  margin: 0;
+  font-size: 13px;
   line-height: 19px;
   color: var(--sda-text-muted);
+  white-space: normal;
 }
 
 /* Прокручивается только тело страницы, шапка остаётся на месте. */
@@ -47,35 +49,52 @@
   }
 }
 
-/* --- Блок: стартовые страницы или расширения --- */
+/* --- Карточка: стартовые страницы или расширения --- */
 .browser-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-width: 0;
-  padding: 16px 18px 18px;
-  border-radius: var(--sda-radius-lg);
+  padding: 16px;
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius);
   background: var(--sda-surface-1);
 }
 .browser-card__head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 36px;
+  gap: 8px;
+  min-height: 34px;
+}
+.browser-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--sda-radius-sm);
+  background: var(--sda-surface-3);
+  color: var(--sda-accent);
 }
 .browser-card__title {
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 24px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
   color: var(--sda-text);
 }
+/* Счётчик — пилюля на #27272a; в тексте есть слова («1 of 2 on»), поэтому Geist с табличными
+   цифрами, а не моноширинный. */
 .browser-card__badge {
   flex-shrink: 0;
-  padding: 0 8px;
-  border: 1px solid var(--sda-border-strong);
+  padding: 2px 8px;
   border-radius: 999px;
-  font-size: 12px;
-  line-height: 20px;
+  background: var(--sda-surface-3);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 14px;
   color: var(--sda-text-muted);
   white-space: nowrap;
 }
@@ -83,6 +102,7 @@
   margin-left: auto;
 }
 .browser-card__hint {
+  margin: 0;
   font-size: 13px;
   line-height: 18px;
   color: var(--sda-text-muted);
@@ -93,6 +113,8 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 .browser-row {
@@ -101,10 +123,14 @@
   gap: 10px;
   min-width: 0;
   min-height: 44px;
-  padding: 6px 8px 6px 12px;
+  padding: 6px 6px 6px 12px;
   border: 1px solid var(--sda-border);
-  border-radius: var(--sda-radius);
-  background: var(--sda-surface-2);
+  border-radius: var(--sda-radius-sm);
+  background: transparent;
+  transition: background-color var(--sda-transition);
+}
+.browser-row:hover {
+  background: rgba(39, 39, 42, 0.45);
 }
 .browser-row__actions {
   display: flex;
@@ -116,21 +142,22 @@
 .browser-link__index {
   flex-shrink: 0;
   width: 20px;
-  font-size: 13px;
+  font-family: var(--sda-font-mono);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  color: var(--sda-text-muted);
+  color: var(--sda-text-subtle);
 }
 .browser-link__url {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   font-family: var(--sda-font-mono);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 18px;
   white-space: nowrap;
   text-overflow: ellipsis;
-  color: var(--sda-text);
+  color: #d4d4d8;
 }
 .browser-link__edit {
   display: flex;
@@ -145,16 +172,30 @@
   gap: 8px;
 }
 
-/* Расширение: переключатель, состояние словом, имя/версия/папка, «Убрать». */
+/* Расширение: переключатель, состояние словом, значок, имя/версия/папка, «Убрать». */
 .browser-extension__state {
   flex-shrink: 0;
-  min-width: 46px;
-  font-size: 13px;
-  font-weight: 700;
+  min-width: 40px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--sda-text);
 }
 .browser-extension--off .browser-extension__state {
+  color: var(--sda-text-subtle);
+}
+.browser-extension__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--sda-radius-sm);
+  background: var(--sda-surface-3);
   color: var(--sda-text-muted);
+}
+.browser-extension--off .browser-extension__icon {
+  color: var(--sda-text-subtle);
 }
 .browser-extension__info {
   display: flex;
@@ -171,9 +212,9 @@
 }
 .browser-extension__name {
   overflow: hidden;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 20px;
+  line-height: 19px;
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--sda-text);
@@ -183,20 +224,21 @@
 }
 .browser-extension__version {
   flex-shrink: 0;
-  font-size: 13px;
+  font-family: var(--sda-font-mono);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--sda-text-muted);
+  color: var(--sda-text-subtle);
 }
 .browser-extension__path {
   direction: rtl;
   text-align: left;
   overflow: hidden;
   font-family: var(--sda-font-mono);
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 11px;
+  line-height: 16px;
   white-space: nowrap;
   text-overflow: ellipsis;
-  color: var(--sda-text-muted);
+  color: var(--sda-text-subtle);
 }
 .browser-extension__status {
   font-size: 12px;
@@ -204,38 +246,31 @@
   color: var(--sda-warning);
 }
 
-/* --- Предупреждение о доверии к расширениям: заметно, но без тревожной модалки --- */
+/* --- Предупреждение о доверии к расширениям: жёлтый бейдж, без тревожной модалки --- */
 .browser-note {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
-  border-left: 3px solid var(--sda-warning);
   border-radius: var(--sda-radius-sm);
   background: var(--sda-warning-bg);
+  color: var(--sda-warning);
 }
 .browser-note__mark {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--sda-warning);
-  color: var(--sda-surface-0);
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 20px;
-  text-align: center;
+  margin-top: 2px;
 }
 .browser-note__text {
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sda-text);
+  margin: 0;
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--sda-warning);
 }
 
 .browser-empty {
+  margin: 0;
   padding: 12px 14px;
   border: 1px dashed var(--sda-border-strong);
-  border-radius: var(--sda-radius);
+  border-radius: var(--sda-radius-sm);
   font-size: 13px;
   line-height: 18px;
   color: var(--sda-text-muted);
@@ -250,22 +285,19 @@
 .browser-input {
   flex: 1 1 auto;
   min-width: 0;
-  height: 36px;
+  height: 34px;
   padding: 0 12px;
   border: 1px solid var(--sda-border-strong);
-  border-radius: var(--sda-radius);
+  border-radius: var(--sda-radius-sm);
   outline: none;
   background: var(--sda-surface-3);
   color: var(--sda-text);
   font-family: var(--sda-font-mono);
-  font-size: 13px;
+  font-size: 12px;
   transition: border-color var(--sda-transition), box-shadow var(--sda-transition);
 }
 .browser-input::placeholder {
-  color: var(--sda-text-muted);
-}
-.browser-input:hover:not(:disabled) {
-  border-color: var(--sda-surface-4);
+  color: var(--sda-text-subtle);
 }
 .browser-input:focus {
   border-color: var(--sda-accent);
@@ -278,53 +310,63 @@
   opacity: 0.5;
 }
 .browser-field-error {
+  margin: 0;
   font-size: 13px;
   line-height: 18px;
   color: var(--sda-danger);
 }
 
-/* --- Кнопки --- */
+/* --- Кнопки: контурная и основная синяя с бликом (.sda-sweep) --- */
 .browser-button {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 36px;
+  gap: 6px;
+  height: 34px;
   padding: 0 14px;
   border: 1px solid var(--sda-border-strong);
-  border-radius: var(--sda-radius);
-  background: var(--sda-surface-3);
-  color: var(--sda-text);
+  border-radius: var(--sda-radius-sm);
+  background: transparent;
+  color: #d4d4d8;
   font-family: var(--sda-font);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color var(--sda-transition), border-color var(--sda-transition), box-shadow var(--sda-transition);
+  transition: background-color var(--sda-transition), border-color var(--sda-transition), color var(--sda-transition), box-shadow var(--sda-transition);
 }
 .browser-button:hover:not(:disabled) {
-  border-color: var(--sda-text-muted);
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
 }
-/* Главное действие — синяя основная кнопка (белый текст на --sda-primary — 5.2:1). */
+.browser-button:focus-visible {
+  outline: none;
+  box-shadow: var(--sda-focus-ring);
+}
 .browser-button--accent {
   border-color: var(--sda-primary);
   background: var(--sda-primary);
+  color: #fff;
+  font-weight: 550;
 }
 .browser-button--accent:hover:not(:disabled) {
   border-color: var(--sda-primary-hover);
   background: var(--sda-primary-hover);
+  color: #fff;
 }
 .browser-button:disabled {
   opacity: 0.5;
   cursor: default;
 }
+
+/* Кнопка-иконка строки («ghost»): 28 px, серая, при наведении белая на #27272a. */
 .browser-icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: none;
   border-radius: var(--sda-radius-sm);
@@ -334,6 +376,10 @@
 }
 .browser-icon-button:hover:not(:disabled) {
   background: var(--sda-surface-3);
+}
+.browser-icon-button:focus-visible {
+  outline: none;
+  box-shadow: var(--sda-focus-ring);
 }
 .browser-icon-button:disabled {
   opacity: 0.35;
@@ -346,41 +392,52 @@
 .browser-icon-button:hover:not(:disabled) .browser-icon-button__icon {
   color: var(--sda-text);
 }
+.browser-icon-button--danger:hover:not(:disabled) {
+  background: var(--sda-danger-bg);
+}
 .browser-icon-button--danger:hover:not(:disabled) .browser-icon-button__icon {
   color: var(--sda-danger);
 }
 
-/* --- Переключатель расширения --- */
+/* --- Переключатель расширения — switch QBS: 36×20, ползунок 16 px белый,
+   выключен — #3f3f46, включён — #2563eb --- */
 .browser-switch {
   position: relative;
   flex-shrink: 0;
-  width: 38px;
-  height: 22px;
+  width: 36px;
+  height: 20px;
   padding: 0;
-  border: 1px solid var(--sda-border-strong);
+  border: 2px solid transparent;
   border-radius: 999px;
   background: var(--sda-surface-4);
   cursor: pointer;
-  transition: border-color var(--sda-transition);
+  transition: background-color var(--sda-transition);
 }
-.browser-switch:hover {
-  border-color: var(--sda-text-muted);
+.browser-switch:focus-visible {
+  outline: none;
+  box-shadow: var(--sda-focus-ring);
 }
 .browser-switch__knob {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: var(--sda-text-muted);
-  transition: transform var(--sda-transition), background-color var(--sda-transition);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform var(--sda-transition);
 }
 .browser-switch--on {
-  border-color: transparent;
   background: var(--sda-primary);
 }
 .browser-switch--on .browser-switch__knob {
-  background: var(--sda-text);
   transform: translateX(16px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .browser-switch,
+  .browser-switch__knob {
+    transition: none;
+  }
 }

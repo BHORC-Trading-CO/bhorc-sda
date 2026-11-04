@@ -3,8 +3,10 @@
    иначе поле остаётся белым браузерным. */
 @import "../globalComponents/TextArea/TextArea.css";
 
-/* Модальное окно (MiniWindow). Центр области под полосой заголовка окна (.titlebar,
-   --sda-titlebar-height), высота ограничена окном: содержимое прокручивается внутри .form-content. */
+/* Модальное окно (MiniWindow) в стиле диалога QBS: #18181b, рамка #27272a, радиус 10,
+   появление — проявление и рост от 95 % (выключено при prefers-reduced-motion).
+   Центр области под полосой заголовка окна (--sda-titlebar-height), высота ограничена окном:
+   содержимое прокручивается внутри .form-content. */
 .form {
     top: calc(50% + var(--sda-titlebar-height) / 2);
     left: 50%;
@@ -13,12 +15,26 @@
     max-height: calc(100vh - var(--sda-titlebar-height) - 24px);
     display: flex;
     flex-direction: column;
-    border-radius: var(--sda-radius-lg);
+    border-radius: var(--sda-radius);
     border: 1px solid var(--sda-border);
-    box-shadow: 0 24px 64px var(--sda-overlay);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
     position: fixed;
     background-color: var(--sda-modal);
     color: var(--sda-text);
+    font-size: 13px;
+    animation: sda-dialog-in 200ms ease-out;
+}
+
+/* Окно сдвинуто translate(-50%, -50%), поэтому кадры анимации повторяют сдвиг. */
+@keyframes sda-dialog-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
 }
 
 .form .form-caption {
@@ -26,15 +42,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     background-color: var(--sda-modal);
-    height: 44px;
+    height: 52px;
     border-bottom: 1px solid var(--sda-border);
-    border-radius: var(--sda-radius-lg) var(--sda-radius-lg) 0px 0px;
-    padding-left: 24px;
-    padding-right: 0px;
-    line-height: 44px;
+    border-radius: var(--sda-radius) var(--sda-radius) 0px 0px;
+    padding: 0px 12px 0px 20px;
     font-size: 15px;
     font-weight: 600;
+    line-height: 20px;
 }
 .form .form-caption > div:first-child {
     min-width: 0;
@@ -42,23 +58,24 @@
     white-space: nowrap;
     text-overflow: ellipsis;
 }
+/* Крестик — кнопка-иконка «ghost»: серая, при наведении белая на #27272a. */
 .form .form-caption .form-cross {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 44px;
+    width: 30px;
+    height: 30px;
     padding: 0;
     border: none;
     background: transparent;
     color: var(--sda-text-muted);
     cursor: pointer;
-    border-radius: 0px var(--sda-radius-lg) 0px 0px;
+    border-radius: var(--sda-radius-sm);
     transition: background-color var(--sda-transition), color var(--sda-transition);
 }
 .form .form-caption .form-cross:hover {
-    background-color: var(--sda-danger);
+    background-color: var(--sda-surface-3);
     color: var(--sda-text);
 }
 /* Колонка: короткое содержимое (формы групп) растягивается до min-height окна,
@@ -74,7 +91,7 @@
 
 /* Разделы формы: короткий заголовок, подсказка, одинаковые отступы. */
 .sda-form-section {
-    padding: 16px 24px;
+    padding: 16px 20px;
 }
 .sda-form-section + .sda-form-section {
     border-top: 1px solid var(--sda-border);
@@ -87,17 +104,19 @@
 }
 .sda-form-section__title {
     margin: 0;
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     line-height: 20px;
     color: var(--sda-text);
 }
+/* «Необязательно»: нейтральный бейдж-пилюля. */
 .sda-form-section__badge {
-    padding: 0px 8px;
-    border: 1px solid var(--sda-border-strong);
+    padding: 2px 8px;
     border-radius: 999px;
-    font-size: 12px;
-    line-height: 18px;
+    background: var(--sda-surface-3);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 14px;
     color: var(--sda-text-muted);
 }
 .sda-form-section__hint {
@@ -110,47 +129,50 @@
     margin-top: 12px;
 }
 
-/* Переключатель вкладок (Navigation): один стиль во всех формах.
-   Неактивная вкладка — читаемый приглушённый текст, активная — фирменный градиент. */
+/* Переключатель вкладок (Navigation) — вкладки QBS: дорожка-пилюля #27272a с отступом 4 px,
+   активная вкладка #3f3f46 с белым текстом, неактивная — #a1a1aa. Активная приходит как
+   color="gradient", поэтому синюю заливку и блик здесь снимаем. */
 .form .account-creation-navigation__accounts {
+    display: inline-flex;
+    flex-wrap: wrap;
     gap: 2px;
     margin-right: 0px;
-    padding: 3px;
-    background: var(--sda-surface-2);
-    border: 1px solid var(--sda-border);
-    border-radius: var(--sda-radius);
+    padding: 4px;
+    background: var(--sda-surface-3);
+    border: none;
+    border-radius: 8px;
 }
 .form .account-creation-navigation__accounts .button {
-    min-width: 132px;
-    height: 32px;
+    min-width: 0;
+    height: 28px;
     margin: 0px;
-    padding: 0px 16px;
+    padding: 0px 12px;
+    border: none;
     border-radius: var(--sda-radius-sm);
-    transition: background-color var(--sda-transition), box-shadow var(--sda-transition);
+    font-size: 13px;
+    font-weight: 500;
+    transition: background-color var(--sda-transition), color var(--sda-transition), box-shadow var(--sda-transition);
 }
 .form .account-creation-navigation__accounts .button .button__text {
     max-width: none;
 }
-.form .account-creation-navigation__accounts .button--grey {
+/* .button.button--* — выше специфичности ховеров Button.css, порядок подключения CSS не важен. */
+.form .account-creation-navigation__accounts .button.button--grey,
+.form .account-creation-navigation__accounts .button.button--grey:hover {
     background: transparent;
-}
-.form .account-creation-navigation__accounts .button--grey .button__text {
     color: var(--sda-text-muted);
 }
-.form .account-creation-navigation__accounts .button--grey:hover {
-    background: var(--sda-surface-3);
-    box-shadow: none;
-}
-.form .account-creation-navigation__accounts .button--grey:hover .button__text {
+.form .account-creation-navigation__accounts .button.button--grey:hover {
     color: var(--sda-text);
 }
-.form .account-creation-navigation__accounts .button--gradient,
-.form .account-creation-navigation__accounts .button--gradient:hover {
-    background: var(--sda-primary);
-    box-shadow: none;
+.form .account-creation-navigation__accounts .button.button--gradient,
+.form .account-creation-navigation__accounts .button.button--gradient:hover {
+    background: var(--sda-surface-4);
+    color: var(--sda-text);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
-.form .account-creation-navigation__accounts .button--gradient .button__text {
-    font-weight: 600;
+.form .account-creation-navigation__accounts .sda-sweep::after {
+    display: none;
 }
 
 /* Видимый фокус с клавиатуры для кнопок внутри форм. */
@@ -162,19 +184,19 @@
     box-shadow: var(--sda-focus-ring);
 }
 
-/* Плашки-подсказки: нейтральная (info) и предупреждение (warning). */
+/* Плашки-подсказки: нейтральная (info) и предупреждение (warning, жёлтый бейдж:
+   фон yellow-900/50, текст #facc15). Значок — символ в кольце, без заливки. */
 .sda-callout {
     display: flex;
     align-items: flex-start;
     gap: 10px;
     width: 100%;
-    padding: 10px 14px;
-    border: 1px solid var(--sda-border-strong);
-    border-radius: var(--sda-radius);
-    background: var(--sda-surface-2);
-    color: var(--sda-text);
-    font-size: 14px;
-    line-height: 20px;
+    padding: 10px 12px;
+    border-radius: var(--sda-radius-sm);
+    background: var(--sda-surface-3);
+    color: #d4d4d8;
+    font-size: 13px;
+    line-height: 19px;
     text-align: left;
 }
 .sda-callout::before {
@@ -183,20 +205,21 @@
     height: 18px;
     margin-top: 1px;
     border-radius: 50%;
-    background: var(--sda-info);
-    color: var(--sda-modal);
-    font-size: 12px;
-    font-weight: 800;
+    box-shadow: inset 0 0 0 1.5px var(--sda-text-subtle);
+    color: var(--sda-text-muted);
+    font-size: 11px;
+    font-weight: 700;
     line-height: 18px;
     text-align: center;
 }
 .sda-callout--warning {
-    border-color: var(--sda-warning);
     background: var(--sda-warning-bg);
+    color: var(--sda-warning);
 }
 .sda-callout--warning::before {
     content: "!";
-    background: var(--sda-warning);
+    box-shadow: inset 0 0 0 1.5px var(--sda-warning);
+    color: var(--sda-warning);
 }
 
 /* Нижняя панель действий: основная кнопка там, где заканчивается взгляд (справа внизу).
@@ -209,10 +232,11 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 12px 24px;
+    margin-top: auto;
+    padding: 12px 20px;
     background: var(--sda-modal);
     border-top: 1px solid var(--sda-border);
-    border-radius: 0px 0px var(--sda-radius-lg) var(--sda-radius-lg);
+    border-radius: 0px 0px var(--sda-radius) var(--sda-radius);
 }
 .sda-form-footer__end {
     display: flex;
@@ -229,36 +253,36 @@
     color: var(--sda-text-muted);
     text-align: right;
 }
-.sda-form-footer {
-    margin-top: auto;
-}
 .form .sda-form-footer .button {
     flex: 0 0 auto;
-    min-width: 140px;
+    min-width: 120px;
     height: 36px;
     margin: 0px;
-    padding: 0px 18px;
+    padding: 0px 16px;
 }
-/* .button__text { max-width: 90% } считается от ширины кнопки по содержимому и режет
-   подпись («Создать акка…»), поэтому у кнопок по содержимому ограничение снимаем. */
+/* Подпись у кнопок по содержимому не режем многоточием. */
 .form .sda-form-footer .button .button__text,
 .form .steam-data-code__actions .button .button__text,
 .form .proxy-table_in-form .proxy-test-button .button__text {
     max-width: none;
 }
 
-/* Деструктивная кнопка в формах: красный контур, заливка при наведении. */
+/* Деструктивная кнопка в формах: контурная с красным текстом, при наведении фон red-900/50. */
 .form .sda-button--danger.button,
 .form .sda-button--danger.button:hover {
-    background: var(--sda-danger-bg);
-    box-shadow: inset 0 0 0 1px var(--sda-danger);
+    background: transparent;
+    border-color: var(--sda-border-strong);
+    color: var(--sda-danger);
 }
 .form .sda-button--danger.button:hover {
-    background: var(--sda-danger);
-}
-.form .sda-button--danger.button:hover .button__text {
-    color: var(--sda-modal);
+    background: var(--sda-danger-bg);
 }
 .form .sda-button--danger.button:focus-visible {
-    box-shadow: inset 0 0 0 1px var(--sda-danger), var(--sda-focus-ring);
+    box-shadow: var(--sda-focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .form {
+        animation: none;
+    }
 }

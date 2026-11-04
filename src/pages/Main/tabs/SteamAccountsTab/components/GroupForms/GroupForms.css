@@ -9,12 +9,12 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 16px 24px;
+  padding: 16px 20px;
   box-sizing: border-box;
 }
 
 .group-form__caption {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 20px;
   color: var(--sda-text-muted);
 }
@@ -37,22 +37,25 @@
   overflow-y: auto;
 }
 
+/* Строка группы — рамка #27272a, ховер как у строки таблицы QBS, выбранная — синий фон
+   выделенной строки rgba(37,99,235,.10) с рамкой #3f3f46. */
 .group-form__item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   min-height: 40px;
-  padding: 8px 14px;
-  border-radius: var(--sda-radius);
-  background: var(--sda-surface-3);
+  padding: 8px 12px;
+  border-radius: var(--sda-radius-sm);
+  background: transparent;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: 1px solid var(--sda-border);
   outline: none;
+  font-size: 13px;
   transition: border-color var(--sda-transition), background-color var(--sda-transition);
 }
 
 .group-form__item:hover {
-  border-color: var(--sda-border-strong);
+  background: rgba(39, 39, 42, 0.45);
 }
 .group-form__item:focus-visible {
   box-shadow: var(--sda-focus-ring);
@@ -60,27 +63,34 @@
 
 .group-form__item_active,
 .group-form__item_active:hover {
-  border-color: var(--sda-accent);
-  background: var(--sda-surface-4);
+  border-color: var(--sda-border-strong);
+  background: rgba(37, 99, 235, 0.1);
 }
 
 .group-form__item-name {
   min-width: 0;
-  color: var(--sda-text);
+  color: #d4d4d8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.group-form__item_active .group-form__item-name {
+  color: var(--sda-text);
+}
+
+/* Счётчик — пилюля Geist Mono, как в строке групп. */
 .group-form__item-count {
   flex-shrink: 0;
   margin-left: 12px;
   min-width: 24px;
-  padding: 0px 8px;
+  padding: 1px 7px;
   border-radius: 999px;
-  background: var(--sda-surface-2);
+  background: var(--sda-surface-3);
   color: var(--sda-text-muted);
-  font-size: 12px;
-  line-height: 20px;
+  font-family: var(--sda-font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 16px;
   text-align: center;
 }

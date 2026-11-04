@@ -414,7 +414,10 @@
       "title": "Proxies",
       "add": "Add proxy",
       "bulkHint": "Add proxies in bulk (one proxy per line)",
-      "importList": "Import list"
+      "importList": "Import list",
+      "showArchived": "Show archived proxies",
+      "hideArchived": "Hide archived proxies",
+      "searchPlaceholder": "Search by proxy host"
     },
     "empty": {
       "none": "No proxies yet",

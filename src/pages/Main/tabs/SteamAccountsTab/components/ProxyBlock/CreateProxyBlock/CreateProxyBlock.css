@@ -13,7 +13,7 @@
 .proxy-create-input {
   background: var(--sda-surface-3);
   border: 1px solid var(--sda-border-strong);
-  border-radius: 10px;
+  border-radius: var(--sda-radius-sm);
   outline: none;
   padding: 10px 18px;
   height: 50px;
@@ -76,7 +76,7 @@
   height: 40px;
   min-height: 40px;
   background: var(--sda-surface-3);
-  border-radius: 10px;
+  border-radius: var(--sda-radius-sm);
   margin-bottom: 5px;
 }
 
@@ -96,11 +96,11 @@
 }
 
 .proxy-item-cell:first-child {
-  border-radius: 10px 0px 0px 10px;
+  border-radius: var(--sda-radius-sm) 0px 0px var(--sda-radius-sm);
 }
 
 .proxy-item-cell:last-child {
-  border-radius: 0px 10px 10px 0px;
+  border-radius: 0px var(--sda-radius-sm) var(--sda-radius-sm) 0px;
 }
 
 .accounts-proxy {
@@ -114,7 +114,7 @@
   width: 100%;
   padding: 0px 10px 15px 10px;
   background: var(--sda-surface-2);
-  border-radius: 10px;
+  border-radius: var(--sda-radius);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -142,7 +142,7 @@
   height: 20px;
   background: var(--sda-surface-4);
   border: none;
-  border-radius: 5px;
+  border-radius: var(--sda-radius-sm);
   outline: none;
   padding: 0;
   margin: 0;
@@ -165,20 +165,20 @@
   gap: 6px;
 }
 .create-proxy-block .proxy-create-input {
-  height: 40px;
+  height: 36px;
   margin-bottom: 0px;
-  padding: 0px 14px;
+  padding: 0px 12px;
   background: var(--sda-surface-3);
   border: 1px solid var(--sda-border-strong);
-  border-radius: var(--sda-radius);
+  border-radius: var(--sda-radius-sm);
   color: var(--sda-text);
+  font-family: var(--sda-font-mono);
+  font-size: 13px;
   transition: border-color var(--sda-transition), box-shadow var(--sda-transition);
 }
 .create-proxy-block .proxy-create-input::placeholder {
-  color: var(--sda-text-muted);
-}
-.create-proxy-block .proxy-create-input:hover {
-  border-color: var(--sda-surface-4);
+  color: var(--sda-text-subtle);
+  font-family: var(--sda-font);
 }
 .create-proxy-block .proxy-create-input:focus {
   border-color: var(--sda-accent);

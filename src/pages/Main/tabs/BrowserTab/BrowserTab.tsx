@@ -124,7 +124,7 @@ const StartLinkRow: FC<{ link: string; index: number; total: number }> = observe
               }}
               onKeyDown={onKeyDown}
             />
-            <button type="button" className="browser-button browser-button--accent" onClick={commit}>
+            <button type="button" className="browser-button browser-button--accent sda-sweep" onClick={commit}>
               {t("common.buttons.save")}
             </button>
             <button type="button" className="browser-button" onClick={cancel}>
@@ -166,6 +166,7 @@ const StartLinksCard = observer(() => {
   return (
     <section className="browser-card" aria-labelledby="browser-links-title" data-testid="browser-links">
       <div className="browser-card__head">
+        <span className="browser-card__icon" aria-hidden="true"><Icon name="link" /></span>
         <h2 className="browser-card__title" id="browser-links-title">{t("browser.links.title")}</h2>
         <span className="browser-card__badge">{t("browser.links.count", { used: links.length, max: MAX_START_LINKS })}</span>
       </div>
@@ -200,7 +201,7 @@ const StartLinksCard = observer(() => {
             setError(null);
           }}
         />
-        <button type="submit" className="browser-button browser-button--accent" disabled={isFull} data-testid="browser-link-add">
+        <button type="submit" className="browser-button browser-button--accent sda-sweep" disabled={isFull} data-testid="browser-link-add">
           <PlusIcon />
           {t("browser.links.add")}
         </button>
@@ -224,13 +225,14 @@ const ExtensionsCard = observer(() => {
   return (
     <section className="browser-card" aria-labelledby="browser-extensions-title" data-testid="browser-extensions">
       <div className="browser-card__head">
+        <span className="browser-card__icon" aria-hidden="true"><Icon name="puzzle" /></span>
         <h2 className="browser-card__title" id="browser-extensions-title">{t("browser.extensions.title")}</h2>
         {extensions.length ? (
           <span className="browser-card__badge">{t("browser.extensions.count", { on: enabledCount, total: extensions.length })}</span>
         ) : null}
         <button
           type="button"
-          className="browser-button browser-button--accent browser-card__action"
+          className="browser-button browser-button--accent browser-card__action sda-sweep"
           disabled={isPicking}
           data-testid="browser-add-extension"
           onClick={() => store.browserSettings.pickExtension()}
@@ -239,8 +241,9 @@ const ExtensionsCard = observer(() => {
           {isPicking ? t("browser.extensions.picking") : t("browser.extensions.add")}
         </button>
       </div>
+      {/* Предупреждение о доверии — жёлтый бейдж: фон yellow-900/50, текст и значок #facc15. */}
       <div className="browser-note" role="note">
-        <span className="browser-note__mark" aria-hidden="true">!</span>
+        <Icon name="alert" size={16} className="browser-note__mark" />
         <p className="browser-note__text">{t("browser.extensions.warning")}</p>
       </div>
       <p className="browser-card__hint">{t("browser.extensions.hint")}</p>
@@ -259,6 +262,7 @@ const ExtensionsCard = observer(() => {
               <span className="browser-extension__state" aria-hidden="true">
                 {extension.enabled ? t("browser.extensions.on") : t("browser.extensions.off")}
               </span>
+              <span className="browser-extension__icon" aria-hidden="true"><Icon name="puzzle" /></span>
               <div className="browser-extension__info">
                 <div className="browser-extension__title">
                   <span className="browser-extension__name" title={extension.name}>{extension.name}</span>

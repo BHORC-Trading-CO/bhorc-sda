@@ -1,24 +1,25 @@
+/* Действия строки прокси — как у строки аккаунтов в макете main-v2: 28 px, без рамки и заливки,
+   иконка #a1a1aa; при наведении фон #27272a и белая иконка, удаление — красная на red-900/50. */
 .proxy-action {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 37px;
-  height: 37px;
-  padding: 7px;
-  border: 1px solid var(--sda-border);
-  border-radius: var(--sda-radius);
-  background: var(--sda-surface-3);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--sda-radius-sm);
+  background: transparent;
   color: var(--sda-text-muted);
   cursor: pointer;
-  transition: background var(--sda-transition), color var(--sda-transition), border-color var(--sda-transition);
+  transition: background-color var(--sda-transition), color var(--sda-transition);
 }
 
 .proxy-action:hover {
-  background: var(--sda-surface-4);
+  background: var(--sda-surface-3);
   color: var(--sda-text);
-  border-color: var(--sda-border-strong);
 }
 
 .proxy-action:focus-visible {
@@ -29,33 +30,44 @@
 .proxy-action--delete:hover {
   color: var(--sda-danger);
   background: var(--sda-danger-bg);
-  border-color: var(--sda-danger);
 }
 
+/* Проверка: кнопка и рядом бейдж результата. */
 .proxy-test-control {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
-  min-width: 64px;
-  padding: 1px 0;
-  color: var(--sda-text-muted);
-}
-
-.proxy-test-control .proxy-action {
-  color: inherit;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .proxy-test-state {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sda-surface-3);
+  color: var(--sda-text-muted);
   font-size: 11px;
+  font-weight: 600;
   line-height: 14px;
   white-space: nowrap;
 }
 
-.proxy-test-control--success { color: var(--sda-success); }
-.proxy-test-control--danger { color: var(--sda-danger); }
-.proxy-test-control--pending, .proxy-test-control--idle { color: var(--sda-text-muted); }
+.proxy-test-control--success .proxy-test-state {
+  background: var(--sda-success-bg);
+  color: var(--sda-success);
+}
+
+.proxy-test-control--danger .proxy-test-state {
+  background: var(--sda-danger-bg);
+  color: var(--sda-danger);
+}
+
+/* Адрес и порт прокси в таблице — Geist Mono с табличными цифрами. */
+.proxy-mono {
+  font-family: var(--sda-font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
 
 .proxy-linked-cell {
   display: block;
@@ -64,20 +76,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--sda-font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
-.proxy-empty-cell { color: var(--sda-text-muted); }
-
-.proxy-test-selected.button {
-  gap: 12px;
-  background: var(--sda-surface-3);
-  border: 1px solid var(--sda-border);
-  border-radius: var(--sda-radius);
-  color: var(--sda-text);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background var(--sda-transition);
-}
-.proxy-test-selected.button:hover { background: var(--sda-surface-4); }
-.proxy-test-selected.button:focus-visible { outline: none; box-shadow: var(--sda-focus-ring); }
+.proxy-empty-cell { color: var(--sda-text-subtle); }

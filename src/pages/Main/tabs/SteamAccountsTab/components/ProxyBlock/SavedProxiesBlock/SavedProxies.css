@@ -13,13 +13,18 @@
   padding: 0px 8px;
 }
 
+/* Заголовки колонок — как в таблицах QBS: 11 px, прописные, #71717a. */
 .saved-proxies-title-cell {
   min-width: 0;
   line-height: 32px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  color: var(--sda-text-muted);
+  color: var(--sda-text-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .saved-proxies {
@@ -32,8 +37,8 @@
 
 .saved-proxies-selected-title {
   margin: 16px 0px 6px;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   line-height: 20px;
   color: var(--sda-text);
 }
@@ -49,18 +54,24 @@
 }
 .proxy-table_in-form .proxy-table-header-cell {
   padding-bottom: 0px;
-  color: var(--sda-text-muted);
+  color: var(--sda-text-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   white-space: nowrap;
   text-overflow: ellipsis;
   justify-content: flex-start;
   padding-left: 8px;
 }
+/* Строка — рамка #27272a без заливки, адрес и порт моноширинные. */
 .proxy-table_in-form .proxy-item-row {
   align-items: center;
   height: 44px;
   min-height: 44px;
-  background: var(--sda-surface-3);
-  border-radius: var(--sda-radius);
+  background: transparent;
+  border: 1px solid var(--sda-border);
+  border-radius: var(--sda-radius-sm);
 }
 .proxy-table_in-form .proxy-item-cell {
   display: flex;
@@ -71,26 +82,22 @@
   line-height: 20px;
   padding: 0px 8px;
   white-space: nowrap;
+  font-size: 13px;
+}
+.proxy-table_in-form .proxy-item-cell_mono {
+  font-family: var(--sda-font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 .proxy-table_in-form .proxy-table-cell_number {
   flex: 0 0 44px;
   width: 44px;
 }
-/* Кнопка на фоне строки того же цвета: контурная, заливка при наведении. */
+/* «Проверить» в строке: маленькая контурная кнопка (вид color="grey" из Button.css). */
 .proxy-table_in-form .proxy-test-button.button {
   min-width: 0;
-  height: 30px;
-  padding: 0px 14px;
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--sda-border-strong);
-  transition: background-color var(--sda-transition);
-}
-.proxy-table_in-form .proxy-test-button.button:hover {
-  background: var(--sda-surface-4);
-}
-.proxy-table_in-form .proxy-test-button.button:focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 1px var(--sda-border-strong), var(--sda-focus-ring);
+  height: 28px;
+  padding: 0px 10px;
 }
 
 .proxy-item {
@@ -105,7 +112,7 @@
   height: 40px;
   min-height: 40px;
   background: var(--sda-surface-3);
-  border-radius: 10px;
+  border-radius: var(--sda-radius-sm);
   margin-bottom: 5px;
 }
 
@@ -125,11 +132,11 @@
 }
 
 .proxy-item-cell:first-child {
-  border-radius: 10px 0px 0px 10px;
+  border-radius: var(--sda-radius-sm) 0px 0px var(--sda-radius-sm);
 }
 
 .proxy-item-cell:last-child {
-  border-radius: 0px 10px 10px 0px;
+  border-radius: 0px var(--sda-radius-sm) var(--sda-radius-sm) 0px;
 }
 
 .accounts-proxy {
@@ -144,7 +151,7 @@
   width: 100%;
   padding: 0px 10px 15px 10px;
   background: var(--sda-surface-2);
-  border-radius: 10px;
+  border-radius: var(--sda-radius);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -172,7 +179,7 @@
   height: 20px;
   background: var(--sda-surface-4);
   border: none;
-  border-radius: 5px;
+  border-radius: var(--sda-radius-sm);
   outline: none;
   padding: 0;
   margin: 0;

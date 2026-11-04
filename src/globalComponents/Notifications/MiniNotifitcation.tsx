@@ -19,7 +19,7 @@ const MiniNotification: FC = observer(() => {
     }
 });
 
-// Тост одного вида: цвет иконки и полосы слева берётся из токена состояния (SDA-9).
+// Тост одного вида: иконка состояния в круглом бейдже, цвет из токена состояния (редизайн R4).
 // Иконки lucide рисуются currentColor, цвет задаёт miniNotifications.css.
 const Toast: FC<{ variant: 'success' | 'error' | 'info', icon: IconName }> = (props) => {
     return (
@@ -28,7 +28,7 @@ const Toast: FC<{ variant: 'success' | 'error' | 'info', icon: IconName }> = (pr
             role={props.variant === 'error' ? 'alert' : 'status'}
             style={{ display: store.windows.isMiniNotificationOpen ? 'flex' : 'none' }}
         >
-            <Icon name={props.icon} size={20} className='mini_notification__icon' />
+            <span className='mini_notification__icon' aria-hidden='true'><Icon name={props.icon} size={14} /></span>
             <div className='mini_notification__text'>{props.children}</div>
         </div>
     );
