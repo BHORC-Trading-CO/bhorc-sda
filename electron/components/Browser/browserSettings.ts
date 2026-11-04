@@ -3,6 +3,7 @@ import path from "path";
 import BrowserSettingsInterface, {
     BrowserExtensionSetting,
     BrowserExtensionView,
+    BrowserSettingsError,
     BrowserSettingsView,
 } from "../../interfaces/Browser/BrowserSettingsInterface";
 import { t } from "../../i18n";
@@ -155,7 +156,10 @@ function extensionProblemText(problem: ExtensionDirProblem, folder: string): str
 
 export type SettingsUpdate =
     | { ok: true; settings: BrowserSettingsInterface }
-    | { ok: false; error: string };
+    | { ok: false; error: BrowserSettingsError };
+
+const linksError = (message: string): SettingsUpdate => ({ ok: false, error: { section: "links", message } });
+const extensionsError = (message: string): SettingsUpdate => ({ ok: false, error: { section: "extensions", message } });
 
 /**
  * Проверка сохранения со страницы. Ссылки — целиком заново. Расширения: путь, которого ещё нет
@@ -163,26 +167,26 @@ export type SettingsUpdate =
  * остаётся, даже если папку с тех пор удалили, — чтобы его можно было увидеть и убрать.
  */
 export function validateSettingsUpdate(incoming: unknown, current: BrowserSettingsInterface): SettingsUpdate {
-    if (!incoming || typeof incoming !== "object") return { ok: false, error: t("errors.browser.invalidSettings") };
+    if (!incoming || typeof incoming !== "object") return linksError(t("errors.browser.invalidSettings"));
     const value = incoming as Record<string, unknown>;
     const linksProblem = checkStartLinks(value.startLinks);
     if (linksProblem) {
-        if (linksProblem.problem === "tooMany") return { ok: false, error: t("errors.browser.tooManyLinks", { max: MAX_START_LINKS }) };
-        if (linksProblem.problem === "invalid") return { ok: false, error: t("errors.browser.invalidLink", { link: linksProblem.link }) };
-        return { ok: false, error: t("errors.browser.invalidSettings") };
+        if (linksProblem.problem === "tooMany") return linksError(t("errors.browser.tooManyLinks", { max: MAX_START_LINKS }));
+        if (linksProblem.problem === "invalid") return linksError(t("errors.browser.invalidLink", { link: linksProblem.link }));
+        return linksError(t("errors.browser.invalidSettings"));
     }
-    if (!Array.isArray(value.extensions)) return { ok: false, error: t("errors.browser.invalidSettings") };
+    if (!Array.isArray(value.extensions)) return extensionsError(t("errors.browser.invalidSettings"));
     const known = new Set(current.extensions.map((extension) => extension.path));
     const extensions: BrowserExtensionSetting[] = [];
     for (const item of value.extensions) {
         if (!item || typeof item !== "object" || typeof (item as any).path !== "string" || typeof (item as any).enabled !== "boolean") {
-            return { ok: false, error: t("errors.browser.invalidSettings") };
+            return extensionsError(t("errors.browser.invalidSettings"));
         }
         const extension = { path: (item as any).path as string, enabled: (item as any).enabled as boolean };
         if (extensions.some((saved) => saved.path === extension.path)) continue;
         if (!known.has(extension.path)) {
             const info = inspectExtensionDir(extension.path);
-            if (!info.ok) return { ok: false, error: extensionProblemText(info.problem, extension.path) };
+            if (!info.ok) return extensionsError(extensionProblemText(info.problem, extension.path));
         }
         extensions.push(extension);
     }
@@ -192,9 +196,9 @@ export function validateSettingsUpdate(incoming: unknown, current: BrowserSettin
 /** Папка из диалога: проверка, повтор, затем включённой в конец списка. */
 export function addExtensionDir(dir: string, current: BrowserSettingsInterface): SettingsUpdate {
     const info = inspectExtensionDir(dir);
-    if (!info.ok) return { ok: false, error: extensionProblemText(info.problem, dir) };
+    if (!info.ok) return extensionsError(extensionProblemText(info.problem, dir));
     if (current.extensions.some((extension) => extension.path === dir)) {
-        return { ok: false, error: t("errors.browser.extension.duplicate", { name: info.name }) };
+        return extensionsError(t("errors.browser.extension.duplicate", { name: info.name }));
     }
     return {
         ok: true,

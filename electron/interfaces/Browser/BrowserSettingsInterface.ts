@@ -20,6 +20,15 @@ export interface BrowserExtensionView extends BrowserExtensionSetting {
     status: BrowserExtensionStatus;
 }
 
+/** Блок страницы, к которому относится отказ main: стартовые ссылки или расширения. */
+export type BrowserSettingsSection = "links" | "extensions";
+
+/** Отказ сохранения или выбора папки; message уже переведён в main. */
+export interface BrowserSettingsError {
+    section: BrowserSettingsSection;
+    message: string;
+}
+
 export interface BrowserSettingsView {
     startLinks: string[];
     extensions: BrowserExtensionView[];

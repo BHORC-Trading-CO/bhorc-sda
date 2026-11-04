@@ -230,15 +230,18 @@ describe("сохранение со страницы (main — последня�
     });
     it("плохая ссылка и лишняя ссылка — отказ с текстом", () => {
         expect(validateSettingsUpdate({ startLinks: ["javascript:alert(1)"], extensions: [] }, empty))
-            .toEqual({ ok: false, error: "Not a valid http(s) address: javascript:alert(1)" });
+            .toEqual({ ok: false, error: { section: "links", message: "Not a valid http(s) address: javascript:alert(1)" } });
         const many = Array.from({ length: 11 }, (_, i) => `https://e.test/${i}`);
-        expect(validateSettingsUpdate({ startLinks: many, extensions: [] }, empty)).toEqual({ ok: false, error: "Up to 10 start pages are allowed." });
+        expect(validateSettingsUpdate({ startLinks: many, extensions: [] }, empty))
+            .toEqual({ ok: false, error: { section: "links", message: "Up to 10 start pages are allowed." } });
     });
     it("новый путь без manifest — отказ: renderer не протащит произвольную папку", () => {
         const dir = extensionDir(null);
         const update = validateSettingsUpdate({ startLinks: [], extensions: [{ path: dir, enabled: true }] }, empty);
         expect(update.ok).toBe(false);
-        expect(!update.ok && update.error).toContain(dir);
+        // Ошибка — в блок расширений, даже если запрос пришёл не от их кнопок.
+        expect(!update.ok && update.error.section).toBe("extensions");
+        expect(!update.ok && update.error.message).toContain(dir);
     });
     it("новый путь с запятой — отказ", () => {
         const dir = extensionDir(GOOD, "x,y");
@@ -275,11 +278,14 @@ describe("папка из диалога", () => {
     it("повтор — отказ с именем", () => {
         const dir = extensionDir(GOOD);
         expect(addExtensionDir(dir, { startLinks: [], extensions: [{ path: dir, enabled: true }] }))
-            .toEqual({ ok: false, error: "Trade Helper is already in the list." });
+            .toEqual({ ok: false, error: { section: "extensions", message: "Trade Helper is already in the list." } });
     });
     it("плохая папка — отказ с текстом про manifest", () => {
         const dir = extensionDir({ ...GOOD, manifest_version: 1 });
         const update = addExtensionDir(dir, { startLinks: [], extensions: [] });
-        expect(update).toEqual({ ok: false, error: `manifest.json in ${dir} has an unsupported manifest_version (2 or 3 is required).` });
+        expect(update).toEqual({
+            ok: false,
+            error: { section: "extensions", message: `manifest.json in ${dir} has an unsupported manifest_version (2 or 3 is required).` },
+        });
     });
 });

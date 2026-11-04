@@ -20,7 +20,7 @@ import CompiledGroupInterface from '../interfaces/Group/CompiledGroupInterface';
 import TableOptions from '../interfaces/TableOptions/TableOptions';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import BrowserChannels from '../interfaces/IpcChannels/BrowserChannels';
-import BrowserSettingsInterface, { BrowserSettingsView } from '../interfaces/Browser/BrowserSettingsInterface';
+import BrowserSettingsInterface, { BrowserSettingsError, BrowserSettingsView } from '../interfaces/Browser/BrowserSettingsInterface';
 import path from "path";
 import createStore from "../components/newStorage/createStore";
 import { exposeLanguageApi } from './languageBridge';
@@ -246,8 +246,8 @@ const browser = {
   pickExtension: () => {
     ipcRenderer.send(BrowserChannels.BROWSER_PICK_EXTENSION);
   },
-  /** Отказ сохранения или выбора папки, текст уже переведён */
-  onError: (listener: (event: IpcRendererEvent, error: string) => void) => {
+  /** Отказ сохранения или выбора папки: блок страницы и текст, уже переведённый */
+  onError: (listener: (event: IpcRendererEvent, error: BrowserSettingsError) => void) => {
     ipcRenderer.on(BrowserChannels.BROWSER_SETTINGS_ERROR, listener);
   }
 }

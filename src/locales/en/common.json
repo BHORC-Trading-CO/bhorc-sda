@@ -484,6 +484,46 @@
     "declining_one": "Declining selected: {{count}}",
     "declining_other": "Declining selected: {{count}}"
   },
+  "browser": {
+    "title": "Browser",
+    "subtitle": "Start pages and extensions for every account's browser. Changes are saved right away and apply to browsers started after that; restart a running browser to use them.",
+    "links": {
+      "title": "Start pages",
+      "hint": "Open in this order when an account's browser starts. The first page opens in the tab with the account's Steam session, the rest in new tabs.",
+      "count": "{{used}}/{{max}}",
+      "empty": "No start pages. The browser opens {{link}}.",
+      "newLabel": "New start page address",
+      "editLabel": "Start page address",
+      "add": "Add",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "edit": "Edit",
+      "remove": "Remove",
+      "errors": {
+        "empty": "Enter an address.",
+        "invalid": "Enter a full address that starts with http:// or https://.",
+        "duplicate": "This page is already in the list.",
+        "tooMany": "You can add up to {{max}} start pages."
+      }
+    },
+    "extensions": {
+      "title": "Extensions",
+      "count": "{{on}} of {{total}} on",
+      "add": "Add extension",
+      "picking": "Choosing a folder…",
+      "warning": "Extensions run inside every account's browser and can read its Steam session. Add only extensions you trust.",
+      "hint": "Choose an unpacked extension folder with manifest.json. Packed .crx files are not supported: unpack the file first, then choose the folder.",
+      "empty": "No extensions. Accounts' browsers start without them.",
+      "toggle": "Load {{name}} in browsers",
+      "on": "On",
+      "off": "Off",
+      "remove": "Remove {{name}} from the list",
+      "status": {
+        "missing": "Folder or manifest.json not found. Skipped at launch.",
+        "invalid": "manifest.json is not valid. Skipped at launch."
+      }
+    }
+  },
   "ask": {
     "nothing": "nothing here yet...",
     "unknown": "What???",

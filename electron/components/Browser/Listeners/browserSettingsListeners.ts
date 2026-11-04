@@ -1,5 +1,6 @@
 import { BrowserWindow, dialog, IpcMainEvent, OpenDialogOptions } from "electron";
 import BrowserChannels from "../../../interfaces/IpcChannels/BrowserChannels";
+import { BrowserSettingsError, BrowserSettingsSection } from "../../../interfaces/Browser/BrowserSettingsInterface";
 import BrowserSettingsStorage from "../../newStorage/BrowserSettingsStorage";
 import { addExtensionDir, buildBrowserSettingsView, validateSettingsUpdate } from "../browserSettings";
 import { t } from "../../../i18n";
@@ -8,15 +9,20 @@ function replySettings(event: IpcMainEvent) {
     event.reply(BrowserChannels.BROWSER_SETTINGS_GET, buildBrowserSettingsView(BrowserSettingsStorage.Get()));
 }
 
-function replyError(event: IpcMainEvent, err: unknown) {
-    event.reply(BrowserChannels.BROWSER_SETTINGS_ERROR, err instanceof Error ? err.message : String(err));
+function replyError(event: IpcMainEvent, error: BrowserSettingsError) {
+    event.reply(BrowserChannels.BROWSER_SETTINGS_ERROR, error);
+}
+
+/** Непредвиденное исключение — тем же каналом, в блок, из которого пришёл запрос. */
+function replyException(event: IpcMainEvent, section: BrowserSettingsSection, err: unknown) {
+    replyError(event, { section, message: err instanceof Error ? err.message : String(err) });
 }
 
 export function browserSettingsGetListener(event: IpcMainEvent) {
     try {
         replySettings(event);
     } catch (err) {
-        replyError(event, err);
+        replyException(event, "links", err);
     }
 }
 
@@ -28,7 +34,7 @@ export function browserSettingsSaveListener(event: IpcMainEvent, incoming: unkno
         else replyError(event, update.error);
         replySettings(event);
     } catch (err) {
-        replyError(event, err);
+        replyException(event, "links", err);
     }
 }
 
@@ -53,7 +59,7 @@ export async function browserPickExtensionListener(event: IpcMainEvent) {
         }
         replySettings(event);
     } catch (err) {
-        replyError(event, err);
+        replyException(event, "extensions", err);
         try {
             replySettings(event);
         } catch {}

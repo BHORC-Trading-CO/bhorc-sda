@@ -70,7 +70,8 @@ describe("IPC страницы Browser", () => {
     it("save с плохой ссылкой не сохраняет: ошибка и прежнее состояние", () => {
         const event = makeEvent();
         browserSettingsSaveListener(event, { startLinks: ["file:///etc/passwd"], extensions: [] });
-        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR)).toEqual(["Not a valid http(s) address: file:///etc/passwd"]);
+        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR))
+            .toEqual([{ section: "links", message: "Not a valid http(s) address: file:///etc/passwd" }]);
         expect(BrowserSettingsStorage.Get().startLinks).toEqual([DEFAULT_START_LINK]);
         expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)).toEqual([{ startLinks: [DEFAULT_START_LINK], extensions: [] }]);
     });
@@ -90,7 +91,9 @@ describe("IPC страницы Browser", () => {
         showOpenDialog.mockResolvedValueOnce({ canceled: false, filePaths: [dir] });
         const event = makeEvent();
         await browserPickExtensionListener(event);
-        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR)[0]).toContain("No manifest.json");
+        const [error] = replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR);
+        expect(error.section).toBe("extensions");
+        expect(error.message).toContain("No manifest.json");
         expect(BrowserSettingsStorage.Get().extensions).toEqual([]);
     });
 
