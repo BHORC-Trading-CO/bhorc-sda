@@ -2,6 +2,13 @@
   "startup": {
     "dataDirNotPinned": "Данные открыты не из папки {{dir}} ({{paths}}). Запуск остановлен, чтобы не потерять аккаунты."
   },
+  "browser": {
+    "pickExtension": {
+      "title": "Выберите папку расширения",
+      "message": "Выберите папку распакованного расширения с файлом manifest.json",
+      "button": "Выбрать папку"
+    }
+  },
   "errors": {
     "steamAccountNotFound": "Такого стим аккаунта #{{id}} не существует",
     "proxyNotFound": "Прокси #{{id}} не существует",
@@ -36,6 +43,25 @@
       "httpStatus": "{{url}} ответил {{status}}",
       "revision": "Не удалось определить ревизию Chromium для arm64: получено \"{{revision}}\"",
       "binaryMissing": "В скачанном архиве Chromium нет бинарника: {{binary}}"
+    },
+    "browser": {
+      "invalidSettings": "Настройки браузера не сохранены: некорректные данные.",
+      "tooManyLinks": "Можно добавить не больше {{max}} стартовых страниц.",
+      "invalidLink": "Некорректный адрес http(s): {{link}}",
+      "extension": {
+        "notAbsolute": "Путь к расширению должен быть абсолютным: {{folder}}",
+        "comma": "В пути к папке есть запятая, и Chromium не сможет её загрузить. Переименуйте или переместите папку: {{folder}}",
+        "notDirectory": "Это не папка: {{folder}}. Упакованные файлы .crx не поддерживаются: распакуйте расширение и выберите его папку.",
+        "missing": "В папке {{folder}} нет manifest.json. Выберите папку распакованного расширения, где лежит manifest.json.",
+        "badJson": "manifest.json в папке {{folder}} — некорректный JSON.",
+        "manifestVersion": "manifest.json в папке {{folder}} имеет неподдерживаемую manifest_version (нужна 2 или 3).",
+        "noName": "В manifest.json в папке {{folder}} нет названия расширения.",
+        "notCanonical": "Путь {{folder}} теперь ведёт в другое место (в нём изменили ссылку). Уберите расширение и добавьте папку заново.",
+        "manifestNotFile": "manifest.json в папке {{folder}} — не обычный файл.",
+        "manifestTooLarge": "manifest.json в папке {{folder}} больше 1 МБ.",
+        "notPicked": "Расширения добавляются только через выбор папки. Это не сохранено: {{folder}}",
+        "duplicate": "{{name}} уже есть в списке."
+      }
     },
     "avatar": {
       "invalidUrl": "downloadImage: недопустимый URL аватара",

@@ -2,6 +2,13 @@
   "startup": {
     "dataDirNotPinned": "Data was opened outside the {{dir}} folder ({{paths}}). Startup was stopped so that no accounts are lost."
   },
+  "browser": {
+    "pickExtension": {
+      "title": "Choose an extension folder",
+      "message": "Choose the unpacked extension folder that contains manifest.json",
+      "button": "Choose folder"
+    }
+  },
   "errors": {
     "steamAccountNotFound": "Steam account #{{id}} does not exist",
     "proxyNotFound": "Proxy #{{id}} does not exist",
@@ -36,6 +43,25 @@
       "httpStatus": "{{url}} responded with {{status}}",
       "revision": "Failed to determine the Chromium revision for arm64: got \"{{revision}}\"",
       "binaryMissing": "The downloaded Chromium archive has no executable: {{binary}}"
+    },
+    "browser": {
+      "invalidSettings": "Browser settings were not saved: invalid data.",
+      "tooManyLinks": "Up to {{max}} start pages are allowed.",
+      "invalidLink": "Not a valid http(s) address: {{link}}",
+      "extension": {
+        "notAbsolute": "The extension path must be absolute: {{folder}}",
+        "comma": "The folder path contains a comma, and Chromium cannot load it. Rename or move the folder: {{folder}}",
+        "notDirectory": "This is not a folder: {{folder}}. Packed .crx files are not supported: unpack the extension and choose its folder.",
+        "missing": "No manifest.json found in {{folder}}. Choose the unpacked extension folder that contains manifest.json.",
+        "badJson": "manifest.json in {{folder}} is not valid JSON.",
+        "manifestVersion": "manifest.json in {{folder}} has an unsupported manifest_version (2 or 3 is required).",
+        "noName": "manifest.json in {{folder}} has no extension name.",
+        "notCanonical": "The path {{folder}} now leads to a different place (a link in it was changed). Remove the extension and add the folder again.",
+        "manifestNotFile": "manifest.json in {{folder}} is not a regular file.",
+        "manifestTooLarge": "manifest.json in {{folder}} is larger than 1 MB.",
+        "notPicked": "Extensions are added only through the folder dialog. This one was not saved: {{folder}}",
+        "duplicate": "{{name}} is already in the list."
+      }
     },
     "avatar": {
       "invalidUrl": "downloadImage: invalid avatar URL",

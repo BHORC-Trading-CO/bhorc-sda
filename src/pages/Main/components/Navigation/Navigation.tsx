@@ -55,6 +55,7 @@ const Navigation = observer(() => {
   const isSteamAccountsActive =
     store.tabs.active === "steamAccounts" && store.groups.activeGroupId === null;
   const isProxiesActive = store.tabs.active === "proxies";
+  const isBrowserActive = store.tabs.active === "browser";
 
   return (
     <div className="navigation">
@@ -165,8 +166,22 @@ const Navigation = observer(() => {
             )}
           </div>
 
-          {/* Вкладка «Расширения» скрыта: ExtensionsTab пока заглушка.
-              Чтобы вернуть, добавить пункт через itemProps с иконкой id="navigation-extension". */}
+          {/* Страница Browser (SDA-6): стартовые ссылки и расширения браузеров аккаунтов. */}
+          <div
+            {...itemProps(t("navigation.browser"), isBrowserActive, () => {
+              store.tabs.setActive("browser");
+            })}
+            data-testid="nav-browser"
+          >
+            <div className="navigation-img" id="navigation-extension"></div>
+            {isCompress ? (
+              ""
+            ) : (
+              <div className="button__text_navigation text-white-large">
+                {t("navigation.browser")}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <LanguageSwitcher isCompress={isCompress} />
