@@ -9,9 +9,9 @@ export default async (event: Electron.IpcMainEvent, data: { id: string, steamAcc
         const steamAccount = steamAccountManager.getById(data.id);
         if (!steamAccount) throw new Error(t('errors.steamAccountNotFound', { id: data.id }));
         steamAccount.editParams(data.steamAccountParams);
-        if (data.links)
+        if (data.links && data.links.proxyId !== Manager.GetSteamAccountLinkedData(data.id).proxyId)
             Manager.LinkProxyToSteamAccount(steamAccount.params.id, data.links.proxyId);
     } catch (err) {
-        event.reply('ERROR', err);
+        event.reply('ERROR', String(err));
     }
 }

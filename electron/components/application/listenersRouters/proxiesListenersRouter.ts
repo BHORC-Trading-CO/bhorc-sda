@@ -22,7 +22,7 @@ export default () => {
             const testResult = await proxy.test();
             event.reply('TEST_PROXY', { id, testResult });
         } catch (err) {
-            event.reply('ERROR', err);
+            event.reply('ERROR', String(err));
         }
     });
     onTrusted('TEST_PROXY_BY_PARAMS', async (event, proxy: ProxySetupInterface) => {
@@ -31,7 +31,7 @@ export default () => {
             console.log(isWork);
             event.reply('TEST_PROXY', { id: 'editing_proxy', testResult: isWork });
         } catch (err){
-            event.reply('ERROR', err);
+            event.reply('ERROR', String(err));
         }
     }); 
     onTrusted('REFRESH_PROXIES', async (event) => {
@@ -40,7 +40,7 @@ export default () => {
             const proxies = proxyManager.getCompiledObjects();
             event.reply('GET_PROXIES', proxies);
         } catch (err) {
-            event.reply('ERROR', err);
+            event.reply('ERROR', String(err));
         }
     });
     onTrusted('GET_PROXIES_TABLE_FIELDS', (event) => {
@@ -48,14 +48,14 @@ export default () => {
             const fields = TableStorage.GetFields('proxies');
             event.reply('GET_PROXIES_TABLE_FIELDS', fields);
         } catch (err) {
-            event.reply('ERROR', err);
+            event.reply('ERROR', String(err));
         }
     });
     onTrusted('SAVE_PROXIES_TABLE_FIELDS', async (event, fields: Field[]) => {
         try {
             TableStorage.EditFields('proxies', fields);
         } catch (err) {
-            event.reply('ERROR', err);
+            event.reply('ERROR', String(err));
         }
     });
     onTrusted('NEW_PROXY', (event, params: { proxy: ProxySetupInterface, links: { steamAccountIds: string[], profileIds: string[] } }) => {
@@ -69,7 +69,7 @@ export default () => {
             }
             proxyManager.sendProxiesToFront();
         } catch (err) {
-            event.reply('ERROR', err);
+            event.reply('ERROR', String(err));
         }
     });
     onTrusted('NEW_PROXIES', (event, proxies: ProxySetupInterface[]) => {
@@ -89,28 +89,31 @@ export default () => {
         try {
             proxyManager.sendProxiesToFront();
         } catch (err) {
-            event.reply('ERROR', err);
+            event.reply('ERROR', String(err));
         }
-        if (rejected.length) event.reply('ERROR', new Error(t("errors.proxiesRejected", { total: rejected.length, details: rejected.join("; ") })));
+        if (rejected.length) event.reply('ERROR', t("errors.proxiesRejected", { total: rejected.length, details: rejected.join("; ") }));
     });
-    onTrusted('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds: string[] } }) => {
+    onTrusted('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds?: string[], originalSteamAccountIds?: string[] } }) => {
         try {
+            const archiveOnly = Object.keys(params.proxy).length === 1 && "deleted" in params.proxy;
+            const applyLinks = archiveOnly ? null : Manager.PlanProxyAccountLinks(
+                params.id, params.links.steamAccountIds, params.links.originalSteamAccountIds
+            );
             proxyManager.edit(params.id, params.proxy);
-            Manager.ResetProxy(params.id);
-            for (var steamAccountId of params.links.steamAccountIds) {
-                Manager.LinkProxyToSteamAccount(steamAccountId, params.id);
+            if (applyLinks) {
+                Manager.RequireProxy(params.id);
+                applyLinks();
             }
             proxyManager.sendProxiesToFront();
         } catch (err) {
-            event.reply('ERROR', err);
+            event.reply('ERROR', String(err));
         }
     });
     onTrusted('DELETE_PROXY', async (event, id: string) => {
         try {
-            Manager.ResetProxy(id);
             proxyManager.delete(id);
         } catch (err) {
-            event.reply('ERROR', err);
+            event.reply('ERROR', String(err));
         }
     });
     onTrusted('GET_PROXIES', (event) => {
@@ -118,7 +121,7 @@ export default () => {
             const proxies = proxyManager.getCompiledObjects();
             event.reply('GET_PROXIES', proxies);
         } catch (err) {
-            event.reply('ERROR', err);
+            event.reply('ERROR', String(err));
         }
     });
     onTrusted(ProxyChannels.PROXY_GET_TABLE_OPTIONS, proxyGetTableOptionsListener);

@@ -38,12 +38,13 @@ export default async function setupGuard(
     accountName: string;
     password: string;
   },
-  proxy?: ProxySetupInterface
+  proxy?: ProxySetupInterface | null,
+  onRecovery?: (revocationCode: string, steamId: string) => void
 ): Promise<SmaFileInterface> {
+    const proxyUrl = buildProxyUrl(proxy);
   return new Promise(async (resolve, reject) => {
     // Прокси опционален: если передан — весь трафик идёт через него, если нет —
     // напрямую с реального IP (осознанный выбор пользователя).
-    const proxyUrl = buildProxyUrl(proxy);
     const session = new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxyUrl ? proxyUrl : undefined });
     const communityRequest = proxyUrl
       ? request.defaults({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS })
@@ -167,6 +168,7 @@ export default async function setupGuard(
                 rawMaFile,
                 session.steamID.getSteamID64()
               );
+              onRecovery?.(rawMaFile.revocation_code, session.steamID.getSteamID64());
               console.log(
                 backupFile
                   ? `${steamAccountParams.accountName} - секреты аутентификатора сохранены: ${backupFile}`

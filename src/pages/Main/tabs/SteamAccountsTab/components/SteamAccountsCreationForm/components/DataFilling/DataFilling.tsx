@@ -82,7 +82,8 @@ const DataFillingForm: FC = observer(() => {
               size="medium"
               disabled={
                 store.steamAccountsTable.creationForm.currentProcess ===
-                "creation"
+                "creation" || (store.steamAccountsTable.creationForm.switches.creationType === "new" &&
+                !store.steamAccountsTable.creationForm.hasValidProxySelection)
               }
               text={
                 store.steamAccountsTable.creationForm.switches.creationType ===
@@ -438,6 +439,7 @@ const ProxyBlock: FC = observer(() => {
           proxies={store.proxiesTable.getProxies()}
           activeId={content.proxy.savedId}
           onChange={(newProxyId) => {
+            if (newProxyId === null) return;
             store.steamAccountsTable.creationForm.editContent({
               proxy: { ...content.proxy, savedId: newProxyId },
             });

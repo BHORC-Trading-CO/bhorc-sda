@@ -10,6 +10,6 @@ export default async (event: Electron.IpcMainEvent, id: string) => {
         console.log(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY, { id: id, secondary: secondary });
         event.reply(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY, { id: id, secondary: secondary });
     } catch (err) {
-        event.reply(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY_ERROR, { id, err });
+        event.reply(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY_ERROR, { id, err: String(err) });
     }
 }

@@ -9,6 +9,6 @@ export default async (event: Electron.IpcMainEvent, id: string) => {
         const changableSecondary = await steamAccount.getChangableSecondary();
         event.reply(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY, { id, changableSecondary });
     } catch (err) {
-        event.reply(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY_ERROR, { err, id });
+        event.reply(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY_ERROR, { err: String(err), id });
     }
 }

@@ -141,20 +141,22 @@ const EditFormContent = observer(() => {
                 store.steamAccountsTable.editingForm.close();
             }} />
             <Button text={t('common.buttons.saveChanges')} size='medium' color='gradient' hoverColor='gradient' onClick={() => {
-                let proxyId: string | null = steamAccount.proxy ? steamAccount.proxy.id : null;
-                if (store.steamAccountsTable.editingForm.switches.proxy === "noProxy") {
-                    proxyId = null;
-                } else if (store.steamAccountsTable.editingForm.switches.proxy === "newProxy") {
+                if (store.steamAccountsTable.editingForm.switches.proxy === "newProxy") {
                     store.proxiesTable.createNew(content.proxy.new, { steamAccountIds: [steamAccount.id], profileIds: [] });
                     window.Main.steamAccounts.edit(steamAccount.id, changeThisProperties);
                     store.steamAccountsTable.editSteamAccount(steamAccount.id, changeThisProperties);
                     store.steamAccountsTable.editingForm.close();
                     return;
                 } else if (store.steamAccountsTable.editingForm.switches.proxy === "savedProxy") {
-                    proxyId = content.proxy.savedId;
+                    if (!content.proxy.savedId && !(steamAccount.proxyState === "missing" && content.proxy.savedId === steamAccount.proxyId)) {
+                        store.windows.openMiniNotification({ type: 'error', text: t('accounts.table.proxyMissingHint') });
+                        return;
+                    }
                 }
 
-                window.Main.steamAccounts.edit(steamAccount.id, changeThisProperties, { proxyId: proxyId });
+                const links = store.steamAccountsTable.editingForm.getProxyLinkChange();
+                if (links) window.Main.steamAccounts.edit(steamAccount.id, changeThisProperties, links);
+                else window.Main.steamAccounts.edit(steamAccount.id, changeThisProperties);
                 store.steamAccountsTable.editSteamAccount(steamAccount.id, changeThisProperties);
                 store.steamAccountsTable.editingForm.close();
             }} />
@@ -164,7 +166,7 @@ const EditFormContent = observer(() => {
 
 const ProxyBlock: FC = observer(() => {
     // Trans не подписан на смену языка — хук перерисовывает блок при переключении.
-    useTranslation();
+    const { t } = useTranslation();
     const CreationFormSwitches = store.steamAccountsTable.editingForm.switches;
     const content = store.steamAccountsTable.editingForm.getContent();
 
@@ -180,9 +182,24 @@ const ProxyBlock: FC = observer(() => {
                 store.steamAccountsTable.editingForm.editContent({ proxy: { ...content.proxy, new: newProxyData } });
             }} />
         case "savedProxy":
-            return <SavedProxiesBlock proxies={store.proxiesTable.getProxies()} activeId={content.proxy.savedId} onChange={(newProxyId) => {
-                store.steamAccountsTable.editingForm.editContent({ proxy: { ...content.proxy, savedId: newProxyId } });
-            }} />
+            if (content.steamAccount.proxyState === "missing") {
+                return <div>
+                    <p style={{ color: "var(--sda-danger)" }}>{t("accounts.table.proxyMissingHint")}</p>
+                    <div className="input-container"><select className="input-text" aria-label={t("proxyBlock.savedProxy")} value={content.proxy.savedId ?? ""} onChange={event => {
+                        store.steamAccountsTable.editingForm.editContent({ proxy: { ...content.proxy, savedId: event.target.value } });
+                    }}>
+                        <option value={content.steamAccount.proxyId ?? ""} disabled>{t("accounts.table.proxyMissing")}</option>
+                        {store.proxiesTable.getProxies().filter(proxy => !proxy.deleted && proxy.id !== content.steamAccount.proxyId).map(proxy =>
+                            <option key={proxy.id} value={proxy.id}>{`(#${proxy.number}) ${proxy.host}:${proxy.port}`}</option>)}
+                    </select></div>
+                </div>;
+            }
+            return <>
+                <SavedProxiesBlock proxies={store.proxiesTable.getProxies()} activeId={content.proxy.savedId} onChange={(newProxyId) => {
+                    // Direct traffic requires selecting the separate No proxy option.
+                    if (newProxyId !== null) store.steamAccountsTable.editingForm.editContent({ proxy: { ...content.proxy, savedId: newProxyId } });
+                }} />
+            </>
     }
 });
 

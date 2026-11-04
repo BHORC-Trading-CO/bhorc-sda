@@ -594,6 +594,9 @@ const CellJSX: FC<{
         </>
       );
     case AvalibleTypes.linkedProxies:
+      if (steamAccount.proxyState === "missing") {
+        return <span style={{ color: "var(--sda-danger)", background: "var(--sda-surface-2)", borderRadius: "var(--sda-radius-sm)", padding: "2px 4px" }} title={t("accounts.table.proxyMissingHint")}>{t("accounts.table.proxyMissing")}</span>;
+      }
       if (steamAccount.proxy) {
         const address = `${steamAccount.proxy.host}:${steamAccount.proxy.port}`;
         return (
@@ -761,8 +764,7 @@ const CellJSX: FC<{
               //store.steamAccountsTable.editSteamAccount(steamAccount.id, { deleted: false });
               window.Main.steamAccounts.edit(
                 steamAccount.id,
-                { deleted: false },
-                { proxyId: null }
+                { deleted: false }
               );
               window.Main.steamAccounts.get();
             }}
@@ -828,8 +830,7 @@ const CellJSX: FC<{
                   });
                   window.Main.steamAccounts.edit(
                     steamAccount.id,
-                    { deleted: true },
-                    { proxyId: null }
+                    { deleted: true }
                   );
                   //window.Main.steamAccounts.get();
                 },

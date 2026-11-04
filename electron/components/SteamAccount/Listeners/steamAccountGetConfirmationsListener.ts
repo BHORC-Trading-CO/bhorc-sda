@@ -11,6 +11,6 @@ export default async (event: IpcMainEvent, id: string) => {
         console.log(`${id} - подтверждений: ${confirmations.length}`);
         event.reply(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS, { id, confirmations });
     } catch (err) {
-        event.reply(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS_ERROR, { id, err });
+        event.reply(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS_ERROR, { id, err: String(err) });
     }
 }

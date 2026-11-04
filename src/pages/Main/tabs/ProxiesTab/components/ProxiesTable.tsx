@@ -125,7 +125,7 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
                     store.windows.prompt({
                         type: 'question',
                         title: t('proxies.delete.permanentTitle', { number: proxy.number }),
-                        text: t('common.irreversible'),
+                        text: proxy.steamAccountIds.length ? t('proxies.deleteLinkedWarning', { count: proxy.steamAccountIds.length }) : t('common.irreversible'),
                         acceptButtonText: t('common.buttons.deleteIt'),
                         cancelButtonText: t('prompt.cancel'),
                         cb: () => {

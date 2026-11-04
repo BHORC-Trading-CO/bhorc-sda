@@ -41,7 +41,7 @@ const SteamDataCode: FC = observer(() => {
           <Button text={t("common.buttons.back")} size="medium" color="grey" isNonGuardButton={false} hoverColor='light-grey' onClick={() => {
             setCurrentPage('start');
           }}></Button>
-          <Button disabled={!(params.accountName && params.password)} isNonGuardButton={false} text={t("common.buttons.connect")} size="medium" onClick={() => {
+          <Button disabled={!(params.accountName && params.password) || !store.steamAccountsTable.creationForm.hasValidProxySelection} isNonGuardButton={false} text={t("common.buttons.connect")} size="medium" onClick={() => {
             store.steamAccountsTable.creationForm.runGuardSetupProcess();
           }}></Button>
         </div>

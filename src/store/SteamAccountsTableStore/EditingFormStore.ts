@@ -35,14 +35,18 @@ class EditingFormStore {
     open(steamAccount: TableSteamAccountInterface) {
         this.isOpen = true;
         this.content.steamAccount = steamAccount;
-        this.content.proxy.savedId = steamAccount.proxy ? steamAccount.proxy.id : null;
+        this.content.proxy.savedId = steamAccount.proxyId;
         this.content.proxy.new = { host: '', port: '', username: '', password: '' };
-        if (steamAccount.proxy) {
+        if (steamAccount.proxyState !== "none") {
             this.switches.proxy = 'savedProxy';
         } else {
             this.switches.proxy = 'noProxy';
         }
 
+    }
+    getProxyLinkChange() {
+        const proxyId = this.switches.proxy === "noProxy" ? null : this.content.proxy.savedId;
+        return proxyId === this.content.steamAccount.proxyId ? undefined : { proxyId };
     }
     close() { this.isOpen = false; }
     getContent() { return toJS(this.content); }

@@ -10,6 +10,9 @@
     }
   },
   "errors": {
+    "browserRouteChanged": "The proxy route changed. Affected account browsers were stopped; start them again to use the new route.",
+    "browserCloseTimeout": "The browser did not close in time. Its process was forcibly stopped.",
+    "proxyUnavailable": "Proxy #{{id}} is unavailable. Connections are blocked. Choose another proxy or explicitly select No proxy in Edit account.",
     "steamAccountNotFound": "Steam account #{{id}} does not exist",
     "proxyNotFound": "Proxy #{{id}} does not exist",
     "proxyLinkMissing": "Proxy #{{proxyId}} does not exist: account #{{steamAccountId}} was not linked (requests would go directly)",

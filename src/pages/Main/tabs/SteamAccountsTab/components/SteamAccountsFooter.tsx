@@ -100,7 +100,7 @@ const SteamAccountsFooter: FC = observer(() => {
                                     for (var steamAccount of selectedSteamAccounts) {
                                         store.steamAccountsTable.editSteamAccount(steamAccount.id, { deleted: true, isSelected: false });
                                         //store.steamAccountsTable.editSteamAccountInStorage(steamAccount.id, { deleted: true });
-                                        window.Main.steamAccounts.edit(steamAccount.id, { deleted: true }, { proxyId: null });
+                                        window.Main.steamAccounts.edit(steamAccount.id, { deleted: true });
                                     }
                                     window.Main.steamAccounts.get();
                                 }

@@ -35,8 +35,9 @@ export class ProxyManager {
         try {
             const index = this.objects.findIndex(obj => obj.params.id === id);
             if (index === -1) throw new Error(`#${id} - proxy is not exist`);
-            this.objects.splice(index, 1);
             ProxyStorage.Delete(id);
+            this.objects.splice(index, 1);
+            Manager.RefreshProxyAccounts(id);
         } catch (err) {
             throw new Error(`Cant delete proxy: ${err}`);
         }
@@ -50,14 +51,15 @@ export class ProxyManager {
                 newProxyData = { ...newProxyData, timezone: "", countryCode: "" };
             }
             object.editParams(newProxyData);
+            Manager.RefreshProxyAccounts(id);
         } catch (err) {
             throw new Error(`Cant edit proxy: ${err}`);
         }
     }
     /** Возвращает гео прокси (таймзона + страна): из кеша, иначе запрашивает через прокси и кеширует. */
     async getProxyGeo(proxyId: string): Promise<ProxyGeo> {
-        const proxy = this.getById(proxyId);
-        if (!proxy) return { timezone: null, countryCode: null };
+        Manager.RequireProxy(proxyId);
+        const proxy = this.getById(proxyId)!;
         if (proxy.params.timezone && proxy.params.countryCode) {
             return { timezone: proxy.params.timezone, countryCode: proxy.params.countryCode };
         }
@@ -85,6 +87,7 @@ export class ProxyManager {
                 const proxy = new Proxy(object);
                 this.addNew(proxy);
             }
+            Manager.RefreshAllAccountProxies();
             this.sendProxiesToFront();
         } catch (err) {
             throw new Error(`Cant load proxies: ${err}`);

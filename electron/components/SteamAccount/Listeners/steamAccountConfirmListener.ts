@@ -15,6 +15,6 @@ export default async (event: IpcMainEvent, params: { id: string, data: { allow: 
         }
         event.reply(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM, params.id);
     } catch (err) {
-        event.reply('ERROR', err);
+        event.reply('ERROR', String(err));
     }
 }

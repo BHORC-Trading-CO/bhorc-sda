@@ -161,6 +161,8 @@
       "add": "Add account"
     },
     "table": {
+      "proxyMissing": "Proxy not found",
+      "proxyMissingHint": "Connections are blocked. Open Edit account to select another proxy or explicitly choose No proxy.",
       "balanceError": "Balance not loaded",
       "balanceErrorTip": "Could not load the balance: {{error}}",
       "noAvatar": "No Steam avatar",
@@ -406,6 +408,8 @@
     }
   },
   "proxies": {
+    "deleteLinkedWarning_one": "{{count}} linked account will stop connecting until you select another proxy or explicitly choose No proxy in Edit account.",
+    "deleteLinkedWarning_other": "{{count}} linked accounts will stop connecting until you select another proxy or explicitly choose No proxy in Edit account.",
     "panel": {
       "title": "Proxies",
       "add": "Add proxy",
