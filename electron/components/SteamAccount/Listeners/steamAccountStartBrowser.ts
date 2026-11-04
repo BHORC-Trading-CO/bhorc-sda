@@ -13,9 +13,9 @@ export default async (event: IpcMainEvent, id: string) => {
         const geo = steamAccount.proxy ? await proxyManager.getProxyGeo(steamAccount.proxy.id) : null;
         steamAccount.chrome.start(cookies, geo).catch((err) => {
             console.log(`#${id} - ошибка запуска браузера: ${err}`);
-            event.reply('ERROR', err);
+            event.reply('ERROR', String(err));
         });
     } catch (err) {
-        event.reply('ERROR', err);
+        event.reply('ERROR', String(err));
     }
 }

@@ -1,4 +1,5 @@
 import "../components/Functions/installConsoleRedaction";
+import ProxySelection from "../interfaces/Proxy/ProxySelection";
 import { contextBridge, IpcMainEvent, ipcRenderer, IpcRendererEvent, session, shell } from 'electron';
 import Field from '../interfaces/TableFields/Field';
 import CompiledProxyInterface from '../interfaces/Proxy/CompiledProxyInterface';
@@ -68,7 +69,7 @@ const steamAccounts = {
   onRefreshSessionError(listener: (event: IpcRendererEvent, data: { id: string, err: Error }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, listener);
   },
-  creationProcess: (steamAccount: SteamAccountSetupInterface, links: { proxyId: string | null, newProxy: ProxySetupInterface | null }) => {
+  creationProcess: (steamAccount: SteamAccountSetupInterface, links: ProxySelection) => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS, { steamAccount: steamAccount, links })
   },
   onCreationProcessStep(listener: (event: IpcRendererEvent, step: CreationStepType) => void) {
@@ -152,7 +153,7 @@ const proxies = {
   bulkNew: (proxies: ProxySetupInterface[]) => {
     ipcRenderer.send('NEW_PROXIES', proxies);
   },
-  edit: (id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[] }) => {
+  edit: (id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], originalSteamAccountIds?: string[] }) => {
     ipcRenderer.send('EDIT_PROXY', { id, proxy, links });
   },
   delete: (id: string) => {
@@ -271,7 +272,7 @@ const window = {
 }
 
 const guardConnection = {
-  setup(params: { accountName: string, password: string }, links: { proxyId: string | null, newProxy: ProxySetupInterface | null }) {
+  setup(params: { accountName: string, password: string }, links: ProxySelection) {
     ipcRenderer.send(SteamAccountChannels.GUARD_SETUP_PROCESS, { ...params, links });
   },
   onSetupError: (listener: (event: IpcRendererEvent, error: string) => void) => {

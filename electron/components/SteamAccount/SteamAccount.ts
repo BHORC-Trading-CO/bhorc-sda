@@ -29,6 +29,8 @@ import SessionInterface from "../../interfaces/SteamAccount/SessionInterface";
 import stripLegacyMarketData from "../Functions/stripLegacyMarketData";
 import sanitizeSmaFile from "../Functions/sanitizeSmaFile";
 import { t } from "../../i18n";
+import application from "../application/application";
+import SteamAccountChannels from "../../interfaces/IpcChannels/SteamAccountChannels";
 const SteamTotp = require('steam-totp');
 
 class SteamAccount {
@@ -41,6 +43,7 @@ class SteamAccount {
     proxy: ProxyInterface | null;
     proxyState: ProxyState;
     proxyId: string | null;
+    private routeKey: string;
 
     constructor(params: SteamAccountInterface) {
         params = stripLegacyMarketData(params);
@@ -61,6 +64,7 @@ class SteamAccount {
         this.proxy = links.proxy;
         this.proxyState = links.proxyState;
         this.proxyId = links.proxyId;
+        this.routeKey = this.resolvedRouteKey(links);
         this.session = this.buildSession();
         this.community = this.buildCommunity();
     }
@@ -163,13 +167,45 @@ class SteamAccount {
             : request.defaults({ headers: STEAM_WEB_HEADERS });
         return new SteamCommunity({ request: req, userAgent: STEAM_MOBILE_USER_AGENT });
     }
+    private resolvedRouteKey(links: ReturnType<typeof Manager.GetSteamAccountLinkedData>) {
+        return `${links.proxyState}:${links.proxyState === "ok" ? buildProxyUrl(links.proxy) : ""}`;
+    }
     setProxy() {
         const links = Manager.GetSteamAccountLinkedData(this.params.id);
+        const routeKey = this.resolvedRouteKey(links);
         this.proxy = links.proxy;
-        this.proxyState = links.proxyState;
         this.proxyId = links.proxyId;
-        this.session.cancelLoginAttempt?.();
-        this.session = this.buildSession();
+        if (routeKey === this.routeKey) return;
+        this.proxyState = links.proxyState;
+        this.routeKey = routeKey;
+        this.stopBrowserForRouteChange();
+        try {
+            this.session.cancelLoginAttempt?.();
+            this.session = this.buildSession();
+            this.community = this.buildCommunity();
+        } catch (err) {
+            // Never retain a previously direct client if rebuilding the route fails.
+            this.blockProxy();
+            throw err;
+        }
+        if (this.proxyState !== "missing") {
+            this.initSession().catch(err => application.sendToMain(
+                SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id: this.params.id, err: String(err) }
+            ));
+        }
+    }
+    private stopBrowserForRouteChange() {
+        // A launch in progress is cancelled too; Chromium cannot switch routes live.
+        if (this.chrome.workStatus !== "notworking" || this.chrome.browser) {
+            this.chrome.stop().catch(err => application.sendToMain("ERROR", String(err)));
+            application.sendToMain("ERROR", t("errors.browserRouteChanged"));
+        }
+    }
+    blockProxy() {
+        this.stopBrowserForRouteChange();
+        this.proxyState = "missing";
+        this.routeKey = "missing:";
+        this.session = blockedSession(this.proxyId);
         this.community = this.buildCommunity();
     }
 

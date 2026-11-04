@@ -44,6 +44,10 @@ class EditingFormStore {
         }
 
     }
+    getProxyLinkChange() {
+        const proxyId = this.switches.proxy === "noProxy" ? null : this.content.proxy.savedId;
+        return proxyId === this.content.steamAccount.proxyId ? undefined : { proxyId };
+    }
     close() { this.isOpen = false; }
     getContent() { return toJS(this.content); }
     getSwitches() { return toJS(this.switches); }

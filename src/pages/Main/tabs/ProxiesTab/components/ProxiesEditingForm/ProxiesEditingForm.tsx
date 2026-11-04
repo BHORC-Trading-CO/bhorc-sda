@@ -41,6 +41,7 @@ const EditingFormContent: FC = observer(() => {
     port: proxy.port
   });
 
+  const [originalSteamAccountIds] = useState(() => [...proxy.steamAccountIds]);
   const [links, setLinks] = useState<{ steamAccountIds: string[] }>({
     steamAccountIds: proxy.steamAccountIds
   });
@@ -109,7 +110,7 @@ const EditingFormContent: FC = observer(() => {
         ></Button>
         <Button size="medium" text={t("common.buttons.save")} onClick={() => {
           if (proxyData.host && proxyData.port && proxyData.password && proxyData.host) {
-            window.Main.proxies.edit(proxy.id, proxyData, links);
+            window.Main.proxies.edit(proxy.id, proxyData, { ...links, originalSteamAccountIds });
             store.proxiesTable.closeEditingForm();
           }
         }}></Button>

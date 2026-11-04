@@ -8,6 +8,7 @@ import SteamAccountChannels from "../../interfaces/IpcChannels/SteamAccountChann
 import ProxyUnavailableError from "../Proxy/ProxyUnavailableError";
 import buildProxyUrl from "../Proxy/proxyUrl";
 import ProxyInterface from "../../interfaces/Proxy/ProxyInterface";
+import ProxySelection from "../../interfaces/Proxy/ProxySelection";
 import { ProxyState } from "../../interfaces/Proxy/ProxyState";
 
 class Manager {
@@ -33,6 +34,34 @@ class Manager {
         if (linked.proxyState === "missing") throw new ProxyUnavailableError(linked.proxyId);
         return linked.proxy;
     }
+    static RequireProxySelection(selection: ProxySelection) {
+        const { proxyMode, proxyId, newProxy } = selection;
+        if (proxyMode === "noProxy" && proxyId == null && newProxy == null) return null;
+        if (proxyMode === "newProxy" && proxyId == null && newProxy) return null;
+        if (proxyMode === "savedProxy" && proxyId && !newProxy) return Manager.RequireProxy(proxyId);
+        throw new ProxyUnavailableError(proxyId);
+    }
+    static PlanProxyAccountLinks(proxyId: string, requested: string[], original: string[] = []) {
+        // A form snapshot distinguishes deliberate removals from later links.
+        for (const id of [...requested, ...original]) {
+            if (!steamAccountManager.getById(id)) throw new Error(`steam account #${id} is not exist`);
+        }
+        const links = LinksStorage.Get();
+        const next = { ...links, steamAccounts: { ...links.steamAccounts } };
+        for (const id of original) {
+            if (!requested.includes(id) && next.steamAccounts[id] === proxyId) next.steamAccounts[id] = null;
+        }
+        for (const id of requested) {
+            // Keep concurrent relinks of unchanged selections; only apply additions.
+            if (!original.includes(id)) next.steamAccounts[id] = proxyId;
+        }
+        const changed = Object.keys(next.steamAccounts).filter(id => next.steamAccounts[id] !== links.steamAccounts[id]);
+        return () => {
+            if (!changed.length) return;
+            LinksStorage.Save(next);
+            Manager.RefreshAccountProxies(changed);
+        };
+    }
     static GetProxyLinkedData(proxyId: string) {
         const links = LinksStorage.Get();
 
@@ -55,18 +84,26 @@ class Manager {
     }
 
     static RefreshAllAccountProxies() {
-        for (const account of steamAccountManager.objects) Manager.RefreshAccountProxy(account.params.id);
+        Manager.RefreshAccountProxies(steamAccountManager.objects.map(account => account.params.id));
     }
     static RefreshProxyAccounts(proxyId: string) {
         const links = LinksStorage.Get();
-        for (const steamAccountId of Object.keys(links.steamAccounts)) {
-            if (links.steamAccounts[steamAccountId] === proxyId) Manager.RefreshAccountProxy(steamAccountId);
+        Manager.RefreshAccountProxies(Object.keys(links.steamAccounts).filter(id => links.steamAccounts[id] === proxyId));
+    }
+    private static RefreshAccountProxies(ids: string[]) {
+        const errors: string[] = [];
+        for (const id of ids) {
+            try { Manager.RefreshAccountProxy(id); } catch (err) { errors.push(String(err)); }
         }
+        if (errors.length) throw new Error(errors.join("; "));
     }
     private static RefreshAccountProxy(steamAccountId: string) {
         const steamAccount = steamAccountManager.getById(steamAccountId);
         if (!steamAccount) return;
-        steamAccount.setProxy();
+        try { steamAccount.setProxy(); } catch (err) {
+            steamAccount.blockProxy();
+            throw err;
+        }
         application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_EDIT_PROXY, {
             id: steamAccountId, ...Manager.GetSteamAccountLinkedData(steamAccountId)
         });
@@ -84,8 +121,7 @@ class Manager {
         if (!steamAccount) throw new Error(`steam account #${steamAccountId} is not exist`);
         Manager.RequireProxy(proxyId);
         const links = LinksStorage.Get();
-        links.steamAccounts[steamAccountId] = proxyId;
-        LinksStorage.Save(links);
+        LinksStorage.Save({ ...links, steamAccounts: { ...links.steamAccounts, [steamAccountId]: proxyId } });
         Manager.RefreshAccountProxy(steamAccountId);
         proxyManager.sendProxiesToFront();
     }

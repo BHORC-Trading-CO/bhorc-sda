@@ -12,16 +12,12 @@ export default (event: Electron.IpcMainEvent, accounts: [{ smaFile: SmaFileInter
     for (var account of accounts) {
         try {
             const smaFile = sanitizeSmaFile(account.smaFile);
-            if (!smaFile.proxy) Manager.RequireProxy(account.links.proxyId);
-            const steamAccount = steamAccountImport(smaFile);
+            const proxyId = smaFile.proxy
+                ? proxyManager.getOrCreateBySetup(smaFile.proxy).params.id
+                : account.links.proxyId;
+            Manager.RequireProxy(proxyId);
+            steamAccountImport(smaFile, proxyId);
 
-            // Прокси из .smaFile имеет приоритет: резолвим в локальный (существующий или новый)
-            if (smaFile.proxy) {
-                const proxy = proxyManager.getOrCreateBySetup(smaFile.proxy);
-                Manager.LinkProxyToSteamAccount(steamAccount.id, proxy.params.id);
-            } else if (account.links.proxyId) {
-                Manager.LinkProxyToSteamAccount(steamAccount.id, account.links.proxyId);
-            }
         } catch (err) {
             const name = account && account.smaFile && typeof account.smaFile.accountName === "string" ? account.smaFile.accountName : "?";
             rejected.push(`${name} — ${err instanceof Error ? err.message : err}`);
@@ -31,7 +27,7 @@ export default (event: Electron.IpcMainEvent, accounts: [{ smaFile: SmaFileInter
         proxyManager.sendProxiesToFront();
         steamAccountManager.sendAccountsToFront();
     } catch (err) {
-        event.reply('ERROR', err);
+        event.reply('ERROR', String(err));
     }
-    if (rejected.length) event.reply('ERROR', new Error(t("errors.importRejected", { total: rejected.length, details: rejected.join("; ") })));
+    if (rejected.length) event.reply('ERROR', t("errors.importRejected", { total: rejected.length, details: rejected.join("; ") }));
 }

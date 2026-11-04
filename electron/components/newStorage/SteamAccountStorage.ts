@@ -1,4 +1,5 @@
 import createStore from "./createStore";
+import LinksStorage from "./LinksStorage";
 import assertStorageId from "./assertStorageId";
 import SteamAccountInterface from '../../interfaces/SteamAccount/SteamAccountInterface';
 import cryptoUserData from './cryptoUserData';
@@ -60,6 +61,15 @@ class SteamAccountStorage {
         if (steamAccount.id !== id) throw new Error(t("errors.storage.idMismatch"));
         const encryptedSteamAccount = cryptoUserData.encryptObject(stripLegacyMarketData(steamAccount));
         store.set(`steamAccounts.${id}`, encryptedSteamAccount);
+    }
+    /** One conf write/atomic file replacement: an account never exists without its route. */
+    static SaveWithProxyLink(steamAccount: SteamAccountInterface, proxyId: string | null) {
+        assertStorageId(steamAccount.id);
+        const links = LinksStorage.Get();
+        store.set({
+            [`steamAccounts.${steamAccount.id}`]: cryptoUserData.encryptObject(stripLegacyMarketData(steamAccount)),
+            links: { ...links, steamAccounts: { ...links.steamAccounts, [steamAccount.id]: proxyId } }
+        });
     }
     static Delete(id: string) {
         assertStorageId(id);

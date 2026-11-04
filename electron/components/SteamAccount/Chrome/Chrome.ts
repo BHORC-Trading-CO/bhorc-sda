@@ -19,6 +19,7 @@ import SteamAccountInterface from "../../../interfaces/SteamAccount/SteamAccount
 import Manager from "../../manager/manager";
 import buildProxyUrl from "../../Proxy/proxyUrl";
 import ProxyUnavailableError from "../../Proxy/ProxyUnavailableError";
+import { t } from "../../../i18n";
 import application from "../../application/application";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import path from "path";
@@ -28,6 +29,7 @@ import resolveBrowserPath from "./resolveBrowserPath";
 const sharp = require("sharp");
 
 export default class Chrome {
+  private startVersion = 0;
   profileDir: string;
   params: SteamAccountInterface;
   browser: Browser | null;
@@ -211,10 +213,17 @@ export default class Chrome {
     });
   }
   start(webCookies: string[] = [], geo?: ProxyGeo | null): Promise<void> {
+    const version = ++this.startVersion;
+    const assertCurrent = () => {
+      if (version !== this.startVersion) throw new Error(t("errors.browserRouteChanged"));
+    };
+    this.workStatus = "load";
     return new Promise<void>(async (resolve, reject) => {
       try {
         await this.setupProxy();
+        assertCurrent();
         const executablePath = await resolveBrowserPath();
+        assertCurrent();
         console.log("path: ", executablePath);
         // Локаль под гео прокси — нужна ДО запуска (флаг --lang), задаётся в generateChromeFlags.
         this.locale = geo && geo.countryCode ? localeForCountry(geo.countryCode) : null;
@@ -227,18 +236,26 @@ export default class Chrome {
         // Прокси резолвим ДО createProfile: если он привязан, аватар должен
         // качаться через него, а не напрямую (downloadImage получает proxyUrl).
         await this.setupProxy();
+        assertCurrent();
         await this.migrateLegacyProfile();
+        assertCurrent();
         await fs.access(this.profileDir).catch(async (err) => {
           if (err.code == "ENOENT") await this.createProfile();
           else return reject(err);
         });
 
-        this.browser = await puppeteer.launch({
+        assertCurrent();
+        const launchedBrowser = await puppeteer.launch({
           userDataDir: this.profileDir,
           headless: false,
           executablePath,
           args: this.generateChromeFlags(),
         });
+        if (version !== this.startVersion) {
+          await this.closeBrowser(launchedBrowser);
+          assertCurrent();
+        }
+        this.browser = launchedBrowser;
 
         this.workStatus = "working";
         application.sendToMain(SteamAccountChannels.GET_BROWSER_STARTUS, {
@@ -247,6 +264,9 @@ export default class Chrome {
         });
 
         this.browser.on("disconnected", () => {
+          if (this.browser !== launchedBrowser) return;
+          this.browser = null;
+          this.page = null;
           this.workStatus = "notworking";
           application.sendToMain(SteamAccountChannels.GET_BROWSER_STARTUS, {
             status: this.workStatus,
@@ -276,6 +296,7 @@ export default class Chrome {
         });
 
         this.page = await this.browser.newPage();
+        assertCurrent();
         if (this.proxy)
           await this.page.authenticate({
             username: this.proxy?.username,
@@ -283,10 +304,15 @@ export default class Chrome {
           });
         // Приводим отпечаток главной страницы к гео прокси и per-account значениям
         // (таймзона, Accept-Language, navigator.hardwareConcurrency/deviceMemory).
+        assertCurrent();
         await this.applyFingerprint(this.page);
+        assertCurrent();
         if (this.params.useSteamCookies) await this.addSteamCookies(webCookies);
+        assertCurrent();
         await this.page.goto("https://steamcommunity.com/my/");
+        resolve();
       } catch (err) {
+        if (version === this.startVersion) await this.stop().catch(() => undefined);
         return reject(err);
       }
     });
@@ -335,21 +361,26 @@ export default class Chrome {
       console.log(err);
     }
   }
-  stop(): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
-      try {
-        if (this.browser) await this.browser.close();
-        this.isOpen = false;
-        this.workStatus = "notworking";
-        application.sendToMain(SteamAccountChannels.GET_BROWSER_STARTUS, {
-          status: this.workStatus,
-          id: this.params.id,
-        });
-        resolve();
-      } catch (err) {
-        return reject(err);
-      }
+  private async closeBrowser(browser: Browser) {
+    try {
+      await browser.close();
+    } catch (err) {
+      // Puppeteer may lose its connection while the child is still browsing.
+      browser.process()?.kill("SIGKILL");
+      throw err;
+    }
+  }
+  async stop(): Promise<void> {
+    ++this.startVersion;
+    const browser = this.browser;
+    this.browser = null;
+    this.page = null;
+    this.isOpen = false;
+    this.workStatus = "notworking";
+    application.sendToMain(SteamAccountChannels.GET_BROWSER_STARTUS, {
+      status: this.workStatus, id: this.params.id,
     });
+    if (browser) await this.closeBrowser(browser);
   }
   addSteamCookies(webCookies: string[] = []): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {

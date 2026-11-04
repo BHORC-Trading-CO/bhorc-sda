@@ -38,7 +38,8 @@ export default async function setupGuard(
     accountName: string;
     password: string;
   },
-  proxy?: ProxySetupInterface | null
+  proxy?: ProxySetupInterface | null,
+  onRecovery?: (revocationCode: string, steamId: string) => void
 ): Promise<SmaFileInterface> {
     const proxyUrl = buildProxyUrl(proxy);
   return new Promise(async (resolve, reject) => {
@@ -160,6 +161,7 @@ export default async function setupGuard(
               }
               //@ts-ignore
               const rawMaFile: TwoFactorResponseInterface = response;
+              onRecovery?.(rawMaFile.revocation_code, session.steamID.getSteamID64());
               // Секреты на диск ПЕРВЫМ делом: Steam отдаёт shared_secret и revocation_code
               // ровно один раз, и всё, что идёт ниже (ввод кода, finalize), может оборваться.
               const backupFile = savePendingAuthenticator(

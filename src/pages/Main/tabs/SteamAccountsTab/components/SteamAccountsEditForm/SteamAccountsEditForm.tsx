@@ -141,24 +141,22 @@ const EditFormContent = observer(() => {
                 store.steamAccountsTable.editingForm.close();
             }} />
             <Button text={t('common.buttons.saveChanges')} size='medium' color='gradient' hoverColor='gradient' onClick={() => {
-                let proxyId: string | null = steamAccount.proxy ? steamAccount.proxy.id : null;
-                if (store.steamAccountsTable.editingForm.switches.proxy === "noProxy") {
-                    proxyId = null;
-                } else if (store.steamAccountsTable.editingForm.switches.proxy === "newProxy") {
+                if (store.steamAccountsTable.editingForm.switches.proxy === "newProxy") {
                     store.proxiesTable.createNew(content.proxy.new, { steamAccountIds: [steamAccount.id], profileIds: [] });
                     window.Main.steamAccounts.edit(steamAccount.id, changeThisProperties);
                     store.steamAccountsTable.editSteamAccount(steamAccount.id, changeThisProperties);
                     store.steamAccountsTable.editingForm.close();
                     return;
                 } else if (store.steamAccountsTable.editingForm.switches.proxy === "savedProxy") {
-                    if (!content.proxy.savedId) {
+                    if (!content.proxy.savedId && !(steamAccount.proxyState === "missing" && content.proxy.savedId === steamAccount.proxyId)) {
                         store.windows.openMiniNotification({ type: 'error', text: t('accounts.table.proxyMissingHint') });
                         return;
                     }
-                    proxyId = content.proxy.savedId;
                 }
 
-                window.Main.steamAccounts.edit(steamAccount.id, changeThisProperties, { proxyId: proxyId });
+                const links = store.steamAccountsTable.editingForm.getProxyLinkChange();
+                if (links) window.Main.steamAccounts.edit(steamAccount.id, changeThisProperties, links);
+                else window.Main.steamAccounts.edit(steamAccount.id, changeThisProperties);
                 store.steamAccountsTable.editSteamAccount(steamAccount.id, changeThisProperties);
                 store.steamAccountsTable.editingForm.close();
             }} />

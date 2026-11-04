@@ -138,7 +138,16 @@ class CreationFormStore {
     setGuardSetupProcessStep(step: CreationStepType) { this.guardSetupProcessStep = step; }
     setGuardSetupResult(result: GuardSetupResultInterface | null) { this.guardSetupResult = result; }
 
+    get hasValidProxySelection() {
+        return this.switches.proxy !== "savedProxy" || !!this.content.proxy.savedId;
+    }
+    private validateProxySelection() {
+        if (this.hasValidProxySelection) return true;
+        store.windows.openMiniNotification({ type: "error", text: i18n.t("accounts.table.proxyMissingHint") });
+        return false;
+    }
     runCreationProcess() {
+        if (!this.validateProxySelection()) return;
         const content = this.getContent();
         if (!content.maFile || !content.accountName || !content.password) return;
 
@@ -166,6 +175,7 @@ class CreationFormStore {
             profileName: content.profileName,
             useSteamCookies: content.useSteamCookies
         }, {
+            proxyMode: this.switches.proxy,
             proxyId: proxyId,
             newProxy: newProxy
         });
@@ -174,6 +184,7 @@ class CreationFormStore {
         this.creationProcessError = '';
     }
     runGuardSetupProcess() {
+        if (!this.validateProxySelection()) return;
         const content = this.getContent();
         if (!content.accountName || !content.password) return;
 
@@ -191,7 +202,7 @@ class CreationFormStore {
                 break;
         }
 
-        window.Main.guardConnection.setup(content, { proxyId: proxyId, newProxy: newProxy });
+        window.Main.guardConnection.setup(content, { proxyMode: this.switches.proxy, proxyId: proxyId, newProxy: newProxy });
         this.currentProcess = 'guardConnecting';
         this.guardSetupProcessStep = 'start';
         this.guardSetupProcessError = '';

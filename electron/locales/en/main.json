@@ -3,6 +3,7 @@
     "dataDirNotPinned": "Data was opened outside the {{dir}} folder ({{paths}}). Startup was stopped so that no accounts are lost."
   },
   "errors": {
+    "browserRouteChanged": "The account’s proxy route changed. Its browser was stopped; start it again to use the new route.",
     "proxyUnavailable": "Proxy #{{id}} is unavailable. Connections are blocked. Choose another proxy or explicitly select No proxy in Edit account.",
     "steamAccountNotFound": "Steam account #{{id}} does not exist",
     "proxyNotFound": "Proxy #{{id}} does not exist",

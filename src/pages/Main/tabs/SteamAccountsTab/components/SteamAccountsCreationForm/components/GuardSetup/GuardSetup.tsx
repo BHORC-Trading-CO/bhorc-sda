@@ -34,10 +34,10 @@ const Page: FC<{ step: CreationStepType }> = observer(({ step }) => {
         case "end":
             return <Result />;
         case "error":
-            return <div className='account-creation_step'>
+            return <><div className='account-creation_step'>
                 <div className='title'>{t('common.errorTitle')}</div>
                 <div className='text text_error'>{store.steamAccountsTable.creationForm.guardSetupProcessError}</div>
-            </div>
+            </div>{store.steamAccountsTable.creationForm.guardSetupResult && <Result recoveryOnly />}</>
         default:
             return <>{t('common.unknownStep', { step })}</>;
     }
@@ -55,12 +55,12 @@ const GuardSetup: FC = observer(() => {
 // Финальный экран. Главное здесь — revocation code: Steam выдаёт его ровно один
 // раз, и без него аутентификатор с аккаунта уже не снять. Поэтому окно нельзя
 // закрыть "мимо" кода — он показан крупно и рядом с кнопкой копирования.
-const Result: FC = observer(() => {
+const Result: FC<{ recoveryOnly?: boolean }> = observer(({ recoveryOnly }) => {
     const result = store.steamAccountsTable.creationForm.guardSetupResult;
     const { t } = useTranslation();
 
     return <div className='account-creation_step'>
-        <div className='title'>{t('guard.result.title')}</div>
+        {!recoveryOnly && <div className='title'>{t('guard.result.title')}</div>}
         {result
             ? <>
                 <div className='text'>{t('guard.result.account', { name: result.accountName })}</div>
