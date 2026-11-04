@@ -5,7 +5,7 @@ import Button from '../../globalComponents/Button/Button';
 import Icon from '../../globalComponents/Icon/Icon';
 import "./Confirmation.css"
 import SellItem from './SellItem/SellItem';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import stripLeadingEmoji from './stripLeadingEmoji';
 
 interface Item { selected: boolean, confirmation: CConfirmation };
@@ -75,7 +75,7 @@ const Confirmations: FC = () => {
                     <h2 className='confirmation-heading'>{t('confirmations.title')}</h2>
                     <div className='confirmation-toolbar'>
                         <div className='sell-items-count-selected'>
-                            {t('confirmations.selectedOf', { selected: selectedCount, total: items.length })}
+                            <Trans t={t} i18nKey='confirmations.selectedOf' values={{ selected: selectedCount, total: items.length }} components={{ n: <span className='confirmation-count' /> }} />
                         </div>
                         <button type='button' className='confirmation-icon-button' title={t('confirmations.toggleAll')} aria-label={t('confirmations.toggleAll')} onClick={() => {
                             const selectedItems = items.filter(i => i.selected);
@@ -107,7 +107,7 @@ const Confirmations: FC = () => {
                         <div className='centered-block confirmation-state' role='status'>
                             <Icon name='loader' size={20} motion='spinAlways' className='confirmation-state-icon confirmation-state-icon--loader' />
                             <div className='confirmation-state-message'>
-                                {isLoading ? t('confirmations.loading') : t(isResponding === 'confirm' ? 'confirmations.confirming' : 'confirmations.declining', { count: selectedCount })}
+                                {isLoading ? t('confirmations.loading') : <Trans t={t} i18nKey={isResponding === 'confirm' ? 'confirmations.confirming' : 'confirmations.declining'} count={selectedCount} components={{ n: <span className='confirmation-count' /> }} />}
                             </div>
                         </div>)}
                 </div>

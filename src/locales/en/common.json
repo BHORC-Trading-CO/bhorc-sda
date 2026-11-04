@@ -28,7 +28,6 @@
     "reloadAll": "Reload all data",
     "startTyping": "Start typing...",
     "irreversible": "This action cannot be undone",
-    "archiveHint": "You can always restore it or delete it permanently (just click the eye icon in the top panel)",
     "error": "Error",
     "errorTitle": "Error 😒",
     "unknownStep": "Unknown step: {{step}}",
@@ -156,6 +155,8 @@
   "accounts": {
     "count_one": "{{count}} account",
     "count_other": "{{count}} accounts",
+    "countRich_one": "<n>{{count}}</n> account",
+    "countRich_other": "<n>{{count}}</n> accounts",
     "panel": {
       "title": "Steam accounts",
       "searchPlaceholder": "Search by login, nickname or SteamID",
@@ -225,10 +226,8 @@
     "archiveSelected": {
       "title_one": "Move {{count}} account to the archive?",
       "title_other": "Move {{count}} accounts to the archive?",
-      "textSingle": "Account #{{numbers}} will be archived. You can always restore it or delete it permanently (just click the eye icon in the top panel)",
-      "textMany": "Accounts #{{numbers}} will be archived. You can always restore them or delete them permanently (just click the eye icon in the top panel)",
-      "textSingleArchiveIcon": "Account #{{numbers}} will be archived. You can always restore it or delete it permanently (just click the archive icon in the top panel)",
-      "textManyArchiveIcon": "Accounts #{{numbers}} will be archived. You can always restore them or delete them permanently (just click the archive icon in the top panel)",
+      "textSingle": "Account #{{numbers}} will be archived. You can always restore it or delete it permanently (just click the archive icon in the top panel)",
+      "textMany": "Accounts #{{numbers}} will be archived. You can always restore them or delete them permanently (just click the archive icon in the top panel)",
       "accept_one": "Delete {{count}} account",
       "accept_other": "Delete {{count}} accounts"
     },
@@ -438,7 +437,8 @@
     },
     "delete": {
       "permanentTitle": "Permanently delete proxy #{{number}}?",
-      "archiveTitle": "Move proxy #{{number}} to the archive?"
+      "archiveTitle": "Move proxy #{{number}} to the archive?",
+      "archiveHint": "You can always restore it or delete it permanently (just click the eye icon in the top panel)"
     },
     "archiveSelected": {
       "title_one": "Move {{count}} proxy to the archive?",
@@ -497,7 +497,7 @@
   },
   "confirmations": {
     "title": "Confirmations",
-    "selectedOf": "Selected: {{selected}} of {{total}}",
+    "selectedOf": "Selected: <n>{{selected}}</n> of <n>{{total}}</n>",
     "toggleAll": "Select/deselect all confirmations",
     "refresh": "Refresh",
     "empty": "No confirmations available",
@@ -510,10 +510,10 @@
     },
     "retry": "Retry",
     "error": "Could not load confirmations.",
-    "confirming_one": "Confirming selected: {{count}}",
-    "confirming_other": "Confirming selected: {{count}}",
-    "declining_one": "Declining selected: {{count}}",
-    "declining_other": "Declining selected: {{count}}",
+    "confirming_one": "Confirming selected: <n>{{count}}</n>",
+    "confirming_other": "Confirming selected: <n>{{count}}</n>",
+    "declining_one": "Declining selected: <n>{{count}}</n>",
+    "declining_other": "Declining selected: <n>{{count}}</n>",
     "types": {
       "trade": "Trade",
       "listing": "Market listing",

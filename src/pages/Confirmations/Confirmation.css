@@ -50,6 +50,12 @@
   color: var(--sda-text-muted);
 }
 
+/* Числа в «Выбрано: N из M» и «Подтверждаем выбранное: N» — Geist Mono, слова остаются в Geist. */
+.confirmation-count {
+  font-family: var(--sda-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Кнопка-иконка без заливки: рамка как у контурных кнопок, на ховере светлеет. */
 .confirmation-icon-button {
   display: inline-flex;

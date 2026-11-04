@@ -15,14 +15,17 @@ const ToolbarIconButton: FC<{
     label: string,
     motion?: IconMotion,
     isActive?: boolean,
+    /** Кнопка-переключатель: состояние для скринридера (aria-pressed) */
+    pressed?: boolean,
     testId?: string,
     onClick: () => void,
-}> = ({ icon, label, motion = "pop", isActive, testId, onClick }) => (
+}> = ({ icon, label, motion = "pop", isActive, pressed, testId, onClick }) => (
     <Tip tip={label} className="accounts-toolbar__tip">
         <button
             type="button"
             className={`accounts-toolbar__icon${isActive ? " accounts-toolbar__icon--active" : ""}`}
             aria-label={label}
+            aria-pressed={pressed}
             data-testid={testId}
             onClick={onClick}
         >
@@ -81,6 +84,7 @@ const SteamAccountsPanel = observer(() => {
                 <ToolbarIconButton
                     icon="archive"
                     isActive={table.showDeleted}
+                    pressed={table.showDeleted}
                     label={table.showDeleted ? t("accounts.panel.hideArchived") : t("accounts.panel.showArchived")}
                     testId="show-archived"
                     onClick={() => {
