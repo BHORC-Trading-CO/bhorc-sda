@@ -1,131 +1,159 @@
+/* Окно подтверждений (R5): полоса TitleBar, строка инструментов, список карточек на фоне окна,
+   снизу полоса с действиями над выбранным. Кнопки Button переопределены здесь, с префиксом окна:
+   общий Button.css остаётся базой и не диктует вид этих кнопок. */
 .confirmation-wrapper {
+  /* Фон выбранной карточки: синий основной кнопки на 10 % (как выбранная строка таблицы в QBS). */
+  --confirmation-selected-bg: rgba(37, 99, 235, 0.1);
   display: flex;
   flex-direction: column;
   height: 100%;
   color: var(--sda-text);
-  background: var(--sda-modal);
+  background: var(--sda-surface-0);
+  font-family: var(--sda-font);
+  font-size: 13px;
 }
 
 .confirmation-container {
   display: flex;
   flex-direction: column;
-  padding: 17px 19px 20px 24px;
   flex: 1;
   min-height: 0;
-  background: var(--sda-modal);
 }
 
+/* Строка инструментов: заголовок слева, счётчик выбранного и кнопки-иконки справа. */
 .confirmation-info-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 17px;
+  padding: 14px 16px 12px;
 }
 
-.info-account-name {
-  background: var(--sda-surface-2);
-  border: 1px solid var(--sda-border);
-  border-radius: var(--sda-radius);
-  width: 204px;
-  max-width: 100%;
-  min-height: 43px;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
+.confirmation-heading {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--sda-text);
 }
 
-.info-account-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.info-account-logo { margin-right: 10px; flex: 0 0 auto; color: var(--sda-text-muted); }
-.confirmation-toolbar { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.sell-items-count-selected { color: var(--sda-text-muted); margin-right: 4px; }
+.confirmation-toolbar { display: flex; align-items: center; gap: 6px; margin-left: auto; flex: 0 0 auto; }
+.sell-items-count-selected {
+  margin-right: 6px;
+  white-space: nowrap;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sda-text-muted);
+}
 
+/* Кнопка-иконка без заливки: рамка как у контурных кнопок, на ховере светлеет. */
 .confirmation-icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 37px;
-  height: 37px;
-  border: 1px solid var(--sda-border);
-  border-radius: var(--sda-radius);
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--sda-border-strong);
+  border-radius: var(--sda-radius-sm);
   color: var(--sda-text-muted);
-  background: var(--sda-surface-3);
+  background: transparent;
   cursor: pointer;
   transition: background var(--sda-transition), color var(--sda-transition);
 }
 
 .confirmation-icon-button:hover:not(:disabled) {
-  background: var(--sda-surface-4);
+  background: var(--sda-surface-3);
   color: var(--sda-text);
 }
 .confirmation-icon-button:disabled { opacity: .45; cursor: not-allowed; }
 
+/* Список карточек: прокручивается сам, строка инструментов и полоса действий стоят на месте. */
 .sell-items-container {
   position: relative;
   display: flex;
   flex-direction: column;
+  gap: 8px;
   flex: 1;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 2px 5px 2px 0;
+  padding: 0 16px 14px;
 }
 
+/* Состояния списка (загрузка, пусто, ошибка) — как EmptyState таблиц: крупная приглушённая
+   иконка, одна строка текста и одно действие, по центру области. */
 .confirmation-wrapper .centered-block {
-  padding: 20px;
   margin: auto;
-  text-align: center;
   width: 100%;
-  max-width: 440px;
+  max-width: 400px;
+  padding: 20px 24px;
+  text-align: center;
 }
-.confirmation-state { display: flex; flex-direction: column; align-items: center; gap: 16px; color: var(--sda-text-muted); }
-/* Крупная иконка состояния: размер из CSS поверх атрибутов svg, линия тоньше (как в EmptyState). */
-.confirmation-state-icon { width: 40px; height: 40px; flex: 0 0 auto; stroke-width: 1.5; }
-.confirmation-state--error .confirmation-state-icon { color: var(--sda-warning); }
-.confirmation-state-message { color: var(--sda-text); line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
+.confirmation-state { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--sda-text-muted); }
+/* Размер из CSS поверх атрибутов svg, линия тоньше: при 40px иконка не выглядит жирнее остальных. */
+.confirmation-state-icon { width: 40px; height: 40px; flex: 0 0 auto; stroke-width: 1.5; color: var(--sda-text-muted); }
+.confirmation-state-icon--loader { width: 32px; height: 32px; stroke-width: 1.75; }
+.confirmation-state--error .confirmation-state-icon { color: var(--sda-danger); }
+.confirmation-state-text { font-size: 15px; line-height: 20px; color: var(--sda-text-muted); }
+.confirmation-state-message { line-height: 1.5; color: var(--sda-text); overflow-wrap: anywhere; white-space: pre-wrap; }
 
 .confirmation-retry {
-  padding: 9px 20px;
+  height: 34px;
+  padding: 0 16px;
   border: 1px solid var(--sda-border-strong);
-  border-radius: var(--sda-radius);
-  background: var(--sda-surface-3);
+  border-radius: var(--sda-radius-sm);
+  background: transparent;
   color: var(--sda-text);
-  font: inherit;
+  font: 500 13px/1 var(--sda-font);
   cursor: pointer;
+  transition: background var(--sda-transition);
 }
-.confirmation-retry:hover { background: var(--sda-surface-4); }
+.confirmation-retry:hover { background: var(--sda-surface-3); }
 
+/* Полоса действий: «Отклонить» — контурная красная, «Подтвердить» — синяя основная. */
 .sell-items-confirms-button-container {
   display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 24px;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--sda-surface-1);
+  border-top: 1px solid var(--sda-border);
 }
-.sell-items-confirms-button-container .button {
-  flex: 1;
+.confirmation-wrapper .sell-items-confirms-button-container .button {
+  flex: 1 1 0;
   min-width: 0;
-  min-height: 43px;
   height: auto;
-  padding: 10px 12px;
-  border-radius: var(--sda-radius);
-  border: 1px solid var(--sda-border-strong);
-  transition: background var(--sda-transition), box-shadow var(--sda-transition);
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--sda-radius-sm);
+  transition: background var(--sda-transition), border-color var(--sda-transition), opacity var(--sda-transition);
 }
-.sell-items-confirms-button-container .button__text { max-width: 100%; white-space: normal; color: var(--sda-text); }
-.sell-items-confirms-button-container .confirmation-confirm { background: var(--sda-primary); border-color: var(--sda-primary); }
-/* Кнопка просит hoverColor='grey': ховер основной кнопки задаём явно. Неактивное состояние ниже перекрывает его. */
-.sell-items-confirms-button-container .confirmation-confirm:hover { background: var(--sda-primary-hover); border-color: var(--sda-primary-hover); box-shadow: var(--sda-focus-ring); }
-.sell-items-confirms-button-container .confirmation-decline { background: var(--sda-modal); border-color: var(--sda-danger); }
-.sell-items-confirms-button-container .confirmation-decline .button__text { color: var(--sda-danger); }
-.sell-items-confirms-button-container .confirmation-decline:hover { background: var(--sda-danger-bg); box-shadow: none; }
-.sell-items-confirms-button-container .confirmation-action-inactive,
-.sell-items-confirms-button-container .confirmation-action-inactive:hover {
-  background: var(--sda-surface-2);
-  border-color: var(--sda-border);
-  box-shadow: none;
-  opacity: .55;
+/* Длинная подпись (ru, uk) переносится, а не режется: высота кнопки растёт, а не обрезается
+   overflow: hidden у .sda-sweep. */
+.confirmation-wrapper .sell-items-confirms-button-container .button__text {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
-.sell-items-confirms-button-container .confirmation-action-inactive .button__text { color: var(--sda-text-muted); }
+.confirmation-wrapper .sell-items-confirms-button-container .confirmation-confirm { background: var(--sda-primary); border-color: var(--sda-primary); }
+.confirmation-wrapper .sell-items-confirms-button-container .confirmation-confirm .button__text { color: var(--sda-text); }
+/* Кнопка просит hoverColor='grey': ховер основной кнопки задаём явно. */
+.confirmation-wrapper .sell-items-confirms-button-container .confirmation-confirm:hover { background: var(--sda-primary-hover); border-color: var(--sda-primary-hover); }
+.confirmation-wrapper .sell-items-confirms-button-container .confirmation-decline { background: transparent; border-color: var(--sda-danger); }
+.confirmation-wrapper .sell-items-confirms-button-container .confirmation-decline .button__text { color: var(--sda-danger); }
+.confirmation-wrapper .sell-items-confirms-button-container .confirmation-decline:hover { background: var(--sda-danger-bg); }
+/* Ничего не выбрано: кнопки бледнеют и на ховер не отвечают, клик работает как раньше. */
+.confirmation-wrapper .sell-items-confirms-button-container .confirmation-action-inactive { opacity: .45; }
+.confirmation-wrapper .sell-items-confirms-button-container .confirmation-confirm.confirmation-action-inactive:hover { background: var(--sda-primary); border-color: var(--sda-primary); }
+.confirmation-wrapper .sell-items-confirms-button-container .confirmation-decline.confirmation-action-inactive:hover { background: transparent; }
+
 .confirmation-wrapper button:focus-visible { outline: none; box-shadow: var(--sda-focus-ring); }

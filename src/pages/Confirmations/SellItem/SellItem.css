@@ -1,46 +1,84 @@
+/* Карточка подтверждения (R5): плитка картинки со значком типа, название, сумма моноширинным,
+   время, справа «Выбрать». Выбранная карточка — синяя рамка и лёгкий синий фон. */
 .sell-item-container {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
+  gap: 12px;
   width: 100%;
   min-height: 72px;
   flex-shrink: 0;
+  padding: 10px 12px;
   background: var(--sda-surface-2);
   border: 1px solid var(--sda-border);
-  border-radius: var(--sda-radius-lg);
-  margin-bottom: 8px;
-  gap: 12px;
+  border-radius: var(--sda-radius);
   transition: border-color var(--sda-transition), background var(--sda-transition);
 }
-.sell-item-container:last-child { margin-bottom: 0; }
-.sell-item-container--selected { border-color: var(--sda-accent); background: var(--sda-surface-3); }
+.sell-item-container:hover { border-color: var(--sda-border-strong); }
+.sell-item-container--selected,
+.sell-item-container--selected:hover { border-color: var(--sda-primary); background: var(--confirmation-selected-bg); }
+
+/* Картинка приходит из main как data: URL (SDA-22). Плитка без overflow: hidden, чтобы значок
+   типа выступал за угол; скругление держит сама картинка. */
 .sell-item-logo {
-  background: var(--sda-surface-3);
-  border-radius: var(--sda-radius);
-  height: 53px;
-  width: 53px;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 53px;
-  overflow: hidden;
-}
-.sell-item-logo img { max-height: 100%; object-fit: contain; }
-.sell-item-logo__placeholder { color: var(--sda-text-muted); }
-.sell-item-info { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
-.sell-item-name { line-height: 19px; color: var(--sda-text); }
-.sell-item-name, .sell-item-price-new { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sell-item-price-container { display: flex; min-width: 0; }
-.sell-item-price-new { color: var(--sda-text); font-size: 13px; }
-.sell-item-date-container { color: var(--sda-text-muted); font-size: 12px; line-height: 16px; }
-.sell-item-confirm-container { display: flex; align-items: center; justify-content: flex-end; flex: 0 0 auto; }
-.sell-item-confirm-container .button {
-  min-width: 100px;
-  padding: 0 14px;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--sda-radius-sm);
   background: var(--sda-surface-3);
-  border: 1px solid var(--sda-border-strong);
-  border-radius: var(--sda-radius);
 }
-.sell-item-confirm-container .button__text { color: var(--sda-text); max-width: 100%; }
-.sell-item-confirm-container .button:hover { background: var(--sda-surface-4); }
-.sell-item-container--selected .button { border-color: var(--sda-accent); background: var(--sda-surface-4); }
+.sell-item-logo img { width: 100%; height: 100%; object-fit: contain; border-radius: var(--sda-radius-sm); }
+.sell-item-logo__placeholder { color: var(--sda-text-subtle); }
+.sell-item-type {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--sda-border-strong);
+  background: var(--sda-surface-1);
+  color: var(--sda-text-muted);
+}
+
+.sell-item-info { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
+.sell-item-name,
+.sell-item-price-new { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sell-item-name { font-size: 13px; font-weight: 500; line-height: 18px; color: var(--sda-text); }
+.sell-item-price-container { display: flex; min-width: 0; }
+.sell-item-price-new,
+.sell-item-date-container {
+  font-family: var(--sda-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.sell-item-price-new { font-size: 13px; line-height: 18px; color: var(--sda-text); }
+.sell-item-date-container { font-size: 11px; line-height: 16px; color: var(--sda-text-subtle); }
+
+/* «Выбрать»: контурная кнопка; выбранная — синяя с галочкой. */
+.sell-item-confirm-container { display: flex; align-items: center; justify-content: flex-end; flex: 0 0 auto; }
+.confirmation-wrapper .sell-item-confirm-container .button {
+  height: 34px;
+  min-width: 88px;
+  padding: 0 12px;
+  border: 1px solid var(--sda-border-strong);
+  border-radius: var(--sda-radius-sm);
+  background: transparent;
+}
+.confirmation-wrapper .sell-item-confirm-container .button:hover { background: var(--sda-surface-3); }
+.confirmation-wrapper .sell-item-confirm-container .button__text {
+  max-width: none;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--sda-text);
+}
+.confirmation-wrapper .sell-item-confirm-container .button__icon { color: var(--sda-text); }
+.confirmation-wrapper .sell-item-confirm-container .button__icon + .button__text { margin-left: 6px; }
+.confirmation-wrapper .sell-item-container--selected .button { border-color: var(--sda-primary); background: var(--sda-primary); }
+.confirmation-wrapper .sell-item-container--selected .button:hover { border-color: var(--sda-primary-hover); background: var(--sda-primary-hover); }

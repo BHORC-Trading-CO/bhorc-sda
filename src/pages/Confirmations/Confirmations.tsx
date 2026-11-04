@@ -5,7 +5,6 @@ import Button from '../../globalComponents/Button/Button';
 import Icon from '../../globalComponents/Icon/Icon';
 import "./Confirmation.css"
 import SellItem from './SellItem/SellItem';
-import LoadingIcons from 'react-loading-icons';
 import { useTranslation } from 'react-i18next';
 import stripLeadingEmoji from './stripLeadingEmoji';
 
@@ -69,13 +68,11 @@ const Confirmations: FC = () => {
 
     return (
         <div className='confirmation-wrapper'>
-            <TitleBar platform={window.Confirmations.platform} title={t('confirmations.title')} />
+            {/* Заголовок окна — имя аккаунта: окон подтверждений бывает открыто несколько. */}
+            <TitleBar platform={window.Confirmations.platform} title={name || t('confirmations.title')} />
             <div className='confirmation-container'>
                 <div className='confirmation-info-container'>
-                    <div className='info-account-name'>
-                        <Icon name='user' className='info-account-logo' />
-                        <span className='text-medium-white' title={name}>{name}</span>
-                    </div>
+                    <h2 className='confirmation-heading'>{t('confirmations.title')}</h2>
                     <div className='confirmation-toolbar'>
                         <div className='sell-items-count-selected'>
                             {t('confirmations.selectedOf', { selected: selectedCount, total: items.length })}
@@ -90,10 +87,10 @@ const Confirmations: FC = () => {
                             }
                         }}
                             >
-                            <Icon name='check' size={20} motion='pop' />
+                            <Icon name='check' size={16} motion='pop' />
                         </button>
                         <button type='button' className='confirmation-icon-button' disabled={isLoading} title={t('confirmations.refresh')} aria-label={t('confirmations.refresh')} onClick={refresh}>
-                            <Icon name='refresh' size={20} motion='spin' />
+                            <Icon name='refresh' size={16} motion='spin' />
                         </button>
                     </div>
                 </div>
@@ -105,10 +102,10 @@ const Confirmations: FC = () => {
                     </div> : (!isLoading && !isResponding ?
                         (items.length > 0 ? <Items accountId={id} items={items} setItems={setItems} /> : <div className='centered-block confirmation-state' role='status'>
                             <Icon name='shieldCheck' size={20} className='confirmation-state-icon' />
-                            <div>{t('confirmations.empty')}</div>
+                            <div className='confirmation-state-text'>{t('confirmations.empty')}</div>
                         </div>) :
                         <div className='centered-block confirmation-state' role='status'>
-                            <LoadingIcons.Oval stroke="var(--sda-text-muted)" />
+                            <Icon name='loader' size={20} motion='spinAlways' className='confirmation-state-icon confirmation-state-icon--loader' />
                             <div className='confirmation-state-message'>
                                 {isLoading ? t('confirmations.loading') : t(isResponding === 'confirm' ? 'confirmations.confirming' : 'confirmations.declining', { count: selectedCount })}
                             </div>
@@ -135,7 +132,7 @@ const Confirmations: FC = () => {
                         }}
                     />
                     <Button
-                        className={`confirmation-confirm${selectedCount === 0 ? ' confirmation-action-inactive' : ''}`}
+                        className={`confirmation-confirm${selectedCount === 0 ? ' confirmation-action-inactive' : ' sda-sweep'}`}
                         text={t('confirmations.confirmSelected')}
                         size='large'
                         color='grey'

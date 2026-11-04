@@ -1,9 +1,8 @@
 import react, { FC, useState, useEffect } from "react";
 import InfoType from "../../../electron/components/application/askInfo/InfoType";
 import "./AskSomething.css";
-import FamilyPin from "./FamilyPin";
-import MailCode from "./MailCode";
-import SmsCode from "./SmsCode";
+import AskCodeForm from "./AskCodeForm";
+import TitleBar from "../../globalComponents/TitleBar/TitleBar";
 import { useTranslation } from "react-i18next";
 
 const AskSomething: FC = () => {
@@ -24,17 +23,25 @@ const AskSomething: FC = () => {
     );
   });
 
+  // Длина кода: PIN семейного просмотра — 4 знака, коды с почты и из SMS — 5.
   switch (infoType) {
-    case "none":
-      return <>{t("ask.nothing")}</>;
     case "familyPin":
-      return <FamilyPin steamAccountName={steamAccountName} id={id} />;
+      return <AskCodeForm steamAccountName={steamAccountName} id={id} label={t("ask.familyPin.label")} maxLength={4} />;
     case "mailCode":
-      return <MailCode steamAccountName={steamAccountName} id={id} />
+      return <AskCodeForm steamAccountName={steamAccountName} id={id} label={t("ask.mailCode.label")} maxLength={5} />;
     case "smsCode":
-      return <SmsCode steamAccountName={steamAccountName} id={id} />
+      return <AskCodeForm steamAccountName={steamAccountName} id={id} label={t("ask.smsCode.label")} maxLength={5} />;
     default:
-      return <>{t("ask.unknown")}</>
+      // До параметров из main (~50 мс после загрузки) и для неизвестного типа: та же полоса окна,
+      // чтобы его можно было перетащить, и строка по центру.
+      return (
+        <div className="ask-family-pin-wrapper">
+          <TitleBar platform={window.AskFamilyPin.platform} title={steamAccountName} />
+          <div className="ask-family-pin-container ask-family-pin-container--empty">
+            {infoType === "none" ? t("ask.nothing") : t("ask.unknown")}
+          </div>
+        </div>
+      );
   }
 };
 
