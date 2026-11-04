@@ -104,6 +104,7 @@ class Manager {
             steamAccount.blockProxy();
             throw err;
         } finally {
+            application.images?.invalidateRoute(steamAccountId);
             application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_EDIT_PROXY, {
                 id: steamAccountId, ...Manager.GetSteamAccountLinkedData(steamAccountId),
                 ...(steamAccount.proxyState === "missing" ? { proxy: null, proxyState: "missing" } : {})

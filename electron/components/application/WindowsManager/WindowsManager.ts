@@ -56,6 +56,7 @@ class WindowsManager {
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
+                spellcheck: false,
                 preload: ERROR_WINDOW_PRELOAD_WEBPACK_ENTRY
             }
         });
@@ -76,6 +77,7 @@ class WindowsManager {
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
+                spellcheck: false,
                 preload: AUTH_WINDOW_PRELOAD_WEBPACK_ENTRY
             }
         });
@@ -88,6 +90,7 @@ class WindowsManager {
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
+                spellcheck: false,
                 preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY
             }
         });
@@ -101,6 +104,7 @@ class WindowsManager {
                 webPreferences: {
                     nodeIntegration: false,
                     contextIsolation: true,
+                    spellcheck: false,
                     preload: CONFIRMATIONS_WINDOW_PRELOAD_WEBPACK_ENTRY
                 }
             });
@@ -126,6 +130,7 @@ class WindowsManager {
                 webPreferences: {
                     nodeIntegration: false,
                     contextIsolation: true,
+                    spellcheck: false,
                     preload: ASK_FAMILY_PIN_WINDOW_PRELOAD_WEBPACK_ENTRY
                 }
             });

@@ -102,7 +102,7 @@ const Confirmations: FC = () => {
                         <div className='confirmation-state-message'>{stripLeadingEmoji(String(error)) || t('confirmations.error')}</div>
                         <button type='button' className='confirmation-retry' onClick={refresh}>{t('confirmations.retry')}</button>
                     </div> : (!isLoading && !isResponding ?
-                        (items.length > 0 ? <Items items={items} setItems={setItems} /> : <div className='centered-block confirmation-state' role='status'>
+                        (items.length > 0 ? <Items accountId={id} items={items} setItems={setItems} /> : <div className='centered-block confirmation-state' role='status'>
                             <svg className='confirmation-state-icon' viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 11l3 3 5-6" /></svg>
                             <div>{t('confirmations.empty')}</div>
                         </div>) :
@@ -157,11 +157,11 @@ const Confirmations: FC = () => {
     );
 }
 
-const Items = (props: { items: Item[], setItems: react.Dispatch<react.SetStateAction<Item[]>> }) => {
+const Items = (props: { accountId: string, items: Item[], setItems: react.Dispatch<react.SetStateAction<Item[]>> }) => {
     const { items, setItems } = props;
 
     return <>{items.map((item) => {
-        return <SellItem key={item.confirmation.id} item={item} onChange={(isSelected) => {
+        return <SellItem key={item.confirmation.id} accountId={props.accountId} item={item} onChange={(isSelected) => {
             const newItems = [...items];
             const itemFromArray = newItems.filter(i => i.confirmation.id === item.confirmation.id)[0];
             itemFromArray.selected = isSelected;

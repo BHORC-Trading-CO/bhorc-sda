@@ -1,6 +1,6 @@
 import "../components/Functions/installConsoleRedaction";
 import ProxySelection from "../interfaces/Proxy/ProxySelection";
-import { contextBridge, IpcMainEvent, ipcRenderer, IpcRendererEvent, session, shell } from 'electron';
+import { contextBridge, IpcMainEvent, ipcRenderer, IpcRendererEvent, session } from 'electron';
 import Field from '../interfaces/TableFields/Field';
 import CompiledProxyInterface from '../interfaces/Proxy/CompiledProxyInterface';
 import TableProxyInterface from '../interfaces/Proxy/TableProxyInterface';
@@ -25,6 +25,8 @@ import BrowserSettingsInterface, { BrowserSettingsError, BrowserSettingsView } f
 import path from "path";
 import createStore from "../components/newStorage/createStore";
 import { exposeLanguageApi } from './languageBridge';
+import ImageChannels from '../interfaces/IpcChannels/ImageChannels';
+import { requestImage } from './imageBridge';
 
 const SteamTotp = require('steam-totp');
 
@@ -43,6 +45,9 @@ const setRequestHeaders = () => {
 }
 
 const steamAccounts = {
+  getAvatar(accountId: string) {
+    return requestImage(ImageChannels.GET_AVATAR, { accountId });
+  },
   getBrowserStatus(id: string) {
     ipcRenderer.send(SteamAccountChannels.GET_BROWSER_STARTUS, id);
   },
@@ -271,9 +276,6 @@ const window = {
       default:
         exec(`xdg-open ${folderPath}`);
     }
-  },
-  openLink: (link: string = "http://www.google.com") => {
-    shell.openExternal(link);
   },
   /** Закрыть главное окно */
   close: () => {

@@ -1,4 +1,4 @@
-import sanitizeAvatarUrl from "../../../../../../../electron/components/Functions/sanitizeAvatarUrl";
+import useAccountImage from "../../../../../../globalComponents/Images/useAccountImage";
 import react, { FC } from 'react';
 import MiniWindow from '../../../../components/MiniWindow/MiniWindow';
 import { observer } from 'mobx-react-lite';
@@ -37,6 +37,7 @@ const EditFormContent = observer(() => {
     const switches = store.steamAccountsTable.editingForm.getSwitches();
     const steamAccount = content.steamAccount;
     const steamAccountInStorage = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(sa => sa.id === steamAccount.id)[0];
+    const avatar = useAccountImage('avatar', steamAccount.id, steamAccount.secondary?.avatarUrl, `${steamAccountInStorage.proxyState}:${steamAccountInStorage.proxyId}`);
     const pin = steamAccount.familyViewPin === 0 ? '' : String(steamAccount.familyViewPin);
     return <div className='steam-account_edit-form'>
         <section className='sda-form-section steam-data-block'>
@@ -44,7 +45,7 @@ const EditFormContent = observer(() => {
                 <h3 className="sda-form-section__title">{t('accounts.form.accountSection')}</h3>
             </div>
             <div className="steam-data-input__wrapper">
-                <img src={sanitizeAvatarUrl(steamAccount.secondary?.avatarUrl)} alt="" className='steam-account-avatar steam-account_edit-form__avatar' />
+                <img src={avatar.src || './assets/img/User.svg'} onError={avatar.onError} alt="" className='steam-account-avatar steam-account_edit-form__avatar' />
                 <Input value={steamAccount.accountName} placeholder={t('accounts.form.steamLogin')} onChange={(newValue) => {
                     store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, accountName: newValue } });
                     changeThisProperties.accountName = newValue;

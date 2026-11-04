@@ -22,7 +22,7 @@ export class SteamAccountManager {
         const steamAccounts = errorsToStrings(this.getCompiledObjects());
         application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_GET, steamAccounts);
     }
-    delete(id: string) {
+    async delete(id: string) {
         try {
             const index = this.objects.findIndex(obj => obj.params.id === id);
             if (index === -1) throw new Error(`#${id} - steam account is not exist`);
@@ -33,7 +33,10 @@ export class SteamAccountManager {
             } catch (err){
                 console.log(`account ${id} has been deleted`);
             }
-            this.sendAccountsToFront();
+            const cleanup = application.images?.removeAccount(id);
+            // Удалённая запись исчезает из UI даже при ошибке очистки кеша.
+            try { this.sendAccountsToFront(); }
+            finally { await cleanup; }
         } catch (err) {
             throw new Error(`Cant delete steam account: ${err}`);
         }
@@ -56,8 +59,10 @@ export class SteamAccountManager {
             for (var object of objectsArray) {
                 const existing = previous.get(object.id);
                 const steamAccount = existing || new SteamAccount(object);
+                const previousProxyId = steamAccount.proxyId;
                 // Keep the Chrome owner, including a launch still in progress.
                 const routeChanged = existing ? steamAccount.reloadParams(object) : false;
+                if (routeChanged || previousProxyId !== steamAccount.proxyId) application.images?.invalidateRoute(object.id);
                 if (!routeChanged) steamAccount.initSession().catch(err => {
                     application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id: steamAccount.params.id, err: String(err) });
                 });
@@ -71,6 +76,8 @@ export class SteamAccountManager {
             }
             this.objects = next;
             this.sendAccountsToFront();
+            // Только после успешной загрузки, когда archived/missing записи уже известны.
+            await application.images?.pruneOrphans().catch(() => console.warn('Unable to prune image cache'));
         } catch (err) {
             throw new Error(`Cant load steam accounts: ${err}`);
         }
