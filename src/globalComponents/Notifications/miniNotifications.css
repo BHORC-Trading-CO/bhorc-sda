@@ -69,6 +69,6 @@
     background-color: var(--sda-surface-2);
 }
 .mini_notification div::-webkit-scrollbar-thumb {
-    background: var(--sda-accent-gradient);
+    background: var(--sda-accent);
     border-radius: 2px;
 }

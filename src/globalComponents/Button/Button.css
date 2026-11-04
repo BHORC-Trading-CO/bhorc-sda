@@ -36,11 +36,12 @@
 
 /* Акцентный вариант (выбранное подтверждение): должен отличаться от light-grey */
 .button--dark-pink {
-  background: var(--sda-accent-to);
+  background: var(--sda-primary);
 }
 
+/* Основная кнопка: синяя заливка вместо прежнего розово-фиолетового градиента. */
 .button--gradient {
-  background: var(--sda-accent-gradient);
+  background: var(--sda-primary);
 }
 
 .button--grey {
@@ -57,7 +58,7 @@
   text-overflow: ellipsis;
 
   max-width: 90%;
-  font-family: "Nunito";
+  font-family: var(--sda-font);
   font-style: normal;
   font-weight: 400;
   font-size: 14px;
@@ -76,12 +77,11 @@
 
 .button--hoverColor-darkPink:hover,
 .button--hoverColor-dark-pink:hover {
-  background: var(--sda-accent);
+  background: var(--sda-primary-hover);
 }
 
 .button--hoverColor-gradient:hover {
-  background: var(--sda-accent-gradient);
-  box-shadow: 0px 4px 30px rgba(250, 0, 255, 0.47);
+  background: var(--sda-primary-hover);
   border-radius: var(--sda-radius);
 }
 

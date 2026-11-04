@@ -83,7 +83,7 @@
 }
 
 .notification .notification_content .notification_text::-webkit-scrollbar-thumb {
-    background: var(--sda-accent-gradient);
+    background: var(--sda-accent);
     border-radius: 2px;
 }
 
@@ -94,7 +94,7 @@
 }
 
 .notification .notification_content .notification_title::-webkit-scrollbar-thumb {
-    background: var(--sda-accent-gradient);
+    background: var(--sda-accent);
     border-radius: 2px;
 }
 

@@ -1,49 +1,53 @@
 /*
- * Дизайн-токены BHORC SDA (SDA-9). Значения взяты из существующих стилей, чтобы
- * новые правки опирались на одну палитру, а не на новые hex-коды в каждом файле.
- * Старые файлы переводятся на токены постепенно, по мере правок.
+ * Дизайн-токены BHORC SDA (SDA-9). С редизайна R1 значения — палитра QBS: тёмный zinc,
+ * циановый акцент, синяя основная кнопка, шрифты Geist (src/css/fonts.css).
+ * Новые правки опираются на эти токены, а не на новые hex-коды в каждом файле.
  */
 :root {
   /* Поверхности: от фона окна к приподнятым элементам */
-  --sda-surface-0: #1b0f22;              /* фон окна под градиентом */
-  --sda-surface-1: rgba(33, 18, 40, 0.65); /* панели, таблица, футер */
-  --sda-surface-2: #2c1935;              /* строка таблицы, карточка */
-  --sda-surface-3: #372447;              /* кнопки, поля ввода, ховер */
-  --sda-surface-4: #4f3564;              /* активная кнопка, рамка в фокусе */
-  --sda-modal: #22142a;                  /* модальные окна */
+  --sda-surface-0: #09090b;              /* фон окна (zinc-950) */
+  --sda-surface-1: #18181b;              /* панели, таблица, футер, верхняя панель (zinc-900) */
+  --sda-surface-2: #18181b;              /* строка таблицы, карточка (zinc-900) */
+  --sda-surface-3: #27272a;              /* кнопки, поля ввода, ховер, тултипы (zinc-800) */
+  --sda-surface-4: #3f3f46;              /* активная кнопка, приподнятое (zinc-700) */
+  --sda-modal: #18181b;                  /* модальные окна */
   --sda-overlay: rgba(0, 0, 0, 0.7);
 
   /* Текст */
-  --sda-text: #ffffff;
-  --sda-text-muted: #b6a3c3;             /* вторичный текст, читаемый на surface-2 */
-  --sda-text-subtle: #776284;            /* подписи, плейсхолдеры */
+  --sda-text: #fff;
+  --sda-text-muted: #a1a1aa;             /* вторичный текст (zinc-400) */
+  --sda-text-subtle: #71717a;            /* подписи, плейсхолдеры, заголовки колонок (zinc-500) */
 
   /* Рамки */
-  --sda-border: rgba(183, 156, 224, 0.14);
-  --sda-border-strong: rgba(183, 156, 224, 0.32);
+  --sda-border: #27272a;
+  --sda-border-strong: #3f3f46;          /* поля ввода и контурные кнопки */
 
-  /* Акцент BHORC */
-  --sda-accent: #c400f5;
-  --sda-accent-from: #ff00e5;
-  --sda-accent-to: #7000ff;
-  --sda-accent-gradient: linear-gradient(121.85deg, #ff00e5 2.04%, #7000ff 108.41%);
-  --sda-focus-ring: 0 0 0 2px rgba(255, 0, 229, 0.55);
+  /* Акцент: циан QBS; основная кнопка — синяя */
+  --sda-accent: #22d3ee;
+  --sda-accent-glow: rgba(34, 211, 238, 0.45);
+  --sda-primary: #2563eb;
+  --sda-primary-hover: #3b82f6;
+  --sda-focus-ring: 0 0 0 2px rgba(34, 211, 238, 0.55);
 
-  /* Состояния */
-  --sda-success: #3fbf74;
-  --sda-success-bg: rgba(55, 154, 94, 0.16);
-  --sda-danger: #f0574a;
-  --sda-danger-bg: rgba(229, 63, 48, 0.16);
-  --sda-warning: #ffa65e;
-  --sda-warning-bg: rgba(255, 166, 94, 0.16);
+  /* Состояния: бейдж — фон -900/50 и текст -400; точки и полосы — сплошной цвет */
+  --sda-success: #4ade80;
+  --sda-success-bg: rgba(20, 83, 45, 0.5);
+  --sda-danger: #f87171;
+  --sda-danger-bg: rgba(127, 29, 29, 0.5);
+  --sda-warning: #facc15;
+  --sda-warning-bg: rgba(113, 63, 18, 0.5);
   --sda-info: #8fb4ff;
   --sda-info-bg: rgba(143, 180, 255, 0.14);
 
   /* Форма */
-  --sda-radius-sm: 6px;
-  --sda-radius: 10px;
+  --sda-radius-sm: 6px;                  /* кнопки и поля ввода */
+  --sda-radius: 10px;                    /* панели */
   --sda-radius-lg: 16px;
-  --sda-font: "Nunito", sans-serif;
-  --sda-font-mono: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+  --sda-titlebar-height: 48px;
+  --sda-font: "Geist", system-ui, sans-serif;
+  --sda-font-mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* Движение (src/css/motion.css) */
   --sda-transition: 120ms ease-out;
+  --sda-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }

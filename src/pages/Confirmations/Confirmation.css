@@ -121,7 +121,7 @@
   transition: background var(--sda-transition), box-shadow var(--sda-transition);
 }
 .sell-items-confirms-button-container .button__text { max-width: 100%; white-space: normal; color: var(--sda-text); }
-.sell-items-confirms-button-container .confirmation-confirm { background: var(--sda-accent-gradient); border-color: var(--sda-accent); }
+.sell-items-confirms-button-container .confirmation-confirm { background: var(--sda-primary); border-color: var(--sda-primary); }
 .sell-items-confirms-button-container .confirmation-confirm:hover { box-shadow: var(--sda-focus-ring); }
 .sell-items-confirms-button-container .confirmation-decline { background: var(--sda-modal); border-color: var(--sda-danger); }
 .sell-items-confirms-button-container .confirmation-decline .button__text { color: var(--sda-danger); }

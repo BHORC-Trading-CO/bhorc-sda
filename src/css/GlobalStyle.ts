@@ -10,11 +10,6 @@ export const GlobalStyle = createGlobalStyle`
     background-repeat: no-repeat;
     background-position: center;
   }
-  #root {
-    background-image: url(./assets/gradient.png);
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-  }
   /* Window button icons are masks; Attic.css sets their colour from tokens. */
   .attic-button_minimize::before {
     -webkit-mask-image: url(./assets/img/Line5.svg);

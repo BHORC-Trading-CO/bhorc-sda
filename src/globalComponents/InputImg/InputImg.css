@@ -7,9 +7,9 @@
   width: 90px;
   height: 90px;
   color: #fff;
-  background: #372447;
+  background: var(--sda-surface-3);
   border-radius: 50%;
-  border: 1px dashed #776284;
+  border: 1px dashed var(--sda-border-strong);
   overflow: hidden;
   display: flex;
   align-items: center;

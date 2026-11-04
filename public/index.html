@@ -27,19 +27,16 @@
   </div>
 </body>
 <style>
-  @font-face {
-    font-family: 'Nunito';
-    src: url('../assets/fonts/Nunito/Nunito-VariableFont_wght.ttf') format('woff')
-  }
-
   * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
   }
+  /* Шрифт Geist объявлен в src/css/fonts.css. Цвета заглушки до запуска React — токены
+     --sda-surface-0 (фон) и --sda-surface-1 (панели) из src/css/tokens.css. */
   body {
-    font-family: Nunito;
-    background-color: #251730;
+    font-family: "Geist", system-ui, sans-serif;
+    background-color: #09090b;
   }
 
   #root {
@@ -62,7 +59,7 @@
   .content__left {
     width: 230px;
     border-radius: 0px 20px 0px 0px;
-    background: rgba(33, 18, 40, 0.65);
+    background: #18181b;
   }
   .content__right {
     width: 100%;
@@ -74,18 +71,18 @@
   }
   .content__right-top {
     border-radius: 16px;
-    background: rgba(33, 18, 40, 0.65);
+    background: #18181b;
     width: 100%;
     height: 80px;
   }
   .content__right-center{
     border-radius: 16px;
-    background: rgba(33, 18, 40, 0.65);
+    background: #18181b;
     height: 100%;
   }
   .content__right-bottom{
     border-radius: 16px;
-    background: rgba(33, 18, 40, 0.65);
+    background: #18181b;
     height: 68px;
   }
 </style>

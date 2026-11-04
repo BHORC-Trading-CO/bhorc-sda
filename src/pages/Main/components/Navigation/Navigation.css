@@ -115,7 +115,7 @@
 }
 .navigation-item_active .navigation-img,
 .navigation-item_active:hover .navigation-img {
-  background: var(--sda-accent-gradient);
+  background: var(--sda-accent);
 }
 /* Метка активного пункта слева. */
 .navigation-item_active::before {
@@ -127,7 +127,7 @@
   height: 20px;
   margin-top: -10px;
   border-radius: 0 3px 3px 0;
-  background: var(--sda-accent-gradient);
+  background: var(--sda-accent);
 }
 
 /* --- Группы аккаунтов в навигации --- */
@@ -148,7 +148,7 @@
 }
 .navigation-item_active .navigation-group-icon,
 .navigation-item_active:hover .navigation-group-icon {
-  color: var(--sda-accent-from);
+  color: var(--sda-accent);
 }
 .navigation-group-name {
   margin-left: 12px;
@@ -221,8 +221,8 @@
 }
 .navigation-language-option_active,
 .navigation-language-option_active:hover {
-  background: linear-gradient(var(--sda-surface-4), var(--sda-surface-4)) padding-box,
-    var(--sda-accent-gradient) border-box;
+  border-color: var(--sda-accent);
+  background: var(--sda-surface-4);
   color: var(--sda-text);
   cursor: default;
 }

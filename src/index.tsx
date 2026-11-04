@@ -4,7 +4,9 @@ import ReactDOM from 'react-dom';
 //import './css/Switcher.css';
 import './css/normalize.css'
 import './css/default.css'
+import './css/fonts.css';
 import './css/tokens.css';
+import './css/motion.css';
 import './css/index.css';
 import './css/CircleAnimation.css';
 

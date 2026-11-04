@@ -306,16 +306,14 @@
 .browser-button:hover:not(:disabled) {
   border-color: var(--sda-text-muted);
 }
-/* Главное действие — тёмная заливка с градиентной рамкой, как выбранный язык в навигации:
-   белый текст на самом градиенте не добирает 4.5:1. */
+/* Главное действие — синяя основная кнопка (белый текст на --sda-primary — 5.2:1). */
 .browser-button--accent {
-  border-color: transparent;
-  background: linear-gradient(var(--sda-surface-4), var(--sda-surface-4)) padding-box,
-    var(--sda-accent-gradient) border-box;
+  border-color: var(--sda-primary);
+  background: var(--sda-primary);
 }
 .browser-button--accent:hover:not(:disabled) {
-  border-color: transparent;
-  box-shadow: var(--sda-focus-ring);
+  border-color: var(--sda-primary-hover);
+  background: var(--sda-primary-hover);
 }
 .browser-button:disabled {
   opacity: 0.5;
@@ -398,7 +396,7 @@
 }
 .browser-switch--on {
   border-color: transparent;
-  background: var(--sda-accent-gradient);
+  background: var(--sda-primary);
 }
 .browser-switch--on .browser-switch__knob {
   background: var(--sda-text);

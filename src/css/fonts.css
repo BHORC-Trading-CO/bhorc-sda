@@ -1,0 +1,20 @@
+/*
+ * Шрифты Geist и Geist Mono (SIL OFL 1.1, assets/fonts/Geist/OFL.txt) — те же вариативные woff2,
+ * что в QBS, вес 100–900. Только локальные файлы: CSP окна default-src 'self'.
+ * Путь относительный к документу окна, как у картинок в GlobalStyle.ts: CopyPlugin кладёт ./assets
+ * рядом с index.html каждого окна. webpackIgnore оставляет url как есть, иначе css-loader искал бы
+ * файл относительно src/css.
+ */
+@font-face {
+  font-family: "Geist";
+  src: /* webpackIgnore: true */ url("./assets/fonts/Geist/Geist.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: /* webpackIgnore: true */ url("./assets/fonts/Geist/GeistMono.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+}
