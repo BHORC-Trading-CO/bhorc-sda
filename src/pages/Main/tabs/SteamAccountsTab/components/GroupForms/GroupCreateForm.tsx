@@ -20,19 +20,16 @@ const GroupCreateForm: FC<GroupCreateFormProps> = observer((props) => {
   const { t } = useTranslation("shell");
   if (!props.isOpen) return <></>;
 
-  // Окно рисуется в строке групп, то есть в DOM раньше таблицы, а у затемнения (.darkBackground)
-  // нет z-index: без своего слоя поверх окна легли бы позиционированные ячейки и кнопки таблицы.
-  // Слой выше липкой шапки таблицы (z-index 2) и ниже тоста ошибки (1000).
+  // Окно рисуется в строке групп, то есть в DOM раньше таблицы: поверх таблицы его держит слой
+  // затемнения (.darkBackground, css/index.css).
   return (
-    <div style={{ position: "relative", zIndex: 3 }}>
-      <MiniWindow
-        title={t("groups.createTitle")}
-        width="440px"
-        height=""
-        content={<CreateFormContent onClose={props.onClose} onCreated={props.onCreated} />}
-        onClose={props.onClose}
-      />
-    </div>
+    <MiniWindow
+      title={t("groups.createTitle")}
+      width="440px"
+      height=""
+      content={<CreateFormContent onClose={props.onClose} onCreated={props.onCreated} />}
+      onClose={props.onClose}
+    />
   );
 });
 
