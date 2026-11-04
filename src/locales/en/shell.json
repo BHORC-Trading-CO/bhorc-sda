@@ -1,16 +1,22 @@
 {
   "navigation": {
+    "label": "Sections",
     "steamAccounts": "Steam accounts",
     "proxies": "Proxies",
-    "browser": "Browser",
-    "editGroup": "Edit group"
+    "browser": "Browser"
   },
-  "languageSwitcher": {
-    "label": "Interface language",
-    "names": {
-      "en": "English",
-      "uk": "Українська",
-      "ru": "Русский"
-    }
+  "groups": {
+    "label": "Account groups",
+    "all": "All accounts",
+    "new": "New group",
+    "edit": "Edit group",
+    "createTitle": "New group",
+    "name": "Group name",
+    "emptyName": "Enter a group name",
+    "create": "Create"
+  },
+  "languageMenu": {
+    "label": "Language",
+    "title": "Interface language"
   }
 }
