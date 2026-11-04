@@ -9,6 +9,10 @@ module.exports = {
   transform: {
     "^.+\\.[tj]sx?$": "babel-jest",
   },
+  // Компоненты рендерера (src/) импортируют свои .css: в тестах вместо них пустой модуль.
+  moduleNameMapper: {
+    "\\.css$": "<rootDir>/__mocks__/styleStub.js",
+  },
   clearMocks: true,
   // request/steamcommunity тянут большой граф — даём запас по времени на первый прогон.
   testTimeout: 15000,

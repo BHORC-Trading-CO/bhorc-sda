@@ -24,15 +24,13 @@
     text-align: center;
     color: var(--sda-text-muted);
 }
-/* Лоадер шага: кольцо 28 px #3f3f46 с циановой дугой, как кольцо таймера кода Guard. */
-.account-creation_loader {
+/* Лоадер шага: циановая иконка loader 28 px (Icon, motion spinAlways). */
+.account-creation_step .account-creation_loader {
     display: block;
     width: 28px;
     height: 28px;
     margin: 4px 0px 24px;
-    border: 2.5px solid var(--sda-border-strong);
-    border-top-color: var(--sda-accent);
-    border-radius: 50%;
+    color: var(--sda-accent);
 }
 .account-creation_step .text_error {
     color: var(--sda-danger);

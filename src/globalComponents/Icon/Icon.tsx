@@ -4,6 +4,7 @@ import {
   Activity,
   Archive,
   ArchiveRestore,
+  ArrowLeftRight,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -36,6 +37,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Square,
+  Tag,
   Trash2,
   TriangleAlert,
   Upload,
@@ -55,7 +57,9 @@ export type IconName =
   | "loader" | "puzzle" | "image" | "grip"
   // Сверх списка плана: у старых иконок «проверить прокси», «вопрос» и «вернуть из архива»
   // в нём нет пары.
-  | "activity" | "help" | "archiveRestore";
+  | "activity" | "help" | "archiveRestore"
+  // Тип подтверждения на плитке (SellItem): обмен и лот на рынке.
+  | "arrowLeftRight" | "tag";
 
 export type IconSize = 13 | 14 | 16 | 18 | 20;
 
@@ -104,6 +108,8 @@ const ICONS: Record<IconName, LucideIcon> = {
   activity: Activity,
   help: CircleHelp,
   archiveRestore: ArchiveRestore,
+  arrowLeftRight: ArrowLeftRight,
+  tag: Tag,
 };
 
 // Классы анимаций из src/css/motion.css. Ховер-анимации срабатывают и при наведении на кнопку,
