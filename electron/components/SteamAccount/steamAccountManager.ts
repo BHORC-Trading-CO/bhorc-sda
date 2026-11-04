@@ -51,15 +51,25 @@ export class SteamAccountManager {
         try {
             const objects = SteamAccountStorage.GetAll();
             const objectsArray = Object.values(objects);
-            this.objects = [];
-            
+            const previous = new Map(this.objects.map(account => [account.params.id, account]));
+            const next: SteamAccount[] = [];
             for (var object of objectsArray) {
-                const steamAccount = new SteamAccount(object);
-                steamAccount.initSession().catch(err => {
+                const existing = previous.get(object.id);
+                const steamAccount = existing || new SteamAccount(object);
+                // Keep the Chrome owner, including a launch still in progress.
+                const routeChanged = existing ? steamAccount.reloadParams(object) : false;
+                if (!routeChanged) steamAccount.initSession().catch(err => {
                     application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id: steamAccount.params.id, err: String(err) });
                 });
-                this.addNew(steamAccount);
+                next.push(steamAccount);
             }
+            for (const old of this.objects) {
+                if (next.includes(old)) continue;
+                old.session.cancelLoginAttempt?.();
+                // Removed records must not leave an untracked live browser either.
+                old.chrome.stop().catch(err => application.sendToMain("ERROR", String(err)));
+            }
+            this.objects = next;
             this.sendAccountsToFront();
         } catch (err) {
             throw new Error(`Cant load steam accounts: ${err}`);
@@ -94,6 +104,7 @@ export class SteamAccountManager {
             ...object.params,
             smaFile: object.getSmaFile(),
             ...linkedData,
+            ...(object.proxyState === "missing" ? { proxy: null, proxyState: "missing" as const } : {}),
             group: Manager.GetSteamAccountGroup(object.params.id)
         }
        

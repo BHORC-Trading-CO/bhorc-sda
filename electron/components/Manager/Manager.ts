@@ -103,10 +103,12 @@ class Manager {
         try { steamAccount.setProxy(); } catch (err) {
             steamAccount.blockProxy();
             throw err;
+        } finally {
+            application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_EDIT_PROXY, {
+                id: steamAccountId, ...Manager.GetSteamAccountLinkedData(steamAccountId),
+                ...(steamAccount.proxyState === "missing" ? { proxy: null, proxyState: "missing" } : {})
+            });
         }
-        application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_EDIT_PROXY, {
-            id: steamAccountId, ...Manager.GetSteamAccountLinkedData(steamAccountId)
-        });
     }
     // Only explicit account-list edits may unlink. Deletion keeps dangling links.
     static ResetProxy(proxyId: string) {

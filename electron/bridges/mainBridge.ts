@@ -47,6 +47,9 @@ const steamAccounts = {
   onGetBrowserStatus(listener: (event: IpcRendererEvent, data: { id: string, status: 'load' | 'working' | 'notworking' }) => void) {
     ipcRenderer.on(SteamAccountChannels.GET_BROWSER_STARTUS, listener);
   },
+  onBrowserRouteChanged(listener: (event: IpcRendererEvent, message: string) => void) {
+    ipcRenderer.on(SteamAccountChannels.BROWSER_ROUTE_CHANGED, listener);
+  },
   startBrowser(id: string) {
     ipcRenderer.send(SteamAccountChannels.START_BROWSER, id);
   },

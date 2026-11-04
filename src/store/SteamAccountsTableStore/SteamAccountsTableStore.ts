@@ -92,6 +92,9 @@ class SteamAccountsTableStore {
         this.browserStatuses[data.id] = data.status;
       });
     });
+    window.Main.steamAccounts.onBrowserRouteChanged((event, message) => {
+      this.root.windows.openMiniNotification({ type: "info", text: message });
+    });
     window.Main.steamAccounts.onGetChangableSecondary((event, data) => {
       this.editChanableSecondaries(data.id, data.changableSecondary);
     });

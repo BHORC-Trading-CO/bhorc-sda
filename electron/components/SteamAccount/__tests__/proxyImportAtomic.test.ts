@@ -103,3 +103,32 @@ it("F1 Guard recovery survives failure after Steam returned the one-time code", 
         expect.objectContaining({ revocationCode: "R-TEST" }));
     expect(event.reply).toHaveBeenCalledWith(SteamAccountChannels.GUARD_SETUP_PROCESS_ERROR, expect.any(String));
 });
+it.each([new Error("login failed"), "abort"])("R2 N5 Create login failure %s leaves no new proxy", async failure => {
+    const before = ProxyStorage.GetAll();
+    (maFileLogin as jest.Mock).mockRejectedValueOnce(failure);
+    await createListener({ reply: jest.fn() } as any, {
+        steamAccount: {} as any,
+        links: { proxyMode: "newProxy", proxyId: null, newProxy: { host: "new.test", port: "8080", username: "", password: "" } }
+    });
+    expect(ProxyStorage.GetAll()).toEqual(before);
+    expect(proxyManager.objects).toHaveLength(1);
+    expect(steamAccountManager.objects).toHaveLength(0);
+});
+it("R2 N5 new proxy is saved after successful login and before the atomic account import", async () => {
+    let selected: any;
+    (maFileLogin as jest.Mock).mockImplementationOnce(async (_params, _channels, proxy) => {
+        selected = proxy;
+        expect(ProxyStorage.GetAll()).not.toHaveProperty(proxy.id);
+        return file();
+    });
+    const event = { reply: jest.fn() };
+    await createListener(event as any, {
+        steamAccount: {} as any,
+        links: { proxyMode: "newProxy", proxyId: null, newProxy: { host: "new.test", port: "8080", username: "", password: "" } }
+    });
+    expect(event.reply).not.toHaveBeenCalled();
+    expect(ProxyStorage.GetAll()[selected.id]).toMatchObject({ host: "new.test" });
+    const account = steamAccountManager.objects[0];
+    expect(LinksStorage.Get().steamAccounts[account.params.id]).toBe(selected.id);
+    expect(account.proxyState).toBe("ok");
+});
