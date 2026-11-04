@@ -9,7 +9,7 @@ import { ProxyActionButton, ProxyTestButton } from './ProxyActionButton';
 import Password from '../../../../../globalComponents/Password/Password';
 import { observer } from 'mobx-react';
 import { useTranslation } from 'react-i18next';
-import EmptyState, { TableWithEmptyState, clearPanelSearch } from '../../../../../globalComponents/EmptyState/EmptyState';
+import EmptyState, { TableWithEmptyState } from '../../../../../globalComponents/EmptyState/EmptyState';
 
 const ProxiesTable: FC = observer(() => {
     const fields = store.proxiesTable.getFields();
@@ -53,7 +53,7 @@ const ProxiesEmptyState: FC = observer(() => {
         return <EmptyState
             icon="search"
             text={t('proxies.empty.search', { query: table.searchString })}
-            action={{ text: t('common.clearSearch'), onClick: () => clearPanelSearch((value) => table.search(value)) }}
+            action={{ text: t('common.clearSearch'), onClick: () => table.search('') }}
         />;
     }
     if (!table.showDeleted && table.proxies.some((p) => p.deleted)) {

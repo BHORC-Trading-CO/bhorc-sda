@@ -16,7 +16,7 @@ import { getSteamID64 } from "../../../../../../electron/components/Functions/st
 import LoadingIcons from "react-loading-icons";
 import { toJS } from "mobx";
 import { useTranslation } from "react-i18next";
-import EmptyState, { TableWithEmptyState, clearPanelSearch } from "../../../../../globalComponents/EmptyState/EmptyState";
+import EmptyState, { TableWithEmptyState } from "../../../../../globalComponents/EmptyState/EmptyState";
 
 const SteamAccountsTableWrapper: FC = () => {
   const fields = store.steamAccountsTable.getFields();
@@ -200,7 +200,7 @@ const SteamAccountsEmptyState: FC = observer(() => {
       <EmptyState
         icon="search"
         text={t("accounts.empty.search", { query: table.searchString })}
-        action={{ text: t("common.clearSearch"), onClick: () => clearPanelSearch((value) => table.search(value)) }}
+        action={{ text: t("common.clearSearch"), onClick: () => table.search("") }}
       />
     );
   }

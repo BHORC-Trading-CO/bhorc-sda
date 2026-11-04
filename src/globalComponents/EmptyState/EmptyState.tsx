@@ -66,17 +66,4 @@ export const TableWithEmptyState: FC<{ empty: ReactNode | null; children: ReactN
   );
 };
 
-/**
- * Сбросить поиск из пустого состояния. Поле поиска в панели неуправляемое (Search хранит значение
- * сам), поэтому чистим и его, иначе в поле остался бы старый запрос при уже сброшенном фильтре.
- */
-export function clearPanelSearch(search: (value: string) => void) {
-  const input = document.querySelector<HTMLInputElement>(".panel .search-input");
-  if (input) {
-    input.value = "";
-    input.focus();
-  }
-  search("");
-}
-
 export default EmptyState;
