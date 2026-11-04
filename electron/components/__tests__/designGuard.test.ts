@@ -66,18 +66,10 @@ describe("design guard", () => {
     });
 
     test("no legacy assets/img icons in UI", () => {
-        // Иконки — только lucide через src/globalComponents/Icon. Исключение — логотип: его заменяет
-        // задача про логотип, до тех пор Navigation.tsx остаётся на Logo.svg.
+        // Иконки — только lucide через src/globalComponents/Icon, логотип — src/globalComponents/Brand.
         // Второй шаблон ловит имя файла иконки строкой (icon="Trash.svg"): путь к нему достраивался в другом месте.
-        const allowed = new Set(["src/pages/Main/components/Navigation/Navigation.tsx:./assets/img/Logo.svg"]);
         const iconRef = /assets\/img\/|['"`][\w./-]*\.(svg|png)['"`]/;
-        const hits = findHits([iconRef]).filter((hit) => {
-            // Путь с прямыми слэшами и на Windows (path.relative там даёт обратные).
-            const file = hit.split(":")[0].split(path.sep).join("/");
-            const refs = hit.match(/['"`(][\w./-]*\.(svg|png)/g) || [];
-            return !(refs.length > 0 && refs.every((ref) => allowed.has(`${file}:${ref.slice(1)}`)));
-        });
-        expect(hits).toEqual([]);
+        expect(findHits([iconRef])).toEqual([]);
     });
 
     test("lucide-react only through the Icon wrapper", () => {
@@ -85,6 +77,71 @@ describe("design guard", () => {
             (hit) => hit.split(":")[0].split(path.sep).join("/") !== "src/globalComponents/Icon/Icon.tsx"
         );
         expect(hits).toEqual([]);
+    });
+
+    test("brand mark: angular S, white bars and the cyan middle bar", () => {
+        const markPath = path.join(ROOT, "assets/logo/sda-mark.svg");
+        expect(fs.existsSync(markPath)).toBe(true);
+        const mark = fs.readFileSync(markPath, "utf8");
+        expect(mark).toContain("#22d3ee");
+        expect(mark).toContain("#f4f4f5");
+    });
+
+    test("Brand inlines the same mark as assets/logo/sda-mark.svg", () => {
+        // Brand.tsx рисует знак инлайн (CSP default-src 'self', без загрузки файла): геометрия и цвета
+        // должны совпадать с исходником, из которого scripts/make-icons.mjs собирает иконки приложения.
+        const polygons = (text: string) =>
+            (text.match(/<polygon\b[^>]*>/g) || []).map((tag) => ({
+                points: (tag.match(/\bpoints="([^"]*)"/) || [])[1],
+                fill: (tag.match(/\bfill="([^"]*)"/) || [])[1],
+            }));
+        const mark = polygons(fs.readFileSync(path.join(ROOT, "assets/logo/sda-mark.svg"), "utf8"));
+        const brandPath = path.join(ROOT, "src/globalComponents/Brand/Brand.tsx");
+        expect(fs.existsSync(brandPath)).toBe(true);
+        expect(mark.length).toBeGreaterThan(0);
+        expect(polygons(fs.readFileSync(brandPath, "utf8"))).toEqual(mark);
+    });
+
+    test("app icons forge packages are generated", () => {
+        // forge.config.js: icon "assets/icon" — packager дописывает .icns на macOS и .ico на Windows.
+        const pngSize = (file: string) => {
+            const buf = fs.readFileSync(path.join(ROOT, file));
+            expect(buf.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+            return [buf.readUInt32BE(16), buf.readUInt32BE(20)];
+        };
+        expect(pngSize("assets/icon.png")).toEqual([1024, 1024]);
+        expect(pngSize("assets/newIcon.png")).toEqual([512, 512]);
+        expect(pngSize("assets/confirmationsIcon.png")).toEqual([512, 512]);
+
+        // .icns: "icns", длина файла, затем записи (тип, длина); ic10 — 1024 px (512@2x).
+        const icnsPath = path.join(ROOT, "assets/icon.icns");
+        expect(fs.existsSync(icnsPath)).toBe(true);
+        const icns = fs.readFileSync(icnsPath);
+        expect(icns.subarray(0, 4).toString("latin1")).toBe("icns");
+        expect(icns.readUInt32BE(4)).toBe(icns.length);
+        const types: string[] = [];
+        for (let at = 8; at < icns.length; at += icns.readUInt32BE(at + 4)) {
+            types.push(icns.subarray(at, at + 4).toString("latin1"));
+            expect(icns.readUInt32BE(at + 4)).toBeGreaterThan(8);
+        }
+        expect(types).toContain("ic10");
+
+        // .ico: 7 размеров, каждая запись — PNG своего размера (ширина 0 в каталоге означает 256).
+        const ico = fs.readFileSync(path.join(ROOT, "assets/icon.ico"));
+        expect([ico.readUInt16LE(0), ico.readUInt16LE(2)]).toEqual([0, 1]);
+        const sizes: number[] = [];
+        for (let i = 0; i < ico.readUInt16LE(4); i++) {
+            const entry = 6 + i * 16;
+            const size = ico[entry] || 256;
+            const bytes = ico.readUInt32LE(entry + 8);
+            const offset = ico.readUInt32LE(entry + 12);
+            expect(offset + bytes).toBeLessThanOrEqual(ico.length);
+            const png = ico.subarray(offset, offset + bytes);
+            expect(png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+            expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([size, size]);
+            sizes.push(size);
+        }
+        expect(sizes).toEqual([16, 24, 32, 48, 64, 128, 256]);
     });
 
     test("Geist is declared", () => {

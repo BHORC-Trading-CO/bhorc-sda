@@ -1,0 +1,37 @@
+/* Логотип (Brand.tsx), как в макете main-v2: знак, за ним надпись Geist 750 с лёгким наклоном. */
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.brand-mark {
+    display: block;
+    flex-shrink: 0;
+}
+
+/* inline-block: transform у строчного элемента не работает. Цвет «BHORC» — как белые планки знака. */
+.brand-wordmark {
+    display: inline-block;
+    font-family: var(--sda-font);
+    font-size: 14px;
+    font-weight: 750;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    white-space: nowrap;
+    color: #f4f4f5;
+    transform: skewX(-8deg);
+}
+
+.brand_size-24 .brand-wordmark {
+    font-size: 13px;
+}
+
+.brand-wordmark-accent {
+    background: linear-gradient(90deg, #11fdfd, #03d3e6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}

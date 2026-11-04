@@ -8,30 +8,17 @@
   user-select: none;
 }
 
-/* gap вместо margin у логотипа: в узкой навигации текста нет, и логотип встаёт ровно по центру над иконками. */
+/* Логотип — Brand: в узкой навигации только знак, по центру над иконками. */
 .navigation-logo-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
   margin-bottom: 37px;
 }
 
 .navigation-content {
   display: flex;
   flex-direction: column;
-}
-.navigation-logo {
-  display: block;
-  flex-shrink: 0;
-}
-/* Название текстом, а не картинкой: в Logo_Text.svg был зашит «TRADEMANAGER» контурами. */
-.navigation-logo-text {
-  color: var(--sda-text);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  white-space: nowrap;
 }
 
 /* Иконка пункта — lucide 20px в слоте 24px (отступ 2px), цвет — currentColor пункта:

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import ReactTooltip from "react-tooltip";
 import LanguageSwitcher from "./LanguageSwitcher";
 import Icon, { IconName } from "../../../../globalComponents/Icon/Icon";
+import Brand from "../../../../globalComponents/Brand/Brand";
 
 // Один тултип на все пункты узкой навигации, где видны только иконки.
 const TOOLTIP_ID = "navigation-tooltip";
@@ -68,12 +69,7 @@ const Navigation = observer(() => {
     <div className="navigation">
       <div className="navigation-content">
         <div className="navigation-logo-container">
-          <img
-            src="./assets/img/Logo.svg"
-            className="navigation-logo"
-            alt={isCompress ? "BHORC SDA" : ""}
-          />
-          {isCompress ? "" : <div className="navigation-logo-text">BHORC SDA</div>}
+          <Brand size={26} wordmark={!isCompress} />
         </div>
 
         <div className="navigation-items">
