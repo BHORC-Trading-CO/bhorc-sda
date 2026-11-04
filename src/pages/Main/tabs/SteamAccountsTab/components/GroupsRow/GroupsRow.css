@@ -1,0 +1,157 @@
+/* Строка групп (GroupsRow.tsx), как .groups / .gt в макете main-v2. */
+.groups-row {
+  flex: 0 0 auto;
+  min-width: 0;
+  height: 40px;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 14px;
+  background: var(--sda-surface-0);
+  /* Линия снизу — тенью под содержимым: подчёркивание активного пункта (2px) ложится поверх
+     неё, как в макете. Рамка снизу у прокручиваемого списка обрезала бы подчёркивание. */
+  box-shadow: inset 0 -1px 0 var(--sda-border);
+  font-family: var(--sda-font);
+  font-size: 13px;
+  user-select: none;
+}
+
+/* Кнопка выбора: «Все аккаунты», группа, «Новая группа». Рамка сброшена здесь, а подчёркивание
+   задаёт .groups-row-item ниже (у «Все» и «Новая группа» оба класса на одной кнопке). */
+.groups-row-select {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Кольцо фокуса внутри пункта: снаружи его обрезал бы прокручиваемый список. */
+.groups-row-select:focus-visible,
+.groups-row-edit:focus-visible {
+  outline-offset: -2px;
+}
+
+.groups-row-item {
+  flex-shrink: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--sda-text-muted);
+  transition: color var(--sda-transition), border-color var(--sda-transition);
+}
+
+.groups-row-item:hover {
+  color: var(--sda-text);
+}
+
+.groups-row-item_active,
+.groups-row-item_active:hover {
+  color: var(--sda-text);
+  border-bottom-color: var(--sda-accent);
+}
+
+/* Длинное название обрезается многоточием, полное — в title кнопки. */
+.groups-row-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groups-row-count {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--sda-surface-3);
+  color: var(--sda-text-subtle);
+  font-family: var(--sda-font-mono);
+  font-size: 10.5px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.groups-row-item_active .groups-row-count {
+  background: rgba(34, 211, 238, 0.12);
+  color: var(--sda-accent);
+}
+
+/* У группы кнопка выбора и карандаш рядом; карандаш виден на ховере пункта и при фокусе.
+   Место под него занято всегда, чтобы соседние пункты не прыгали под курсором. */
+.groups-row-group {
+  display: flex;
+}
+
+.groups-row-group .groups-row-select {
+  padding-right: 4px;
+}
+
+.groups-row-edit {
+  align-self: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--sda-text-subtle);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--sda-transition), color var(--sda-transition), background-color var(--sda-transition);
+}
+
+.groups-row-group:hover .groups-row-edit,
+.groups-row-edit:focus-visible {
+  opacity: 1;
+}
+
+.groups-row-edit:hover {
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
+}
+
+.groups-row-add {
+  color: var(--sda-text-subtle);
+}
+
+.groups-row-add:hover {
+  color: #f4f4f5;
+}
+
+/* Группы прокручиваются вбок между «Все аккаунты» и «Новая группа». Полосы прокрутки нет
+   (в строке 40px она съела бы подчёркивание): колесо, тачпад и Tab листают, а край, за которым
+   есть ещё группы, затухает. */
+.groups-row-scroll {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.groups-row-scroll::-webkit-scrollbar {
+  display: none;
+  height: 0;
+}
+
+.groups-row-scroll_fade-right {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+
+.groups-row-scroll_fade-left {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 40px);
+}
+
+.groups-row-scroll_fade-left.groups-row-scroll_fade-right {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+}

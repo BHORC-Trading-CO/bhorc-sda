@@ -1,7 +1,7 @@
-import TitleBar from "../../globalComponents/TitleBar/TitleBar";
 import "./Main.css";
 import "../../css/Form.css";
-import Navigation from "./components/Navigation/Navigation";
+import TopBar from "./components/TopBar/TopBar";
+import GroupsRow from "./tabs/SteamAccountsTab/components/GroupsRow/GroupsRow";
 import Prompt from "../../globalComponents/Prompt/Prompt";
 import MiniNotification from "../../globalComponents/Notifications/MiniNotifitcation";
 import ProxiesTab from "./tabs/ProxiesTab/ProxiesTab";
@@ -12,13 +12,15 @@ import store from "../../store/store";
 import { observer } from "mobx-react";
 import BrowserTab from "./tabs/BrowserTab/BrowserTab";
 
+// Главное окно (R2): верхняя панель с разделами, под ней строка групп (только у Steam аккаунтов),
+// ниже — открытый раздел.
 const Main = observer(() => {
   return (
     <div className="layout">
       <DndProvider backend={HTML5Backend}>
-        <TitleBar platform={window.Main.platform} />
+        <TopBar />
+        <GroupsRow />
         <div className="content">
-          <Navigation />
           {store.tabs.active === "steamAccounts" ? <SteamAccountsTab /> : <></>}
           {store.tabs.active === "proxies" ? <ProxiesTab /> : <></>}
           {store.tabs.active === "browser" ? <BrowserTab /> : <></>}

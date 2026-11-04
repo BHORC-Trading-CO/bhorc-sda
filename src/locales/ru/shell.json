@@ -1,16 +1,22 @@
 {
   "navigation": {
+    "label": "Разделы",
     "steamAccounts": "Steam аккаунты",
     "proxies": "Прокси",
-    "browser": "Браузер",
-    "editGroup": "Редактировать группу"
+    "browser": "Браузер"
   },
-  "languageSwitcher": {
-    "label": "Язык интерфейса",
-    "names": {
-      "en": "English",
-      "uk": "Українська",
-      "ru": "Русский"
-    }
+  "groups": {
+    "label": "Группы аккаунтов",
+    "all": "Все аккаунты",
+    "new": "Новая группа",
+    "edit": "Редактировать группу",
+    "createTitle": "Новая группа",
+    "name": "Название группы",
+    "emptyName": "Введите название группы",
+    "create": "Создать"
+  },
+  "languageMenu": {
+    "label": "Язык",
+    "title": "Язык интерфейса"
   }
 }

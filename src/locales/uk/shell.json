@@ -1,16 +1,22 @@
 {
   "navigation": {
+    "label": "Розділи",
     "steamAccounts": "Акаунти Steam",
     "proxies": "Проксі",
-    "browser": "Браузер",
-    "editGroup": "Редагувати групу"
+    "browser": "Браузер"
   },
-  "languageSwitcher": {
-    "label": "Мова інтерфейсу",
-    "names": {
-      "en": "English",
-      "uk": "Українська",
-      "ru": "Русский"
-    }
+  "groups": {
+    "label": "Групи акаунтів",
+    "all": "Усі акаунти",
+    "new": "Нова група",
+    "edit": "Редагувати групу",
+    "createTitle": "Нова група",
+    "name": "Назва групи",
+    "emptyName": "Введіть назву групи",
+    "create": "Створити"
+  },
+  "languageMenu": {
+    "label": "Мова",
+    "title": "Мова інтерфейсу"
   }
 }

@@ -1,0 +1,200 @@
+/* Верхняя панель главного окна (TopBar.tsx), как в макете main-v2 / header-logo:
+   логотип, разделитель, разделы и справа меню языка. Высоту, фон, рамку снизу и отступы под
+   кнопки окна задаёт полоса TitleBar (TitleBar.css). */
+
+/* TopBar передаёт title="": пустой блок названия не занимает места и не добавляет gap. */
+.titlebar > .titlebar-title:empty {
+  display: none;
+}
+
+.topbar {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 26px;
+  background: var(--sda-border-strong);
+}
+
+.topbar-nav {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Пункт раздела. Иконка берёт цвет пункта; у активного (aria-current="page") она циановая,
+   увеличена и со свечением — правила .sda-nav-activate в motion.css. */
+.topbar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--sda-radius-sm);
+  background: transparent;
+  color: var(--sda-text-muted);
+  font-family: var(--sda-font);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--sda-transition), color var(--sda-transition);
+}
+
+.topbar-nav-item:hover {
+  background: rgba(39, 39, 42, 0.5);
+  color: #f4f4f5;
+}
+
+.topbar-nav-item[aria-current="page"],
+.topbar-nav-item[aria-current="page"]:hover {
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
+}
+
+/* Узкое окно: только иконка, квадратная кнопка. */
+.topbar-nav-item_compact {
+  padding: 7px;
+}
+
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Тултип узкой навигации непрозрачный (у react-tooltip по умолчанию 0.9) и в размер панели.
+   Двойной класс перебивает стили, которые react-tooltip вставляет в head после наших. */
+.topbar-tooltip.topbar-tooltip {
+  padding: 5px 9px;
+  border-radius: var(--sda-radius-sm);
+  font-family: var(--sda-font);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.topbar-tooltip.topbar-tooltip.show {
+  opacity: 1;
+}
+
+/* --- Меню языка --- */
+.language-menu {
+  position: relative;
+}
+
+.language-menu-button {
+  width: 34px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--sda-border-strong);
+  border-radius: var(--sda-radius-sm);
+  background: transparent;
+  color: #d4d4d8;
+  cursor: pointer;
+  transition: background-color var(--sda-transition), color var(--sda-transition), border-color var(--sda-transition);
+}
+
+.language-menu-button:hover {
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
+}
+
+.language-menu-button_open,
+.language-menu-button_open:hover {
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
+  border-color: #52525b;
+}
+
+/* Список под кнопкой, правым краем по кнопке: на Windows кнопка стоит левее кнопок заголовка,
+   значит и список не уходит под них. */
+.language-menu-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 100;
+  width: 210px;
+  padding: 4px;
+  background: var(--sda-surface-1);
+  border: 1px solid var(--sda-border);
+  border-radius: 8px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  font-family: var(--sda-font);
+}
+
+.language-menu-title {
+  padding: 6px 8px 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sda-text-subtle);
+}
+
+.language-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #d4d4d8;
+  font-family: var(--sda-font);
+  font-size: 13px;
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.language-menu-item:hover,
+.language-menu-item:focus-visible {
+  background: var(--sda-surface-3);
+  color: var(--sda-text);
+}
+
+/* Кольцо фокуса внутри пункта: соседние пункты стоят вплотную. */
+.language-menu-item:focus-visible {
+  outline-offset: -2px;
+}
+
+.language-menu-code {
+  flex: 0 0 20px;
+  font-family: var(--sda-font-mono);
+  font-size: 10.5px;
+  color: var(--sda-text-subtle);
+}
+
+.language-menu-item_active {
+  color: var(--sda-text);
+}
+
+.language-menu-check {
+  margin-left: auto;
+  color: var(--sda-accent);
+}
+
+.language-menu-version {
+  margin-top: 4px;
+  padding: 6px 8px 4px;
+  border-top: 1px solid var(--sda-border);
+  font-family: var(--sda-font-mono);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sda-text-subtle);
+  user-select: text;
+}
