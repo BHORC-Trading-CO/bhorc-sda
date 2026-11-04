@@ -24,8 +24,10 @@ const account = (id: string, route: string | null = proxy) => ({ params: { id, s
 const download = downloadImage as jest.Mock;
 const downloadIcon = downloadConfirmationIcon as jest.Mock;
 const writeImage = async (_url: string, file: string) => { await fs.writeFile(file, jpeg); };
+// Ждём по реальному времени, а не по тикам: на Windows файловый ввод-вывод кэша
+// не успевает за 100 setImmediate (CI падал). Часы сервиса в тестах подменены отдельно.
 const until = async (condition: () => boolean) => {
-    for (let i = 0; i < 100 && !condition(); i++) await new Promise(resolve => setImmediate(resolve));
+    for (let i = 0; i < 600 && !condition(); i++) await new Promise(resolve => setTimeout(resolve, 5));
     expect(condition()).toBe(true);
 };
 
@@ -94,7 +96,7 @@ it('does not share downloads between accounts with different routes', async () =
     accounts.a2 = account('a2', 'http://other-proxy.test:8080');
     await Promise.all([images.getAvatar('a1'), images.getAvatar('a2')]);
     expect(download).toHaveBeenCalledTimes(2);
-    expect(download).toHaveBeenCalledWith(avatar, expect.stringContaining('/a2-'), 'http://other-proxy.test:8080');
+    expect(download).toHaveBeenCalledWith(avatar, expect.stringContaining(`${path.sep}a2-`), 'http://other-proxy.test:8080');
 });
 
 it('caps downloads at four and resolves queued routes after deletion/change', async () => {
@@ -120,7 +122,7 @@ it('caps downloads at four and resolves queued routes after deletion/change', as
     expect(await Promise.all(results)).toEqual([data, data, data, data, null, data, null]);
     expect(peak).toBe(4);
     expect(download).toHaveBeenCalledTimes(5);
-    expect(download).toHaveBeenLastCalledWith(avatar, expect.stringContaining('/a5-'), 'http://new-proxy.test:9090');
+    expect(download).toHaveBeenLastCalledWith(avatar, expect.stringContaining(`${path.sep}a5-`), 'http://new-proxy.test:9090');
 });
 
 it('does not cache partial failures and permits a later retry', async () => {
@@ -314,7 +316,7 @@ it('returns placeholder if the route disappears while downloading', async () => 
 it('routes and deduplicates confirmation icons, then serves the cache', async () => {
     expect(await Promise.all([images.getConfirmationIcon('a1', icon), images.getConfirmationIcon('a1', icon)])).toEqual([data, data]);
     expect(downloadIcon).toHaveBeenCalledTimes(1);
-    expect(downloadIcon).toHaveBeenCalledWith(icon, expect.stringContaining('/a1-'), proxy);
+    expect(downloadIcon).toHaveBeenCalledWith(icon, expect.stringContaining(`${path.sep}a1-`), proxy);
     expect(download).not.toHaveBeenCalled();
     downloadIcon.mockClear();
     expect(await images.getConfirmationIcon('a1', icon)).toBe(data);
