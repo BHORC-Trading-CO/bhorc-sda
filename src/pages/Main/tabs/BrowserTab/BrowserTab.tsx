@@ -4,20 +4,20 @@ import { useTranslation } from "react-i18next";
 import "../../../../css/Panel.css";
 import "./BrowserTab.css";
 import store from "../../../../store/store";
+import Icon, { IconName } from "../../../../globalComponents/Icon/Icon";
 import { DEFAULT_START_LINK, MAX_START_LINKS, StartLinkError, startLinkError } from "./startLinkValidation";
 
 // Страница Browser (SDA-6): общие для всех аккаунтов стартовые ссылки и распакованные расширения.
 
-/** Кнопка-иконка: подпись в тултипе и aria-label, иконка — маска из assets, цвет задаёт CSS. */
+/** Кнопка-иконка: подпись в тултипе и aria-label, иконка lucide, цвет задаёт CSS. */
 const IconButton: FC<{
   label: string;
-  icon: string;
+  icon: IconName;
   onClick: () => void;
   disabled?: boolean;
   danger?: boolean;
-  flip?: boolean;
   testId?: string;
-}> = ({ label, icon, onClick, disabled, danger, flip, testId }) => (
+}> = ({ label, icon, onClick, disabled, danger, testId }) => (
   <button
     type="button"
     className={`browser-icon-button${danger ? " browser-icon-button--danger" : ""}`}
@@ -27,18 +27,11 @@ const IconButton: FC<{
     onClick={onClick}
     data-testid={testId}
   >
-    <span
-      className={`browser-icon-button__icon${flip ? " browser-icon-button__icon--flip" : ""}`}
-      style={{ WebkitMaskImage: `url(./assets/img/${icon})` }}
-      aria-hidden="true"
-    ></span>
+    <Icon name={icon} motion="pop" className="browser-icon-button__icon" />
   </button>
 );
 
-/** Плюс из Mark.svg маской: url картинок задаём из TSX, а не в CSS (как в GlobalStyle.ts). */
-const PlusIcon: FC = () => (
-  <span className="browser-button__plus" style={{ WebkitMaskImage: "url(./assets/img/Mark.svg)" }} aria-hidden="true"></span>
-);
+const PlusIcon: FC = () => <Icon name="plus" size={14} motion="pop" />;
 
 const Switch: FC<{ checked: boolean; label: string; onChange: (checked: boolean) => void }> = ({ checked, label, onChange }) => (
   <button
@@ -95,21 +88,20 @@ const StartLinkRow: FC<{ link: string; index: number; total: number }> = observe
           <div className="browser-row__actions">
             <IconButton
               label={t("browser.links.moveUp")}
-              icon="ArrowDown.svg"
-              flip
+              icon="chevronUp"
               disabled={index === 0}
               onClick={() => store.browserSettings.moveLink(index, -1)}
             />
             <IconButton
               label={t("browser.links.moveDown")}
-              icon="ArrowDown.svg"
+              icon="chevronDown"
               disabled={index === total - 1}
               onClick={() => store.browserSettings.moveLink(index, 1)}
             />
-            <IconButton label={t("browser.links.edit")} icon="Edit.svg" onClick={() => setDraft(link)} />
+            <IconButton label={t("browser.links.edit")} icon="pencil" onClick={() => setDraft(link)} />
             <IconButton
               label={t("browser.links.remove")}
-              icon="Trash.svg"
+              icon="trash"
               danger
               onClick={() => store.browserSettings.removeLink(index)}
             />
@@ -282,7 +274,7 @@ const ExtensionsCard = observer(() => {
               <div className="browser-row__actions">
                 <IconButton
                   label={t("browser.extensions.remove", { name: extension.name })}
-                  icon="Trash.svg"
+                  icon="trash"
                   danger
                   onClick={() => store.browserSettings.removeExtension(extension.path)}
                 />

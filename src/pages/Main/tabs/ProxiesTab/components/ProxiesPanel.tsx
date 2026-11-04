@@ -2,6 +2,7 @@ import '../../../../../css/Panel.css';
 import './ProxiesPanel.css';
 import Button from "../../../../../globalComponents/Button/Button";
 import Search from "../../../../../globalComponents/Search/Search";
+import Icon from "../../../../../globalComponents/Icon/Icon";
 import { observer } from 'mobx-react';
 import store from '../../../../../store/store';
 import { useTranslation } from 'react-i18next';
@@ -24,8 +25,7 @@ const ProxiesPanel = observer(() => {
                         hoverColor="gradient"
                         color="grey"
                         size="large"
-                        img="./assets/img/Folder.png"
-                        hoverImg="./assets/img/FolderHov.png"
+                        icon="folder"
                         className="button-default"
                         onClick={() => {
                             window.Main.window.openAppdata();
@@ -38,12 +38,13 @@ const ProxiesPanel = observer(() => {
                         hoverColor="gradient"
                         color="grey"
                         size="large"
-                        img="./assets/img/SettingsA.svg"
-                        hoverImg="./assets/img/SettingsA_hov.svg"
+                        icon="sliders"
                         className="button-default"
+                        testId="table-settings"
                         onClick={() => {
                             store.proxiesTable.openTableSettings();
                         }}
+                        altText={t("tableSettings.title")}
                     />
 
                     <Button
@@ -51,12 +52,13 @@ const ProxiesPanel = observer(() => {
                         hoverColor="gradient"
                         color="grey"
                         size="large"
-                        img="./assets/img/Refresh.svg"
-                        hoverImg="./assets/img/Refresh_hov.svg"
+                        icon="refresh"
+                        iconMotion="spin"
                         className="button-default"
                         onClick={() => {
                             window.Main.proxies.refresh();
                         }}
+                        altText={t("common.reloadAll")}
                     />
 
                     <Search value={store.proxiesTable.searchString} onChange={(value) => {
@@ -82,7 +84,7 @@ const ProxiesPanel = observer(() => {
                             store.proxiesTable.openCreationForm();
                         }}
                     >
-                        <img src="./assets/img/Mark.svg" alt="" aria-hidden="true" />
+                        <Icon name="plus" motion="pop" />
                         {t("proxies.panel.add")}
                     </button>
 
@@ -91,9 +93,9 @@ const ProxiesPanel = observer(() => {
                         hoverColor="light-grey"
                         color="grey"
                         size="large"
-                        img={store.proxiesTable.showDeleted ? "./assets/img/Open.svg" : "./assets/img/Hide.svg"}
-
+                        icon={store.proxiesTable.showDeleted ? "eye" : "eyeOff"}
                         className="button-default"
+                        testId="show-archived"
                         onClick={() => {
                             if (store.proxiesTable.showDeleted)
                                 for (var i = store.proxiesTable.activePage; i >= 1; i--) {

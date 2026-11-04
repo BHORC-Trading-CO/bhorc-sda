@@ -36,11 +36,12 @@
 
 /* Акцентный вариант (выбранное подтверждение): должен отличаться от light-grey */
 .button--dark-pink {
-  background: var(--sda-accent-to);
+  background: var(--sda-primary);
 }
 
+/* Основная кнопка: синяя заливка вместо прежнего розово-фиолетового градиента. */
 .button--gradient {
-  background: var(--sda-accent-gradient);
+  background: var(--sda-primary);
 }
 
 .button--grey {
@@ -57,7 +58,7 @@
   text-overflow: ellipsis;
 
   max-width: 90%;
-  font-family: "Nunito";
+  font-family: var(--sda-font);
   font-style: normal;
   font-weight: 400;
   font-size: 14px;
@@ -76,13 +77,20 @@
 
 .button--hoverColor-darkPink:hover,
 .button--hoverColor-dark-pink:hover {
-  background: var(--sda-accent);
+  background: var(--sda-primary-hover);
 }
 
 .button--hoverColor-gradient:hover {
-  background: var(--sda-accent-gradient);
-  box-shadow: 0px 4px 30px rgba(250, 0, 255, 0.47);
+  background: var(--sda-primary-hover);
   border-radius: var(--sda-radius);
+}
+
+/* Выключенная, неактивная или загружающаяся основная кнопка на ховере не светлеет: Button.tsx
+   ставит ей hoverColor, равный color, то есть ховер должен выглядеть как покой. */
+.button--gradient:disabled:hover,
+.button--gradient.button--inactive:hover,
+.button--gradient.button--loading:hover {
+  background: var(--sda-primary);
 }
 
 .button--hoverColor-grey:hover {
@@ -132,24 +140,27 @@
   margin-left: 15px;
 }
 
-/* Иконка-маска: форма из svg, цвет из токенов */
-.button__icon--mask {
-  display: block;
-  width: 15px;
-  height: 15px;
-  background-color: var(--sda-text-muted);
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  -webkit-mask-size: contain;
-  transition: background-color var(--sda-transition);
+/* Иконка lucide (Icon): рисуется currentColor. Покой — приглушённая, ховер — светлая,
+   опасное действие — красная. На основной (синей) кнопке — белая, как текст. */
+.button__icon,
+.button__loader {
+  color: var(--sda-text-muted);
+  transition: color var(--sda-transition);
 }
 
-.button:hover:not(:disabled) .button__icon--mask {
-  background-color: var(--sda-text);
+.button--gradient .button__icon,
+.button--dark-pink .button__icon,
+.button--gradient .button__loader,
+.button--dark-pink .button__loader {
+  color: var(--sda-text);
 }
 
-.button--hoverColor-danger:hover .button__icon--mask {
-  background-color: var(--sda-danger);
+.button:hover:not(:disabled) .button__icon {
+  color: var(--sda-text);
+}
+
+.button--hoverColor-danger:hover:not(:disabled) .button__icon {
+  color: var(--sda-danger);
 }
 
 /* Иконки действий в строке таблицы: один размер и один отклик на ховер */
@@ -161,9 +172,4 @@
   padding: 0;
   border-radius: var(--sda-radius-sm);
   flex-shrink: 0;
-}
-
-.button--view-default .button__icon--mask {
-  width: 18px;
-  height: 18px;
 }

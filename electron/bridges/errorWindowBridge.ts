@@ -5,16 +5,16 @@ import { exposeLanguageApi } from './languageBridge';
 
 const windowApi = {
     close: (id: string) => { ipcRenderer.send(WindowsChannels.CLOSE_ERROR_WINDOW, id); },
-    centerize: (id: string) => { ipcRenderer.send(WindowsChannels.CENTERIZE_ERROR_WINDOW, id); },
-    minimize: (id: string) => {console.log(id); ipcRenderer.send(WindowsChannels.MINIMIZE_ERROR_WINDOW, id); },
-    maximize: (id: string) => { ipcRenderer.send(WindowsChannels.MAXIMIZE_ERROR_WINDOW, id); },
     onGetParams: (listener: (event: IpcRendererEvent, data: { id: string, title: string, text: string }) => void) => {
         ipcRenderer.on(WindowsChannels.GET_ERROR_WINDOW_PARAMS, listener);
     }
 }
 
-export default { windowApi };
+/** Платформа для рамки окна: отступ полосы TitleBar под системные кнопки. */
+const errorWindowBridge = { windowApi, platform: process.platform };
 
-contextBridge.exposeInMainWorld('ErrorWindow', { windowApi });
+export default errorWindowBridge;
+
+contextBridge.exposeInMainWorld('ErrorWindow', errorWindowBridge);
 exposeLanguageApi();
 contextBridge.exposeInMainWorld('getWindowName', () => 'error');

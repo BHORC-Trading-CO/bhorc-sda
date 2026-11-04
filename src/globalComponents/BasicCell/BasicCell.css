@@ -11,7 +11,7 @@
 }
 
 .editing-cell_input {
-    background-color: #26152E;
+    background-color: var(--sda-surface-1);
 }
 
 .editing-cell_input:focus {

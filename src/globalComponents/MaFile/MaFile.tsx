@@ -2,6 +2,7 @@ import React, {useState} from 'react'
 import MaFileInterface from '../../../electron/interfaces/SteamAccount/MaFileInterface';
 import SmaFileInterface from '../../../electron/interfaces/SteamAccount/SmaFileInterface';
 import Delimeter from '../Delimeter/Delimeter';
+import Icon from '../Icon/Icon';
 import './MaFile.css'
 
 function MaFile(props: MaFileListInterface) {
@@ -44,7 +45,7 @@ function MaFile(props: MaFileListInterface) {
                   setIsSessionOpen(!isSessionOpen);
                 }}
               >
-                <img style={{transform: isSessionOpen ? "rotate(180deg)" : ""}} src="./assets/img/ArrowDown.svg"></img>
+                <Icon name={isSessionOpen ? "chevronUp" : "chevronDown"} />
               </div>
             </div>
             <Delimeter

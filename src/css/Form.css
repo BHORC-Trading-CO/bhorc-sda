@@ -3,14 +3,14 @@
    иначе поле остаётся белым браузерным. */
 @import "../globalComponents/TextArea/TextArea.css";
 
-/* Модальное окно (MiniWindow). Центр области под заголовком окна (.attic, 35px),
-   высота ограничена окном: содержимое прокручивается внутри .form-content. */
+/* Модальное окно (MiniWindow). Центр области под полосой заголовка окна (.titlebar,
+   --sda-titlebar-height), высота ограничена окном: содержимое прокручивается внутри .form-content. */
 .form {
-    top: calc(50% + 17px);
+    top: calc(50% + var(--sda-titlebar-height) / 2);
     left: 50%;
     transform: translate(-50%, -50%);
     max-width: calc(100vw - 32px);
-    max-height: calc(100vh - 35px - 24px);
+    max-height: calc(100vh - var(--sda-titlebar-height) - 24px);
     display: flex;
     flex-direction: column;
     border-radius: var(--sda-radius-lg);
@@ -44,14 +44,22 @@
 }
 .form .form-caption .form-cross {
     flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 52px;
     height: 44px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--sda-text-muted);
     cursor: pointer;
     border-radius: 0px var(--sda-radius-lg) 0px 0px;
-    transition: background-color var(--sda-transition);
+    transition: background-color var(--sda-transition), color var(--sda-transition);
 }
 .form .form-caption .form-cross:hover {
     background-color: var(--sda-danger);
+    color: var(--sda-text);
 }
 /* Колонка: короткое содержимое (формы групп) растягивается до min-height окна,
    и нижняя панель встаёт к низу, а не повисает над пустым местом. */
@@ -138,7 +146,7 @@
 }
 .form .account-creation-navigation__accounts .button--gradient,
 .form .account-creation-navigation__accounts .button--gradient:hover {
-    background: var(--sda-accent-gradient);
+    background: var(--sda-primary);
     box-shadow: none;
 }
 .form .account-creation-navigation__accounts .button--gradient .button__text {

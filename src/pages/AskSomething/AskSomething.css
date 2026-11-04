@@ -6,7 +6,7 @@
   min-width: 500px;
   min-height: 150px;
   background: var(--sda-modal);
-  height: 100%;
+  flex: 1;
 }
 
 .ask-family-pin-account-name {
@@ -50,11 +50,13 @@
 }
 .ask-family-pin-input:focus { border-color: var(--sda-border-strong); box-shadow: var(--sda-focus-ring); }
 .ask-family-pin-container .ask-confirm-button {
-  border: 1px solid var(--sda-accent);
+  border: 1px solid var(--sda-primary);
   border-radius: var(--sda-radius);
-  background: var(--sda-accent-gradient);
-  transition: box-shadow var(--sda-transition);
+  background: var(--sda-primary);
+  transition: background-color var(--sda-transition), border-color var(--sda-transition), box-shadow var(--sda-transition);
 }
 .ask-family-pin-container .ask-confirm-button .button__text { color: var(--sda-text); }
+/* Кнопка просит hoverColor="grey" (FamilyPin, MailCode, SmsCode): ховер основной кнопки задаём явно. */
+.ask-family-pin-container .ask-confirm-button:hover { background: var(--sda-primary-hover); border-color: var(--sda-primary-hover); }
 .ask-family-pin-container .ask-confirm-button:hover,
 .ask-family-pin-container .ask-confirm-button:focus-visible { outline: none; box-shadow: var(--sda-focus-ring); }

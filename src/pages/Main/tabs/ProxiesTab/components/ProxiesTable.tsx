@@ -120,7 +120,7 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
                 }} />;
             }
         case AvalibleTypes.deleteButton:
-            return <ProxyActionButton icon='delete' label={t(proxy.deleted ? 'proxies.actions.delete' : 'proxies.actions.archive')} onClick={() => {
+            return <ProxyActionButton icon='delete' label={t(proxy.deleted ? 'proxies.actions.delete' : 'proxies.actions.archive')} data-testid='proxy-archive' onClick={() => {
                 if (proxy.deleted) {
                     store.windows.prompt({
                         type: 'question',

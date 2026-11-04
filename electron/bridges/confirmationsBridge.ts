@@ -50,17 +50,14 @@ const api = {
 
 const windowApi = {
   /** Закрыть окно подтверждений*/
-  close: (id: string) => { ipcRenderer.send(WindowsChannels.CLOSE_CONFIRMATIONS_WINDOW, id); },
-  /** Отцентрировать окно подтверждений */
-  centerize: (id: string) => { ipcRenderer.send(WindowsChannels.CENTERIZE_CONFIRMATIONS_WINDOW, id); },
-  /** Сделать размер окна подтверждений минимально возможным */
-  minimize: (id: string) => { ipcRenderer.send(WindowsChannels.MINIMIZE_CONFIRMATIONS_WINDOW, id); },
-  /** Сделать размер окна подтверждений максимально возможным */
-  maximize: (id: string) => { ipcRenderer.send(WindowsChannels.MAXIMIZE_CONFIRMATIONS_WINDOW, id); }
+  close: (id: string) => { ipcRenderer.send(WindowsChannels.CLOSE_CONFIRMATIONS_WINDOW, id); }
 }
 
-export default { api, windowApi };
+/** Платформа для рамки окна: отступ полосы TitleBar под системные кнопки. */
+const confirmationsBridge = { api, windowApi, platform: process.platform };
 
-contextBridge.exposeInMainWorld('Confirmations', { api, windowApi });
+export default confirmationsBridge;
+
+contextBridge.exposeInMainWorld('Confirmations', confirmationsBridge);
 exposeLanguageApi();
 contextBridge.exposeInMainWorld('getWindowName', () => 'confirmations');

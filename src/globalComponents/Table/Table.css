@@ -111,7 +111,7 @@
     position: static;
     margin-left: 3px;
     opacity: 1;
-    color: var(--sda-accent-from);
+    color: var(--sda-accent);
 }
 
 .list-headline-wrapper {

@@ -2,7 +2,8 @@ import useAccountImage from "../../../../../globalComponents/Images/useAccountIm
 import react, { FC, useEffect, useState } from "react";
 import { CircularProgressbar } from "react-circular-progressbar";
 import Table, { Line, Cell } from "../../../../../globalComponents/Table/Table";
-import { Tip, CellText, StatusBadge, CopyIcon, CheckIcon, WarningIcon, UserIcon } from "../../../../../globalComponents/Table/Cells";
+import { Tip, CellText, StatusBadge } from "../../../../../globalComponents/Table/Cells";
+import Icon from "../../../../../globalComponents/Icon/Icon";
 import AvalibleTypes from "../../../../../../electron/interfaces/TableFields/AvalibleFieldTypes";
 import store from "../../../../../store/store";
 import Field from "../../../../../../electron/interfaces/TableFields/Field";
@@ -310,7 +311,7 @@ const GuardCode: FC<{ code: string }> = observer(({ code }) => {
         </span>
         <span className="guard-code__value">{code}</span>
         <span className="guard-code__copy">
-          {isCopied ? <CheckIcon /> : <CopyIcon />}
+          {isCopied ? <Icon name="check" size={13} /> : <Icon name="copy" size={13} motion="pop" />}
         </span>
       </span>
     </Tip>
@@ -329,7 +330,7 @@ const Avatar: FC<{ accountId: string, url?: string, routeKey: string }> = ({ acc
         role="img"
         aria-label={t("accounts.table.noAvatar")}
       >
-        <UserIcon />
+        <Icon name="user" />
       </span>
     );
   }
@@ -386,9 +387,8 @@ const CellJSX: FC<{
             hoverColor="light-grey"
             view="icon"
             className="row-action"
-            iconMask
             testId="row-confirmations"
-            img="./assets/img/Confirm.svg"
+            icon="shieldCheck"
             onClick={() => {
               window.Main.steamAccounts.openConfirmations({
                 id: steamAccount.id,
@@ -405,8 +405,8 @@ const CellJSX: FC<{
             hoverColor="light-grey"
             view="icon"
             className="row-action"
-            iconMask
-            img="./assets/img/MiniRefresh.svg"
+            icon="refresh"
+            iconMotion="spin"
             onClick={() => {
               store.steamAccountsTable.loadSecondaries(steamAccount.id);
             }}
@@ -420,8 +420,7 @@ const CellJSX: FC<{
             hoverColor="light-grey"
             view="icon"
             className="row-action"
-            iconMask
-            img="./assets/img/refreshSession.svg"
+            icon="logIn"
             onClick={() => {
               store.steamAccountsTable.refreshSession(steamAccount.id);
             }}
@@ -434,8 +433,7 @@ const CellJSX: FC<{
             hoverColor="light-grey"
             view="icon"
             className="row-action"
-            iconMask
-            img="./assets/img/MiniMaFile.svg"
+            icon="file"
             onClick={() => {
               const el = document.getElementById(
                 `exportMaFile${steamAccount.id}`
@@ -532,7 +530,7 @@ const CellJSX: FC<{
               })}
             >
               <span className="cell-muted">—</span>
-              <WarningIcon />
+              <Icon name="alert" size={14} />
             </Tip>
           );
         } else {
@@ -646,9 +644,8 @@ const CellJSX: FC<{
             hoverColor="light-grey"
             view="icon"
             className="row-action"
-            iconMask
             testId="row-export"
-            img="./assets/img/Export.svg"
+            icon="download"
             onClick={() => {
               const el = document.getElementById(
                 `exportSmaFile${steamAccount.id}`
@@ -704,8 +701,7 @@ const CellJSX: FC<{
                 hoverColor="light-grey"
                 view="icon"
                 className="row-action"
-                iconMask
-                img="./assets/img/focus.svg"
+                icon="focus"
                 onClick={() => {
                   window.Main.steamAccounts.focusBrowser(steamAccount.id);
                 }}
@@ -756,9 +752,8 @@ const CellJSX: FC<{
             hoverColor="light-grey"
             view="icon"
             className="row-action"
-            iconMask
             testId="row-restore"
-            img="./assets/img/restoreProfile.svg"
+            icon="archiveRestore"
             onClick={() => {
               //store.steamAccountsTable.editSteamAccount(steamAccount.id, { deleted: false });
               window.Main.steamAccounts.edit(
@@ -778,9 +773,8 @@ const CellJSX: FC<{
             hoverColor="light-grey"
             view="icon"
             className="row-action"
-            iconMask
             testId="row-edit"
-            img="./assets/img/Edit.svg"
+            icon="pencil"
             onClick={() => {
               store.steamAccountsTable.editingForm.open(steamAccount);
             }}
@@ -796,9 +790,8 @@ const CellJSX: FC<{
           hoverColor="danger"
           view="icon"
           className="row-action"
-          iconMask
           testId="row-delete"
-          img="./assets/img/Trash.svg"
+          icon="trash"
           altText={t(
             steamAccount.deleted
               ? "accounts.table.actions.deletePermanently"

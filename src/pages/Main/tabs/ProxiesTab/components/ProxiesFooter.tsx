@@ -4,6 +4,7 @@ import './ProxyActions.css';
 import { observer } from 'mobx-react';
 import store from '../../../../../store/store';
 import Button from '../../../../../globalComponents/Button/Button';
+import Icon from '../../../../../globalComponents/Icon/Icon';
 import TablePageSwitcher from '../../../../../globalComponents/TablePageSwitcher/TablePageSwitcher';
 import { useTranslation } from 'react-i18next';
 
@@ -40,7 +41,7 @@ const ProxiesFooter: FC = observer(() => {
                             store.proxiesTable.testSelected();
                         }}
                     >
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4" /></svg>
+                        <Icon name="activity" size={18} motion="pop" />
                         <span>{t("proxies.footer.testAll")}</span>
                     </button>
 
@@ -51,8 +52,7 @@ const ProxiesFooter: FC = observer(() => {
                         color="grey"
                         hoverColor="grey"
                         className="footer__button"
-                        img="./assets/img/Trash.svg"
-                        hoverImg="./assets/img/Trash_hov.svg"
+                        icon="trash"
                         text={t("common.buttons.delete")}
                         onClick={() => {
                             const selectedProxies = store.proxiesTable.getProxies().filter(p => p.isSelected);

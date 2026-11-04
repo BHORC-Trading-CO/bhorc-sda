@@ -1,12 +1,11 @@
 import React, { useState, FC } from "react";
 import classNames from "classnames";
 import "./Button.css";
-import LoadingIcons from 'react-loading-icons'
 import ReactTooltip from "react-tooltip";
 import uuid from 'react-uuid';
+import Icon, { IconMotion, IconName } from "../Icon/Icon";
 
 const Button: FC<IButtonProps> = (props: IButtonProps) => {
-  const [hover, setHover] = useState(false);
   // id подсказки один на всё время жизни кнопки: раньше uuid() пересоздавался на каждом рендере
   const [uniqueId] = useState(() => uuid());
 
@@ -18,17 +17,16 @@ const Button: FC<IButtonProps> = (props: IButtonProps) => {
     view = "default",
     color = "gradient",
     size,
-    img,
+    icon,
+    iconMotion = "pop",
     text,
     type = 'button',
-    hoverImg = img,
     hoverColor = "gradient",
     className,
     onClick,
     isNonGuardButton = true,
     altText,
     ariaLabel,
-    iconMask,
     testId
   } = props;
 
@@ -54,8 +52,6 @@ const Button: FC<IButtonProps> = (props: IButtonProps) => {
       aria-busy={isLoad || undefined}
       data-testid={testId}
       className={buttonClass}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
       onClick={onClick}
       type={type}
       data-tip="React-tooltip"
@@ -63,14 +59,10 @@ const Button: FC<IButtonProps> = (props: IButtonProps) => {
     >
       {
         isLoad ?
-          <LoadingIcons.Bars style={{ width: '20px', height: '20px' }} /> :
+          <Icon name="loader" size={18} motion="spinAlways" className="button__loader" /> :
           <>
-            {img ? (
-              iconMask
-                // Иконка-маска красится токенами (цвет покоя, ховера, опасного действия) вместо пары svg
-                ? <span className="button__icon button__icon--mask" style={{ WebkitMaskImage: `url(${img})` }} aria-hidden="true"></span>
-                : <img className="button__icon" src={hover ? hoverImg : img} alt=""></img>
-            ) : null}
+            {/* Цвет иконки (покой, ховер, опасное действие) задаёт Button.css через currentColor */}
+            {icon ? <Icon name={icon} size={16} motion={iconMotion} className="button__icon" /> : null}
             {text ? <span className="button__text">{text}</span> : null}
           </>
       }
@@ -101,8 +93,10 @@ interface IButtonProps {
   color?: color;
   className?: string;
   hoverColor?: hoverColor;
-  img?: string;
-  hoverImg?: string;
+  /** Иконка lucide слева от текста (или единственная у view="icon") */
+  icon?: IconName;
+  /** Анимация иконки при наведении на кнопку: pop по умолчанию, spin для «Обновить» */
+  iconMotion?: IconMotion;
   text?: string;
   type?: "button" | "submit" | "reset";
   style?: {},
@@ -110,8 +104,6 @@ interface IButtonProps {
   isNonGuardButton?: boolean;
   altText?: string,
   ariaLabel?: string,
-  /** Рисовать img как CSS-маску, цвет иконки задаёт CSS (hoverImg тогда не нужен) */
-  iconMask?: boolean,
   testId?: string
 }
 

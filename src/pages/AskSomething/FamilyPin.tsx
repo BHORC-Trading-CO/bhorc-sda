@@ -1,5 +1,5 @@
 import react, { FC, useState } from 'react';
-import Attic from '../../globalComponents/Attic/Attic';
+import TitleBar from '../../globalComponents/TitleBar/TitleBar';
 import Button from '../../globalComponents/Button/Button';
 import { useTranslation } from 'react-i18next';
 
@@ -10,7 +10,7 @@ const FamilyPin: FC<{ steamAccountName: string, id: string }> = (props) => {
 
     return (
         <div className="ask-family-pin-wrapper">
-            <Attic title={steamAccountName} id={props.id} windowName="askSomething"></Attic>
+            <TitleBar platform={window.AskFamilyPin.platform} title={steamAccountName} />
             <div className="ask-family-pin-container">
                 <div className="">
                     <label htmlFor="ask-code-input" className="text-white-large">{t("ask.familyPin.label")}</label>

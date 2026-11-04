@@ -1,5 +1,5 @@
 /* Страница Browser (SDA-6). Цвета, радиусы и переходы — только токены из tokens.css.
-   Картинки-маски задаются из TSX (style), а не url() здесь: так же, как в GlobalStyle.ts. */
+   Иконки — lucide (globalComponents/Icon), рисуются currentColor. */
 
 .browser-tab {
   min-height: 0;
@@ -306,31 +306,19 @@
 .browser-button:hover:not(:disabled) {
   border-color: var(--sda-text-muted);
 }
-/* Главное действие — тёмная заливка с градиентной рамкой, как выбранный язык в навигации:
-   белый текст на самом градиенте не добирает 4.5:1. */
+/* Главное действие — синяя основная кнопка (белый текст на --sda-primary — 5.2:1). */
 .browser-button--accent {
-  border-color: transparent;
-  background: linear-gradient(var(--sda-surface-4), var(--sda-surface-4)) padding-box,
-    var(--sda-accent-gradient) border-box;
+  border-color: var(--sda-primary);
+  background: var(--sda-primary);
 }
 .browser-button--accent:hover:not(:disabled) {
-  border-color: transparent;
-  box-shadow: var(--sda-focus-ring);
+  border-color: var(--sda-primary-hover);
+  background: var(--sda-primary-hover);
 }
 .browser-button:disabled {
   opacity: 0.5;
   cursor: default;
 }
-.browser-button__plus {
-  width: 13px;
-  height: 13px;
-  flex-shrink: 0;
-  background-color: currentColor;
-  -webkit-mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
-}
-
 .browser-icon-button {
   display: inline-flex;
   align-items: center;
@@ -352,22 +340,14 @@
   cursor: default;
 }
 .browser-icon-button__icon {
-  width: 18px;
-  height: 18px;
-  background-color: var(--sda-text-muted);
-  -webkit-mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
-  transition: background-color var(--sda-transition);
-}
-.browser-icon-button__icon--flip {
-  transform: rotate(180deg);
+  color: var(--sda-text-muted);
+  transition: color var(--sda-transition);
 }
 .browser-icon-button:hover:not(:disabled) .browser-icon-button__icon {
-  background-color: var(--sda-text);
+  color: var(--sda-text);
 }
 .browser-icon-button--danger:hover:not(:disabled) .browser-icon-button__icon {
-  background-color: var(--sda-danger);
+  color: var(--sda-danger);
 }
 
 /* --- Переключатель расширения --- */
@@ -398,7 +378,7 @@
 }
 .browser-switch--on {
   border-color: transparent;
-  background: var(--sda-accent-gradient);
+  background: var(--sda-primary);
 }
 .browser-switch--on .browser-switch__knob {
   background: var(--sda-text);

@@ -10,6 +10,7 @@ import CreateProxyBlock from '../ProxyBlock/CreateProxyBlock/CreateProxyBlock';
 import SavedProxiesBlock from '../ProxyBlock/SavedProxiesBlock/SavedProxies';
 import Navigation from '../../../../../../globalComponents/Navigation/Navigation';
 import Button from '../../../../../../globalComponents/Button/Button';
+import Icon from '../../../../../../globalComponents/Icon/Icon';
 import TableSteamAccountInterface from '../../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface';
 import MaFileImport from '../MaFileImport/MaFileImport';
 import Checkbox from '../../../../../../globalComponents/Checkbox/Checkbox';
@@ -45,7 +46,9 @@ const EditFormContent = observer(() => {
                 <h3 className="sda-form-section__title">{t('accounts.form.accountSection')}</h3>
             </div>
             <div className="steam-data-input__wrapper">
-                <img src={avatar.src || './assets/img/User.svg'} onError={avatar.onError} alt="" className='steam-account-avatar steam-account_edit-form__avatar' />
+                {avatar.src
+                    ? <img src={avatar.src} onError={avatar.onError} alt="" className='steam-account-avatar steam-account_edit-form__avatar' />
+                    : <span className='steam-account-avatar steam-account-avatar--placeholder steam-account_edit-form__avatar' aria-hidden='true'><Icon name='user' size={20} /></span>}
                 <Input value={steamAccount.accountName} placeholder={t('accounts.form.steamLogin')} onChange={(newValue) => {
                     store.steamAccountsTable.editingForm.editContent({ steamAccount: { ...steamAccount, accountName: newValue } });
                     changeThisProperties.accountName = newValue;

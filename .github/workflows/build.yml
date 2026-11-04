@@ -51,3 +51,18 @@ jobs:
       # раскладки собранного приложения и что в нём нет лишних .bin.
       - name: Verify packaged app
         run: npm run verify:package
+
+      # Упакованное Windows-приложение для ручной проверки: на Windows локально
+      # никто не запускает, поэтому коллега скачивает папку из артефакта прогона
+      # PR и смотрит окно руками (нативные кнопки заголовка и т.п.).
+      # include-hidden-files нужен: код приложения лежит в скрытой .webpack,
+      # без него upload-artifact её пропускает и пакет не запускается.
+      - name: Upload Windows package
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bhorc-sda-windows-${{ github.sha }}
+          path: out/BHORC SDA-win32-x64/
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: true

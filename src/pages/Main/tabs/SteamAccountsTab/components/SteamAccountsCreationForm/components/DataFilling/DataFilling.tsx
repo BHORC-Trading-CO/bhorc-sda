@@ -178,7 +178,7 @@ const ImportSteamAccountsForm: FC = observer(() => {
               })
         }
         size="medium"
-        img="./assets/img/Download.svg"
+        icon="upload"
         color="grey"
         hoverColor="light-grey"
         style={{ width: "100%" }}

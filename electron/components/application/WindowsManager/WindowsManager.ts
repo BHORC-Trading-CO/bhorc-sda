@@ -1,6 +1,6 @@
-import path from 'path';
 import { BrowserWindow, IpcMainEvent } from 'electron';
 import windowsConfig from './windowsConfig';
+import { windowChrome, windowIcon } from './windowChrome';
 import WindowChannels from '../../../interfaces/IpcChannels/WindowsChannels';
 import InfoType from '../askInfo/InfoType';
 import AskSomethingChannels from '../../../interfaces/IpcChannels/AskSomethigChannels';
@@ -52,7 +52,8 @@ class WindowsManager {
         const winId = uuidv4();
         this.errorWindows[winId] = new BrowserWindow({
             ...windowsConfig.errorWindow,
-            icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
+            ...windowChrome(process.platform),
+            icon: windowIcon(process.platform, 'error'),
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
@@ -67,13 +68,18 @@ class WindowsManager {
                 errorWindow.webContents.send(WindowChannels.GET_ERROR_WINDOW_PARAMS, { id: winId, title, text  });
             }, 50);
         });
+        // Системная кнопка закрытия не проходит через closeErrorWindowListener: освобождаем запись здесь.
+        this.errorWindows[winId].on('closed', () => {
+            delete (this.errorWindows[winId]);
+        });
         this.errorWindows[winId].focus();
         this.errorWindows[winId].loadURL(ERROR_WINDOW_WEBPACK_ENTRY);
     }
     createAuthWindow() {
         this.authWindow = new BrowserWindow({
             ...windowsConfig.authWindow,
-            icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
+            ...windowChrome(process.platform),
+            icon: windowIcon(process.platform, 'auth'),
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
@@ -86,7 +92,8 @@ class WindowsManager {
     createMain() {
         this.mainWindow = new BrowserWindow({
             ...windowsConfig.mainWindow,
-            icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
+            ...windowChrome(process.platform),
+            icon: windowIcon(process.platform, 'main'),
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
@@ -100,7 +107,8 @@ class WindowsManager {
         return new Promise((resolve) => {
             const confirmationsWindow = new BrowserWindow({
                 ...windowsConfig.confirmationsWindow,
-                icon: path.join(__dirname, "../renderer/assets/confirmationsIcon.png"),
+                ...windowChrome(process.platform),
+                icon: windowIcon(process.platform, 'confirmations'),
                 webPreferences: {
                     nodeIntegration: false,
                     contextIsolation: true,
@@ -123,10 +131,11 @@ class WindowsManager {
         });
     }
     createAskWindow(id: string, steamAccountName: string, infoType: InfoType): Promise<BrowserWindow> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const askWindow = new BrowserWindow({
                 ...windowsConfig.askPinWindow,
-                icon: path.join(__dirname, "../renderer/assets/newIcon.png"),
+                ...windowChrome(process.platform),
+                icon: windowIcon(process.platform, 'ask'),
                 webPreferences: {
                     nodeIntegration: false,
                     contextIsolation: true,
@@ -142,12 +151,26 @@ class WindowsManager {
                     resolve(askWindow);
                 }, 50);
             });
+            // Системные кнопки окна видны до загрузки страницы: закрытое до отправки параметров окно
+            // не дождётся dom-ready. Отмена без причины, как и при закрытии позже (askSomething);
+            // после resolve этот reject ничего не меняет.
+            askWindow.once('closed', () => {
+                if (this.askWindows[id] === askWindow) delete (this.askWindows[id]);
+                reject();
+            });
             this.askWindows[id] = askWindow;
         });
     }
     askSomething(accountId: string, accountName: string, infoType: InfoType): Promise<any> {
         return new Promise<any>(async (resolve, reject) => {
-            const askPinWindow = await this.createAskWindow(accountId, accountName, infoType);
+            let askPinWindow: BrowserWindow;
+            try {
+                askPinWindow = await this.createAskWindow(accountId, accountName, infoType);
+            } catch (err) {
+                // Закрытие до загрузки приходит без причины (отмена); ошибку создания окна
+                // передаём вызывающему как есть.
+                return reject(err);
+            }
             let isGetInfo = false;
 
             const askFunc = (event: IpcMainEvent, data: { id: string, data: any }) => {

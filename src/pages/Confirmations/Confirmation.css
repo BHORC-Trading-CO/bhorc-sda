@@ -37,7 +37,7 @@
 }
 
 .info-account-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.info-account-logo { margin-right: 10px; flex: 0 0 auto; }
+.info-account-logo { margin-right: 10px; flex: 0 0 auto; color: var(--sda-text-muted); }
 .confirmation-toolbar { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .sell-items-count-selected { color: var(--sda-text-muted); margin-right: 4px; }
 
@@ -56,14 +56,6 @@
   transition: background var(--sda-transition), color var(--sda-transition);
 }
 
-.confirmation-icon-button svg, .confirmation-state-icon {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.confirmation-icon-button svg { width: 22px; height: 22px; }
 .confirmation-icon-button:hover:not(:disabled) {
   background: var(--sda-surface-4);
   color: var(--sda-text);
@@ -89,7 +81,8 @@
   max-width: 440px;
 }
 .confirmation-state { display: flex; flex-direction: column; align-items: center; gap: 16px; color: var(--sda-text-muted); }
-.confirmation-state-icon { width: 40px; height: 40px; flex: 0 0 auto; }
+/* Крупная иконка состояния: размер из CSS поверх атрибутов svg, линия тоньше (как в EmptyState). */
+.confirmation-state-icon { width: 40px; height: 40px; flex: 0 0 auto; stroke-width: 1.5; }
 .confirmation-state--error .confirmation-state-icon { color: var(--sda-warning); }
 .confirmation-state-message { color: var(--sda-text); line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
 
@@ -121,8 +114,9 @@
   transition: background var(--sda-transition), box-shadow var(--sda-transition);
 }
 .sell-items-confirms-button-container .button__text { max-width: 100%; white-space: normal; color: var(--sda-text); }
-.sell-items-confirms-button-container .confirmation-confirm { background: var(--sda-accent-gradient); border-color: var(--sda-accent); }
-.sell-items-confirms-button-container .confirmation-confirm:hover { box-shadow: var(--sda-focus-ring); }
+.sell-items-confirms-button-container .confirmation-confirm { background: var(--sda-primary); border-color: var(--sda-primary); }
+/* Кнопка просит hoverColor='grey': ховер основной кнопки задаём явно. Неактивное состояние ниже перекрывает его. */
+.sell-items-confirms-button-container .confirmation-confirm:hover { background: var(--sda-primary-hover); border-color: var(--sda-primary-hover); box-shadow: var(--sda-focus-ring); }
 .sell-items-confirms-button-container .confirmation-decline { background: var(--sda-modal); border-color: var(--sda-danger); }
 .sell-items-confirms-button-container .confirmation-decline .button__text { color: var(--sda-danger); }
 .sell-items-confirms-button-container .confirmation-decline:hover { background: var(--sda-danger-bg); box-shadow: none; }

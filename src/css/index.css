@@ -23,9 +23,11 @@ html {
   overflow: hidden;
 }
 
+/* Фон окна — сплошной --sda-surface-0 вместо прежней фиолетовой картинки assets/gradient.png. */
 body {
   margin: 0;
   color: var(--sda-text);
+  background: var(--sda-surface-0);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -37,7 +39,7 @@ button {
 /* Вторичный текст (подписи, заголовки колонок форм). --sda-text-muted держит контраст
    не ниже 4.5:1 на всех поверхностях до surface-3; прежний #776284 давал около 3:1. */
 .text-grey-small {
-  font-family: "Nunito";
+  font-family: var(--sda-font);
   font-style: normal;
   font-weight: 400;
   font-size: 12px;
@@ -46,16 +48,16 @@ button {
 }
 
 .text-pink-small{
-  font-family: "Nunito";
+  font-family: var(--sda-font);
   font-style: normal;
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
-  color: #eb00f0;
+  color: var(--sda-accent);
 }
 
 .text-grey-medium {
-  font-family: "Nunito";
+  font-family: var(--sda-font);
   font-style: normal;
   font-weight: 400;
   font-size: 14px;
@@ -63,7 +65,7 @@ button {
   color: var(--sda-text-muted);
 }
 .text-grey-large {
-  font-family: "Nunito";
+  font-family: var(--sda-font);
   font-style: normal;
   font-weight: 400;
   font-size: 15px;
@@ -72,7 +74,7 @@ button {
 }
 
 .text-white-small {
-  font-family: "Nunito";
+  font-family: var(--sda-font);
   font-style: normal;
   font-weight: 400;
   font-size: 12px;
@@ -83,7 +85,7 @@ button {
 }
 
 .text-white-medium {
-  font-family: "Nunito";
+  font-family: var(--sda-font);
   font-style: normal;
   font-weight: 400;
   font-size: 14px;
@@ -91,7 +93,7 @@ button {
   color: #ffffff;
 }
 .text-white-large {
-  font-family: "Nunito";
+  font-family: var(--sda-font);
   font-style: normal;
   font-weight: 400;
   font-size: 15px;
@@ -136,9 +138,9 @@ p {
 /* Одно кольцо фокуса с клавиатуры для кнопок, ссылок, чекбоксов и пунктов с role/tabindex.
    Весь селектор внутри :where(), специфичность нулевая: свой :focus-visible у компонента
    (box-shadow: var(--sda-focus-ring) в формах, прокси, подтверждениях) перекрывает это правило.
-   Кольцо — outline, а не box-shadow: box-shadow затирается свечением кнопок на ховере
-   (.button--hoverColor-gradient:hover), и фокус под курсором пропадал. outline там никто не
-   трогает, отступ 2px отделяет кольцо от градиента. Цвет — акцент токенов.
+   Кольцо — outline, а не box-shadow: на ховере кнопки ставят свой box-shadow (например,
+   .button--hoverColor-danger:hover), и фокус под курсором пропадал. outline там никто не
+   трогает, отступ 2px отделяет кольцо от заливки кнопки. Цвет — акцент токенов.
    Текстовые поля не здесь: у них своё состояние фокуса в стилях полей ввода. */
 :where(
     button,
@@ -152,17 +154,17 @@ p {
     [role="tab"],
     [tabindex]:not([tabindex="-1"])
   ):where(:focus-visible) {
-  outline: 2px solid var(--sda-accent-from);
+  outline: 2px solid var(--sda-accent);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: var(--sda-accent-to);
+  background: var(--sda-primary);
   color: var(--sda-text);
 }
 
 /* Скроллбар: 8px под курсор, видимая часть тоньше (прозрачная рамка), приглушённый;
-   на ховере и при перетаскивании — шире и в акцентном градиенте. */
+   на ховере и при перетаскивании — шире и акцентного цвета. */
 div::-webkit-scrollbar {
   height: 8px;
   width: 8px;
@@ -184,7 +186,7 @@ div::-webkit-scrollbar-thumb {
 
 div::-webkit-scrollbar-thumb:hover,
 div::-webkit-scrollbar-thumb:active {
-  background: var(--sda-accent-gradient);
+  background: var(--sda-accent);
   background-clip: padding-box;
   border-width: 1px;
 }

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import Icon from "../Icon/Icon";
 import "./Password.css";
 
 // Маска фиксированной длины: колонка не раздувается от длинных паролей и не выдаёт их длину
@@ -32,7 +33,7 @@ function Password(props: IPasswordProps) {
           setShow(!show);
         }}
       >
-        <img src={show ? "./assets/img/Password_hide.svg" : "./assets/img/Password_show.svg"} alt="" />
+        <Icon name={show ? "eyeOff" : "eye"} size={14} />
       </button>
     </div>
   );

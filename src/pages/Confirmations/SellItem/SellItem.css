@@ -26,6 +26,7 @@
   overflow: hidden;
 }
 .sell-item-logo img { max-height: 100%; object-fit: contain; }
+.sell-item-logo__placeholder { color: var(--sda-text-muted); }
 .sell-item-info { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
 .sell-item-name { line-height: 19px; color: var(--sda-text); }
 .sell-item-name, .sell-item-price-new { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

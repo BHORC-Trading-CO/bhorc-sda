@@ -4,7 +4,7 @@
     position: fixed;
     width: 480px;
     max-width: calc(100vw - 32px);
-    max-height: calc(100vh - 35px - 32px);
+    max-height: calc(100vh - var(--sda-titlebar-height) - 32px);
     display: flex;
     flex-direction: column;
     background-color: var(--sda-modal);
@@ -12,7 +12,7 @@
     border-radius: var(--sda-radius-lg);
     box-shadow: 0 24px 64px var(--sda-overlay);
     left: 50%;
-    top: calc(50% + 17px);
+    top: calc(50% + var(--sda-titlebar-height) / 2);
     transform: translate(-50%, -50%);
     padding: 24px;
     color: var(--sda-text);
@@ -27,33 +27,31 @@
     gap: 10px;
 }
 
+/* Иконка окна — lucide в круглой подложке: вопрос — нейтральная, остальные — бейдж состояния
+   (фон -900/50, иконка -400); опасное действие — красная. */
 .notification_icon {
     flex: 0 0 auto;
-    width: 44px;
-    height: 44px;
-    background-color: var(--sda-text-muted);
-    -webkit-mask-position: center;
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-size: contain;
-}
-.notification_icon-img {
-    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 44px;
     height: 44px;
     border-radius: 50%;
-}
-.notification_danger .notification_icon-img {
-    box-shadow: 0 0 0 4px var(--sda-danger-bg), 0 0 0 5px var(--sda-danger);
+    background-color: var(--sda-surface-3);
+    color: var(--sda-text-muted);
 }
 .notification_info .notification_icon {
-    background-color: var(--sda-info);
+    background-color: var(--sda-info-bg);
+    color: var(--sda-info);
 }
 .notification_error .notification_icon,
 .notification_danger .notification_icon {
-    background-color: var(--sda-danger);
+    background-color: var(--sda-danger-bg);
+    color: var(--sda-danger);
 }
 .notification_success .notification_icon {
-    background-color: var(--sda-success);
+    background-color: var(--sda-success-bg);
+    color: var(--sda-success);
 }
 
 .notification .notification_content .notification_title {
@@ -83,7 +81,7 @@
 }
 
 .notification .notification_content .notification_text::-webkit-scrollbar-thumb {
-    background: var(--sda-accent-gradient);
+    background: var(--sda-accent);
     border-radius: 2px;
 }
 
@@ -94,7 +92,7 @@
 }
 
 .notification .notification_content .notification_title::-webkit-scrollbar-thumb {
-    background: var(--sda-accent-gradient);
+    background: var(--sda-accent);
     border-radius: 2px;
 }
 

@@ -1,4 +1,5 @@
 import React, { FC } from "react";
+import Icon from "../Icon/Icon";
 import "./Search.css";
 
 interface SearchPropsInterface {
@@ -13,7 +14,7 @@ interface SearchPropsInterface {
 const Search: FC<SearchPropsInterface> = (props) => {
   return (
     <div className="search">
-      <img src="./assets/img/Search.svg" className="search-img" alt=""></img>
+      <Icon name="search" className="search-img" />
       <input
         type="text"
         className="search-input text-white-medium"

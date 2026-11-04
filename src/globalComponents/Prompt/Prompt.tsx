@@ -5,17 +5,18 @@ import { observer } from 'mobx-react';
 import Button from '../Button/Button';
 import Input from '../Input/Input';
 import { useTranslation } from 'react-i18next';
+import Icon, { IconName } from '../Icon/Icon';
 
 // Опасный вариант (SDA-9): вызывающий код может передать danger: true для необратимых
 // действий — тогда кнопка подтверждения красная. Поле необязательное, поведение не меняется.
 type PromptContent = typeof store.windows.promptContent & { danger?: boolean };
 
-// Имена файлов иконок с заглавной буквы: на регистрозависимых ФС `question.svg` не найдётся.
-const ICONS: { [type: string]: string } = {
-    question: 'Question.svg',
-    info: 'Info.svg',
-    error: 'Error.svg',
-    success: 'Success.svg',
+// Иконка по типу окна; неизвестный тип получает «инфо».
+const ICONS: { [type: string]: IconName } = {
+    question: 'help',
+    info: 'info',
+    error: 'alert',
+    success: 'check',
 };
 
 const Notification: FC = observer(() => {
@@ -28,7 +29,7 @@ const Notification: FC = observer(() => {
     const isDanger = content.danger === true;
     const cancelButtonText = content.cancelButtonText ? content.cancelButtonText : t("prompt.cancel");
     const acceptButtonText = content.acceptButtonText ? content.acceptButtonText : t("prompt.accept");
-    const icon = ICONS[content.type] || `${content.type}.svg`;
+    const icon = ICONS[content.type] || 'info';
 
     return (
         <div className='darkBackground' onClick={(event) => {
@@ -37,11 +38,8 @@ const Notification: FC = observer(() => {
         }}>
             <div className={`notification notification_${content.type}${isDanger ? ' notification_danger' : ''}`} role='dialog' aria-modal='true' aria-labelledby='prompt-title'>
                 <div className='notification_content'>
-                    {content.type === 'question'
-                        // В Question.svg знак «?» нарисован тёмной заливкой, маской его не перекрасить.
-                        ? <img className='notification_icon-img' src={`./assets/img/${icon}`} alt='' />
-                        // Остальные иконки — белые маски: цвет состояния берётся из токена.
-                        : <span className='notification_icon' aria-hidden='true' style={{ WebkitMaskImage: `url(./assets/img/${icon})` }}></span>}
+                    {/* Круглая подложка с иконкой; цвет состояния берётся из токена (prompt.css). */}
+                    <span className='notification_icon' aria-hidden='true'><Icon name={icon} size={20} /></span>
                     <h3 className='notification_title' id='prompt-title'>{content.title}</h3>
                     <div className='notification_text'>{content.text}</div>
                     <div className={`notification__buttons${content.isInput === true ? ' notification__buttons_input' : ''}`}>

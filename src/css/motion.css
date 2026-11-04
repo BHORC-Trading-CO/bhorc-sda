@@ -1,0 +1,108 @@
+/*
+ * Анимации в стиле QBS (редизайн R1). Классы ставятся на иконку (Icon, prop motion) или на кнопку.
+ * Только transform/opacity/filter: Electron 17 (Chromium 98) ещё не знает отдельных scale/rotate.
+ * При prefers-reduced-motion: reduce всё движение выключено (блок в конце файла).
+ */
+
+/* Иконка подпрыгивает, когда курсор на ней или на кнопке/ссылке/пункте меню, где она лежит. */
+.sda-anim-pop:hover,
+:where(button, a[href], [role="button"], [role="menuitem"], [role="menuitemradio"], [role="tab"]):hover .sda-anim-pop {
+  animation: sda-pop 0.45s var(--sda-spring);
+}
+
+@keyframes sda-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.18) rotate(-6deg); }
+  100% { transform: scale(1); }
+}
+
+/* «Обновить»: пол-оборота при наведении. */
+.sda-anim-spin:hover,
+:where(button, a[href], [role="button"], [role="menuitem"], [role="menuitemradio"], [role="tab"]):hover .sda-anim-spin {
+  animation: sda-spin-half 0.6s ease;
+}
+
+@keyframes sda-spin-half {
+  to { transform: rotate(180deg); }
+}
+
+/* У выключенной кнопки иконка на наведение не отвечает (цвет ховера у них тоже не меняется). */
+:disabled .sda-anim-pop,
+:disabled .sda-anim-spin {
+  animation: none;
+}
+
+/* Загрузка: крутится всегда. */
+.sda-spin {
+  animation: sda-spin 1s linear infinite;
+}
+
+@keyframes sda-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* «Запущено»: пульсирующая точка. */
+.sda-pulse {
+  animation: sda-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes sda-pulse {
+  50% { opacity: 0.3; }
+}
+
+/* Иконка пункта навигации. В активном пункте (aria-current="page") она циановая, со свечением и
+   увеличена до 1.15; пружина проигрывается один раз — в момент, когда пункт стал активным.
+   Правило ниже .sda-anim-pop: у активного пункта ховер не перезапускает анимацию. */
+.sda-nav-activate {
+  transform-origin: center;
+  transition: color 0.2s ease, filter 0.25s ease, transform 0.25s var(--sda-spring);
+}
+
+[aria-current="page"] .sda-nav-activate {
+  color: var(--sda-accent);
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 5px var(--sda-accent-glow));
+  animation: sda-nav-activate 0.45s var(--sda-spring);
+}
+
+@keyframes sda-nav-activate {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  100% { transform: scale(1.15); }
+}
+
+/* Основная кнопка: при наведении по ней проходит светлый блик. */
+.sda-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.sda-sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.22) 50%, transparent 65%);
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
+.sda-sweep:hover:not(:disabled)::after {
+  transform: translateX(100%);
+  transition: transform 0.7s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sda-anim-pop,
+  .sda-anim-spin,
+  .sda-spin,
+  .sda-pulse,
+  .sda-nav-activate,
+  .sda-sweep::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .sda-sweep::after {
+    display: none;
+  }
+}

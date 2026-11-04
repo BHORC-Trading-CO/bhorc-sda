@@ -23,23 +23,13 @@ const windowApi = {
     close: (id: string) => {
         ipcRenderer.send(WindowsChannels.CLOSE_ASK_WINDOW, id);
     },
-    /** Отцентрировать окно с вопросом */
-    centerize: (id: string) => {
-        ipcRenderer.send(WindowsChannels.CENTERIZE_ASK_WINDOW, id);
-    },
-    /** Сделать размер главного окна с вопросом минимально возможным */
-    minimize: (id: string) => {
-        console.log(id);
-        ipcRenderer.send(WindowsChannels.MINIMIZE_ASK_WINDOW, id);
-    },
-    /** Сделать размер окна с вопросом максимально возможным */
-    maximize: (id: string) => {
-        ipcRenderer.send(WindowsChannels.MAXIMIZE_ASK_WINDOW, id);
-    },
 }
 
-export default { askFamilyPinApi, windowApi };
+/** Платформа для рамки окна: отступ полосы TitleBar под системные кнопки. */
+const askFamilyPinBridge = { askFamilyPinApi, windowApi, platform: process.platform };
 
-contextBridge.exposeInMainWorld('AskFamilyPin', { askFamilyPinApi, windowApi });
+export default askFamilyPinBridge;
+
+contextBridge.exposeInMainWorld('AskFamilyPin', askFamilyPinBridge);
 exposeLanguageApi();
 contextBridge.exposeInMainWorld('getWindowName', () => 'askFamilyPin');

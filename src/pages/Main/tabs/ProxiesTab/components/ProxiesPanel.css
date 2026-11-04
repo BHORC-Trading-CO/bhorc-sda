@@ -27,8 +27,13 @@
 }
 
 .proxies-panel .proxy-panel-cta--primary {
-  background: var(--sda-accent-gradient);
-  border-color: var(--sda-accent);
+  background: var(--sda-primary);
+  border-color: var(--sda-primary);
+}
+
+.proxies-panel .proxy-panel-cta--primary:hover {
+  background: var(--sda-primary-hover);
+  border-color: var(--sda-primary-hover);
 }
 
 .proxies-panel .proxy-panel-cta--secondary:hover {
@@ -41,8 +46,6 @@
   outline: none;
   box-shadow: var(--sda-focus-ring);
 }
-
-.proxy-panel-cta img { width: 18px; height: 18px; }
 
 @media (max-width: 1200px) {
   .proxies-panel { padding: 14px 17px; }

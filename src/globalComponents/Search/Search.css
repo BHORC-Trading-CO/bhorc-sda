@@ -37,4 +37,5 @@
 .search-img{
   margin-right: 12px;
   flex-shrink: 0;
+  color: var(--sda-text-muted);
 }

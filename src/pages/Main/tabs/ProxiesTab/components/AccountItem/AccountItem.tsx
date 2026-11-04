@@ -4,6 +4,7 @@ import SteamAccountInterface from "../../../../../../../electron/interfaces/Stea
 import TableSteamAccountInterface from "../../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface";
 import Button from "../../../../../../globalComponents/Button/Button";
 import Checkbox from "../../../../../../globalComponents/Checkbox/Checkbox";
+import Icon from "../../../../../../globalComponents/Icon/Icon";
 import "./AccountItem.css";
 import { observer } from "mobx-react";
 import { useTranslation } from "react-i18next";
@@ -20,12 +21,13 @@ const AccountItem = observer((props: {
   return (
     <div className="account-item">
       <div className="account-wrapper text-white-medium">
-        <img
-          src={avatar.src || './assets/img/User.svg'}
-          onError={avatar.onError}
-          alt=""
-          className="account-logo"
-        ></img>
+        {avatar.src ? (
+          <img src={avatar.src} onError={avatar.onError} alt="" className="account-logo" />
+        ) : (
+          <span className="account-logo account-logo--placeholder" aria-hidden="true">
+            <Icon name="user" />
+          </span>
+        )}
         <div className="account-item-text">
           {steamAccount.number}
         </div>
@@ -48,7 +50,9 @@ const AccountItem = observer((props: {
             }
           }}
           className={links.steamAccountIds.includes(steamAccount.id) ? "checkbox-checked" : "checkbox-default__proxy"}
-        ></div>
+        >
+          <Icon name="check" size={14} />
+        </div>
       </div>
     </div>
   );

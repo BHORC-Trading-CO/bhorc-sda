@@ -31,9 +31,11 @@ module.exports = {
     isDestroyed() { return this.destroyed; }
     show() {}
     focus() {}
+    // Как в Electron (и при закрытии системной кнопкой): 'close', уничтожение, затем 'closed'.
     close() {
       this.emit('close');
       this.destroyed = true;
+      this.emit('closed');
     }
   },
   ipcMain: Object.assign(new EventEmitter(), { handle: jest.fn(), removeHandler: jest.fn() }),
