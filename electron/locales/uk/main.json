@@ -2,6 +2,13 @@
   "startup": {
     "dataDirNotPinned": "Дані відкрито не з папки {{dir}} ({{paths}}). Запуск зупинено, щоб не втратити акаунти."
   },
+  "browser": {
+    "pickExtension": {
+      "title": "Виберіть папку розширення",
+      "message": "Виберіть папку розпакованого розширення з файлом manifest.json",
+      "button": "Вибрати папку"
+    }
+  },
   "errors": {
     "steamAccountNotFound": "Акаунта Steam #{{id}} не існує",
     "proxyNotFound": "Проксі #{{id}} не існує",
@@ -36,6 +43,21 @@
       "httpStatus": "{{url}} відповів {{status}}",
       "revision": "Не вдалося визначити ревізію Chromium для arm64: отримано \"{{revision}}\"",
       "binaryMissing": "У завантаженому архіві Chromium немає виконуваного файлу: {{binary}}"
+    },
+    "browser": {
+      "invalidSettings": "Налаштування браузера не збережено: некоректні дані.",
+      "tooManyLinks": "Можна додати не більше ніж {{max}} стартових сторінок.",
+      "invalidLink": "Некоректна адреса http(s): {{link}}",
+      "extension": {
+        "notAbsolute": "Шлях до розширення має бути абсолютним: {{folder}}",
+        "comma": "У шляху до папки є кома, і Chromium не зможе її завантажити. Перейменуйте або перемістіть папку: {{folder}}",
+        "notDirectory": "Це не папка: {{folder}}. Запаковані файли .crx не підтримуються: розпакуйте розширення й виберіть його папку.",
+        "missing": "У папці {{folder}} немає manifest.json. Виберіть папку розпакованого розширення, де лежить manifest.json.",
+        "badJson": "manifest.json у папці {{folder}} — некоректний JSON.",
+        "manifestVersion": "manifest.json у папці {{folder}} має непідтримувану manifest_version (потрібна 2 або 3).",
+        "noName": "У manifest.json у папці {{folder}} немає назви розширення.",
+        "duplicate": "{{name}} вже є в списку."
+      }
     },
     "avatar": {
       "invalidUrl": "downloadImage: неприпустима URL-адреса аватара",

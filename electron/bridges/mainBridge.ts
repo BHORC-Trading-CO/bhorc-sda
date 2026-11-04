@@ -19,6 +19,8 @@ import GroupChannels from '../interfaces/IpcChannels/GroupChannels';
 import CompiledGroupInterface from '../interfaces/Group/CompiledGroupInterface';
 import TableOptions from '../interfaces/TableOptions/TableOptions';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
+import BrowserChannels from '../interfaces/IpcChannels/BrowserChannels';
+import BrowserSettingsInterface, { BrowserSettingsView } from '../interfaces/Browser/BrowserSettingsInterface';
 import path from "path";
 import createStore from "../components/newStorage/createStore";
 import { exposeLanguageApi } from './languageBridge';
@@ -226,6 +228,30 @@ const groups = {
   }
 }
 
+/** Настройки браузера аккаунтов (страница Browser, SDA-6): общие для всех аккаунтов */
+const browser = {
+  /** Получить стартовые ссылки и расширения (запрос) */
+  get: () => {
+    ipcRenderer.send(BrowserChannels.BROWSER_SETTINGS_GET);
+  },
+  /** Получить стартовые ссылки и расширения (слушатель); приходит и после save/pickExtension */
+  onGet: (listener: (event: IpcRendererEvent, settings: BrowserSettingsView) => void) => {
+    ipcRenderer.on(BrowserChannels.BROWSER_SETTINGS_GET, listener);
+  },
+  /** Сохранить настройки; main проверяет ссылки и новые папки расширений заново */
+  save: (settings: BrowserSettingsInterface) => {
+    ipcRenderer.send(BrowserChannels.BROWSER_SETTINGS_SAVE, settings);
+  },
+  /** Выбрать папку распакованного расширения в нативном диалоге */
+  pickExtension: () => {
+    ipcRenderer.send(BrowserChannels.BROWSER_PICK_EXTENSION);
+  },
+  /** Отказ сохранения или выбора папки, текст уже переведён */
+  onError: (listener: (event: IpcRendererEvent, error: string) => void) => {
+    ipcRenderer.on(BrowserChannels.BROWSER_SETTINGS_ERROR, listener);
+  }
+}
+
 const window = {
   openAppdata: () => {
     const store = createStore();
@@ -305,6 +331,8 @@ const mainApi = {
   proxies,
   /** Методы для групп аккаунтов */
   groups,
+  /** Методы для настроек браузера аккаунтов */
+  browser,
   /**Методы для подключения гуарда */
   guardConnection,
 
