@@ -55,6 +55,26 @@ it('ask window closed natively rejects the pending ask and frees askWindows[id]'
     expect(ipcMain.listenerCount(AskSomethingChannels.ASK_WINDOW_ABORT_SENDING_DATA)).toBe(0);
 });
 
+// Системные кнопки видны сразу, ещё до загрузки страницы: вход ждёт askSomething и не должен зависнуть.
+it('ask window closed natively before its page loads still rejects the pending ask and frees askWindows[id]', async () => {
+    const manager = new WindowsManager();
+    let outcome: unknown = 'pending';
+    manager.askSomething('account', 'name', 'smsCode' as InfoType)
+        .then(value => { outcome = { value }; }, error => { outcome = { error }; });
+    const window = manager.askWindows.account;
+
+    closeNatively(window);
+    window.webContents.emit('dom-ready');
+    jest.advanceTimersByTime(50);
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+
+    expect(outcome).not.toBe('pending');
+    expect(outcome).toHaveProperty('error');
+    expect(manager.askWindows).not.toHaveProperty('account');
+    expect(ipcMain.listenerCount(AskSomethingChannels.ASK_WINDOW_SEND_DATA)).toBe(0);
+    expect(ipcMain.listenerCount(AskSomethingChannels.ASK_WINDOW_ABORT_SENDING_DATA)).toBe(0);
+});
+
 it('confirmations window closed natively frees confirmationsWindows[id]', () => {
     const manager = new WindowsManager();
     manager.createConfirmationsWindow('account', 'name');

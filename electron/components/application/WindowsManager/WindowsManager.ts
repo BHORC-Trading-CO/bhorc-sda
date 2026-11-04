@@ -132,7 +132,7 @@ class WindowsManager {
         });
     }
     createAskWindow(id: string, steamAccountName: string, infoType: InfoType): Promise<BrowserWindow> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const askWindow = new BrowserWindow({
                 ...windowsConfig.askPinWindow,
                 ...windowChrome(process.platform),
@@ -152,12 +152,24 @@ class WindowsManager {
                     resolve(askWindow);
                 }, 50);
             });
+            // Системные кнопки окна видны до загрузки страницы: закрытое до отправки параметров окно
+            // не дождётся dom-ready. После resolve этот reject ничего не меняет.
+            askWindow.once('closed', () => {
+                if (this.askWindows[id] === askWindow) delete (this.askWindows[id]);
+                reject(new Error('ask window closed before it loaded'));
+            });
             this.askWindows[id] = askWindow;
         });
     }
     askSomething(accountId: string, accountName: string, infoType: InfoType): Promise<any> {
         return new Promise<any>(async (resolve, reject) => {
-            const askPinWindow = await this.createAskWindow(accountId, accountName, infoType);
+            let askPinWindow: BrowserWindow;
+            try {
+                askPinWindow = await this.createAskWindow(accountId, accountName, infoType);
+            } catch {
+                // Окно закрыли до загрузки: как и при закрытии позже, запрос отклоняется.
+                return reject();
+            }
             let isGetInfo = false;
 
             const askFunc = (event: IpcMainEvent, data: { id: string, data: any }) => {
