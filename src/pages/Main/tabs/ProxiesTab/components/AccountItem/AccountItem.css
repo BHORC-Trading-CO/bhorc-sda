@@ -70,10 +70,10 @@
   margin-right: 10px;
 }
 
-/* Пустая галочка — рамка #52525b как у чекбокса таблицы в макете, галочка не видна. */
+/* Пустая галочка — рамка 1 px #3f3f46, как у полей ввода; галочка не видна. */
 .proxies-form .checkbox-default__proxy {
   background: transparent;
-  box-shadow: inset 0 0 0 1.5px #52525b;
+  box-shadow: inset 0 0 0 1px var(--sda-border-strong);
   color: transparent;
 }
 .proxies-form .checkbox-default__proxy:hover {

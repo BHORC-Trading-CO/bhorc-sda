@@ -1,6 +1,6 @@
 import React, { FC, FormEvent, KeyboardEvent, useState } from "react";
 import { observer } from "mobx-react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import "../../../../css/Panel.css";
 import "./BrowserTab.css";
 import store from "../../../../store/store";
@@ -168,7 +168,7 @@ const StartLinksCard = observer(() => {
       <div className="browser-card__head">
         <span className="browser-card__icon" aria-hidden="true"><Icon name="link" /></span>
         <h2 className="browser-card__title" id="browser-links-title">{t("browser.links.title")}</h2>
-        <span className="browser-card__badge">{t("browser.links.count", { used: links.length, max: MAX_START_LINKS })}</span>
+        <span className="browser-card__badge browser-card__badge--mono">{t("browser.links.count", { used: links.length, max: MAX_START_LINKS })}</span>
       </div>
       <p className="browser-card__hint">{t("browser.links.hint")}</p>
       {links.length ? (
@@ -228,7 +228,14 @@ const ExtensionsCard = observer(() => {
         <span className="browser-card__icon" aria-hidden="true"><Icon name="puzzle" /></span>
         <h2 className="browser-card__title" id="browser-extensions-title">{t("browser.extensions.title")}</h2>
         {extensions.length ? (
-          <span className="browser-card__badge">{t("browser.extensions.count", { on: enabledCount, total: extensions.length })}</span>
+          // Цифры счётчика — Geist Mono, слова перевода — Geist: числа обёрнуты тегом <n> в переводе.
+          <span className="browser-card__badge">
+            <Trans
+              i18nKey="browser.extensions.countRich"
+              values={{ on: enabledCount, total: extensions.length }}
+              components={{ n: <span className="browser-card__num" /> }}
+            />
+          </span>
         ) : null}
         <button
           type="button"

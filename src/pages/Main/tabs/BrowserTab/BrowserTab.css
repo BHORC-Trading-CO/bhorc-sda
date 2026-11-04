@@ -84,8 +84,8 @@
   line-height: 22px;
   color: var(--sda-text);
 }
-/* Счётчик — пилюля на #27272a; в тексте есть слова («1 of 2 on»), поэтому Geist с табличными
-   цифрами, а не моноширинный. */
+/* Счётчик — пилюля на #27272a. Цифры — Geist Mono: у стартовых страниц весь счётчик («3/10»),
+   у расширений только числа (<n> в переводе), слова остаются в Geist. */
 .browser-card__badge {
   flex-shrink: 0;
   padding: 2px 8px;
@@ -97,6 +97,11 @@
   line-height: 14px;
   color: var(--sda-text-muted);
   white-space: nowrap;
+}
+.browser-card__badge--mono,
+.browser-card__num {
+  font-family: var(--sda-font-mono);
+  font-weight: 500;
 }
 .browser-card__action {
   margin-left: auto;
