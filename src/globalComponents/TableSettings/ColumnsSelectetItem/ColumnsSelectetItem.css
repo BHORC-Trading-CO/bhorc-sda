@@ -1,29 +1,65 @@
+/* Строка выбранной колонки: та же высота и отступы, что у строки слева (TableSettingsItem.css) */
 .columns-selected-item {
   width: 100%;
-  padding: 0px 14px;
+  height: 28px;
+  padding: 0 10px 0 8px;
   display: flex;
   align-items: center;
-  background: var(--sda-surface-2);
+  background: var(--sda-surface-3);
   border: 1px solid var(--sda-border);
-  border-radius: var(--sda-radius);
-  height: 40px;
-  margin-bottom: 8px;
+  border-radius: var(--sda-radius-sm);
+  margin-bottom: 4px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sda-text);
   cursor: grab;
-  transition: border-color var(--sda-transition), background-color var(--sda-transition);
+  transition: border-color var(--sda-transition), background-color var(--sda-transition), box-shadow var(--sda-transition);
+}
+
+.columns-selected-item:last-child {
+  margin-bottom: 0px;
 }
 
 .columns-selected-item:hover {
   border-color: var(--sda-border-strong);
-  background: var(--sda-surface-3);
+  background: var(--sda-surface-4);
 }
 
-.columns-selected-item:last-child{
-  margin-bottom: 0px;
+.columns-selected-item:focus {
+  outline: none;
 }
 
-.columns-selected-img {
-  width: 20px;
-  height: 20px;
-  margin-right: 12px;
-  opacity: 0.8;
+.columns-selected-item:focus-visible {
+  box-shadow: var(--sda-focus-ring);
+}
+
+/* Во время перетаскивания: поднятая карточка с акцентной рамкой */
+.columns-selected-item--dragging,
+.columns-selected-item--dragging:hover {
+  background: var(--sda-surface-4);
+  border-color: var(--sda-accent);
+  box-shadow: 0 8px 24px var(--sda-overlay);
+  cursor: grabbing;
+}
+
+/* Ручка: 2×3 точки радиальным градиентом, без картинки */
+.columns-selected-grip {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 15px;
+  margin-right: 10px;
+  background-image: radial-gradient(circle, var(--sda-text-muted) 1.4px, transparent 1.7px);
+  background-size: 5px 5px;
+}
+
+.columns-selected-item:hover .columns-selected-grip,
+.columns-selected-item--dragging .columns-selected-grip {
+  background-image: radial-gradient(circle, var(--sda-text) 1.4px, transparent 1.7px);
+}
+
+.columns-selected-title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }

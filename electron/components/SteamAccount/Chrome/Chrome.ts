@@ -24,6 +24,8 @@ import application from "../../application/application";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import path from "path";
 import LocalState from "./LocalState";
+import BrowserSettingsStorage from "../../newStorage/BrowserSettingsStorage";
+import { effectiveStartLinks, launchExtensionPaths } from "../../Browser/browserSettings";
 import { ProxyGeo, localeForCountry, acceptLanguageFor } from "../Functions/getProxyGeo";
 import resolveBrowserPath from "./resolveBrowserPath";
 const sharp = require("sharp");
@@ -255,11 +257,18 @@ export default class Chrome {
         });
 
         assertCurrent();
+        const args = this.generateChromeFlags();
         const launchedBrowser = await puppeteer.launch({
           userDataDir: this.profileDir,
           headless: false,
           executablePath,
-          args: this.generateChromeFlags(),
+          args,
+          // С расширениями (SDA-6) убираем дефолтный флаг puppeteer --disable-extensions, иначе
+          // --load-extension не сработает. Stealth (evasion defaultArgs) тоже его убирает, но
+          // на плагин не полагаемся.
+          ...(args.some((arg) => arg.startsWith("--load-extension="))
+            ? { ignoreDefaultArgs: ["--disable-extensions"] }
+            : {}),
         });
         if (attempt.reason) {
           await this.closeBrowser(launchedBrowser);
@@ -320,7 +329,36 @@ export default class Chrome {
         assertCurrent();
         if (this.params.useSteamCookies) await this.addSteamCookies(webCookies);
         assertCurrent();
-        await this.page.goto("https://steamcommunity.com/my/");
+        // Стартовые ссылки со страницы Browser (SDA-6). Первая — в этой вкладке, где выставлены
+        // cookie Steam (раньше тут всегда был steamcommunity.com/my/, пустой список — он же).
+        const [firstLink, ...otherLinks] = effectiveStartLinks(BrowserSettingsStorage.Get().startLinks);
+        // Как и остальные вкладки: загрузку не ждём, ошибку (DNS, прокси, таймаут) только пишем
+        // в лог — браузер уже открыт, страница ошибки видна во вкладке, остальные ссылки открываются.
+        page.goto(firstLink).catch((pageErr) => {
+          console.log(`${this.params.id} - первая стартовая страница не загрузилась: ${pageErr}`);
+        });
+        // Остальные — новыми вкладками по порядку. Прокси и отпечаток настраиваем до загрузки,
+        // загрузку не ждём: медленная страница не держит следующие. Ошибка вкладки не роняет запуск.
+        // Запуск, отменённый сменой маршрута или новым Start, больше вкладок не открывает (SDA-21).
+        for (const link of otherLinks) {
+          assertCurrent();
+          try {
+            const tab = await launchedBrowser.newPage();
+            if (this.proxy)
+              await tab.authenticate({
+                username: this.proxy.username,
+                password: this.proxy.password,
+              });
+            await this.applyFingerprint(tab);
+            tab.goto(link).catch((tabErr) => {
+              console.log(`${this.params.id} - стартовая вкладка не загрузилась: ${tabErr}`);
+            });
+          } catch (tabErr) {
+            console.log(`${this.params.id} - не удалось открыть стартовую вкладку: ${tabErr}`);
+          }
+        }
+        // Новая вкладка встаёт на передний план; возвращаем первую — с аккаунтом Steam.
+        if (otherLinks.length) await page.bringToFront().catch(() => {});
         assertCurrent();
         resolve();
       } catch (err) {
@@ -363,6 +401,13 @@ export default class Chrome {
 
     if (this.proxy) args.push(`--proxy-server=${this.proxy?.server}`);
     console.log(args);
+    // Распакованные расширения со страницы Browser (SDA-6): включённые, папка которых проходит
+    // проверку сейчас. Пропущенные пишутся в лог, запуск не падает.
+    const extensionPaths = launchExtensionPaths(BrowserSettingsStorage.Get().extensions);
+    if (extensionPaths.length) {
+      args.push(`--disable-extensions-except=${extensionPaths.join(",")}`);
+      args.push(`--load-extension=${extensionPaths.join(",")}`);
+    }
     return args;
   }
   async focus() {

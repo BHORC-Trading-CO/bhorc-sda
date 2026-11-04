@@ -16,6 +16,7 @@ import { getSteamID64 } from "../../../../../../electron/components/Functions/st
 import LoadingIcons from "react-loading-icons";
 import { toJS } from "mobx";
 import { useTranslation } from "react-i18next";
+import EmptyState, { TableWithEmptyState } from "../../../../../globalComponents/EmptyState/EmptyState";
 
 const SteamAccountsTableWrapper: FC = () => {
   const fields = store.steamAccountsTable.getFields();
@@ -25,6 +26,7 @@ const SteamAccountsTableWrapper: FC = () => {
 const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
   const steamAccountsByPage =
     store.steamAccountsTable.getSteamAccountsByPages();
+  const empty = steamAccountsByPage.length === 0 ? <SteamAccountsEmptyState /> : null;
 
 
   const lines: Line[] = [];
@@ -38,8 +40,11 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
     }
 
   return (
+    <TableWithEmptyState empty={empty}>
     <Table
       onSelect={(isSelected) => {
+        // На пустой таблице страницы нет: selectAll бросал бы на for-of по undefined
+        if (empty) return;
         store.steamAccountsTable.selectAllSteamAccounts(isSelected);
       }}
       isSelected={store.steamAccountsTable.isAllSelected}
@@ -182,6 +187,48 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
         }
       }}
     ></Table>
+    </TableWithEmptyState>
+  );
+});
+
+// Почему таблица пуста и что с этим сделать. Порядок: поиск, группа, архив, совсем нет аккаунтов.
+const SteamAccountsEmptyState: FC = observer(() => {
+  const { t } = useTranslation();
+  const table = store.steamAccountsTable;
+  if (table.searchString !== "") {
+    return (
+      <EmptyState
+        icon="search"
+        text={t("accounts.empty.search", { query: table.searchString })}
+        action={{ text: t("common.clearSearch"), onClick: () => table.search("") }}
+      />
+    );
+  }
+  const activeGroup = store.groups.getActiveGroup();
+  if (activeGroup) {
+    return (
+      <EmptyState
+        icon="accounts"
+        text={t("accounts.empty.group", { name: activeGroup.name })}
+        action={{ text: t("accounts.empty.showAll"), onClick: () => store.groups.setActiveGroup(null) }}
+      />
+    );
+  }
+  if (!table.showDeleted && Object.values(table.steamAccounts).some((sa) => sa.deleted)) {
+    return (
+      <EmptyState
+        icon="archive"
+        text={t("accounts.empty.archived")}
+        action={{ text: t("accounts.panel.showArchived"), onClick: () => table.changeShowStatus() }}
+      />
+    );
+  }
+  return (
+    <EmptyState
+      icon="accounts"
+      text={t("accounts.empty.none")}
+      action={{ text: t("accounts.panel.add"), primary: true, onClick: () => table.creationForm.open() }}
+    />
   );
 });
 

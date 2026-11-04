@@ -9,6 +9,7 @@ import { ProxyActionButton, ProxyTestButton } from './ProxyActionButton';
 import Password from '../../../../../globalComponents/Password/Password';
 import { observer } from 'mobx-react';
 import { useTranslation } from 'react-i18next';
+import EmptyState, { TableWithEmptyState } from '../../../../../globalComponents/EmptyState/EmptyState';
 
 const ProxiesTable: FC = observer(() => {
     const fields = store.proxiesTable.getFields();
@@ -20,7 +21,9 @@ const ProxiesTable: FC = observer(() => {
             if (proxy.deleted && !store.proxiesTable.showDeleted) continue;
             lines.push(generateLine(fields, proxy));
         }
+    const empty = proxiesByPage.length === 0 ? <ProxiesEmptyState /> : null;
     return (
+        <TableWithEmptyState empty={empty}>
         <Table
             onSelect={(isSelected) => { store.proxiesTable.selectAllProxies(isSelected); }}
             isSelected={store.proxiesTable.isAllSelected}
@@ -38,7 +41,33 @@ const ProxiesTable: FC = observer(() => {
                 }
             }}
         ></Table>
+        </TableWithEmptyState>
     );
+});
+
+// Почему таблица прокси пуста: поиск, всё в архиве или прокси ещё нет.
+const ProxiesEmptyState: FC = observer(() => {
+    const { t } = useTranslation();
+    const table = store.proxiesTable;
+    if (table.searchString !== '') {
+        return <EmptyState
+            icon="search"
+            text={t('proxies.empty.search', { query: table.searchString })}
+            action={{ text: t('common.clearSearch'), onClick: () => table.search('') }}
+        />;
+    }
+    if (!table.showDeleted && table.proxies.some((p) => p.deleted)) {
+        return <EmptyState
+            icon="archive"
+            text={t('proxies.empty.archived')}
+            action={{ text: t('proxies.empty.showArchived'), onClick: () => table.changeShowStatus() }}
+        />;
+    }
+    return <EmptyState
+        icon="proxies"
+        text={t('proxies.empty.none')}
+        action={{ text: t('proxies.panel.add'), primary: true, onClick: () => table.openCreationForm() }}
+    />;
 });
 
 const generateLine = (fields: Field[], proxy: TableProxyInterface): Line => {

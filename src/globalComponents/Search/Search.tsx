@@ -5,6 +5,9 @@ interface SearchPropsInterface {
   onChange: (value: string) => void;
   /** Что ищет поле (подсказка внутри и имя для скринридера) */
   placeholder?: string;
+  /** Текущий запрос из стора: поле управляемое и после перемонтирования (смена вкладки)
+   *  показывает действующий фильтр. Не передан — поле, как раньше, хранит значение само. */
+  value?: string;
 }
 
 const Search: FC<SearchPropsInterface> = (props) => {
@@ -16,6 +19,7 @@ const Search: FC<SearchPropsInterface> = (props) => {
         className="search-input text-white-medium"
         placeholder={props.placeholder}
         aria-label={props.placeholder}
+        value={props.value}
         onChange={(event) => {
           const target = event.target;
           props.onChange(target.value);

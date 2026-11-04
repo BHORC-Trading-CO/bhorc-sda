@@ -74,7 +74,16 @@ function launched() {
     jest.spyOn(puppeteer, "launch").mockResolvedValue(browser as any);
     return { browser, page };
 }
-it.each(["goto", "authenticate", "setCookie"] as const)("R2 N1 post-launch %s failure leaves the browser working", async method => {
+it("R2 N1 + SDA-6 first start page failure is logged, start resolves, browser stays working", async () => {
+    const { browser, page } = launched();
+    const chrome = make();
+    page.goto.mockRejectedValueOnce(new Error("goto failed"));
+    await expect(chrome.start([])).resolves.toBeUndefined();
+    expect(browser.close).not.toHaveBeenCalled();
+    expect(chrome.browser).toBe(browser);
+    expect(chrome.workStatus).toBe("working");
+});
+it.each(["authenticate", "setCookie"] as const)("R2 N1 post-launch %s failure leaves the browser working", async method => {
     const { browser, page } = launched();
     const chrome = make();
     chrome.params.useSteamCookies = true;

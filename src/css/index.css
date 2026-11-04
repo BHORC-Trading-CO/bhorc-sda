@@ -34,13 +34,15 @@ button {
   cursor: pointer;
 }
 
+/* Вторичный текст (подписи, заголовки колонок форм). --sda-text-muted держит контраст
+   не ниже 4.5:1 на всех поверхностях до surface-3; прежний #776284 давал около 3:1. */
 .text-grey-small {
   font-family: "Nunito";
   font-style: normal;
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
-  color: #776284;
+  color: var(--sda-text-muted);
 }
 
 .text-pink-small{
@@ -58,7 +60,7 @@ button {
   font-weight: 400;
   font-size: 14px;
   line-height: 19px;
-  color: #776284;
+  color: var(--sda-text-muted);
 }
 .text-grey-large {
   font-family: "Nunito";
@@ -66,7 +68,7 @@ button {
   font-weight: 400;
   font-size: 15px;
   line-height: 20px;
-  color: #776284;
+  color: var(--sda-text-muted);
 }
 
 .text-white-small {

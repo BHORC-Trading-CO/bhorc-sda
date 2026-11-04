@@ -8,19 +8,20 @@ import { useTranslation } from "react-i18next";
 import fieldTitle, { FieldsTable } from "../../Table/fieldTitle";
 
 function ColumnsSelectetItem(props: ColumnsSelectetInterface) {
-  console.log(props);
-  const { data, innerRef, draggableProps, dragHandleProps } = props;
+  const { data, innerRef, draggableProps, dragHandleProps, isDragging } = props;
   const { t } = useTranslation();
 
   return (
     <div
-      className="columns-selected-item"
+      className={`columns-selected-item${isDragging ? " columns-selected-item--dragging" : ""}`}
       ref={innerRef}
+      title={t("tableSettings.dragHint")}
       {...draggableProps}
       {...dragHandleProps}
     >
-      <img src="./assets/img/Layers.svg" className="columns-selected-img" alt=""></img>
-      <span className="text-white-medium">{fieldTitle(t, props.fieldsTable, data, data.title ? data.title : data.type)}</span>
+      {/* Ручка перетаскивания: две колонки точек (CSS), тянется вся строка */}
+      <span className="columns-selected-grip" aria-hidden="true"></span>
+      <span className="columns-selected-title">{fieldTitle(t, props.fieldsTable, data, data.title ? data.title : data.type)}</span>
     </div>
   );
 }
@@ -31,6 +32,7 @@ type ColumnsSelectetInterface = {
   innerRef: any;
   draggableProps: DraggableProvidedDraggableProps;
   dragHandleProps: DraggableProvidedDragHandleProps | undefined;
+  isDragging?: boolean;
 };
 
 export default ColumnsSelectetItem;
