@@ -138,8 +138,16 @@ class SteamAccountsTableStore {
       this.setPageSize(options.pageSize, false);
       this.setActivePage(options.activePage, false);
     });
-    window.Main.steamAccounts.onEditProxy((event, { id, proxy }) => {
-      this.editSteamAccount(id, { proxy });
+    // При импорте main привязывает прокси (и шлёт это событие) раньше, чем отправляет
+    // новый список аккаунтов: аккаунта в сторе ещё нет. Это не ошибка для пользователя —
+    // следующий список аккаунтов уже несёт прокси. Остальные поля события (напр. proxyState)
+    // передаются как есть.
+    window.Main.steamAccounts.onEditProxy((event, { id, ...changes }) => {
+      if (!this.steamAccounts[id]) {
+        console.log(`proxy update for steam account #${id} skipped: not in the table yet`);
+        return;
+      }
+      this.editSteamAccount(id, changes);
     });
   }
 
