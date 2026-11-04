@@ -19,6 +19,7 @@
     "none": "none",
     "notSet": "not set",
     "selected": "Selected",
+    "clearSearch": "Clear search",
     "selectAllOnPage": "Select all on this page",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
@@ -203,6 +204,13 @@
       "refreshSession": "Refresh session",
       "selectFirst": "Select accounts in the table first",
       "toGroup": "To group"
+    },
+    "empty": {
+      "none": "No Steam accounts yet",
+      "search": "No accounts match “{{query}}”",
+      "group": "Group “{{name}}” has no accounts yet",
+      "showAll": "Show all accounts",
+      "archived": "All accounts are in the archive"
     },
     "archiveSelected": {
       "title_one": "Move {{count}} account to the archive?",
@@ -401,6 +409,12 @@
       "add": "Add proxy",
       "bulkHint": "Add proxies in bulk (one proxy per line)",
       "importList": "Import list"
+    },
+    "empty": {
+      "none": "No proxies yet",
+      "search": "No proxies match “{{query}}”",
+      "archived": "All proxies are in the archive",
+      "showArchived": "Show archived proxies"
     },
     "footer": {
       "testAll": "Test all"
