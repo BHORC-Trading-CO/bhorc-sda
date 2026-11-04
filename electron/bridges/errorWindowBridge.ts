@@ -1,13 +1,8 @@
 import "../components/Functions/installConsoleRedaction";
-import { contextBridge, ipcRenderer, IpcRendererEvent, shell } from 'electron';
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import { exposeLanguageApi } from './languageBridge';
 
-const errorApi = {
-    openLink: () => {
-        shell.openExternal("http://www.google.com")
-    }
-}
 const windowApi = {
     close: (id: string) => { ipcRenderer.send(WindowsChannels.CLOSE_ERROR_WINDOW, id); },
     centerize: (id: string) => { ipcRenderer.send(WindowsChannels.CENTERIZE_ERROR_WINDOW, id); },
@@ -18,8 +13,8 @@ const windowApi = {
     }
 }
 
-export default { errorApi, windowApi };
+export default { windowApi };
 
-contextBridge.exposeInMainWorld('ErrorWindow', { errorApi, windowApi });
+contextBridge.exposeInMainWorld('ErrorWindow', { windowApi });
 exposeLanguageApi();
 contextBridge.exposeInMainWorld('getWindowName', () => 'error');

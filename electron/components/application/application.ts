@@ -13,11 +13,13 @@ import { onceTrusted } from "./trustedIpc";
 import { initLanguage, localeToLanguage } from "../language/languageManager";
 import { setMainLanguage, t } from "../../i18n";
 import languageListeners from "./listenersRouters/languageListenersRouter";
+import type AccountImages from "../Images/accountImages";
 
 class Application {
   object: App;
   windowsManager: WindowsManager;
   secretKey: string | null;
+  images: AccountImages | null = null;
 
   constructor() {
     this.object = app;

@@ -1,6 +1,6 @@
 import "../components/Functions/installConsoleRedaction";
 import ProxySelection from "../interfaces/Proxy/ProxySelection";
-import { contextBridge, IpcMainEvent, ipcRenderer, IpcRendererEvent, session, shell } from 'electron';
+import { contextBridge, IpcMainEvent, ipcRenderer, IpcRendererEvent, session } from 'electron';
 import Field from '../interfaces/TableFields/Field';
 import CompiledProxyInterface from '../interfaces/Proxy/CompiledProxyInterface';
 import TableProxyInterface from '../interfaces/Proxy/TableProxyInterface';
@@ -276,9 +276,6 @@ const window = {
       default:
         exec(`xdg-open ${folderPath}`);
     }
-  },
-  openLink: (link: string = "http://www.google.com") => {
-    shell.openExternal(link);
   },
   /** Закрыть главное окно */
   close: () => {

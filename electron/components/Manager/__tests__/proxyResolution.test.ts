@@ -1,4 +1,6 @@
-jest.mock("../../application/application", () => ({ __esModule: true, default: { sendToMain: jest.fn() } }));
+jest.mock("../../application/application", () => ({ __esModule: true, default: {
+    sendToMain: jest.fn(), images: { invalidateRoute: jest.fn(), pruneOrphans: jest.fn().mockResolvedValue(undefined), removeAccount: jest.fn().mockResolvedValue(undefined) }
+} }));
 const mockHandlers: Record<string, Function> = {};
 jest.mock("../../application/trustedIpc", () => ({ onTrusted: (channel: string, handler: Function) => { mockHandlers[channel] = handler; } }));
 
@@ -11,6 +13,7 @@ import Proxy from "../../Proxy/Proxy";
 import SteamAccount from "../../SteamAccount/SteamAccount";
 import steamAccountManager, { SteamAccountManager } from "../../SteamAccount/steamAccountManager";
 import editListener from "../../SteamAccount/Listeners/steamAccountEditListener";
+import deleteListener from "../../SteamAccount/Listeners/steamAccountDeleteListener";
 import proxiesRouter from "../../application/listenersRouters/proxiesListenersRouter";
 import application from "../../application/application";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
@@ -25,6 +28,8 @@ beforeEach(() => {
     ProxyStorage.Save("p1", { ...proxy });
     proxyManager.objects = [new Proxy({ ...proxy })];
     steamAccountManager.objects = [];
+    (application.images!.pruneOrphans as jest.Mock).mockReset().mockResolvedValue(undefined);
+    (application.images!.removeAccount as jest.Mock).mockReset().mockResolvedValue(undefined);
     jest.spyOn(proxyManager, "sendProxiesToFront").mockImplementation(() => undefined);
     proxiesRouter();
 });
@@ -331,4 +336,72 @@ it("F3/F4 delete continues blocking and stopping other accounts after one rebuil
     expect([a1.proxyState, a2.proxyState]).toEqual(["missing", "missing"]);
     expect(stop1).toHaveBeenCalled();
     expect(stop2).toHaveBeenCalled();
+});
+
+it('image backoff is invalidated on an explicit relink to the same endpoint and on proxy edits/deletion', () => {
+    addLinked('a1');
+    const invalidate = application.images!.invalidateRoute as jest.Mock;
+    Manager.LinkProxyToSteamAccount('a1', 'p1');
+    expect(invalidate).toHaveBeenLastCalledWith('a1');
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    proxyManager.edit('p1', { password: 'changed' });
+    expect(invalidate).toHaveBeenCalledTimes(2);
+    proxyManager.delete('p1');
+    expect(invalidate).toHaveBeenCalledTimes(3);
+});
+
+it('account reload invalidates image backoff for a same-endpoint proxy ID change', async () => {
+    const account = addLinked('a1');
+    jest.spyOn(account, 'initSession').mockResolvedValue(undefined);
+    proxyManager.objects.push(new Proxy({ ...proxy, id: 'p2' }));
+    links('p2');
+    await steamAccountManager.load();
+    expect(account.proxyId).toBe('p2');
+    expect(application.images!.invalidateRoute).toHaveBeenCalledWith('a1');
+});
+
+it('startup prune runs after archived and missing-proxy accounts are loaded, never after a storage failure', async () => {
+    const archived = addLinked('a1', 'gone');
+    SteamAccountStorage.EditData('a1', { deleted: true });
+    jest.spyOn(archived, 'initSession').mockResolvedValue(undefined);
+    const prune = application.images!.pruneOrphans as jest.Mock;
+    prune.mockImplementationOnce(async () => {
+        expect(steamAccountManager.getById('a1')?.params.deleted).toBe(true);
+        expect(steamAccountManager.getById('a1')?.proxyState).toBe('missing');
+    });
+    await steamAccountManager.load();
+    expect(prune).toHaveBeenCalledTimes(1);
+    jest.spyOn(SteamAccountStorage, 'GetAll').mockImplementationOnce(() => { throw new Error('unreadable'); });
+    await expect(steamAccountManager.load()).rejects.toThrow('unreadable');
+    expect(prune).toHaveBeenCalledTimes(1);
+});
+
+it('archive preserves the image cache; permanent delete and its IPC handler await cleanup', async () => {
+    addLinked('a1');
+    await editListener({ reply: jest.fn() } as any, { id: 'a1', steamAccountParams: { deleted: true } });
+    const remove = application.images!.removeAccount as jest.Mock;
+    expect(remove).not.toHaveBeenCalled();
+    let release!: () => void;
+    remove.mockImplementationOnce(() => new Promise<void>(resolve => { release = resolve; }));
+    const event = { reply: jest.fn() };
+    const deletion = deleteListener(event as any, 'a1');
+    const finished = jest.fn();
+    deletion.then(finished);
+    expect(steamAccountManager.getById('a1')).toBeNull();
+    expect(remove).toHaveBeenCalledWith('a1');
+    expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_GET, []);
+    await Promise.resolve();
+    expect(finished).not.toHaveBeenCalled();
+    release();
+    await deletion;
+    expect(event.reply).not.toHaveBeenCalled();
+});
+
+it('permanent deletion reports an asynchronous cache cleanup failure', async () => {
+    addLinked('a1');
+    (application.images!.removeAccount as jest.Mock).mockRejectedValueOnce(new Error('cache access denied'));
+    const event = { reply: jest.fn() };
+    await deleteListener(event as any, 'a1');
+    expect(event.reply).toHaveBeenCalledWith('ERROR', expect.objectContaining({ message: expect.stringContaining('cache access denied') }));
+    expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_GET, []);
 });

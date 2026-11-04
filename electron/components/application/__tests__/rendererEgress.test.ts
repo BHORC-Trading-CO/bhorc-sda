@@ -2,7 +2,7 @@ jest.mock('electron', () => {
     const { EventEmitter } = require('events');
     return {
         app: Object.assign(new EventEmitter(), { isReady: () => false, isPackaged: true }),
-        session: { defaultSession: { webRequest: { onBeforeRequest: jest.fn() } } },
+        session: { defaultSession: { setSpellCheckerEnabled: jest.fn(), webRequest: { onBeforeRequest: jest.fn() } } },
     };
 });
 
@@ -13,9 +13,14 @@ import { installRendererEgress, shouldBlockRendererRequest } from '../rendererEg
 
 const entries = ['http://localhost:3000/main_window', 'http://localhost:3000/confirmations_window'];
 
-it.each(['file:///app/index.html', 'data:image/jpeg;base64,/9j/', 'blob:file:///image', 'devtools://devtools/bundled/inspector.html', 'chrome-devtools://devtools/', 'about:blank'])('allows local %s', url => {
+it.each(['file:///app/index.html', 'file:///C:/app/index.html', 'file://localhost/app/index.html', 'file:///app/100%/index.html', 'data:image/jpeg;base64,/9j/', 'blob:file:///image', 'devtools://devtools/bundled/inspector.html', 'chrome-devtools://devtools/', 'about:blank'])('allows local %s', url => {
     expect(shouldBlockRendererRequest(url, true, entries)).toBe(false);
     expect(shouldBlockRendererRequest(url, false, entries)).toBe(false);
+});
+
+it.each(['file://attacker.test/share/image.jpg', 'file://192.0.2.1/share/image.jpg', 'file:////attacker.test/share/image.jpg', 'file://///attacker.test/share/image.jpg', String.raw`file:\\attacker.test\share\image.jpg`, 'file:///%2F%2Fattacker.test/share/image.jpg', 'file:///%5c%5cattacker.test/share/image.jpg'])('blocks UNC/SMB file request %s in every build', url => {
+    expect(shouldBlockRendererRequest(url, true, entries)).toBe(true);
+    expect(shouldBlockRendererRequest(url, false, entries)).toBe(true);
 });
 
 it.each(['https://avatars.akamai.steamstatic.com/a.jpg', 'http://example.test/img', 'ws://example.test/ws', 'wss://example.test/ws', 'http://localhost:3000/main_window', 'ws://localhost:3000/ws', 'ftp://example.test/file', 'invalid'])('packaged blocks %s', url => {
@@ -41,12 +46,14 @@ it('guards default and custom sessions before requests, once per session; logs o
     installRendererEgress(entries);
     installRendererEgress(entries);
     app.emit('ready');
-    const partition = { webRequest: { onBeforeRequest: jest.fn() } };
-    const alternate = { webRequest: { onBeforeRequest: jest.fn() } };
+    const partition = { setSpellCheckerEnabled: jest.fn(), webRequest: { onBeforeRequest: jest.fn() } };
+    const alternate = { setSpellCheckerEnabled: jest.fn(), webRequest: { onBeforeRequest: jest.fn() } };
     app.emit('session-created', partition);
     app.emit('web-contents-created', {}, { session: partition });
     app.emit('web-contents-created', {}, { session: alternate });
     for (const target of [session.defaultSession, partition, alternate]) {
+        expect(target.setSpellCheckerEnabled).toHaveBeenCalledTimes(1);
+        expect(target.setSpellCheckerEnabled).toHaveBeenCalledWith(false);
         const registration = target.webRequest.onBeforeRequest as jest.Mock;
         expect(registration).toHaveBeenCalledTimes(1);
         const filter = registration.mock.calls[0][0];
@@ -55,8 +62,10 @@ it('guards default and custom sessions before requests, once per session; logs o
         expect(callback).toHaveBeenLastCalledWith({ cancel: true });
         filter({ url: 'file:///app/assets/User.svg' }, callback);
         expect(callback).toHaveBeenLastCalledWith({ cancel: false });
+        filter({ url: 'file://share.test/image.jpg' }, callback);
+        expect(callback).toHaveBeenLastCalledWith({ cancel: true });
     }
-    expect(warn.mock.calls).toEqual([['Renderer network request blocked: cdn.test']]);
+    expect(warn.mock.calls).toEqual([['Renderer network request blocked: cdn.test'], ['Renderer network request blocked: share.test']]);
     warn.mockRestore();
 });
 

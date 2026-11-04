@@ -11,6 +11,7 @@ import ImageChannels from '../../../interfaces/IpcChannels/ImageChannels';
 const entry = 'file:///app/.webpack/renderer/main_window/index.html';
 const confirmationEntry = 'file:///app/.webpack/renderer/confirmations_window/index.html';
 const dataUrl = 'data:image/jpeg;base64,/9j/';
+const requestId = 'a'.repeat(32) + ':1';
 let images: { getAvatar: jest.Mock, getConfirmationIcon: jest.Mock };
 let sender: object;
 const event = (url = entry, source = sender) => ({ senderFrame: { url }, sender: source, reply: jest.fn() });
@@ -29,14 +30,15 @@ afterEach(() => { ipcMain.removeAllListeners(); delete (global as any).MAIN_WIND
 
 it('trusted avatar request supplies only the account ID to main', async () => {
     const request = event();
-    ipcMain.emit(ImageChannels.GET_AVATAR, request, { requestId: '1', accountId: 'account', url: 'https://evil.test/' });
+    ipcMain.emit(ImageChannels.GET_AVATAR, request, { requestId, accountId: 'account', url: 'https://evil.test/' });
     await flush();
     expect(images.getAvatar).toHaveBeenCalledWith('account');
-    expect(request.reply).toHaveBeenCalledWith(ImageChannels.GET_AVATAR, { requestId: '1', dataUrl });
+    expect(request.reply).toHaveBeenCalledWith(ImageChannels.GET_AVATAR, { requestId, accountId: 'account', url: null, dataUrl });
+    expect(application.images).toBe(images);
 });
 
 it.each([ImageChannels.GET_AVATAR, ImageChannels.GET_CONFIRMATION_ICON])('untrusted sender cannot use %s', async channel => {
-    ipcMain.emit(channel, event('https://evil.test/'), { requestId: '1', accountId: 'account', url: 'https://evil.test/' });
+    ipcMain.emit(channel, event('https://evil.test/'), { requestId, accountId: 'account', url: 'https://evil.test/' });
     await flush();
     expect(images.getAvatar).not.toHaveBeenCalled();
     expect(images.getConfirmationIcon).not.toHaveBeenCalled();
@@ -44,21 +46,21 @@ it.each([ImageChannels.GET_AVATAR, ImageChannels.GET_CONFIRMATION_ICON])('untrus
 
 it('confirmation icon uses its owning window account', async () => {
     const request = event(confirmationEntry);
-    ipcMain.emit(ImageChannels.GET_CONFIRMATION_ICON, request, { requestId: '2', accountId: 'account', url: 'icon-url' });
+    ipcMain.emit(ImageChannels.GET_CONFIRMATION_ICON, request, { requestId, accountId: 'account', url: 'icon-url' });
     await flush();
     expect(images.getConfirmationIcon).toHaveBeenCalledWith('account', 'icon-url');
-    expect(request.reply).toHaveBeenCalledWith(ImageChannels.GET_CONFIRMATION_ICON, { requestId: '2', dataUrl });
+    expect(request.reply).toHaveBeenCalledWith(ImageChannels.GET_CONFIRMATION_ICON, { requestId, accountId: 'account', url: 'icon-url', dataUrl });
 });
 
 it.each(['different-account', 'account', '__proto__', 'constructor'])('rejects wrong account/window pairing (%s)', async accountId => {
     const request = event(confirmationEntry, {});
-    ipcMain.emit(ImageChannels.GET_CONFIRMATION_ICON, request, { requestId: '3', accountId, url: 'icon-url' });
+    ipcMain.emit(ImageChannels.GET_CONFIRMATION_ICON, request, { requestId, accountId, url: 'icon-url' });
     await flush();
     expect(images.getConfirmationIcon).not.toHaveBeenCalled();
-    expect(request.reply).toHaveBeenCalledWith(ImageChannels.GET_CONFIRMATION_ICON, { requestId: '3', dataUrl: null });
+    expect(request.reply).toHaveBeenCalledWith(ImageChannels.GET_CONFIRMATION_ICON, { requestId, accountId, url: 'icon-url', dataUrl: null });
 });
 
-it.each([null, {}, { requestId: {}, accountId: 'account' }, { requestId: '1', accountId: {} }])('ignores malformed request %j', async params => {
+it.each([null, {}, { requestId: {}, accountId: 'account' }, { requestId: '1', accountId: 'account' }, { requestId, accountId: {} }])('ignores malformed request %j', async params => {
     ipcMain.emit(ImageChannels.GET_AVATAR, event(), params);
     await flush();
     expect(images.getAvatar).not.toHaveBeenCalled();
@@ -66,7 +68,7 @@ it.each([null, {}, { requestId: {}, accountId: 'account' }, { requestId: '1', ac
 
 it('does not reply into a frame that navigated while the request was pending', async () => {
     const request = event();
-    ipcMain.emit(ImageChannels.GET_AVATAR, request, { requestId: '1', accountId: 'account' });
+    ipcMain.emit(ImageChannels.GET_AVATAR, request, { requestId, accountId: 'account' });
     request.senderFrame.url = 'https://evil.test/';
     await flush();
     expect(request.reply).not.toHaveBeenCalled();

@@ -39,8 +39,8 @@ afterEach(async () => {
 
 it('four stalled avatars abort and release the queue for a successful confirmation icon', async () => {
     const avatars = Array.from({ length: 4 }, (_, n) => images.getAvatar(`account${n}`));
-    const confirmation = images.getConfirmationIcon('account4', icon);
     await until(() => requests.length === 4);
+    const confirmation = images.getConfirmationIcon('account4', icon);
     jest.advanceTimersByTime(15000);
     expect(await Promise.all(avatars)).toEqual([null, null, null, null]);
     await until(() => requests.length === 5);

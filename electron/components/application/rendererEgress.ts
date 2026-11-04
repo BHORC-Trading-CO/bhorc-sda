@@ -4,7 +4,12 @@ import { app, session, Session } from 'electron';
 export function shouldBlockRendererRequest(rawUrl: string, packaged: boolean, entries: string[]): boolean {
     try {
         const url = new URL(rawUrl);
-        if (['file:', 'data:', 'blob:', 'about:', 'devtools:', 'chrome-devtools:'].includes(url.protocol)) return false;
+        if (url.protocol === 'file:') {
+            // UNC бывает и с пустым host: file:////server/share. Не даём
+            // закодированным разделителям превратить локальный путь в SMB.
+            return url.hostname !== '' || url.pathname.startsWith('//') || /%2f|%5c/i.test(url.pathname);
+        }
+        if (['data:', 'blob:', 'about:', 'devtools:', 'chrome-devtools:'].includes(url.protocol)) return false;
         if (packaged || url.username || url.password) return true;
         return !entries.some(entry => {
             try {
@@ -30,6 +35,7 @@ export function installRendererEgress(entries: string[]): void {
     const protect = (target: Session) => {
         if (protectedSessions.has(target)) return;
         protectedSessions.add(target);
+        target.setSpellCheckerEnabled(false);
         target.webRequest.onBeforeRequest((details, callback) => {
             const cancel = shouldBlockRendererRequest(details.url, app.isPackaged, entries);
             if (cancel) {
