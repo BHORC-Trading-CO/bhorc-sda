@@ -1,13 +1,32 @@
+/* Строка поля слева: та же высота и отступы, что у выбранной колонки справа (ColumnsSelectetItem.css) */
 .table-settings-item {
-    padding: 5px 6px;
-    font-size: 15px;
-    line-height: 22px;
+    height: 28px;
+    padding: 0 8px;
+    margin-bottom: 4px;
+    font-size: 14px;
+    line-height: 20px;
     display: flex;
     align-items: center;
     justify-content: start;
+    border: 1px solid transparent;
     border-radius: var(--sda-radius-sm);
+    transition: background-color var(--sda-transition);
+}
+
+.table-settings-item:last-child {
+    margin-bottom: 0px;
 }
 
 .table-settings-item:hover {
     background: var(--sda-surface-3);
+}
+
+.table-settings-item__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    user-select: none;
 }

@@ -1,61 +1,55 @@
-.table-settings-content {
-    height: 450px;
+/* Окно настроек таблицы: два одинаковых списка во всю высоту окна, под ними нижняя панель.
+   Высота окна считается в TableSettings.tsx от числа полей (строка 32px + отступ 4px). */
+.form .form-content > .table-settings-body {
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 20px;
+    flex-direction: column;
 }
-.table-settings-left {
-    width: 48%;
+
+.table-settings-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    gap: 16px;
+    padding: 16px 20px 0px;
+}
+
+.table-settings-panel {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     background-color: var(--sda-surface-2);
     border-radius: var(--sda-radius);
-    padding: 16px 16px 12px;
-}
-.table-settings-left .search {
-    margin: auto;
+    padding: 10px 8px 8px;
 }
 
-/* Заголовки обеих колонок в одном стиле */
-.table-settings-heading,
-.table-settings_counter-text {
+/* Заголовки обоих списков в одном стиле и одной высоты */
+.table-settings-panel__head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 28px;
+    padding: 0px 8px;
+    margin-bottom: 6px;
+}
+
+.table-settings-heading {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     font-size: 13px;
     font-weight: 600;
     color: var(--sda-text-muted);
 }
 
-.table-settings-footer {
-    display: flex;
-    align-items: center;
-    padding: 0px 24px;
-    justify-content: flex-end;
-}
-
-.table-settings-list {
-    flex: 1;
-    min-height: 0;
-    margin-top: 10px;
-    overflow-y: auto;
-}
-
-.table-settings-right {
-    display: flex;
-    flex-direction: column;
-    width: 48%;
-}
-
-.table-settings_counter {
-    padding: 12px 16px;
-    background-color: var(--sda-surface-2);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-radius: var(--sda-radius);
-    margin-bottom: 10px;
-}
-
 .table-settings_counter-counter {
+    flex: 0 0 auto;
     min-width: 28px;
     padding: 2px 8px;
     border-radius: var(--sda-radius-sm);
@@ -67,36 +61,51 @@
     font-variant-numeric: tabular-nums;
 }
 
-.table-settings_selected-list {
-    cursor: move;
-}
-.table-settings_selected-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 15px;
-    background-color: var(--sda-surface-2);
-    border-radius: var(--sda-radius);
-    margin-top: 10px;
-}
-.selected-item_title {
-    line-height: 24px;
-    display: flex;
-    justify-content: start;
-}
-.selected-item_title img {
-    margin-right: 5px;
-    width: 24px;
-    height: 24px;
-}
-
-.table-settings__footer-button{
-    margin-right: 16px;
-}
-
-.column-select__container{
-    flex: 1;
+.table-settings-list,
+.column-select__container {
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-right: 5px;
+}
+
+.table-settings-footer {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 16px;
+    padding: 14px 20px 16px;
+    border-top: 1px solid var(--sda-border);
+}
+
+.table-settings__footer-button {
+    margin-right: 16px;
+}
+
+/* Сброс к стандартным колонкам: тихая текстовая кнопка слева, не спорит с «Сохранить» */
+.table-settings__reset {
+    margin-right: auto;
+    height: 43px;
+    padding: 0px 14px;
+    border: none;
+    border-radius: var(--sda-radius);
+    background: transparent;
+    font-family: var(--sda-font);
+    font-size: 14px;
+    color: var(--sda-text-muted);
+    transition: background-color var(--sda-transition), color var(--sda-transition);
+}
+
+.table-settings__reset:hover {
+    background: var(--sda-surface-3);
+    color: var(--sda-text);
+}
+
+.table-settings__reset:focus {
+    outline: none;
+}
+
+.table-settings__reset:focus-visible {
+    box-shadow: var(--sda-focus-ring);
 }

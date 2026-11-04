@@ -11,16 +11,20 @@ import fieldTitle, { FieldsTable } from "../../Table/fieldTitle";
 function TableSettingsItem(props: { field: Field, fieldsTable: FieldsTable, updateColumnList: any, columnsList: Field[] }) {
   const { updateColumnList, field, columnsList } = props;
   const { t } = useTranslation();
+  const isChecked = !(columnsList.filter(column => column.type === field.type).length === 0);
+  const title = fieldTitle(t, props.fieldsTable, field, field.title ? field.title : field.type);
 
   return (
     <div className="table-settings-item">
       <Checkbox
-        isChecked={!(columnsList.filter(column => column.type === field.type).length === 0)}
+        isChecked={isChecked}
+        ariaLabel={title}
         onChange={(isChecked: boolean) => {
           updateColumnList(isChecked ? 'add' : 'remove', field)
         }}
       />
-      <div>{fieldTitle(t, props.fieldsTable, field, field.title ? field.title : field.type)}</div>
+      {/* Клик по названию переключает тот же чекбокс */}
+      <div className="table-settings-item__label" onClick={() => updateColumnList(isChecked ? 'remove' : 'add', field)}>{title}</div>
     </div>
   );
 }
