@@ -427,12 +427,17 @@ class SteamAccount {
     }
     editParams(newParams: { [K in keyof SteamAccountInterface]?: SteamAccountInterface[K] }) {
         newParams = stripLegacyMarketData(newParams);
-        for (var i in this.params) {
-            if (typeof (newParams[i]) !== 'undefined') {
-                this.params[i] = newParams[i];
-            }
+        // В память и в config.json идёт один и тот же набор полей: каждый ключ со значением,
+        // в том числе тот, которого у аккаунта ещё не было (SDA-27: почта, добавленная аккаунту
+        // без почты, сохранялась на диск, но не в живой объект, и пропадала из окна после
+        // следующей рассылки). undefined не применяется ни там, ни там: на диске electron-store
+        // стёр бы ключ, а в памяти он остался бы.
+        const defined: { [K in keyof SteamAccountInterface]?: SteamAccountInterface[K] } = {};
+        for (const key of Object.keys(newParams) as (keyof SteamAccountInterface)[]) {
+            if (typeof newParams[key] !== 'undefined') (defined as any)[key] = newParams[key];
         }
-        SteamAccountStorage.EditData(this.params.id, newParams);
+        Object.assign(this.params, defined);
+        SteamAccountStorage.EditData(this.params.id, defined);
     }
     static Generate(smaFile: SmaFile, changableSecondary: ChangableSecondaryInterface | null) {
         // Портативный прокси хранится только в LinksStorage, служебные поля файла не принимаем.
