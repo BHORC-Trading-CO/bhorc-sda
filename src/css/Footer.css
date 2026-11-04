@@ -1,10 +1,9 @@
 /* Футер под таблицей — как в макете main-v2: без своей подложки, текст 12–13 px #a1a1aa,
-   справа массовые действия контурными кнопками (удаление — красный текст). */
+   справа массовые действия контурными кнопками (удаление — красный текст). Отступы те же, что
+   у подвала аккаунтов (.accounts-footer): 12 px от карточки таблицы (её margin) и 12 px снизу. */
 .footer {
-    min-height: 54px;
     width: 100%;
-    margin-bottom: 8px;
-    padding: 10px 0px;
+    padding: 0px 0px 12px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -32,10 +31,6 @@
     font-family: var(--sda-font-mono);
     font-size: 13px;
     font-variant-numeric: tabular-nums;
-}
-
-.footer__info--active{
-    font-weight: 700;
 }
 
 /* Ряд кнопок сам переносится, если не влезает: ни одна кнопка не обрезается краем футера */

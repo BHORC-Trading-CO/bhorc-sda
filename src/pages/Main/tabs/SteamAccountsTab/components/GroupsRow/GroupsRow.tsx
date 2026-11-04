@@ -6,6 +6,9 @@ import Icon from "../../../../../../globalComponents/Icon/Icon";
 import GroupCreateForm from "../GroupForms/GroupCreateForm";
 import "./GroupsRow.css";
 
+/** Ширина затухания края списка групп (mask-image в GroupsRow.css). */
+const FADE_WIDTH = 40;
+
 /**
  * Строка групп под верхней панелью (R2), только на странице Steam аккаунтов: «Все аккаунты»,
  * группы (клик — фильтр таблицы, карандаш на ховере — редактирование) и «Новая группа».
@@ -37,6 +40,19 @@ const GroupsRowContent = observer(() => {
     const right = !!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
     setFade((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
   };
+
+  // Строка монтируется заново при каждом входе на вкладку, прокрутка — с нуля. Если выбрана группа
+  // (вернулись с «Прокси» или «Браузера»), поздняя группа оказалась бы за краем или под затуханием:
+  // ставим её в середину видимой части. Раньше эффекта ниже: тот пересчитает затухание.
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    const item = scroller?.querySelector<HTMLElement>(".groups-row-item_active");
+    if (!scroller || !item) return;
+    const view = scroller.getBoundingClientRect();
+    const box = item.getBoundingClientRect();
+    if (box.left >= view.left + FADE_WIDTH && box.right <= view.right - FADE_WIDTH) return;
+    scroller.scrollLeft += box.left + box.width / 2 - (view.left + view.width / 2);
+  }, []);
 
   // После каждой отрисовки (группы, названия, язык): затухание по тому, что реально не влезло.
   useEffect(() => {

@@ -8,6 +8,36 @@ import store from "../store";
 import { makeAutoObservable, toJS } from "mobx";
 import i18n from "../../i18n/i18n";
 
+type CreationFormContent = {
+    accountName: string,
+    password: string,
+    proxy: {
+        new: ProxySetupInterface,
+        savedId: string | null
+    },
+    useSteamCookies: boolean,
+    maFile: MaFileInterface | null,
+    importedAccounts: { smaFile: SmaFileInterface, proxyId: string | null, tempId: string }[],
+    profileName: string,
+    mail: string,
+    mailPassword: string,
+};
+
+const emptyContent = (): CreationFormContent => ({
+    accountName: "",
+    password: "",
+    proxy: {
+        new: { host: '', port: '', username: '', password: '' },
+        savedId: null
+    },
+    useSteamCookies: true,
+    maFile: null,
+    importedAccounts: [],
+    mail: "",
+    mailPassword: "",
+    profileName: ""
+});
+
 class CreationFormStore {
     root: SteamAccountsTableStore;
     switches: {
@@ -22,20 +52,7 @@ class CreationFormStore {
     creationProcessError: string;
     creationProcessStep: CreationStepType;
     isOpen: boolean;
-    content: {
-        accountName: string,
-        password: string,
-        proxy: {
-            new: ProxySetupInterface,
-            savedId: string | null
-        },
-        useSteamCookies: boolean,
-        maFile: MaFileInterface | null,
-        importedAccounts: { smaFile: SmaFileInterface, proxyId: string | null, tempId: string }[],
-        profileName: string,
-        mail: string,
-        mailPassword: string,
-    };
+    content: CreationFormContent;
 
     constructor(root: SteamAccountsTableStore) {
         this.root = root;
@@ -51,20 +68,7 @@ class CreationFormStore {
         this.guardSetupResult = null;
         this.creationProcessError = '';
         this.creationProcessStep = 'start'
-        this.content = {
-            accountName: "",
-            password: "",
-            proxy: {
-                new: { host: '', port: '', username: '', password: '' },
-                savedId: null
-            },
-            useSteamCookies: true,
-            maFile: null,
-            importedAccounts: [],
-            mail: "",
-            mailPassword: "",
-            profileName: ""
-        }
+        this.content = emptyContent();
 
         window.Main.steamAccounts.onCreationProcessStep((event, step) => {
             this.setCreationProcessStep(step);
@@ -89,12 +93,9 @@ class CreationFormStore {
 
     open() {
         this.isOpen = true;
-        this.content.accountName = "";
-        this.content.password = "";
-        this.content.maFile = null;
-        this.content.importedAccounts = [];
-        this.content.proxy.new = { host: "", port: "", username: "", password: "" };
-        this.content.proxy.savedId = null;
+        // Каждое открытие — новое добавление: раньше сбрасывались только логин, пароль, maFile
+        // и прокси, а почта и её пароль от отменённого добавления уходили со следующим аккаунтом.
+        this.content = emptyContent();
         this.runDataFillingProcess();
     }
     close() {

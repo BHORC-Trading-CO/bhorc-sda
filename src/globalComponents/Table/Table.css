@@ -45,17 +45,16 @@
     background: var(--sda-surface-1);
 }
 
-.list-headline-container {
-    display: flex;
-    max-height: 52px;
-    margin-bottom: 15px;
-}
-
+/* Поля ячеек 6 px (12 px между колонками), края таблицы 12 px. При 8 px сумма полей колонок
+   аккаунтов по умолчанию давала таблицу на 30 px (en), 21 (uk) и 12 (ru) шире карточки в окне
+   1512×949 даже на коротких данных, и внизу появлялась горизонтальная прокрутка; ни одна колонка
+   не имеет min-width, лишнее было именно в полях. Прокрутка остаётся, когда колонки не помещаются
+   по-настоящему (узкое окно, длинные данные). */
 .list-headline {
     display: table-cell;
     vertical-align: middle;
     height: 36px;
-    padding: 0 8px;
+    padding: 0 6px;
     border-bottom: 1px solid var(--sda-border);
     white-space: nowrap;
     text-align: left;
@@ -138,11 +137,6 @@
     color: var(--sda-accent);
 }
 
-.list-headline-wrapper {
-    display: flex;
-    align-items: center;
-}
-
 /* ---------- Строки ---------- */
 
 /* Фон строки непрозрачный (слой поверх карточки): его наследуют прилипшие ячейки справа,
@@ -168,17 +162,12 @@
     color: var(--sda-text-subtle);
 }
 
-.list-item-container {
-    display: flex;
-    max-height: 52px;
-    margin-bottom: 15px;
-}
-
+/* Поля ячеек — как у заголовков (6 px, см. .list-headline). */
 .list-item {
     display: table-cell;
     vertical-align: middle;
     height: 44px;
-    padding: 0 8px;
+    padding: 0 6px;
     border-bottom: 1px solid var(--sda-border);
     white-space: nowrap;
 }

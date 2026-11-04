@@ -2,7 +2,6 @@ import useAccountImage from "../../../../../../globalComponents/Images/useAccoun
 import React from "react";
 import SteamAccountInterface from "../../../../../../../electron/interfaces/SteamAccount/SteamAccountInterface";
 import TableSteamAccountInterface from "../../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface";
-import Button from "../../../../../../globalComponents/Button/Button";
 import Checkbox from "../../../../../../globalComponents/Checkbox/Checkbox";
 import Icon from "../../../../../../globalComponents/Icon/Icon";
 import "./AccountItem.css";
@@ -17,6 +16,15 @@ const AccountItem = observer((props: {
   const { steamAccount, links, setLinks } = props;
   const { t } = useTranslation();
   const avatar = useAccountImage('avatar', steamAccount.id, steamAccount.secondary?.avatarUrl, `${steamAccount.proxyState}:${steamAccount.proxyId}`);
+  const isLinked = links.steamAccountIds.includes(steamAccount.id);
+  const toggle = () => {
+    setLinks({
+      ...links,
+      steamAccountIds: isLinked
+        ? links.steamAccountIds.filter(id => id !== steamAccount.id)
+        : [...links.steamAccountIds, steamAccount.id]
+    });
+  };
 
   return (
     <div className="account-item">
@@ -40,19 +48,12 @@ const AccountItem = observer((props: {
         </div>
       </div>
       <div className="account-wrapper">
-        <div
-          onClick={() => {
-            if (links.steamAccountIds.includes(steamAccount.id)) {
-              const index = links.steamAccountIds.findIndex(id => id === steamAccount.id);
-              setLinks({ ...links, steamAccountIds: [...links.steamAccountIds.slice(0, index), ...links.steamAccountIds.slice(index + 1)] });
-            } else {
-              setLinks({ ...links, steamAccountIds: [...links.steamAccountIds, steamAccount.id] });
-            }
-          }}
-          className={links.steamAccountIds.includes(steamAccount.id) ? "checkbox-checked" : "checkbox-default__proxy"}
-        >
-          <Icon name="check" size={14} />
-        </div>
+        {/* Общий Checkbox: фокус с Tab, Пробел/Enter переключают, состояние в aria-checked. */}
+        <Checkbox
+          isChecked={isLinked}
+          ariaLabel={t("proxies.links.toggle", { name: steamAccount.accountName || `#${steamAccount.number}` })}
+          onChange={toggle}
+        />
       </div>
     </div>
   );

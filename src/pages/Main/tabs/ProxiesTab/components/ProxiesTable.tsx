@@ -140,7 +140,7 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
                     store.windows.prompt({
                         type: 'question',
                         title: t('proxies.delete.archiveTitle', { number: proxy.number }),
-                        text: t('common.archiveHint'),
+                        text: t('proxies.delete.archiveHint'),
                         acceptButtonText: t('common.buttons.archiveIt'),
                         cancelButtonText: t('prompt.cancel'),
                         cb: () => {

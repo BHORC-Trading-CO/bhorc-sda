@@ -54,8 +54,7 @@
   flex-shrink: 0;
 }
 
-.panel-content__options .button-default,
-.panel-content__options .headline-button_gradient {
+.panel-content__options .button-default {
   margin: 0px;
 }
 

@@ -8,15 +8,17 @@
   background: var(--sda-surface-0);
 }
 
-/* Поля страницы — здесь, одни на все разделы; панели и таблицы разделов своих внешних полей
-   не добавляют. height: auto и gap: 0 — поверх общего правила .content из public/index.html. */
+/* Боковые поля страницы (18 px, макет main-v2) — здесь, одни на все разделы; панели, таблицы
+   и подвалы разделов своих боковых полей не добавляют. Сверху поля нет: отступ 14 px до
+   заголовка даёт сама панель раздела (padding тулбара макета). height: auto и gap: 0 — поверх
+   общего правила .content из public/index.html. */
 .layout .content {
   flex: 1 1 0;
   min-height: 0;
   height: auto;
   width: 100%;
   gap: 0;
-  padding: 14px 18px 0;
+  padding: 0 18px;
   display: flex;
   justify-content: space-between;
 }

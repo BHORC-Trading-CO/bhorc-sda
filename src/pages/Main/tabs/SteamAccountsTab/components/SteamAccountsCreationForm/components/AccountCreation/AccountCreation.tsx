@@ -4,6 +4,7 @@ import store from '../../../../../../../../store/store';
 import CreationStepType from '../../../../../../../../../electron/interfaces/SteamAccount/CreationStepType';
 import './AccountCreation.css';
 import Button from '../../../../../../../../globalComponents/Button/Button';
+import Icon from '../../../../../../../../globalComponents/Icon/Icon';
 import { useTranslation } from 'react-i18next';
 
 const AccountCreation: FC = observer(() => {
@@ -55,10 +56,9 @@ const Step: FC<{ title: string, text: string }> = (props) => {
     return <div className='account-creation_step'>
         <div className='title'>{title}</div>
         <div className='text'>{text}</div>
-        {/* Шаг идёт: кольцо с циановой дугой крутится классом .sda-spin (motion.css, выключено при
-            reduced motion). Только CSS, без импорта Icon: GuardSetup рендерится в jest-тесте без
-            загрузчика CSS. Декоративное: что происходит, говорит заголовок шага. */}
-        <span className='account-creation_loader sda-spin' aria-hidden='true'></span>
+        {/* Шаг идёт: циановый лоадер lucide крутится всегда (spinAlways, выключен при reduced motion).
+            Декоративный: что происходит, говорит заголовок шага. */}
+        <Icon name='loader' size={20} motion='spinAlways' className='account-creation_loader' />
         <Button size='medium' text={t('accounts.creation.abort')} color='grey' hoverColor='light-grey' onClick={() => {
             store.steamAccountsTable.creationForm.close();
         }} />

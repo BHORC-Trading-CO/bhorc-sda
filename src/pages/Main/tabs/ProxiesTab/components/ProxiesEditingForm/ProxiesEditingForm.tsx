@@ -21,8 +21,10 @@ const ProxiesEditingForm: FC = observer(() => {
       title={t("proxies.editing.title", { number: proxy.number, host: proxy.host, port: proxy.port })}
       width="1000px"
       height=""
+      // key: поля и привязки живут в состоянии окна; если правку открыли для другого прокси,
+      // не закрывая окно, состояние начинается заново, а не уезжает в сохранение другого прокси.
       content={
-        <EditingFormContent />
+        <EditingFormContent key={proxy.id} />
       }
       onClose={() => {
         store.proxiesTable.closeEditingForm();

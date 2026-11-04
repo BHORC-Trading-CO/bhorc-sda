@@ -32,8 +32,8 @@ const TablePageSwitcher: FC<{
     numberOfElements: number,
     numberOfPages: number,
     activePageNumber: number,
-    /** Готовая подпись числа строк («6 аккаунтов»). Не передана — «Всего элементов: N». */
-    countText?: string,
+    /** Готовая подпись числа строк («6 аккаунтов», число — span.table-footer-value). Не передана — «Всего элементов: N». */
+    countText?: React.ReactNode,
     onChangeActivePage: (newActivePageNumber: number) => void,
     onChangePageSize: (newPageSize: number) => void
 }> = ({ options = { numberOfElementsInPage: 10, avalible: [5, 10, 15] }, pageSize, numberOfPages, activePageNumber, onChangeActivePage, onChangePageSize, numberOfElements, countText }) => {

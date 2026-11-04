@@ -6,15 +6,6 @@ body {
 .alt-text-container {
   width: 400px;
 }
-.mini-download {
-  width: 50px;
-  height: 20px;
-}
-.micro-download{
-  margin: auto;
-  width: 20px;
-  height: 20px;
-}
 code {
   font-family: var(--sda-font-mono);
 }
@@ -22,7 +13,7 @@ html {
   overflow: hidden;
 }
 
-/* Фон окна — сплошной --sda-surface-0 вместо прежней фиолетовой картинки assets/gradient.png. */
+/* Фон окна — сплошной --sda-surface-0. */
 body {
   margin: 0;
   color: var(--sda-text);
@@ -37,24 +28,6 @@ button {
 
 /* Вторичный текст (подписи, заголовки колонок форм). --sda-text-muted держит контраст
    не ниже 4.5:1 на всех поверхностях до surface-3; прежний #776284 давал около 3:1. */
-.text-grey-small {
-  font-family: var(--sda-font);
-  font-style: normal;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--sda-text-muted);
-}
-
-.text-pink-small{
-  font-family: var(--sda-font);
-  font-style: normal;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--sda-accent);
-}
-
 .text-grey-medium {
   font-family: var(--sda-font);
   font-style: normal;
@@ -70,17 +43,6 @@ button {
   font-size: 15px;
   line-height: 20px;
   color: var(--sda-text-muted);
-}
-
-.text-white-small {
-  font-family: var(--sda-font);
-  font-style: normal;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
-  display: flex;
-  align-items: center;
-  color: #ffffff;
 }
 
 .text-white-medium {
@@ -125,11 +87,18 @@ p {
 
 /* Затемнение под модальными окнами (MiniWindow, Prompt): чёрный 50 %, как у диалога QBS,
    проявляется вместе с окном. Класс проверяется в onClick (клик мимо окна закрывает его),
-   поэтому других классов на этом элементе нет. */
+   поэтому других классов на этом элементе нет.
+   Свой слой: выше липкой шапки таблицы (z-index 2) и списка языков (100), ниже тоста (1000).
+   Без него окно, отрисованное в DOM раньше таблицы (например «Новая группа» из строки групп),
+   легло бы под шапку и кнопки таблицы. Prompt идёт в DOM после разделов и при равном слое
+   рисуется поверх открытого окна. left: 0 — иначе фиксированный слой встаёт на своё место
+   в потоке: внутри .content это 18 px боковых полей, и полоса слева оставалась незатемнённой. */
 .darkBackground {
   user-select: none;
   top: 0%;
+  left: 0;
   position: fixed;
+  z-index: 500;
   width: 100vw;
   height: 100vh;
   background: rgba(0, 0, 0, 0.5);

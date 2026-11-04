@@ -8,9 +8,9 @@ import Icon, { IconName } from "../../../globalComponents/Icon/Icon";
 
 interface Item { selected: boolean, confirmation: CConfirmation };
 
-// Значок типа на плитке картинки: EConfirmationType steamcommunity (2 — обмен, 3 — лот на рынке).
-// В наборе Icon нет стрелок обмена и ценника: обмен — «люди», лот — «выставить».
-const typeIcon = (type: number): IconName => type === 2 ? "users" : type === 3 ? "upload" : "shieldCheck";
+// Значок типа на плитке картинки: EConfirmationType steamcommunity (2 — обмен, 3 — лот на рынке):
+// обмен — стрелки туда и обратно, лот — ценник, прочее — щит.
+const typeIcon = (type: number): IconName => type === 2 ? "arrowLeftRight" : type === 3 ? "tag" : "shieldCheck";
 
 function SellItem(props: sellItemInterface) {
   const { item, onChange, accountId } = props;

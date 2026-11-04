@@ -4,7 +4,7 @@ import { observer } from 'mobx-react';
 import store from '../../../../../store/store';
 import Button from '../../../../../globalComponents/Button/Button';
 import TablePageSwitcher from '../../../../../globalComponents/TablePageSwitcher/TablePageSwitcher';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 const SteamAccountsFooter: FC = observer(() => {
     const { t } = useTranslation();
@@ -20,7 +20,7 @@ const SteamAccountsFooter: FC = observer(() => {
     return (
         <>
             <div className="accounts-footer">
-                <TablePageSwitcher numberOfElements={visibleSteamAccounts.length} countText={t("accounts.count", { count: visibleSteamAccounts.length })} numberOfPages={steamAccountsByPage.length} options={{ avalible: [5, 10, 15, 20, 40, 100] }} pageSize={store.steamAccountsTable.pageSize} activePageNumber={store.steamAccountsTable.activePage} onChangeActivePage={(activePage) => {
+                <TablePageSwitcher numberOfElements={visibleSteamAccounts.length} countText={<Trans t={t} i18nKey="accounts.countRich" count={visibleSteamAccounts.length} components={{ n: <span className="table-footer-value" /> }} />} numberOfPages={steamAccountsByPage.length} options={{ avalible: [5, 10, 15, 20, 40, 100] }} pageSize={store.steamAccountsTable.pageSize} activePageNumber={store.steamAccountsTable.activePage} onChangeActivePage={(activePage) => {
                     store.steamAccountsTable.setActivePage(activePage, true);
                 }}
                     onChangePageSize={(newPageSize) => {
@@ -90,7 +90,7 @@ const SteamAccountsFooter: FC = observer(() => {
                             store.windows.prompt({
                                 type: 'question',
                                 title: t('accounts.archiveSelected.title', { count: selectedSteamAccounts.length }),
-                                text: t(selectedSteamAccounts.length === 1 ? 'accounts.archiveSelected.textSingleArchiveIcon' : 'accounts.archiveSelected.textManyArchiveIcon', { numbers: selectedSteamAccounts.map(p => p.number).join(', ') }),
+                                text: t(selectedSteamAccounts.length === 1 ? 'accounts.archiveSelected.textSingle' : 'accounts.archiveSelected.textMany', { numbers: selectedSteamAccounts.map(p => p.number).join(', ') }),
                                 acceptButtonText: t('accounts.archiveSelected.accept', { count: selectedSteamAccounts.length }),
                                 cancelButtonText: t('prompt.cancel'),
                                 cb: () => {
