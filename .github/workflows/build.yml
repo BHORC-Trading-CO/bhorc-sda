@@ -37,8 +37,17 @@ jobs:
 
       # Именно install, а не ci: package-lock.json в репозитории отстал от
       # package.json (в нём нет jest-зависимостей), и ci на нём падает.
+      # sharp качает libvips с GitHub Releases и падает с "Request timed out", когда
+      # загрузка медленная (05.11 так падали все прогоны подряд): до трёх попыток.
       - name: Install dependencies
-        run: npm install
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            npm install && exit 0
+            echo "npm install failed (attempt $attempt of 3)"
+            sleep 30
+          done
+          exit 1
 
       - name: Unit tests
         run: npm test
