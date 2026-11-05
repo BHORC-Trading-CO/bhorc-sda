@@ -5,6 +5,7 @@ import "./SellItem.css";
 import { useTranslation } from "react-i18next";
 import useAccountImage from "../../../globalComponents/Images/useAccountImage";
 import Icon, { IconName } from "../../../globalComponents/Icon/Icon";
+import formatConfirmationTime from "./formatConfirmationTime";
 
 interface Item { selected: boolean, confirmation: CConfirmation };
 
@@ -14,7 +15,7 @@ const typeIcon = (type: number): IconName => type === 2 ? "arrowLeftRight" : typ
 
 function SellItem(props: sellItemInterface) {
   const { item, onChange, accountId } = props;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const icon = useAccountImage('icon', accountId, item.confirmation.icon);
   const type = item.confirmation.type;
   const typeLabel = t(type === 2 ? "confirmations.types.trade" : type === 3 ? "confirmations.types.listing" : "confirmations.types.unknown");
@@ -37,8 +38,8 @@ function SellItem(props: sellItemInterface) {
         {item.confirmation.receiving ? <div className="sell-item-price-container">
           <div className="sell-item-price-new" title={item.confirmation.receiving}>{item.confirmation.receiving}</div>
         </div> : null}
-        <div className="sell-item-date-container">
-          {item.confirmation.time}
+        <div className="sell-item-date-container" title={item.confirmation.time}>
+          {formatConfirmationTime(item.confirmation.time, i18n.language)}
         </div>
       </div>
       <div className="sell-item-confirm-container">

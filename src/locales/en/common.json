@@ -507,7 +507,7 @@
     "confirmSelected": "Confirm selected",
     "item": {
       "select": "Select",
-      "deselect": "Deselect"
+      "deselect": "Selected"
     },
     "retry": "Retry",
     "error": "Could not load confirmations.",
