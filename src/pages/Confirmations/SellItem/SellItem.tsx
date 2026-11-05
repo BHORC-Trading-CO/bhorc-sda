@@ -46,7 +46,6 @@ function SellItem(props: sellItemInterface) {
         <Button
           text={item.selected ? t("confirmations.item.deselect") : t("confirmations.item.select")}
           icon={item.selected ? "check" : undefined}
-          pressed={item.selected}
           size="large"
           color={item.selected ? "dark-pink" : "light-grey"}
           hoverColor={item.selected ? "dark-pink" : "grey"}

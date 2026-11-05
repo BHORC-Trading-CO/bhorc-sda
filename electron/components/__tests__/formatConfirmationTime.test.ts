@@ -23,7 +23,8 @@ describe("formatConfirmationTime", () => {
     });
 
     test("shown in the given time zone, not in UTC", () => {
-        expect(flat(formatConfirmationTime(ISO, "uk", "Europe/Kyiv"))).toContain("09:57");
+        // Asia/Tokyo: UTC+9 без перехода на летнее время, есть в любой версии ICU.
+        expect(flat(formatConfirmationTime(ISO, "uk", "Asia/Tokyo"))).toContain("16:57");
     });
 
     test("an unparsable or empty value is shown as is", () => {
