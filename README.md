@@ -5,18 +5,18 @@
 BHORC SDA is an open-source desktop app for managing many Steam accounts and their Steam Guard authenticators. It supports:
 
 - Steam Guard codes and trade/market confirmations.
-- Per-account proxies.
+- Per-account proxies. An account whose linked proxy is gone stays offline instead of falling back to your own IP.
 - Isolated browser profiles with fingerprints configured for each proxy's geographic location.
 - Account groups and bulk proxy import.
 - maFile import.
 
 ## Status
 
-Beta. The user interface is currently in Russian.
+Beta. The interface is in English, Ukrainian and Russian; switch the language with the icon on the right of the top bar.
 
 ## Download
 
-Download builds from [GitHub Releases](https://github.com/BHORC-Trading-CO/bhorc-sda/releases).
+Prebuilt builds will be published on [GitHub Releases](https://github.com/BHORC-Trading-CO/bhorc-sda/releases). Until the first release, build from source as described below.
 
 ## Build from source
 

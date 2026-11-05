@@ -15,8 +15,12 @@ type Request = PassThrough & { abort: jest.Mock };
 let directory: string;
 let requests: Request[];
 let images: AccountImages;
-const until = async (condition: () => boolean) => {
-    for (let i = 0; i < 100 && !condition(); i++) await new Promise(resolve => setImmediate(resolve));
+// Ждём по настоящим часам: в beforeEach включаются фейковые таймеры (и Date), а 100 оборотов
+// цикла событий на Windows-раннере не хватало, чтобы файловые операции getAvatar дошли до запроса.
+const realNow = Date.now.bind(Date);
+const until = async (condition: () => boolean, timeoutMs = 5000) => {
+    const deadline = realNow() + timeoutMs;
+    while (!condition() && realNow() < deadline) await new Promise(resolve => setImmediate(resolve));
     expect(condition()).toBe(true);
 };
 
