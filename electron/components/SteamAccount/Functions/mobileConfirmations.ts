@@ -1,15 +1,28 @@
 import type SteamCommunity from 'steamcommunity';
 import SteamTotp from 'steam-totp';
 import type { MobileConfirmation, MobileConfirmationRef, MobileConfirmationResult } from '../../../interfaces/SteamAccount/MobileConfirmationInterface';
+import { t } from '../../../i18n';
 
 // Purchases stay individual until D-sda7 §7 P2/P4 verifies Steam's multi flag.
 const NEVER_BATCH_TYPES = new Set([5, 6, 9, 10, 11, 12, 13]);
 const REQUEST_TIMEOUT = 30000;
-const UNKNOWN_OUTCOME = 'Outcome unknown; refresh the confirmation list before retrying';
 type FailureKind = 'steam' | 'http' | 'auth' | 'route' | 'throttled' | 'unknown';
+
+/**
+ * Error text from this module is shown in the confirmations window. A transport error can quote
+ * the request URL (request's redirect-loop error does), and a mobileconf URL carries the
+ * confirmation key (k) and the item nonce (ck). Every message therefore leaves through this
+ * function: URLs lose their query string and fragment, stray k/ck/nonce parameters are masked.
+ */
+export function scrubConfirmationSecrets(message: string): string {
+    return message
+        .replace(/(https?:\/\/[^\s?#"'<>]+)[?#][^\s"'<>]*/gi, '$1')
+        .replace(/\b(ck(?:\[\]|%5B%5D)?|k|nonce)=[^&\s"'<>]+/gi, '$1=***');
+}
+
 class ConfirmationRequestError extends Error {
     constructor(readonly kind: FailureKind, message: string, readonly code?: string | number) {
-        super(message);
+        super(scrubConfirmationSecrets(message));
     }
 }
 const errorCode = (error: unknown) => (error as { code?: string | number } | null)?.code;
@@ -25,7 +38,7 @@ const identifier = (value: unknown): string | null => {
 export function confirmationErrorMessage(error: unknown): string {
     const message = error && typeof error === 'object' && 'message' in error
         ? (error as { message: unknown }).message : error;
-    return String(message || 'Could not act on confirmation');
+    return scrubConfirmationSecrets(String(message || t('errors.confirmations.actFailed')));
 }
 
 export function isBatchableConfirmation(ref: MobileConfirmationRef): boolean {
@@ -93,7 +106,7 @@ function mobileRequest(
         };
         // httpRequest exposes no abort handle. A late reply cannot change an unknown
         // outcome or trigger resends after this deadline.
-        const timer = setTimeout(() => fail(new ConfirmationRequestError('unknown', 'Confirmation request timed out')), REQUEST_TIMEOUT + 1000);
+        const timer = setTimeout(() => fail(new ConfirmationRequestError('unknown', t('errors.confirmations.timedOut'))), REQUEST_TIMEOUT + 1000);
         const callback = (err: unknown, response?: { statusCode?: number }, body?: any) => {
             if (settled) return;
             clearTimeout(timer);
@@ -124,10 +137,10 @@ function mobileRequest(
                     return fail(new ConfirmationRequestError('http', message || `HTTP error ${status}`, status));
                 }
                 if (body?.success === false || body?.success === 0) {
-                    return fail(new ConfirmationRequestError('steam', message || (endpoint === 'getlist' ? 'Failed to get confirmation list' : 'Could not act on confirmation')));
+                    return fail(new ConfirmationRequestError('steam', message || t(endpoint === 'getlist' ? 'errors.confirmations.listFailed' : 'errors.confirmations.actFailed')));
                 }
                 if (!body || (body.success !== true && body.success !== 1)) {
-                    return fail(new ConfirmationRequestError('unknown', message || (endpoint === 'getlist' ? 'Failed to get confirmation list' : 'Could not act on confirmation')));
+                    return fail(new ConfirmationRequestError('unknown', message || t(endpoint === 'getlist' ? 'errors.confirmations.listFailed' : 'errors.confirmations.actFailed')));
                 }
                 settled = true;
                 resolve(body);
@@ -165,7 +178,7 @@ export function respondToConfirmations(community: SteamCommunity, identitySecret
         const unique = refs.filter((ref, index) => refs.findIndex(other => other.id === ref.id) === index);
         const valid = unique.filter(ref => {
             if (identifier(ref.id) && identifier(ref.nonce)) return true;
-            results.set(ref.id, { id: ref.id, ok: false, message: 'Missing confirmation id or nonce' });
+            results.set(ref.id, { id: ref.id, ok: false, message: t('errors.confirmations.missingRef') });
             return false;
         });
         const batch = valid.filter(isBatchableConfirmation);
@@ -192,7 +205,7 @@ export function respondToConfirmations(community: SteamCommunity, identitySecret
                 const unknown = !notSent && failureKind(error) === 'unknown';
                 results.set(ref.id, {
                     id: ref.id, ok: false, stopped: true,
-                    message: unknown ? UNKNOWN_OUTCOME : confirmationErrorMessage(error),
+                    message: unknown ? t('errors.confirmations.outcomeUnknown') : confirmationErrorMessage(error),
                     ...(unknown ? { unknown: true } : {}), ...(notSent ? { notSent: true } : {}),
                 });
             }

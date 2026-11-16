@@ -406,7 +406,7 @@ class SteamAccount {
             respondToConfirmations(community, this.params.maFile.identity_secret, refs, accept, () => {
                 this.proxyUrl();
                 // A queued operation must never use a client from an old route.
-                if (this.community !== community) throw new Error('Confirmation connection changed; refresh and try again');
+                if (this.community !== community) throw new Error(t('errors.confirmations.routeChanged'));
             }).then(resolve, reject);
         });
     }

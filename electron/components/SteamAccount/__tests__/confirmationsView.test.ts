@@ -393,3 +393,36 @@ it('an error never hangs the window: a banner with retry over the kept rows, the
     expect(singlesHtml).not.toContain(mockI18n.t('confirmations.toggleAll'));
     expect(singlesHtml).not.toContain('sell-items-confirms-button-container');
 });
+
+// The footer sends exactly the rows that are selected at the moment of the click:
+// selected.map(item => item.confirmation) -> confirmationRef. So what must hold is the state.
+it('a refresh drops every selection, so a reordered list or a new nonce can never ride on an old selection', () => {
+    const selected = reduce(reduce(loaded(), { type: 'select', id: '1002', selected: true }), { type: 'select', id: '1003', selected: true });
+    expect(selected.items.filter(item => item.selected).map(item => item.confirmation.id)).toEqual(['1002', '1003']);
+
+    // Steam returns the same ids in another order, one of them with a new nonce, one gone.
+    const fresh = [
+        { ...confirmations[1], nonce: 'rotated-nonce' },
+        { ...confirmations[3] },
+        { ...confirmations[0] },
+    ];
+    const refreshed = reduce(selected, { type: 'loaded', confirmations: fresh });
+
+    expect(refreshed.items.some(item => item.selected)).toBe(false);
+    expect(refreshed.items.map(item => item.confirmation.id)).toEqual(['1003', '1012', '1002']);
+    expect(refreshed.items[0].confirmation.nonce).toBe('rotated-nonce');
+
+    // Selecting again after the refresh yields the new nonce, and only that row.
+    const again = reduce(refreshed, { type: 'select', id: '1003', selected: true });
+    const payload = again.items.filter(item => item.selected).map(item => item.confirmation);
+    expect(payload.map(c => ({ id: c.id, nonce: c.nonce }))).toEqual([{ id: '1003', nonce: 'rotated-nonce' }]);
+});
+
+it('selecting one row never selects another, and protected rows cannot be selected by id', () => {
+    const one = reduce(loaded(), { type: 'select', id: '1003', selected: true });
+    expect(one.items.filter(item => item.selected).map(item => item.confirmation.id)).toEqual(['1003']);
+    for (const id of ['1009', '1012', '1013', 'no-such-id']) {
+        const tried = reduce(one, { type: 'select', id, selected: true });
+        expect(tried.items.filter(item => item.selected).map(item => item.confirmation.id)).toEqual(['1003']);
+    }
+});

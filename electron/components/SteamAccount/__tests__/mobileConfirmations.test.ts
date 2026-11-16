@@ -1,4 +1,4 @@
-import { fetchConfirmations, isBatchableConfirmation, parseConfirmations, respondToConfirmations } from '../Functions/mobileConfirmations';
+import { confirmationErrorMessage, fetchConfirmations, isBatchableConfirmation, parseConfirmations, respondToConfirmations, scrubConfirmationSecrets } from '../Functions/mobileConfirmations';
 import fixture from './fixtures/mobileConfirmations.json';
 
 const SECRET = Buffer.from('synthetic-identity').toString('base64');
@@ -230,4 +230,64 @@ it('purchases with multi=true always use individual GET requests until the live 
     await jest.advanceTimersByTimeAsync(1500);
     expect(await pending).toEqual([{ id: '12a', ok: true }, { id: '12b', ok: true }]);
     expect(community.httpRequest.mock.calls.map(([options]) => [options.method, options.qs.cid])).toEqual([['GET', '12a'], ['GET', '12b']]);
+});
+
+// A signed mobileconf URL carries the confirmation key (k) and the item nonce (ck); the request
+// library quotes the URL in some transport errors (redirect loop), and error text reaches the window.
+describe('signed URLs never reach error text', () => {
+    const signedUrl = (endpoint: string, extra = '') =>
+        `https://steamcommunity.com/mobileconf/${endpoint}?op=allow&cid=1002&ck=NONCE-VALUE&p=android:device&a=76561198000000001&k=SIGNATURE-VALUE&t=1700000000&m=react&tag=allow${extra}`;
+    const redirectLoop = (endpoint: string) =>
+        Object.assign(new Error(`Exceeded maxRedirects. Probably stuck in a redirect loop ${signedUrl(endpoint)}`), {});
+    const clean = (message: unknown) => {
+        expect(String(message)).not.toContain('NONCE-VALUE');
+        expect(String(message)).not.toContain('SIGNATURE-VALUE');
+        expect(String(message)).not.toMatch(/[?&](k|ck)=/);
+    };
+
+    it('scrubs query strings and stray secret parameters, keeps ordinary text', () => {
+        expect(scrubConfirmationSecrets(`stuck in a redirect loop ${signedUrl('ajaxop')}`))
+            .toBe('stuck in a redirect loop https://steamcommunity.com/mobileconf/ajaxop');
+        expect(scrubConfirmationSecrets(`GET ${signedUrl('getlist', '#frag')} failed`)).toBe('GET https://steamcommunity.com/mobileconf/getlist failed');
+        expect(scrubConfirmationSecrets('body was ck[]=AAA&ck%5B%5D=BBB&k=CCC&nonce=DDD&ok=1')).toBe('body was ck[]=***&ck%5B%5D=***&k=***&nonce=***&ok=1');
+        expect(scrubConfirmationSecrets('You cannot confirm this trade right now. Try again in 5 minutes.'))
+            .toBe('You cannot confirm this trade right now. Try again in 5 minutes.');
+        expect(scrubConfirmationSecrets('HTTP error 429')).toBe('HTTP error 429');
+        clean(confirmationErrorMessage(redirectLoop('ajaxop')));
+    });
+
+    it('a list error that quotes the signed URL is shown without the key', async () => {
+        const community = client((_options, callback) => callback(redirectLoop('getlist')));
+        const error: Error = await fetchConfirmations(community, SECRET).then(() => { throw new Error('must reject'); }, e => e);
+        expect(error.message).toContain('redirect loop');
+        expect(error.message).toContain('https://steamcommunity.com/mobileconf/getlist');
+        clean(error.message);
+    });
+
+    it('fallback rows that were never sent do not inherit the signed URL of another row', async () => {
+        jest.useFakeTimers();
+        let call = 0;
+        const community = client((_options, callback) => {
+            call += 1;
+            // 1: Steam refuses the batch -> individual fallback; 2: the first single request dies quoting its URL.
+            if (call === 1) return callback(null, { statusCode: 200 }, { success: false, message: 'Batch refused' });
+            return callback(redirectLoop('ajaxop'));
+        });
+        const pending = respondToConfirmations(community, SECRET, [ref('1'), ref('2'), ref('3')], true);
+        await jest.advanceTimersByTimeAsync(5000);
+        const results = await pending;
+
+        expect(community.httpRequest).toHaveBeenCalledTimes(2);
+        expect(results.map(r => r.ok)).toEqual([false, false, false]);
+        expect(results[0]).toMatchObject({ unknown: true });
+        expect(results[1]).toMatchObject({ notSent: true });
+        expect(results[2]).toMatchObject({ notSent: true });
+        for (const result of results) clean(result.message);
+        expect(results[1].message).toContain('redirect loop');
+    });
+
+    it('a Steam message that happens to contain a link keeps the link but loses its query', async () => {
+        const community = client((_options, callback) => callback(null, { statusCode: 200 }, { success: false, message: 'See https://help.steampowered.com/en/faqs/view/1?token=abc for details' }));
+        await expect(fetchConfirmations(community, SECRET)).rejects.toThrow('See https://help.steampowered.com/en/faqs/view/1 for details');
+    });
 });
