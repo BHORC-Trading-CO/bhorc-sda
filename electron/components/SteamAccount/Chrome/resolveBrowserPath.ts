@@ -108,7 +108,8 @@ export interface ResolveBrowserDeps {
   bundledPath: string | undefined;
   fetchText: (url: string) => Promise<string>;
   download: (url: string, destFile: string) => Promise<void>;
-  extract: (archive: string, destDir: string) => Promise<void>;
+  /** signal срабатывает, когда распаковку бросили по таймауту: её нужно остановить, если это возможно. */
+  extract: (archive: string, destDir: string, signal?: AbortSignal) => Promise<void>;
   /** Сколько ждать распаковку. Битый архив extract-zip может не закончить никогда. */
   extractTimeoutMs: number;
 }
@@ -133,9 +134,13 @@ export interface NetworkOptions {
 const defaultNetwork = (): NetworkOptions => ({ get: https.get as unknown as HttpGet, idleTimeoutMs: NETWORK_IDLE_TIMEOUT_MS });
 
 /**
- * GET с редиректами и таймаутом простоя. Без таймаута оборванное без RST соединение (сон,
- * смена сети, VPN) не завершилось бы никогда, а скачивание одно на все запуски браузера —
- * зависли бы все аккаунты до перезапуска приложения.
+ * GET с редиректами и двумя таймаутами. Без них оборванное без RST соединение (сон, смена сети,
+ * VPN) не завершилось бы никогда, а скачивание одно на все запуски браузера — зависли бы все
+ * аккаунты до перезапуска приложения.
+ *
+ * - до заголовков ответа — обычный таймер: таймаут сокета начинает считать только после
+ *   соединения и зависший DNS или connect не ловит;
+ * - после заголовков — таймаут простоя сокета: тело может качаться минутами, важно, чтобы шло.
  */
 export function httpsGet(
   url: string,
@@ -144,23 +149,37 @@ export function httpsGet(
   redirectsLeft = 5,
   network: NetworkOptions = defaultNetwork()
 ) {
-  let req;
+  const timeoutError = () =>
+    new Error(t("errors.chromium.timeout", { url, seconds: Math.round(network.idleTimeoutMs / 1000) }));
+  // Шаг, с которого ушли по редиректу, больше ничего не решает: его таймаут и его ошибки
+  // не должны обрывать уже идущее скачивание со следующего адреса.
+  let retired = false;
+  let headersTimer: ReturnType<typeof setTimeout> | undefined;
+  let req: ReturnType<HttpGet>;
   try {
     req = network.get(url, (res) => {
+      clearTimeout(headersTimer);
       const status = res.statusCode || 0;
       if (status >= 300 && status < 400 && res.headers.location) {
+        retired = true;
         res.resume();
-        if (redirectsLeft <= 0) return reject(new Error(t("errors.chromium.tooManyRedirects", { url })));
+        if (redirectsLeft <= 0) {
+          req.destroy();
+          return reject(new Error(t("errors.chromium.tooManyRedirects", { url })));
+        }
         let next: string;
         try {
           // Location бывает относительным.
           next = new URL(res.headers.location, url).toString();
         } catch (err) {
+          req.destroy();
           return reject(err);
         }
+        req.destroy();
         return httpsGet(next, onResponse, reject, redirectsLeft - 1, network);
       }
       if (status !== 200) {
+        retired = true;
         res.resume();
         return reject(new Error(t("errors.chromium.httpStatus", { url, status })));
       }
@@ -171,10 +190,16 @@ export function httpsGet(
     // внутри колбэка ответа — без этого исключение ушло бы мимо промиса.
     return reject(err);
   }
+  headersTimer = setTimeout(() => {
+    if (!retired) req.destroy(timeoutError());
+  }, network.idleTimeoutMs);
   req.setTimeout(network.idleTimeoutMs, () => {
-    req.destroy(new Error(t("errors.chromium.timeout", { url, seconds: Math.round(network.idleTimeoutMs / 1000) })));
+    if (!retired) req.destroy(timeoutError());
   });
-  req.on("error", reject);
+  req.on("error", (err: unknown) => {
+    clearTimeout(headersTimer);
+    if (!retired) reject(err);
+  });
 }
 
 function defaultFetchText(url: string): Promise<string> {
@@ -217,7 +242,20 @@ export function saveResponseToFile(res: any, destFile: string): Promise<void> {
 
 function defaultDownload(url: string, destFile: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    httpsGet(url, (res) => saveResponseToFile(res, destFile).then(resolve, reject), reject);
+    // Когда тело уже пишется, исход решает только запись: она закрывает файл и лишь потом
+    // сообщает об ошибке. Ошибка запроса пришла бы раньше, и временную папку начали бы
+    // убирать при ещё открытом файле.
+    let writing = false;
+    httpsGet(
+      url,
+      (res) => {
+        writing = true;
+        saveResponseToFile(res, destFile).then(resolve, reject);
+      },
+      (err) => {
+        if (!writing) reject(err);
+      }
+    );
   });
 }
 
@@ -226,19 +264,21 @@ function defaultDownload(url: string, destFile: string): Promise<void> {
  * который корректно переносит бандл .app вместе с правами и ad-hoc подписью.
  * Без валидной подписи arm64-бинарник просто не запустится.
  */
-export function extractArchive(archive: string, destDir: string): Promise<void> {
+export function extractArchive(archive: string, destDir: string, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (process.platform !== "darwin") {
       // На Windows и Linux ditto нет; extract-zip сохраняет права из архива (бит
       // исполнения у chrome на Linux) и не зависит от того, что стоит в системе.
-      // require здесь, а не наверху: модуль нужен только в этой ветке.
+      // Остановить его нельзя: при отмене он может ещё дописывать файлы в свою папку,
+      // поэтому у каждой попытки папка своя, а брошенные убираются перед следующим скачиванием.
       const extractZip = require("extract-zip");
       return extractZip(archive, { dir: destDir }, (err: Error | undefined) => {
         if (err) return reject(err);
         resolve();
       });
     }
-    execFile("/usr/bin/ditto", ["-x", "-k", archive, destDir], (err) => {
+    // signal убивает процесс ditto, если распаковку отменили по таймауту.
+    execFile("/usr/bin/ditto", ["-x", "-k", archive, destDir], { signal }, (err) => {
       if (err) return reject(err);
       resolve();
     });
@@ -282,7 +322,13 @@ function findCachedBinary(cacheRoot: string, binaryInsideArchive: string): strin
   return null;
 }
 
-/** Убирает всё из кеша, кроме указанной ревизии: брошенные распаковки и старые сборки. */
+const PARTIAL_DIR = /^\d+\.partial-/;
+
+/**
+ * Убирает из кеша лишнее. Брошенные распаковки («<ревизия>.partial-…») — всегда. Папки ревизий —
+ * только когда есть чем их заменить (keep): пока новая сборка не встала на место, старую не
+ * трогаем, даже если сейчас она выглядит негодной.
+ */
 async function pruneCache(cacheRoot: string, keep: string | null): Promise<void> {
   let entries: string[] = [];
   try {
@@ -291,8 +337,8 @@ async function pruneCache(cacheRoot: string, keep: string | null): Promise<void>
     return;
   }
   for (const entry of entries) {
-    if (entry === keep) continue;
-    if (!REVISION_DIR.test(entry) && !entry.includes(PARTIAL_MARK)) continue;
+    const stale = PARTIAL_DIR.test(entry) || (keep !== null && entry !== keep && REVISION_DIR.test(entry));
+    if (!stale) continue;
     // Не получилось убрать (файл занят) — не повод не запускать браузер.
     await fsp.rm(path.join(cacheRoot, entry), { recursive: true, force: true }).catch(() => undefined);
   }
@@ -368,6 +414,7 @@ async function resolveOnce(deps: ResolveBrowserDeps): Promise<string> {
 
   await fsp.mkdir(deps.cacheRoot, { recursive: true });
   // Брошенные распаковки прошлых запусков: место занимают, а готовыми не станут.
+  // Папки ревизий здесь не трогаем: заменить их пока нечем.
   await pruneCache(deps.cacheRoot, null);
 
   const revisionDir = path.join(deps.cacheRoot, revision);
@@ -385,10 +432,14 @@ async function resolveOnce(deps: ResolveBrowserDeps): Promise<string> {
       tmpArchive
     );
     await fsp.mkdir(partialDir, { recursive: true });
+    const abortExtract = new AbortController();
     await withTimeout(
-      deps.extract(tmpArchive, partialDir),
+      deps.extract(tmpArchive, partialDir, abortExtract.signal),
       deps.extractTimeoutMs,
-      () => new Error(t("errors.chromium.extractTimeout", { minutes: Math.max(1, Math.round(deps.extractTimeoutMs / 60_000)) }))
+      () => {
+        abortExtract.abort();
+        return new Error(t("errors.chromium.extractTimeout", { minutes: Math.max(1, Math.round(deps.extractTimeoutMs / 60_000)) }));
+      }
     );
 
     if (!fs.existsSync(path.join(partialDir, snapshot.binaryInsideArchive))) {

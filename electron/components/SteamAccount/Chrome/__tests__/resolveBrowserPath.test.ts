@@ -517,3 +517,113 @@ describe("saveResponseToFile", () => {
     await expect(done).resolves.toBeUndefined();
   });
 });
+
+// Второй проход ревью.
+describe("httpsGet - зависание до соединения и хвост редиректа", () => {
+  const servers: http.Server[] = [];
+  const serve = (handler: http.RequestListener) =>
+    new Promise<string>((resolve) => {
+      const server = http.createServer(handler);
+      servers.push(server);
+      server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server.address() as any).port}`));
+    });
+  afterEach(() => {
+    for (const server of servers.splice(0)) {
+      (server as any).closeAllConnections?.();
+      server.close();
+    }
+  });
+
+  it("запрос, у которого так и не появилось соединение (зависший DNS или connect), обрывается по таймеру", async () => {
+    const destroyed: unknown[] = [];
+    const listeners: Record<string, Function> = {};
+    // Запрос без сокета: таймаут сокета тут не сработал бы никогда.
+    const stuckRequest = {
+      setTimeout: jest.fn(),
+      destroy: jest.fn((err: unknown) => { destroyed.push(err); listeners.error?.(err); }),
+      on: jest.fn((event: string, handler: Function) => { listeners[event] = handler; }),
+    };
+    const get = jest.fn(() => stuckRequest) as any;
+
+    const error: Error = await new Promise((resolve) => httpsGet("https://example.invalid/LAST_CHANGE", () => undefined, resolve, 5, { get, idleTimeoutMs: 60 }));
+
+    expect(error.message).toMatch(/Нет данных/);
+    expect(destroyed).toHaveLength(1);
+  });
+
+  it("оставшийся от редиректа запрос со зависшим телом не обрывает идущее скачивание", async () => {
+    const url = await serve((req, res) => {
+      if (req.url === "/go") {
+        res.writeHead(302, { Location: "/slow", "Content-Length": "100000" });
+        return void res.write("redirect body that never ends");
+      }
+      // Тело идёт дольше таймаута простоя, но без пауз длиннее него.
+      res.writeHead(200);
+      let sent = 0;
+      const timer = setInterval(() => {
+        res.write("chunk");
+        if (++sent === 14) { clearInterval(timer); res.end(); }
+      }, 50);
+    });
+
+    // Тело идёт ~700 мс при таймауте 400 мс: неснятый таймер первого запроса успел бы сработать.
+    const result = await new Promise((resolve, reject) =>
+      httpsGet(`${url}/go`, (res) => { res.resume(); res.on("end", () => resolve("ok")); res.on("error", reject); }, reject, 5, { get: http.get as any, idleTimeoutMs: 400 })
+    );
+
+    expect(result).toBe("ok");
+  });
+});
+
+describe("resolveBrowserPath - кеш до и после скачивания", () => {
+  const WIN_BINARY = path.join("chrome-win", "chrome.exe");
+
+  it("папку ревизии не удаляем, пока нет замены: неудачное скачивание оставляет кеш как был", async () => {
+    const cacheRoot = makeCacheRoot();
+    // Ревизия, чей бинарник сейчас не виден (антивирус, сбой чтения): выглядит негодной.
+    fs.mkdirSync(path.join(cacheRoot, "1500000", "chrome-win"), { recursive: true });
+    fs.writeFileSync(path.join(cacheRoot, "1500000", "chrome-win", "chrome.dll"), "");
+    fs.mkdirSync(path.join(cacheRoot, "1400000.partial-9-9"), { recursive: true });
+    const deps = makeDeps({
+      platform: "win32", arch: "x64", cacheRoot, bundledPath: undefined,
+      download: jest.fn(async () => { throw new Error("offline"); }),
+    });
+
+    await expect(resolveBrowserPath(deps)).rejects.toThrow(/offline/);
+
+    expect(fs.readdirSync(cacheRoot)).toEqual(["1500000"]); // брошенная распаковка убрана, ревизия цела
+    expect(fs.existsSync(path.join(cacheRoot, "1500000", "chrome-win", "chrome.dll"))).toBe(true);
+  });
+
+  it("зависшей распаковке посылается сигнал отмены", async () => {
+    const cacheRoot = makeCacheRoot();
+    let seen: AbortSignal | undefined;
+    const deps = makeDeps({
+      platform: "win32", arch: "x64", cacheRoot, bundledPath: undefined,
+      extract: jest.fn((_archive: string, _dest: string, signal?: AbortSignal) => { seen = signal; return new Promise<void>(() => undefined); }),
+      extractTimeoutMs: 40,
+    });
+
+    await expect(resolveBrowserPath(deps)).rejects.toThrow(/не завершилась/);
+
+    expect(seen).toBeDefined();
+    expect(seen!.aborted).toBe(true);
+  });
+
+  it("распаковка, уложившаяся в срок, сигнала отмены не получает", async () => {
+    const cacheRoot = makeCacheRoot();
+    let seen: AbortSignal | undefined;
+    const deps = makeDeps({
+      platform: "win32", arch: "x64", cacheRoot, bundledPath: undefined,
+      extract: jest.fn(async (_archive: string, destDir: string, signal?: AbortSignal) => {
+        seen = signal;
+        fs.mkdirSync(path.join(destDir, "chrome-win"), { recursive: true });
+        fs.writeFileSync(path.join(destDir, WIN_BINARY), "");
+      }),
+    });
+
+    await resolveBrowserPath(deps);
+
+    expect(seen!.aborted).toBe(false);
+  });
+});
