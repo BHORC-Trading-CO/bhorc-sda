@@ -14,6 +14,7 @@ import { initLanguage, localeToLanguage } from "../language/languageManager";
 import { setMainLanguage, t } from "../../i18n";
 import languageListeners from "./listenersRouters/languageListenersRouter";
 import type AccountImages from "../Images/accountImages";
+import backgroundMode from "../AppSettings/backgroundMode";
 
 class Application {
   object: App;
@@ -35,13 +36,10 @@ class Application {
   }
 
   firstStage(cb: () => void) {
-    const isPrimary = ensureSingleInstance(app, () => {
-      const win = this.windowsManager.mainWindow;
-      if (!win) return;
-      if (win.isMinimized()) win.restore();
-      win.focus();
-    });
+    // Второй запуск поднимает и окно, спрятанное в трей (SDA-35).
+    const isPrimary = ensureSingleInstance(app, () => backgroundMode.revealMainWindow());
     if (!isPrimary) return;
+    backgroundMode.install();
     app.on("ready", async () => {
       if (!areDataPathsPinned(app.getPath("userData"), getCreatedStorePaths())) {
         // Хранилище открыто не там, поэтому язык из него не читаем и не сохраняем — только язык системы.
@@ -56,7 +54,10 @@ class Application {
       // Обработчики языка — до окна и до Manager.Load(): preload ждёт ответа sendSync,
       // и если загрузка данных упадёт, окно не должно зависнуть без ответа.
       languageListeners();
-      this.windowsManager.createMain();
+      // После языка: подписи меню трея. Без значка в трее окно показывается всегда.
+      const { startHidden } = backgroundMode.prepareStartup(process.argv);
+      this.windowsManager.createMain(!startHidden);
+      backgroundMode.attachMainWindow(this.windowsManager.mainWindow!);
       //this.decrypt(cb);
       this.secondStage(cb);
     });

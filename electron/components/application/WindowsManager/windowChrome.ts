@@ -34,3 +34,15 @@ export function windowIcon(platform: NodeJS.Platform, kind: AppWindowKind): stri
     const file = platform === 'win32' ? 'icon.ico' : kind === 'confirmations' ? 'confirmationsIcon.png' : 'newIcon.png';
     return path.join(__dirname, '../renderer/assets', file);
 }
+
+/**
+ * Значок в трее (SDA-35), из той же папки assets, что и иконки окон (scripts/make-icons.mjs):
+ * - Windows: icon.ico — Windows берёт из него 16 px (32 px при масштабе 200 %), знак там крупнее;
+ * - macOS: trayTemplate.png (+ @2x подхватывается сам) — шаблонная картинка, система красит её
+ *   под светлую или тёмную полосу меню;
+ * - Linux: tray.png 32 px — плитка, видна и на светлой, и на тёмной панели.
+ */
+export function trayIcon(platform: NodeJS.Platform): string {
+    const file = platform === 'win32' ? 'icon.ico' : platform === 'darwin' ? 'trayTemplate.png' : 'tray.png';
+    return path.join(__dirname, '../renderer/assets', file);
+}

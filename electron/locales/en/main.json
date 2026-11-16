@@ -9,6 +9,10 @@
       "button": "Choose folder"
     }
   },
+  "tray": {
+    "show": "Show window",
+    "quit": "Quit"
+  },
   "errors": {
     "browserRouteChanged": "The proxy route changed. Affected account browsers were stopped; start them again to use the new route.",
     "browserCloseTimeout": "The browser did not close in time. Its process was forcibly stopped.",
@@ -82,6 +86,10 @@
       "invalidProxyAddress": "Invalid proxy address",
       "missingCredentials": "Account login or password is missing",
       "invalidFamilyViewPin": "Invalid familyViewPin"
+    },
+    "appSettings": {
+      "invalid": "Settings were not saved: unexpected values.",
+      "loginItem": "Could not change system startup: {{error}}"
     }
   }
 }
