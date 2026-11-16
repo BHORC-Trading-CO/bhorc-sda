@@ -46,3 +46,41 @@
     flex-shrink: 0;
     color: var(--sda-text-subtle);
 }
+
+/* Слот крестика (SDA-37): размер постоянный, поэтому поле и текст не сдвигаются, когда кнопка появляется */
+.search-clear-slot {
+    display: inline-flex;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+/* Крестик очистки — настоящая кнопка: фокус с клавиатуры, имя для скринридера */
+.search-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: var(--sda-radius-sm);
+    background: transparent;
+    color: var(--sda-text-subtle);
+    cursor: pointer;
+    transition: color var(--sda-transition), background-color var(--sda-transition);
+}
+
+.search-clear:hover {
+    color: var(--sda-text);
+    background: var(--sda-surface-4);
+}
+
+.search-clear:focus {
+    outline: none;
+}
+
+.search-clear:focus-visible {
+    color: var(--sda-text);
+    box-shadow: var(--sda-focus-ring);
+}

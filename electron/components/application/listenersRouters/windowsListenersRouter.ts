@@ -8,11 +8,13 @@ import closeAuthWindowListener from '../WindowsManager/windowsListeners/closeAut
 import closeErrorWindowListener from '../WindowsManager/windowsListeners/closeErrorWindowListener';
 import getProfileParams from '../WindowsManager/windowsListeners/getProfileParams';
 import setSecretKeyListener from '../WindowsManager/windowsListeners/setSecretKeyListener';
+import openDataFolderListener from '../WindowsManager/windowsListeners/openDataFolderListener';
 
 export default () => {
     //main window
     onTrusted(WindowsChannels.GET_PROFILE_PARAMS, getProfileParams);
     onTrusted(WindowsChannels.CLOSE_MAIN_WINDOW, closeMainWindowListener);
+    onTrusted(WindowsChannels.OPEN_DATA_FOLDER, openDataFolderListener);
 
     //ask window
     onTrusted(WindowsChannels.CLOSE_ASK_WINDOW, closeAskWindowListener);
