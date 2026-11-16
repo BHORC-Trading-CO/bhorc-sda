@@ -4,7 +4,9 @@ import application from "./components/application/application";
 import { installRendererEgress } from "./components/application/rendererEgress";
 import { getAppEntries } from "./components/application/appEntries";
 import registerImageListeners from "./components/Images/imageListeners";
+import { disableSecureDns } from "./components/application/secureDns";
 
+disableSecureDns();
 installRendererEgress(getAppEntries());
 registerImageListeners();
 application.firstStage(()=>{
