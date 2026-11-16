@@ -2,7 +2,7 @@ import GroupInterface from '../../interfaces/Group/GroupInterface';
 import CompiledGroupInterface from '../../interfaces/Group/CompiledGroupInterface';
 import Group from './Group';
 import GroupStorage from '../newStorage/GroupStorage';
-import Manager from '../manager/manager';
+import Manager from '../Manager/Manager';
 import application from '../application/application';
 import GroupChannels from '../../interfaces/IpcChannels/GroupChannels';
 

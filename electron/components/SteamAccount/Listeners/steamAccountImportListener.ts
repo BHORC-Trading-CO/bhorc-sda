@@ -1,5 +1,5 @@
 import SmaFileInterface from "../../../interfaces/SteamAccount/SmaFileInterface";
-import Manager from "../../manager/manager";
+import Manager from "../../Manager/Manager";
 import steamAccountImport from "../Processes/steamAccountImport";
 import steamAccountManager from "../steamAccountManager";
 import proxyManager from "../../Proxy/proxyManager";

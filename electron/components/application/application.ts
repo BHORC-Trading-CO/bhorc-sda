@@ -1,4 +1,4 @@
-import Manager from "../manager/manager";
+import Manager from "../Manager/Manager";
 import WindowsManager from "./WindowsManager/WindowsManager";
 import listeners from "./listenersRouters/listenersRouters";
 import { app, App, dialog } from "electron";

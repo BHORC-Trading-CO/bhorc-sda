@@ -3,7 +3,7 @@ import Group from '../../Group/Group';
 import groupManager from '../../Group/groupManager';
 import GroupStorage from '../../newStorage/GroupStorage';
 import steamAccountManager from '../../SteamAccount/steamAccountManager';
-import Manager from '../../manager/manager';
+import Manager from '../../Manager/Manager';
 import GroupChannels from '../../../interfaces/IpcChannels/GroupChannels';
 import GroupSetupInterface from '../../../interfaces/Group/GroupSetupInterface';
 

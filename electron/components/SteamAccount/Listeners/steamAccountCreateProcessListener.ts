@@ -1,6 +1,6 @@
 import SuperMethods from "../../SuperMethods/SuperMethods";
 import steamAccountManager from "../steamAccountManager";
-import Manager from "../../manager/manager";
+import Manager from "../../Manager/Manager";
 import maFileLogin from '../Processes/maFileLogin';
 import SteamAccountSetupInterface from "../../../interfaces/SteamAccount/SteamAccountSetupInterface";
 import steamAccountImport from "../Processes/steamAccountImport";

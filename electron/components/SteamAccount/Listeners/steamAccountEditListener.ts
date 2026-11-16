@@ -1,5 +1,5 @@
 import TableSteamAccountInterface from "../../../interfaces/SteamAccount/TableSteamAccountInterface";
-import Manager from "../../manager/manager";
+import Manager from "../../Manager/Manager";
 import steamAccountManager from "../steamAccountManager";
 import { t } from "../../../i18n";
 

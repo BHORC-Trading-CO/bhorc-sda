@@ -16,7 +16,7 @@ stealth.enabledEvasions.delete("iframe.contentWindow");
 puppeteer.use(stealth);
 import { app } from "electron";
 import SteamAccountInterface from "../../../interfaces/SteamAccount/SteamAccountInterface";
-import Manager from "../../manager/manager";
+import Manager from "../../Manager/Manager";
 import buildProxyUrl from "../../Proxy/proxyUrl";
 import ProxyUnavailableError from "../../Proxy/ProxyUnavailableError";
 import { t } from "../../../i18n";

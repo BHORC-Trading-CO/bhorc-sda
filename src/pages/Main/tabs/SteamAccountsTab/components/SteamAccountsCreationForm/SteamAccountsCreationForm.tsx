@@ -3,7 +3,7 @@ import { observer } from 'mobx-react';
 import MiniWindow from '../../../../components/MiniWindow/MiniWindow';
 import store from '../../../../../../store/store';
 import './steamAccountsCreationForm.css';
-import './SteamDataForm.css';
+import './steamDataForm.css';
 import DataFillingForm from './components/DataFilling/DataFilling';
 import AccountCreation from './components/AccountCreation/AccountCreation';
 import GuardSetup from './components/GuardSetup/GuardSetup';

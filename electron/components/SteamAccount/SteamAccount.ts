@@ -17,7 +17,7 @@ import ProxyUnavailableError from "../Proxy/ProxyUnavailableError";
 import { blockedAgent, blockedSession } from "../Proxy/blockedTransport";
 import { ProxyState } from "../../interfaces/Proxy/ProxyState";
 import request from "request";
-import Manager from "../manager/manager";
+import Manager from "../Manager/Manager";
 import askFamilyPin from "../application/askInfo/askFamilyPin";
 import Chrome from './Chrome/Chrome';
 import { EAuthSessionGuardType, EAuthTokenPlatformType, LoginSession } from "steam-session";

@@ -25,7 +25,7 @@ jest.mock("../../newStorage/cryptoUserData", () => ({
     default: { encryptObject: jest.fn((value: unknown) => value), decryptObject: jest.fn((value: unknown) => value) },
 }));
 jest.mock("../Chrome/Chrome", () => jest.fn());
-jest.mock("../../manager/manager", () => ({
+jest.mock("../../Manager/Manager", () => ({
     __esModule: true,
     default: { GetSteamAccountLinkedData: () => ({ proxy: null, proxyState: "none", proxyId: null }) },
 }));
