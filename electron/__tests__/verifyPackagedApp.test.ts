@@ -2,7 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
-const { findPackagedAppDirs, verify } = require("../../scripts/verifyPackagedApp");
+const { findPackagedAppDirs, verify, targetOf, expectedBundledBrowser } = require("../../scripts/verifyPackagedApp");
 const externals: string[] = require("../../webpack/externals");
 const outDir = path.resolve(__dirname, "..", "..", "out");
 const temporaryDirs: string[] = [];
@@ -73,5 +73,67 @@ describe("проверка сборки BHORC SDA", () => {
 
     fs.mkdirSync(path.join(appDir, "node_modules", ".bin"));
     expect(verify(appDir)).toEqual([expect.stringContaining("лишняя папка .bin")]);
+  });
+});
+
+// SDA-30: node-chromium глотает ошибку скачивания, и сборка выходила без chrome.exe.
+describe("браузер Chromium в сборке", () => {
+  function makeTargetFixture(target: string, relativeAppDir: string) {
+    const appDir = path.join(makeFixture(), `BHORC SDA-${target}`, relativeAppDir);
+    fs.mkdirSync(appDir, { recursive: true });
+    seedExternals(appDir);
+    return appDir;
+  }
+
+  function seedBrowser(appDir: string, binaryInsideLib: string) {
+    const binary = path.join(appDir, "node_modules", "chromium", "lib", "chromium", binaryInsideLib);
+    fs.mkdirSync(path.dirname(binary), { recursive: true });
+    fs.writeFileSync(binary, "");
+  }
+
+  it("определяет платформу сборки по пути", () => {
+    expect(targetOf(path.join("out", "BHORC SDA-win32-x64", "resources", "app"))).toBe("win32-x64");
+    expect(
+      targetOf(path.join("out", "BHORC SDA-darwin-arm64", "BHORC SDA.app", "Contents", "Resources", "app"))
+    ).toBe("darwin-arm64");
+    expect(targetOf(path.join(os.tmpdir(), "somewhere", "app"))).toBeNull();
+  });
+
+  it("знает, какой бинарник нужен каждой платформе", () => {
+    expect(expectedBundledBrowser("win32-x64")).toBe(path.join("chrome-win", "chrome.exe"));
+    expect(expectedBundledBrowser("linux-x64")).toBe(path.join("chrome-linux", "chrome"));
+    expect(expectedBundledBrowser("darwin-x64")).toBe(
+      path.join("chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium")
+    );
+    // Apple Silicon качает нативную сборку при первом запуске.
+    expect(expectedBundledBrowser("darwin-arm64")).toBeNull();
+    expect(expectedBundledBrowser(null)).toBeNull();
+  });
+
+  it.each([
+    ["win32-x64", path.join("chrome-win", "chrome.exe")],
+    ["linux-x64", path.join("chrome-linux", "chrome")],
+  ])("сборка %s без браузера не проходит, с браузером проходит", (target, binary) => {
+    const appDir = makeTargetFixture(target, path.join("resources", "app"));
+
+    expect(verify(appDir)).toEqual([expect.stringContaining("нет браузера Chromium")]);
+
+    seedBrowser(appDir, binary);
+    expect(verify(appDir)).toEqual([]);
+  });
+
+  it("браузер другой платформы не засчитывается", () => {
+    const appDir = makeTargetFixture("win32-x64", path.join("resources", "app"));
+    seedBrowser(appDir, path.join("chrome-linux", "chrome"));
+
+    expect(verify(appDir)).toEqual([expect.stringContaining("нет браузера Chromium")]);
+  });
+
+  it("сборке darwin-arm64 браузер из пакета не нужен", () => {
+    const appDir = makeTargetFixture(
+      "darwin-arm64",
+      path.join("BHORC SDA.app", "Contents", "Resources", "app")
+    );
+    expect(verify(appDir)).toEqual([]);
   });
 });

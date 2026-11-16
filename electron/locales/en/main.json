@@ -53,7 +53,11 @@
     "chromium": {
       "tooManyRedirects": "Too many redirects: {{url}}",
       "httpStatus": "{{url}} responded with {{status}}",
-      "revision": "Failed to determine the Chromium revision for arm64: got \"{{revision}}\"",
+      "revision": "Failed to determine the Chromium revision for {{branch}}: got \"{{revision}}\"",
+      "timeout": "No data from {{url}} for {{seconds}} s",
+      "sizeMismatch": "The Chromium download is incomplete: {{got}} of {{expected}} bytes",
+      "extractTimeout": "Unpacking the Chromium archive did not finish in {{minutes}} min",
+      "bundledMissing": "This build has no Chromium browser for {{platform}} and there is no download for this platform.",
       "binaryMissing": "The downloaded Chromium archive has no executable: {{binary}}"
     },
     "browser": {
