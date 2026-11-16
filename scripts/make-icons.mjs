@@ -3,7 +3,11 @@
 //   assets/icon.png 1024 и assets/icon.icns (iconutil, только macOS) — сетка macOS: плитка 824 из 1024 с тенью;
 //   assets/icon.ico 16–256 — плитка почти во весь квадрат, записи PNG;
 //   assets/newIcon.png и assets/confirmationsIcon.png 512 — иконки окон (windowsConfig.ts, WindowsManager.ts),
-//   у окна подтверждений циановый значок с галочкой.
+//   у окна подтверждений циановый значок с галочкой;
+//   assets/tray.png 32 — значок в трее Linux (плитка как у ico до 32 px; Windows берёт сам icon.ico);
+//   assets/trayTemplate.png 16 и trayTemplate@2x.png 32 — значок в полосе меню macOS: только знак,
+//   чёрный на прозрачном. «Template» в имени файла — шаблонная картинка: цвет под светлую или тёмную
+//   полосу меню подставляет система (windowChrome.ts, trayIcon).
 // forge.config.js указывает icon: "assets/icon", packager дописывает .icns на macOS и .ico на Windows.
 // Плитка — тёмный скруглённый квадрат (суперэллипс) с градиентом #27272a → #09090b, знак на 62 % её размера;
 // до 32 px знак крупнее (80 %) и плитка без полей, иначе «S» в 16 px не читается.
@@ -96,6 +100,18 @@ ${badgeSvg}
 
 const render = (size, opts) => sharp(Buffer.from(tileSvg(size, opts))).png({ compressionLevel: 9 }).toBuffer();
 
+/**
+ * Шаблонная картинка для полосы меню macOS: знак без плитки, все части чёрные (система смотрит
+ * только на прозрачность). Белые части заходят под циановую планку, поэтому слитый знак без швов.
+ * viewBox обрезан до знака с полями 2 из 64: в 16 px «S» занимает всю ширину.
+ */
+function trayTemplateSvg(size) {
+    const shapes = markInner.replace(/fill="[^"]*"/g, 'fill="#000"');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="2 2 60 60">${shapes}</svg>`;
+}
+
+const renderTrayTemplate = (size) => sharp(Buffer.from(trayTemplateSvg(size))).png({ compressionLevel: 9 }).toBuffer();
+
 /** ICO с PNG-записями (Windows Vista+): каталог из 16-байтных записей, затем сами PNG. */
 function buildIco(images) {
     const header = Buffer.alloc(6 + 16 * images.length);
@@ -128,6 +144,9 @@ async function main() {
     const icoImages = [];
     for (const size of ICO_SIZES) icoImages.push({ size, png: await render(size) });
     write("icon.ico", buildIco(icoImages));
+    write("tray.png", await render(32));
+    write("trayTemplate.png", await renderTrayTemplate(16));
+    write("trayTemplate@2x.png", await renderTrayTemplate(32));
 
     if (process.platform !== "darwin") {
         console.warn("assets/icon.icns skipped: iconutil is macOS only");

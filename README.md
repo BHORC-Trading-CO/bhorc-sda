@@ -9,6 +9,7 @@ BHORC SDA is an open-source desktop app for managing many Steam accounts and the
 - Isolated browser profiles with fingerprints configured for each proxy's geographic location.
 - Account groups and bulk proxy import.
 - maFile import.
+- Optional background mode (Settings page): keep running in the tray (the menu bar on macOS) after the window is closed, and launch at system startup on Windows and macOS.
 
 ## Status
 

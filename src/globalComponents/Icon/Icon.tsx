@@ -35,6 +35,7 @@ import {
   Puzzle,
   RefreshCw,
   Search,
+  Settings,
   ShieldAlert,
   ShieldCheck,
   ShoppingCart,
@@ -65,7 +66,9 @@ export type IconName =
   // Тип подтверждения на плитке (SellItem): обмен и лот на рынке.
   | "arrowLeftRight" | "tag"
   // SDA-7: покупка на рынке, Web API-ключ, безопасность аккаунта, возврат средств.
-  | "shoppingCart" | "key" | "shieldAlert" | "undo";
+  | "shoppingCart" | "key" | "shieldAlert" | "undo"
+  // Раздел Settings (трей и автозапуск, SDA-35/36).
+  | "settings";
 
 export type IconSize = 13 | 14 | 16 | 18 | 20;
 
@@ -116,6 +119,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   archiveRestore: ArchiveRestore,
   arrowLeftRight: ArrowLeftRight,
   tag: Tag,
+  settings: Settings,
   shoppingCart: ShoppingCart,
   key: KeyRound,
   shieldAlert: ShieldAlert,

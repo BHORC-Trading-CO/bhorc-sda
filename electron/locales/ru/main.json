@@ -9,6 +9,10 @@
       "button": "Выбрать папку"
     }
   },
+  "tray": {
+    "show": "Показать окно",
+    "quit": "Выйти"
+  },
   "errors": {
     "confirmations": {
       "network": "Ошибка сети ({{code}})",
@@ -100,6 +104,10 @@
       "invalidProxyAddress": "Неправильный адрес прокси",
       "missingCredentials": "Не указаны логин или пароль аккаунта",
       "invalidFamilyViewPin": "Неправильный familyViewPin"
+    },
+    "appSettings": {
+      "invalid": "Настройки не сохранены: неожиданные значения.",
+      "loginItem": "Не удалось изменить автозапуск: {{error}}"
     }
   }
 }
