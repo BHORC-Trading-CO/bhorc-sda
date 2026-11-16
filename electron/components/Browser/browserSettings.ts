@@ -21,6 +21,7 @@ export const MAX_START_LINK_LENGTH = 2048;
 export const DEFAULT_BROWSER_SETTINGS: BrowserSettingsInterface = {
     startLinks: [DEFAULT_START_LINK],
     extensions: [],
+    restoreTabs: false,
 };
 
 /** Только абсолютные http(s)-адреса с хостом, без пробелов и управляющих символов. */
@@ -202,7 +203,8 @@ export function sanitizeBrowserSettings(raw: unknown): BrowserSettingsInterface 
             .filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && typeof (item as any).path === "string")
             .map((item) => ({ path: item.path as string, enabled: item.enabled !== false }))
         : [];
-    return { startLinks, extensions };
+    // Ключа нет (сохранено до SDA-33) или не true — выключено.
+    return { startLinks, extensions, restoreTabs: value.restoreTabs === true };
 }
 
 /** Для страницы: к каждому расширению — имя, версия и состояние папки сейчас. */
@@ -217,7 +219,7 @@ export function buildBrowserSettingsView(settings: BrowserSettingsInterface): Br
             status: info.problem === "missing" ? "missing" : "invalid",
         };
     });
-    return { startLinks: [...settings.startLinks], extensions };
+    return { startLinks: [...settings.startLinks], extensions, restoreTabs: settings.restoreTabs };
 }
 
 function extensionProblemText(problem: ExtensionDirProblem, folder: string): string {
@@ -237,6 +239,8 @@ const extensionsError = (message: string): SettingsUpdate => ({ ok: false, error
  * в нативном диалоге (addExtensionDir), поэтому путь, которого нет в списке, — отказ, даже если
  * папка правильная: renderer не может подсунуть свою. Уже сохранённое остаётся, даже если папку
  * с тех пор удалили, — чтобы его можно было увидеть и убрать.
+ * Переключатель восстановления вкладок (SDA-33) стоит в блоке стартовых страниц: не булево — отказ
+ * там же; не прислан — остаётся сохранённое значение.
  */
 export function validateSettingsUpdate(incoming: unknown, current: BrowserSettingsInterface): SettingsUpdate {
     if (!incoming || typeof incoming !== "object") return linksError(t("errors.browser.invalidSettings"));
@@ -247,6 +251,8 @@ export function validateSettingsUpdate(incoming: unknown, current: BrowserSettin
         if (linksProblem.problem === "invalid") return linksError(t("errors.browser.invalidLink", { link: linksProblem.link }));
         return linksError(t("errors.browser.invalidSettings"));
     }
+    if (value.restoreTabs !== undefined && typeof value.restoreTabs !== "boolean") return linksError(t("errors.browser.invalidSettings"));
+    const restoreTabs = typeof value.restoreTabs === "boolean" ? value.restoreTabs : current.restoreTabs;
     if (!Array.isArray(value.extensions)) return extensionsError(t("errors.browser.invalidSettings"));
     const known = new Set(current.extensions.map((extension) => extension.path));
     const extensions: BrowserExtensionSetting[] = [];
@@ -261,7 +267,7 @@ export function validateSettingsUpdate(incoming: unknown, current: BrowserSettin
         }
         extensions.push(extension);
     }
-    return { ok: true, settings: { startLinks: [...(value.startLinks as string[])], extensions } };
+    return { ok: true, settings: { startLinks: [...(value.startLinks as string[])], extensions, restoreTabs } };
 }
 
 /**
@@ -280,6 +286,10 @@ export function addExtensionDir(dir: string, current: BrowserSettingsInterface):
     }
     return {
         ok: true,
-        settings: { startLinks: [...current.startLinks], extensions: [...current.extensions, { path: canonical, enabled: true }] },
+        settings: {
+            startLinks: [...current.startLinks],
+            extensions: [...current.extensions, { path: canonical, enabled: true }],
+            restoreTabs: current.restoreTabs,
+        },
     };
 }

@@ -8,6 +8,11 @@ export interface BrowserExtensionSetting {
 export default interface BrowserSettingsInterface {
     startLinks: string[];
     extensions: BrowserExtensionSetting[];
+    /**
+     * SDA-33: при запуске вернуть вкладки прошлого сеанса, стартовые страницы — только если ничего
+     * не вернулось. Выключено (по умолчанию, и у старых установок без ключа) — только стартовые страницы.
+     */
+    restoreTabs: boolean;
 }
 
 /** Состояние папки расширения сейчас: ok, папки/manifest.json нет, manifest не проходит проверку. */
@@ -32,4 +37,5 @@ export interface BrowserSettingsError {
 export interface BrowserSettingsView {
     startLinks: string[];
     extensions: BrowserExtensionView[];
+    restoreTabs: boolean;
 }

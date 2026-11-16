@@ -1,6 +1,6 @@
 // Стартовые ссылки и расширения со страницы Browser (SDA-6) в Chrome: флаги запуска,
 // опции puppeteer.launch и порядок вкладок. Браузер не запускается: puppeteer замокан.
-const mockSettings = { current: { startLinks: [] as string[], extensions: [] as { path: string; enabled: boolean }[] } };
+const mockSettings = { current: { startLinks: [] as string[], extensions: [] as { path: string; enabled: boolean }[], restoreTabs: false } };
 jest.mock("../../../newStorage/BrowserSettingsStorage", () => ({
     __esModule: true,
     default: { Get: () => mockSettings.current, Save: jest.fn() },
@@ -19,7 +19,12 @@ import fs from "fs";
 import fsp from "fs/promises";
 import os from "os";
 import path from "path";
-import Chrome from "../Chrome";
+import Chrome, {
+    isBlankTabUrl, isRestoredTabUrl, RESTORE_POLL_MS, RESTORE_WAIT_MS, SESSION_REMOVE_ATTEMPTS, sessionDiscardPrefix, SessionFolder,
+} from "../Chrome";
+
+const SESSION_DISCARD_PREFIX = sessionDiscardPrefix("Sessions");
+const ENCRYPTED_DISCARD_PREFIX = sessionDiscardPrefix("Sessions_Encrypted");
 import { DEFAULT_START_LINK } from "../../../Browser/browserSettings";
 
 const puppeteer = require("puppeteer-extra");
@@ -43,7 +48,7 @@ function makeChrome(id = "acc-browser") {
 let log: jest.SpyInstance;
 beforeEach(() => {
     log = jest.spyOn(console, "log").mockImplementation(() => {});
-    mockSettings.current = { startLinks: [DEFAULT_START_LINK], extensions: [] };
+    mockSettings.current = { startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: false };
 });
 afterEach(() => log.mockRestore());
 
@@ -90,41 +95,98 @@ describe("generateChromeFlags — расширения", () => {
     });
 });
 
-describe("Chrome.start — стартовые ссылки и опции запуска", () => {
-    type FakePage = {
-        goto: jest.Mock;
-        authenticate: jest.Mock;
-        evaluateOnNewDocument: jest.Mock;
-        setCookie: jest.Mock;
-        bringToFront: jest.Mock;
+type FakePage = {
+    goto: jest.Mock;
+    authenticate: jest.Mock;
+    evaluateOnNewDocument: jest.Mock;
+    setCookie: jest.Mock;
+    bringToFront: jest.Mock;
+    close: jest.Mock;
+    reload: jest.Mock;
+    target: () => { url: () => string };
+    url: () => string;
+};
+
+/**
+ * Поддельный браузер. pages — все вкладки по порядку появления: сначала те, что браузер открывает
+ * сам (initialTabs: его пустая вкладка и вкладки прошлого сеанса), потом открытые через newPage.
+ * Вкладки lateTabs браузер открывает уже после подписки плагинов: их нет в targets() на момент
+ * запуска, а в pages() они появляются с lateAfterPolls-го вызова.
+ */
+const fake = {
+    pages: [] as FakePage[],
+    gotoOrder: [] as string[],
+    /** Общий журнал вызовов всех вкладок: «<номер вкладки>:<метод>». */
+    calls: [] as string[],
+    initialTabs: ["about:blank"],
+    lateTabs: [] as string[],
+    lateAfterPolls: 0,
+    newPageCalls: 0,
+};
+
+function makePage(url = "about:blank"): FakePage {
+    const target = { url: () => url };
+    const index = fake.pages.length;
+    const record = (name: string) => jest.fn(async (...args: any[]) => {
+        fake.calls.push(`${index}:${name}`);
+        if (name === "goto") fake.gotoOrder.push(args[0]);
+    });
+    const page: FakePage = {
+        goto: record("goto"),
+        authenticate: record("authenticate"),
+        evaluateOnNewDocument: record("evaluateOnNewDocument"),
+        setCookie: record("setCookie"),
+        bringToFront: record("bringToFront"),
+        close: record("close"),
+        reload: record("reload"),
+        target: () => target,
+        url: () => url,
     };
+    fake.pages.push(page);
+    return page;
+}
+
+function installFakeBrowser() {
+    fake.pages = [];
+    fake.gotoOrder = [];
+    fake.calls = [];
+    fake.initialTabs = ["about:blank"];
+    fake.lateTabs = [];
+    fake.lateAfterPolls = 0;
+    fake.newPageCalls = 0;
+    puppeteer.launch = jest.fn(async () => {
+        const own = fake.initialTabs.map((url) => makePage(url));
+        const late = fake.lateTabs.map((url) => makePage(url));
+        let polls = 0;
+        return {
+            on: jest.fn(),
+            targets: () => own.map((page) => page.target()),
+            pages: jest.fn(async () => {
+                polls++;
+                const opened = fake.pages.filter((page) => !own.includes(page) && !late.includes(page));
+                return [...own, ...(polls > fake.lateAfterPolls ? late : []), ...opened];
+            }),
+            newPage: jest.fn(async () => {
+                fake.newPageCalls++;
+                return makePage();
+            }),
+        };
+    });
+}
+
+describe("Chrome.start — стартовые ссылки и опции запуска", () => {
+    // Те же массивы, что у поддельного браузера, — короткие имена для старых тестов.
     let pages: FakePage[];
     let gotoOrder: string[];
 
-    function makePage(): FakePage {
-        return {
-            goto: jest.fn(async (url: string) => {
-                gotoOrder.push(url);
-            }),
-            authenticate: jest.fn(async () => {}),
-            evaluateOnNewDocument: jest.fn(async () => {}),
-            setCookie: jest.fn(async () => {}),
-            bringToFront: jest.fn(async () => {}),
-        };
-    }
-
     beforeEach(() => {
-        pages = [];
-        gotoOrder = [];
+        installFakeBrowser();
+        pages = fake.pages;
+        gotoOrder = fake.gotoOrder;
         jest.spyOn(fsp, "access").mockResolvedValue(undefined);
-        puppeteer.launch = jest.fn(async () => ({
-            on: jest.fn(),
-            newPage: jest.fn(async () => {
-                const page = makePage();
-                pages.push(page);
-                return page;
-            }),
-        }));
+        jest.spyOn(fsp, "rm").mockResolvedValue(undefined);
+        jest.spyOn(fsp, "rename").mockResolvedValue(undefined);
+        jest.spyOn(fsp, "readdir").mockResolvedValue([] as any);
     });
     afterEach(() => jest.restoreAllMocks());
 
@@ -191,14 +253,10 @@ describe("Chrome.start — стартовые ссылки и опции зап�
         const originalLaunch = puppeteer.launch;
         puppeteer.launch = jest.fn(async (options: any) => {
             const browser = await originalLaunch(options);
-            const newPage = browser.newPage;
-            browser.newPage = jest.fn(async () => {
-                const page = await newPage();
-                if (pages.length === 1) page.goto.mockImplementation(async (url: string) => {
-                    gotoOrder.push(url);
-                    throw new Error("net::ERR_NAME_NOT_RESOLVED");
-                });
-                return page;
+            // Первая стартовая страница открывается в пустой вкладке самого браузера (SDA-33).
+            pages[0].goto.mockImplementation(async (url: string) => {
+                gotoOrder.push(url);
+                throw new Error("net::ERR_NAME_NOT_RESOLVED");
             });
             return browser;
         });
@@ -223,5 +281,359 @@ describe("Chrome.start — стартовые ссылки и опции зап�
         const options = puppeteer.launch.mock.calls[0][0];
         expect(options.ignoreDefaultArgs).toEqual(["--disable-extensions"]);
         expect(options.args).toEqual(expect.arrayContaining([`--load-extension=${a}`, `--disable-extensions-except=${a}`]));
+    });
+});
+
+describe("Chrome.start — вкладки при запуске (SDA-33)", () => {
+    const A = "https://steamcommunity.com/my/tradeoffers/";
+    const B = "https://steamcommunity.com/market/";
+    const C = "https://csfloat.com/sell";
+    // Плагин puppeteer-extra (как stealth): его хук для вкладок, которые он сам не видел, зовёт Chrome.
+    const plugin = { name: "stealth/evasions/test", onPageCreated: jest.fn() };
+
+    beforeEach(() => {
+        installFakeBrowser();
+        jest.spyOn(fsp, "access").mockResolvedValue(undefined);
+        jest.spyOn(fsp, "rm").mockResolvedValue(undefined);
+        jest.spyOn(fsp, "rename").mockResolvedValue(undefined);
+        jest.spyOn(fsp, "readdir").mockResolvedValue([] as any);
+        plugin.onPageCreated = jest.fn(async (page: FakePage) => {
+            fake.calls.push(`${fake.pages.indexOf(page)}:plugin`);
+        });
+        puppeteer.plugins = [plugin];
+    });
+    afterEach(() => {
+        puppeteer.plugins = [];
+        jest.useRealTimers();
+        jest.restoreAllMocks();
+    });
+
+    /** Запуск до конца; ожидание восстановленных вкладок идёт на поддельных таймерах. */
+    async function run(chrome: Chrome, cookies: string[] = []) {
+        jest.useFakeTimers({ doNotFake: ["setImmediate", "nextTick", "queueMicrotask"] });
+        let settled = false;
+        let error: unknown;
+        const started = chrome.start(cookies, null).then(
+            () => { settled = true; },
+            (err) => { settled = true; error = err; }
+        );
+        for (let i = 0; i < 100 && !settled; i++) await jest.advanceTimersByTimeAsync(RESTORE_POLL_MS);
+        await started;
+        expect(error).toBeUndefined();
+        return await puppeteer.launch.mock.results[0].value;
+    }
+    const callsOf = (index: number) => fake.calls.filter((call) => call.startsWith(`${index}:`)).map((call) => call.split(":")[1]);
+    /** Папку сеанса держит другой процесс: каждая попытка удаления — EBUSY (в тексте ошибки — путь). */
+    const removalAlwaysBusy = (chrome: Chrome) =>
+        (fsp.rename as unknown as jest.Mock).mockRejectedValue(
+            Object.assign(new Error(`EBUSY: resource busy or locked, rename '${chrome.profileDir}/Default/Sessions'`), { code: "EBUSY" })
+        );
+    const rmTargets = () => (fsp.rm as unknown as jest.Mock).mock.calls.map((call) => call[0]);
+    const renameCalls = () => (fsp.rename as unknown as jest.Mock).mock.calls as [string, string][];
+    const enoent = () => Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+
+    describe("выключено (по умолчанию)", () => {
+        it("обе папки сеанса до запуска переименовываются в брошенные (Sessions, затем Sessions_Encrypted), те удаляются как мусор", async () => {
+            const chrome = makeChrome();
+            await run(chrome);
+            expect(fsp.rename).toHaveBeenCalledTimes(2);
+            const folders: SessionFolder[] = ["Sessions", "Sessions_Encrypted"];
+            renameCalls().forEach(([from, to], index) => {
+                const prefix = `${chrome.profileDir}/Default/${sessionDiscardPrefix(folders[index])}`;
+                expect(from).toBe(`${chrome.profileDir}/Default/${folders[index]}`);
+                expect(to.startsWith(prefix)).toBe(true);
+                expect(to.slice(prefix.length)).toMatch(/^\d+-\d+$/);
+            });
+            for (const renamedAt of (fsp.rename as unknown as jest.Mock).mock.invocationCallOrder) {
+                expect(renamedAt).toBeLessThan(puppeteer.launch.mock.invocationCallOrder[0]);
+            }
+            // Сами папки сеанса рекурсивно не удаляются — только брошенные.
+            expect((fsp.rm as unknown as jest.Mock).mock.calls).toEqual(renameCalls().map(([, to]) => [to, { recursive: true, force: true }]));
+        });
+
+        it.each(["Sessions", "Sessions_Encrypted"] as SessionFolder[])("на диске только %s — убирается она, второй нет, и это не ошибка", async (present) => {
+            const chrome = makeChrome();
+            (fsp.rename as unknown as jest.Mock).mockImplementation(async (from: string) => {
+                if (from !== `${chrome.profileDir}/Default/${present}`) throw enoent();
+            });
+            const browser = await run(chrome);
+            expect(renameCalls().map(([from]) => from)).toEqual([`${chrome.profileDir}/Default/Sessions`, `${chrome.profileDir}/Default/Sessions_Encrypted`]);
+            const renamedTo = renameCalls().find(([from]) => from.endsWith(`/${present}`))![1];
+            expect(rmTargets()).toEqual([renamedTo]);
+            expect(browser.pages).toHaveBeenCalledTimes(1);
+            expect(fake.gotoOrder).toEqual([DEFAULT_START_LINK]);
+            expect(log).not.toHaveBeenCalledWith(expect.stringContaining("ENOENT"));
+        });
+
+        it("брошенные папки прошлых запусков удаляются, остальное в Default не трогается", async () => {
+            const chrome = makeChrome();
+            const defaultDir = `${chrome.profileDir}/Default`;
+            (fsp.readdir as unknown as jest.Mock).mockImplementation(async (dir: string) =>
+                dir === defaultDir
+                    ? [
+                        `${SESSION_DISCARD_PREFIX}1-2`, `${ENCRYPTED_DISCARD_PREFIX}5-6`,
+                        "Sessions", "Sessions_Encrypted", "Session Storage", "Sessions.bak", "Sessions_Encrypted.bak",
+                        "Sessions.sda-discard", "Sessions_Encrypted.sda-discard",
+                        `x${SESSION_DISCARD_PREFIX}3-4`, `x${ENCRYPTED_DISCARD_PREFIX}7-8`, "Preferences",
+                    ]
+                    : []
+            );
+            await run(chrome);
+            const renamedTo = renameCalls().map(([, to]) => to);
+            expect(rmTargets().sort()).toEqual(
+                [`${defaultDir}/${SESSION_DISCARD_PREFIX}1-2`, `${defaultDir}/${ENCRYPTED_DISCARD_PREFIX}5-6`, ...renamedTo].sort()
+            );
+        });
+
+        it("ошибка удаления брошенной папки не мешает запуску и не пишется в лог", async () => {
+            mockSettings.current.startLinks = [A];
+            const chrome = makeChrome();
+            (fsp.rm as unknown as jest.Mock).mockRejectedValue(
+                Object.assign(new Error(`EPERM: operation not permitted, unlink '${chrome.profileDir}/Default/${SESSION_DISCARD_PREFIX}1-2/Session_1'`), { code: "EPERM" })
+            );
+            await run(chrome);
+            expect(fsp.rm).toHaveBeenCalled();
+            expect(fake.gotoOrder).toEqual([A]);
+            const logged = log.mock.calls.map((call) => call.map(String).join(" "));
+            expect(logged.filter((line) => line.includes("EPERM") || line.includes(".sda-discard-"))).toEqual([]);
+        });
+
+        it("первая стартовая страница — в пустой вкладке браузера, без newPage; остальные — новыми вкладками по порядку", async () => {
+            mockSettings.current.startLinks = [A, B, C];
+            const chrome = makeChrome();
+            chrome.params.useSteamCookies = true;
+            await run(chrome, ["steamLoginSecure=abc"]);
+            expect(fake.newPageCalls).toBe(2);
+            expect(fake.pages.map((page) => page.goto.mock.calls.map((call) => call[0]))).toEqual([[A], [B], [C]]);
+            expect(fake.gotoOrder).toEqual([A, B, C]);
+            // Вкладку браузера плагины не видели: их хук, прокси, отпечаток и cookie — до загрузки.
+            expect(callsOf(0)).toEqual(["plugin", "authenticate", "evaluateOnNewDocument", "setCookie", "goto", "bringToFront"]);
+            expect(fake.pages[0].authenticate).toHaveBeenCalledWith({ username: "user", password: "pass" });
+            expect(fake.pages[0].close).not.toHaveBeenCalled();
+            // Новые вкладки плагины видят сами (targetcreated): второй раз их хук не зовём.
+            expect(plugin.onPageCreated).toHaveBeenCalledTimes(1);
+            for (const page of fake.pages.slice(1)) {
+                expect(page.authenticate).toHaveBeenCalledWith({ username: "user", password: "pass" });
+                expect(page.evaluateOnNewDocument).toHaveBeenCalled();
+            }
+        });
+
+        it("пустой список — ссылка по умолчанию в пустой вкладке браузера, новых вкладок нет", async () => {
+            mockSettings.current.startLinks = [];
+            await run(makeChrome());
+            expect(fake.gotoOrder).toEqual([DEFAULT_START_LINK]);
+            expect(fake.newPageCalls).toBe(0);
+            expect(fake.pages).toHaveLength(1);
+        });
+
+        it("ждать восстановленные вкладки не нужно: pages() читается один раз", async () => {
+            const browser = await run(makeChrome());
+            expect(browser.pages).toHaveBeenCalledTimes(1);
+        });
+
+        it("однократный EBUSY — повтор удаления, дальше обычный запуск", async () => {
+            const chrome = makeChrome();
+            (fsp.rename as unknown as jest.Mock).mockRejectedValueOnce(Object.assign(new Error("EBUSY"), { code: "EBUSY" }));
+            const browser = await run(chrome);
+            // Sessions: EBUSY и повтор; Sessions_Encrypted: одна попытка.
+            expect(fsp.rename).toHaveBeenCalledTimes(3);
+            expect(browser.pages).toHaveBeenCalledTimes(1);
+            expect(fake.gotoOrder).toEqual([DEFAULT_START_LINK]);
+            expect(log).not.toHaveBeenCalledWith(expect.stringContaining("EBUSY"));
+        });
+
+        it("папку сеанса не удалось удалить, вкладки вернулись — стартовые поверх не открываются; в логе одна строка без пути", async () => {
+            mockSettings.current.startLinks = [A, B];
+            fake.initialTabs = ["about:blank", C];
+            const chrome = makeChrome();
+            removalAlwaysBusy(chrome);
+            await run(chrome);
+            expect(fsp.rename).toHaveBeenCalledTimes(2 * SESSION_REMOVE_ATTEMPTS);
+            expect(fsp.rm).not.toHaveBeenCalled();
+            // Этот запуск — как с включённым восстановлением.
+            expect(fake.gotoOrder).toEqual([]);
+            expect(fake.newPageCalls).toBe(0);
+            expect(callsOf(0)).toEqual(["close"]);
+            expect(callsOf(1)).toEqual(["plugin", "authenticate", "evaluateOnNewDocument", "reload"]);
+            const lines = log.mock.calls.map((call) => String(call[0])).filter((line) => line.includes("EBUSY"));
+            expect(lines).toHaveLength(1);
+            expect(lines[0]).toContain("acc-browser");
+            expect(lines[0]).not.toMatch(/[\\/]/);
+        });
+
+        it("Sessions_Encrypted не удалось переименовать за все попытки — запасной режим, как при неудаче с Sessions", async () => {
+            mockSettings.current.startLinks = [A, B];
+            fake.initialTabs = ["about:blank", C];
+            const chrome = makeChrome();
+            (fsp.rename as unknown as jest.Mock).mockImplementation(async (from: string) => {
+                if (from.endsWith("/Sessions_Encrypted")) {
+                    throw Object.assign(new Error(`EBUSY: resource busy or locked, rename '${from}'`), { code: "EBUSY" });
+                }
+            });
+            await run(chrome);
+            expect(fsp.rename).toHaveBeenCalledTimes(1 + SESSION_REMOVE_ATTEMPTS);
+            expect(fake.gotoOrder).toEqual([]);
+            expect(callsOf(1)).toEqual(["plugin", "authenticate", "evaluateOnNewDocument", "reload"]);
+            const lines = log.mock.calls.map((call) => String(call[0])).filter((line) => line.includes("EBUSY"));
+            expect(lines).toHaveLength(1);
+            expect(lines[0]).toContain("(Sessions_Encrypted: EBUSY)");
+            expect(lines[0]).not.toMatch(/[\\/]/);
+        });
+
+        it("папку сеанса не удалось удалить и ничего не вернулось — стартовые открываются как обычно", async () => {
+            mockSettings.current.startLinks = [A, B];
+            const chrome = makeChrome();
+            removalAlwaysBusy(chrome);
+            const browser = await run(chrome);
+            expect(fsp.rename).toHaveBeenCalledTimes(2 * SESSION_REMOVE_ATTEMPTS);
+            expect(fsp.rm).not.toHaveBeenCalled();
+            expect(browser.pages).toHaveBeenCalledTimes(RESTORE_WAIT_MS / RESTORE_POLL_MS + 1);
+            expect(fake.gotoOrder).toEqual([A, B]);
+            expect(fake.pages[0].goto).toHaveBeenCalledWith(A);
+        });
+    });
+
+    describe("включено", () => {
+        beforeEach(() => {
+            mockSettings.current = { startLinks: [A, B], extensions: [], restoreTabs: true };
+            // Сеанс прошлого запуска на диске: только тогда есть смысл ждать его вкладки.
+            jest.spyOn(fsp, "readdir").mockResolvedValue(["Session_13370000000000000", "Tabs_13370000000000000"] as any);
+        });
+
+        it("сеанса на диске нет — стартовые открываются сразу, без ожидания", async () => {
+            (fsp.readdir as unknown as jest.Mock).mockRejectedValue(Object.assign(new Error("ENOENT"), { code: "ENOENT" }));
+            const chrome = makeChrome();
+            const browser = await run(chrome);
+            expect(fsp.readdir).toHaveBeenCalledWith(`${chrome.profileDir}/Default/Sessions`);
+            expect(fsp.readdir).toHaveBeenCalledWith(`${chrome.profileDir}/Default/Sessions_Encrypted`);
+            expect(browser.pages).toHaveBeenCalledTimes(1);
+            expect(fake.gotoOrder).toEqual([A, B]);
+            expect(fsp.rename).not.toHaveBeenCalled();
+            expect(fsp.rm).not.toHaveBeenCalled();
+        });
+
+        it("брошенные папки не считаются сеансом на диске: смотрим только сами папки сеанса", async () => {
+            const chrome = makeChrome();
+            const defaultDir = `${chrome.profileDir}/Default`;
+            (fsp.readdir as unknown as jest.Mock).mockImplementation(async (dir: string) => {
+                if (dir === defaultDir) return [`${SESSION_DISCARD_PREFIX}1-2`, `${ENCRYPTED_DISCARD_PREFIX}3-4`, "Preferences"];
+                throw enoent();
+            });
+            const browser = await run(chrome);
+            expect(browser.pages).toHaveBeenCalledTimes(1);
+            expect(fake.gotoOrder).toEqual([A, B]);
+            // Включено: ничего не переименовывается, но мусор прошлых запусков убирается.
+            expect(fsp.rename).not.toHaveBeenCalled();
+            expect(rmTargets().sort()).toEqual([`${defaultDir}/${SESSION_DISCARD_PREFIX}1-2`, `${defaultDir}/${ENCRYPTED_DISCARD_PREFIX}3-4`].sort());
+        });
+
+        it("на диске только Sessions_Encrypted — это сеанс: ожидание есть, ничего не переименовывается", async () => {
+            const chrome = makeChrome();
+            (fsp.readdir as unknown as jest.Mock).mockImplementation(async (dir: string) => {
+                if (dir === `${chrome.profileDir}/Default/Sessions_Encrypted`) return ["Session_13370000000000000"];
+                if (dir === `${chrome.profileDir}/Default`) return ["Sessions_Encrypted", "Preferences"];
+                throw enoent();
+            });
+            const browser = await run(chrome);
+            expect(browser.pages).toHaveBeenCalledTimes(RESTORE_WAIT_MS / RESTORE_POLL_MS + 1);
+            expect(fake.gotoOrder).toEqual([A, B]);
+            expect(fsp.rename).not.toHaveBeenCalled();
+            expect(fsp.rm).not.toHaveBeenCalled();
+        });
+
+        it("пустая вкладка, открытая во время ожидания (пользователем, расширением), не закрывается и стартовой страницей не занимается", async () => {
+            fake.lateTabs = ["chrome://newtab/"];
+            fake.lateAfterPolls = 3;
+            await run(makeChrome());
+            expect(fake.gotoOrder).toEqual([A, B]);
+            expect(fake.pages[0].goto).toHaveBeenCalledWith(A);
+            expect(fake.pages[1].close).not.toHaveBeenCalled();
+            expect(fake.pages[1].goto).not.toHaveBeenCalled();
+            expect(fake.pages[1].reload).not.toHaveBeenCalled();
+        });
+
+        it("вернулась только страница расширения — это не вкладка сеанса: стартовые открываются, страница расширения остаётся", async () => {
+            fake.initialTabs = ["about:blank", "chrome-extension://abcdefghijklmnopabcdefghijklmnop/welcome.html"];
+            await run(makeChrome());
+            expect(fake.gotoOrder).toEqual([A, B]);
+            expect(fake.pages[0].goto).toHaveBeenCalledWith(A);
+            expect(callsOf(1)).toEqual([]);
+        });
+
+        it("вкладки вернулись — стартовые не открываются; каждой: хук плагинов, прокси, отпечаток, затем cookie и перезагрузка", async () => {
+            fake.initialTabs = ["about:blank", B, C];
+            const chrome = makeChrome();
+            chrome.params.useSteamCookies = true;
+            await run(chrome, ["steamLoginSecure=abc"]);
+            expect(fsp.rename).not.toHaveBeenCalled();
+            expect(fsp.rm).not.toHaveBeenCalled();
+            expect(fake.newPageCalls).toBe(0);
+            expect(fake.gotoOrder).toEqual([]);
+            // Пустая вкладка браузера не остаётся.
+            expect(callsOf(0)).toEqual(["close"]);
+            expect(callsOf(1)).toEqual(["plugin", "authenticate", "evaluateOnNewDocument", "setCookie", "reload"]);
+            expect(callsOf(2)).toEqual(["plugin", "authenticate", "evaluateOnNewDocument", "reload"]);
+            for (const page of fake.pages.slice(1)) expect(page.authenticate).toHaveBeenCalledWith({ username: "user", password: "pass" });
+            expect(fake.pages[1].setCookie).toHaveBeenCalledWith({ url: "https://steamcommunity.com/", name: "steamLoginSecure", value: "abc" });
+            // Cookie — до перезагрузки любой вкладки: сессия Steam есть во всех.
+            expect(fake.calls.indexOf("1:setCookie")).toBeLessThan(fake.calls.indexOf("1:reload"));
+            expect(fake.calls.indexOf("1:setCookie")).toBeLessThan(fake.calls.indexOf("2:reload"));
+        });
+
+        it("вернулись только пустые — после ожидания открываются стартовые, первая — в пустой вкладке, лишняя «Новая вкладка» закрывается", async () => {
+            fake.initialTabs = ["about:blank", "chrome://newtab/"];
+            const browser = await run(makeChrome());
+            expect(fsp.rename).not.toHaveBeenCalled();
+            expect(fsp.rm).not.toHaveBeenCalled();
+            expect(browser.pages).toHaveBeenCalledTimes(RESTORE_WAIT_MS / RESTORE_POLL_MS + 1);
+            expect(fake.gotoOrder).toEqual([A, B]);
+            expect(callsOf(0)).toEqual(["plugin", "authenticate", "evaluateOnNewDocument", "goto", "bringToFront"]);
+            expect(callsOf(1)).toEqual(["close"]);
+            expect(fake.newPageCalls).toBe(1);
+            expect(fake.pages[2].goto).toHaveBeenCalledWith(B);
+        });
+
+        it("вкладки прошлого сеанса появились не сразу — ждём их; хук плагинов второй раз не получают", async () => {
+            fake.lateTabs = [B];
+            fake.lateAfterPolls = 3;
+            await run(makeChrome());
+            expect(fake.gotoOrder).toEqual([]);
+            expect(callsOf(0)).toEqual(["close"]);
+            // Вкладку, открытую после подписки плагинов, они настроили сами (targetcreated).
+            expect(callsOf(1)).toEqual(["authenticate", "evaluateOnNewDocument", "reload"]);
+            expect(plugin.onPageCreated).not.toHaveBeenCalled();
+        });
+
+        it("ошибка настройки одной восстановленной вкладки только пишется в лог", async () => {
+            fake.initialTabs = [B, C];
+            const originalLaunch = puppeteer.launch;
+            puppeteer.launch = jest.fn(async (options: any) => {
+                const browser = await originalLaunch(options);
+                fake.pages[0].authenticate.mockRejectedValueOnce(new Error("Target closed"));
+                return browser;
+            });
+            await run(makeChrome());
+            expect(log).toHaveBeenCalledWith(expect.stringContaining("Target closed"));
+            expect(callsOf(1)).toEqual(["plugin", "authenticate", "evaluateOnNewDocument", "reload"]);
+            expect(fake.gotoOrder).toEqual([]);
+        });
+    });
+
+    it("вкладкой сеанса считается всё, кроме пустых и страниц расширений", () => {
+        for (const url of ["https://steamcommunity.com/my/", "http://example.com/", "file:///tmp/a.html", "chrome://settings/"]) {
+            expect({ url, restored: isRestoredTabUrl(url) }).toEqual({ url, restored: true });
+        }
+        for (const url of ["about:blank", "chrome://newtab/", "chrome-extension://abc/welcome.html"]) {
+            expect({ url, restored: isRestoredTabUrl(url) }).toEqual({ url, restored: false });
+        }
+    });
+
+    it("пустыми считаются about:blank и «Новая вкладка», остальное — восстановленные", () => {
+        for (const url of ["", "about:blank", "about:blank#x", "chrome://newtab/", "chrome://new-tab-page/", "chrome-search://local-ntp/local-ntp.html"]) {
+            expect({ url, blank: isBlankTabUrl(url) }).toEqual({ url, blank: true });
+        }
+        for (const url of ["https://steamcommunity.com/my/", "about:blankx", "chrome://settings/", "chrome-extension://abc/options.html"]) {
+            expect({ url, blank: isBlankTabUrl(url) }).toEqual({ url, blank: false });
+        }
     });
 });
