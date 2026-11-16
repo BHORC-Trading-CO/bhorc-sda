@@ -28,7 +28,7 @@ import BrowserSettingsStorage from "../../newStorage/BrowserSettingsStorage";
 import { effectiveStartLinks, launchExtensionPaths } from "../../Browser/browserSettings";
 import { ProxyGeo, localeForCountry, acceptLanguageFor } from "../Functions/getProxyGeo";
 import resolveBrowserPath from "./resolveBrowserPath";
-import { foldDisableFeaturesArgs, SECURE_DNS_FEATURES } from "../../Functions/chromiumFeatures";
+import { ensureSecureDnsOff } from "./secureDnsPref";
 const sharp = require("sharp");
 
 type StartCancelReason = "superseded" | "stopped" | "routeChanged";
@@ -258,23 +258,22 @@ export default class Chrome {
         });
 
         assertCurrent();
+        // DNS-over-HTTPS шёл бы мимо прокси, с реального IP (SDA-26). Выключаем настройкой
+        // профиля до запуска; не удалось записать — браузер не запускаем.
+        await ensureSecureDnsOff(this.profileDir);
+        assertCurrent();
         const args = this.generateChromeFlags();
-        // У puppeteer свой --disable-features в дефолтных флагах, а Chromium берёт только последний:
-        // сливаем его с нашим в один флаг, дефолтный убираем (SDA-26).
-        const launchArgs = foldDisableFeaturesArgs(puppeteer.defaultArgs(), args);
-        const ignoreDefaultArgs = [
-          ...launchArgs.ignoreDefaultArgs,
-          // С расширениями (SDA-6) убираем дефолтный флаг puppeteer --disable-extensions, иначе
-          // --load-extension не сработает. Stealth (evasion defaultArgs) тоже его убирает, но
-          // на плагин не полагаемся.
-          ...(args.some((arg) => arg.startsWith("--load-extension=")) ? ["--disable-extensions"] : []),
-        ];
         const launchedBrowser = await puppeteer.launch({
           userDataDir: this.profileDir,
           headless: false,
           executablePath,
-          args: launchArgs.args,
-          ...(ignoreDefaultArgs.length ? { ignoreDefaultArgs } : {}),
+          args,
+          // С расширениями (SDA-6) убираем дефолтный флаг puppeteer --disable-extensions, иначе
+          // --load-extension не сработает. Stealth (evasion defaultArgs) тоже его убирает, но
+          // на плагин не полагаемся.
+          ...(args.some((arg) => arg.startsWith("--load-extension="))
+            ? { ignoreDefaultArgs: ["--disable-extensions"] }
+            : {}),
         });
         if (attempt.reason) {
           await this.closeBrowser(launchedBrowser);
@@ -402,10 +401,6 @@ export default class Chrome {
     args.push(`--metrics-recording-only`);
     args.push(`--no-pings`);
     args.push(`--dns-prefetch-disable`);
-    // DNS-over-HTTPS: при DNS 1.1.1.1/8.8.8.8 Chromium сам переходит на DoH-сервер провайдера;
-    // у самого приложения это были прямые соединения с реального IP (SDA-26), здесь — та же защита.
-    // При запуске сливается с --disable-features puppeteer в один флаг.
-    args.push(`--disable-features=${SECURE_DNS_FEATURES.join(",")}`);
     // Локаль браузера под гео прокси (синхронно с Accept-Language и таймзоной).
     if (this.locale) args.push(`--lang=${this.locale}`);
 

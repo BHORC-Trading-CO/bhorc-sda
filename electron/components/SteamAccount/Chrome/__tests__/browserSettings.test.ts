@@ -6,6 +6,8 @@ jest.mock("../../../newStorage/BrowserSettingsStorage", () => ({
     default: { Get: () => mockSettings.current, Save: jest.fn() },
 }));
 jest.mock("../resolveBrowserPath", () => ({ __esModule: true, default: jest.fn(async () => "/fake/chromium") }));
+// Настройку профиля (SDA-26) здесь не пишем: у теста нет своей папки профиля, файл лёг бы в репозиторий.
+jest.mock("../secureDnsPref", () => ({ ensureSecureDnsOff: jest.fn(async () => undefined) }));
 jest.mock("../../../manager/manager", () => ({
     __esModule: true,
     default: {
@@ -207,13 +209,10 @@ describe("Chrome.start — стартовые ссылки и опции зап�
         expect(log).toHaveBeenCalledWith(expect.stringContaining("ERR_NAME_NOT_RESOLVED"));
     });
 
-    const PUPPETEER_DISABLE_FEATURES = "--disable-features=Translate,BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints";
-
-    it("без расширений дефолтный --disable-extensions puppeteer не убираем", async () => {
+    it("без расширений ignoreDefaultArgs не передаём", async () => {
         await startAndSettle(makeChrome(), 1);
         const options = puppeteer.launch.mock.calls[0][0];
-        // Убираем только дефолтный --disable-features: он слит с нашим (SDA-26).
-        expect(options.ignoreDefaultArgs).toEqual([PUPPETEER_DISABLE_FEATURES]);
+        expect(options).not.toHaveProperty("ignoreDefaultArgs");
         expect(options.args.some((arg: string) => arg.startsWith("--load-extension="))).toBe(false);
     });
 
@@ -222,17 +221,7 @@ describe("Chrome.start — стартовые ссылки и опции зап�
         mockSettings.current.extensions = [{ path: a, enabled: true }];
         await startAndSettle(makeChrome(), 1);
         const options = puppeteer.launch.mock.calls[0][0];
-        expect(options.ignoreDefaultArgs).toEqual([PUPPETEER_DISABLE_FEATURES, "--disable-extensions"]);
+        expect(options.ignoreDefaultArgs).toEqual(["--disable-extensions"]);
         expect(options.args).toEqual(expect.arrayContaining([`--load-extension=${a}`, `--disable-extensions-except=${a}`]));
-    });
-
-    it("DoH выключен, а --disable-features puppeteer не потерян: в Chrome уходит один общий флаг (SDA-26)", async () => {
-        await startAndSettle(makeChrome(), 1);
-        const options = puppeteer.launch.mock.calls[0][0];
-        // Так puppeteer 19 собирает командную строку: дефолтные флаги без ignoreDefaultArgs, затем наши.
-        const chromeArgs = [...puppeteer.defaultArgs().filter((arg: string) => !options.ignoreDefaultArgs.includes(arg)), ...options.args];
-        expect(chromeArgs.filter((arg: string) => arg.startsWith("--disable-features="))).toEqual([
-            `${PUPPETEER_DISABLE_FEATURES},DnsOverHttps`,
-        ]);
     });
 });

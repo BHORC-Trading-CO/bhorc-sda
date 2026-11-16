@@ -48,11 +48,6 @@ describe("Chrome.generateChromeFlags — anti-leak флаги (MEDIUM-3 + privac
     );
   });
 
-  it("отключает DNS-over-HTTPS одним флагом --disable-features (SDA-26)", () => {
-    const flags = makeChrome("acc-doh").generateChromeFlags();
-    expect(flags.filter((flag) => flag.startsWith("--disable-features="))).toEqual(["--disable-features=DnsOverHttps"]);
-  });
-
   it("при наличии прокси добавляет --proxy-server", () => {
     const chrome = makeChrome("acc-2");
     chrome.proxy = { server: "1.2.3.4:8080", username: "u", password: "p" };

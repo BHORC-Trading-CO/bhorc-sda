@@ -9,12 +9,12 @@ type SecureDnsApp = Pick<App, "commandLine" | "configureHostResolver" | "isReady
  * real IP, outside every account proxy.
  *
  * Call it from main.ts before firstStage, while the main script is still loading. Two layers:
- * - --disable-features=DnsOverHttps: Chromium switches only count when appended before ready,
- *   so the resolver should start with DoH off; a --disable-features already on the command line
- *   is extended, not replaced;
- * - configureHostResolver({ secureDnsMode: "off" }) (Electron 17 API, needs the ready event):
- *   this listener is registered before the one in firstStage, so it runs before any window is
- *   created, whatever the feature switch did.
+ * - configureHostResolver({ secureDnsMode: "off" }) (Electron 17 API, needs the ready event) is
+ *   the documented control; this listener is registered before the one in firstStage, so it
+ *   runs before any window is created;
+ * - --disable-features with the DoH feature names covers the time before ready, as far as this
+ *   Chromium honours them (not verified); a --disable-features already on the command line is
+ *   extended, not replaced.
  */
 export function disableSecureDns(target: SecureDnsApp = app): void {
     const { commandLine } = target;

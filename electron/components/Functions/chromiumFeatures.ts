@@ -4,14 +4,18 @@
 // otherwise the features disabled earlier come back on.
 
 export const DISABLE_FEATURES_SWITCH = "disable-features";
-const DISABLE_FEATURES_PREFIX = `--${DISABLE_FEATURES_SWITCH}=`;
 
 /**
  * DNS-over-HTTPS. When the system resolver is a DoH provider (1.1.1.1, 8.8.8.8), Chromium
  * upgrades lookups to its DoH endpoint (chrome.cloudflare-dns.com, dns.google) and connects to
  * it directly from the real IP, outside any account proxy.
+ *
+ * These feature names are a second layer for the app's own Chromium (Electron 17 = Chromium 98)
+ * next to app.configureHostResolver, which is the documented control. They are NOT used for the
+ * account browsers: on Chromium 154 neither name changes the secure DNS setting (measured), so
+ * those are handled by a profile preference instead (SteamAccount/Chrome/secureDnsPref.ts).
  */
-export const SECURE_DNS_FEATURES: readonly string[] = ["DnsOverHttps"];
+export const SECURE_DNS_FEATURES: readonly string[] = ["DnsOverHttps", "DnsOverHttpsUpgrade"];
 
 /** "A,B" + "B,C" + ["D"] -> "A,B,C,D": order kept, duplicates and empty entries dropped. */
 export function mergeFeatureLists(...lists: Array<string | readonly string[] | null | undefined>): string {
@@ -24,26 +28,4 @@ export function mergeFeatureLists(...lists: Array<string | readonly string[] | n
         }
     }
     return merged.join(",");
-}
-
-function isDisableFeaturesArg(arg: string): boolean {
-    return arg.startsWith(DISABLE_FEATURES_PREFIX);
-}
-
-/**
- * puppeteer.launch puts its own default args (with its own --disable-features=...) before ours,
- * so a second --disable-features from us would switch its features back on. Folds every
- * --disable-features from the defaults and from args into one flag at the end of args and
- * returns the default flags to pass in ignoreDefaultArgs.
- */
-export function foldDisableFeaturesArgs(defaultArgs: readonly string[], args: readonly string[]): { args: string[]; ignoreDefaultArgs: string[] } {
-    const own = args.filter(isDisableFeaturesArg);
-    if (!own.length) return { args: [...args], ignoreDefaultArgs: [] };
-    const defaults = defaultArgs.filter(isDisableFeaturesArg);
-    const merged = DISABLE_FEATURES_PREFIX + mergeFeatureLists(...[...defaults, ...own].map((arg) => arg.slice(DISABLE_FEATURES_PREFIX.length)));
-    return {
-        args: [...args.filter((arg) => !isDisableFeaturesArg(arg)), merged],
-        // puppeteer drops ignored args by exact string from our args too: never ignore the merged flag itself.
-        ignoreDefaultArgs: defaults.filter((arg) => arg !== merged),
-    };
 }

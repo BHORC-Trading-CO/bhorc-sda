@@ -1,8 +1,10 @@
 jest.mock("fs/promises", () => ({ access: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../resolveBrowserPath", () => ({ __esModule: true, default: jest.fn().mockResolvedValue("/fake/browser") }));
+jest.mock("../secureDnsPref", () => ({ ensureSecureDnsOff: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../../../application/application", () => ({ __esModule: true, default: { sendToMain: jest.fn() } }));
 import Chrome, { BrowserStartCancelledError, BROWSER_CLOSE_TIMEOUT_MS } from "../Chrome";
 import resolveBrowserPath from "../resolveBrowserPath";
+import { ensureSecureDnsOff } from "../secureDnsPref";
 import puppeteer from "puppeteer-extra";
 import LinksStorage from "../../../newStorage/LinksStorage";
 import application from "../../../application/application";
@@ -157,4 +159,26 @@ it("R2 N3 a hung close times out and kills only its captured browser child", asy
     expect(kill).toHaveBeenCalledWith("SIGKILL");
     expect(successorKill).not.toHaveBeenCalled();
     expect(jest.getTimerCount()).toBe(0);
+});
+
+// SDA-26: DNS-over-HTTPS в браузере аккаунта шёл бы мимо прокси, с реального IP.
+it("SDA-26 secure DNS is switched off in the profile before the browser is launched", async () => {
+    const order: string[] = [];
+    (ensureSecureDnsOff as jest.Mock).mockImplementationOnce(async () => { order.push("secure-dns-off"); });
+    jest.spyOn(puppeteer, "launch").mockImplementationOnce(async () => {
+        order.push("launch");
+        throw new Error("stop here");
+    });
+    const chrome = make();
+    await expect(chrome.start()).rejects.toThrow("stop here");
+    expect(order).toEqual(["secure-dns-off", "launch"]);
+    expect(ensureSecureDnsOff).toHaveBeenLastCalledWith(chrome.profileDir);
+});
+it("SDA-26 when the profile setting cannot be written the browser is not launched", async () => {
+    (ensureSecureDnsOff as jest.Mock).mockRejectedValueOnce(new Error("EACCES: Local State"));
+    const launch = jest.spyOn(puppeteer, "launch");
+    const chrome = make();
+    await expect(chrome.start()).rejects.toThrow("EACCES: Local State");
+    expect(launch).not.toHaveBeenCalled();
+    expect(chrome.browser).toBeNull();
 });
