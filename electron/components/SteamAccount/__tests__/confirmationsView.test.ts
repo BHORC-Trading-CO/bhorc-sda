@@ -107,7 +107,12 @@ it.each(['en', 'uk', 'ru'])('%s renders badges, all summary lines, ISO/local tim
     expect(api).toContain('confirmation-type-icon');
     const purchase = renderItem(3);
     expect(purchase).toContain(mockI18n.t('confirmations.purchaseHint'));
-    expect(purchase).toContain('Quantity: 1');
+    // Entry 1012 is a real getlist sample (ids and nonce replaced): Steam calls the type
+    // "Account Security" and gives no item, price or quantity for a purchase.
+    expect(purchase).toContain(mockI18n.t('confirmations.types.purchase'));
+    expect(purchase).not.toContain('Account Security');
+    expect(purchase).toContain('Community Market');
+    expect(purchase).toContain('Purchase confirmation needed');
     expect(purchase).not.toContain(selectToggle());
     expect(renderItem(5)).toContain('Future action');
 });
