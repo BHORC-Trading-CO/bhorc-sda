@@ -28,12 +28,12 @@ describe("closing the main window: hide to the tray or close", () => {
 });
 
 describe("start without the main window", () => {
-    const settings = { ...DEFAULT_APP_SETTINGS };
+    const allOff = { ...DEFAULT_APP_SETTINGS };
     const minimizedAtLogin = { closeToTray: false, launchAtLogin: true, startMinimized: true };
     const login = (wasOpenedAtLogin: boolean, wasOpenedAsHidden: boolean) => ({ wasOpenedAtLogin, wasOpenedAsHidden });
 
-    it.each(["win32", "darwin", "linux"] as const)("%s: --hidden on the command line", (platform) => {
-        expect(hiddenStartRequested({ argv: ["trademanager.exe", "--hidden"], platform, login: null, settings })).toBe(true);
+    it.each(["win32", "darwin"] as const)("%s: --hidden with launch at login + start minimized on", (platform) => {
+        expect(hiddenStartRequested({ argv: ["sda", "--hidden"], platform, login: null, settings: minimizedAtLogin })).toBe(true);
     });
 
     it("an ordinary start", () => {
@@ -42,16 +42,27 @@ describe("start without the main window", () => {
     });
 
     it("macOS: the system opened a hidden login item (before macOS 13)", () => {
-        expect(hiddenStartRequested({ argv: ["bhorc-sda"], platform: "darwin", login: login(true, true), settings })).toBe(true);
+        expect(hiddenStartRequested({ argv: ["bhorc-sda"], platform: "darwin", login: login(true, true), settings: minimizedAtLogin })).toBe(true);
     });
 
     it("macOS 13+: opened at login and \"Start minimized\" is on (openAsHidden is ignored there)", () => {
         expect(hiddenStartRequested({ argv: ["bhorc-sda"], platform: "darwin", login: login(true, false), settings: minimizedAtLogin })).toBe(true);
     });
 
-    it("macOS: opened at login, but \"Start minimized\" or launch at login is off -> window", () => {
-        expect(hiddenStartRequested({ argv: ["bhorc-sda"], platform: "darwin", login: login(true, false), settings: { ...minimizedAtLogin, startMinimized: false } })).toBe(false);
-        expect(hiddenStartRequested({ argv: ["bhorc-sda"], platform: "darwin", login: login(true, false), settings: { ...minimizedAtLogin, launchAtLogin: false } })).toBe(false);
+    // Review round 1, finding 5: an existing hidden login item must not hide the window of a user
+    // who never turned these settings on.
+    it.each([
+        ["all off", allOff],
+        ["start minimized off", { ...minimizedAtLogin, startMinimized: false }],
+        ["launch at login off", { ...minimizedAtLogin, launchAtLogin: false }],
+    ])("%s: window shown even if macOS opened SDA as a hidden login item or --hidden is passed", (_name, settings) => {
+        expect(hiddenStartRequested({ argv: ["bhorc-sda"], platform: "darwin", login: login(true, true), settings })).toBe(false);
+        expect(hiddenStartRequested({ argv: ["bhorc-sda", "--hidden"], platform: "darwin", login: login(true, true), settings })).toBe(false);
+        expect(hiddenStartRequested({ argv: ["trademanager.exe", "--hidden"], platform: "win32", login: null, settings })).toBe(false);
+    });
+
+    it("Linux never starts hidden: a tray host cannot be detected", () => {
+        expect(hiddenStartRequested({ argv: ["bhorc-sda", "--hidden"], platform: "linux", login: null, settings: minimizedAtLogin })).toBe(false);
     });
 
     it("Windows ignores macOS login flags: only --hidden counts", () => {

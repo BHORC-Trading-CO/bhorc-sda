@@ -17,7 +17,7 @@ const replies = (event: any, channel: string) => event.reply.mock.calls.filter((
 beforeAll(() => setMainLanguage("en"));
 beforeEach(() => {
     AppSettingsStorage.Save(ALL_OFF);
-    backgroundMode.update(ALL_OFF);
+    backgroundMode.update({ key: "closeToTray", value: false });
     (app as any).isPackaged = false;
 });
 afterAll(() => backgroundMode.tray.destroy());
@@ -30,9 +30,9 @@ it("get replies with the saved settings and what this system supports", () => {
     ]);
 });
 
-it("save stores and replies with the new state", () => {
+it("save merges one switch and replies with the full state", () => {
     const event = makeEvent();
-    appSettingsSaveListener(event, { ...ALL_OFF, closeToTray: true });
+    appSettingsSaveListener(event, { key: "closeToTray", value: true });
     expect(replies(event, AppSettingsChannels.APP_SETTINGS_ERROR)).toEqual([]);
     expect(replies(event, AppSettingsChannels.APP_SETTINGS_GET)[0].settings).toEqual({ ...ALL_OFF, closeToTray: true });
     expect(AppSettingsStorage.Get()).toEqual({ ...ALL_OFF, closeToTray: true });
@@ -40,7 +40,7 @@ it("save stores and replies with the new state", () => {
 
 it("malformed save: the reason and the unchanged state come back", () => {
     const event = makeEvent();
-    appSettingsSaveListener(event, { closeToTray: 1 });
+    appSettingsSaveListener(event, { key: "closeToTray", value: 1 });
     expect(replies(event, AppSettingsChannels.APP_SETTINGS_ERROR)).toEqual([{ message: "Settings were not saved: unexpected values." }]);
     expect(replies(event, AppSettingsChannels.APP_SETTINGS_GET)[0].settings).toEqual(ALL_OFF);
 });
@@ -60,7 +60,7 @@ describe("registration", () => {
     it("a foreign page cannot read or change the settings", () => {
         appSettingsListeners();
         const foreign = { reply: jest.fn(), senderFrame: { url: "https://evil.test/" } };
-        ipcMain.emit(AppSettingsChannels.APP_SETTINGS_SAVE, foreign, { closeToTray: true, launchAtLogin: true, startMinimized: true });
+        ipcMain.emit(AppSettingsChannels.APP_SETTINGS_SAVE, foreign, { key: "closeToTray", value: true });
         ipcMain.emit(AppSettingsChannels.APP_SETTINGS_GET, foreign);
         expect(foreign.reply).not.toHaveBeenCalled();
         expect(AppSettingsStorage.Get()).toEqual(ALL_OFF);

@@ -27,11 +27,16 @@ export function mainWindowCloseAction(input: {
 }
 
 /**
- * Whether this launch asks to start without the main window:
- * - --hidden on the command line (the Windows login item, or a manual autostart entry on Linux);
+ * Whether this launch starts without the main window. Only when the user turned on both "Launch
+ * at system startup" and "Start minimized" in SDA: with either off the window opens exactly as
+ * before this feature, whatever the system says (an old hidden login item on macOS, a stray
+ * --hidden). Then:
+ * - Windows: --hidden on the command line (our login item adds it);
  * - macOS: the system opened the app as a hidden login item (wasOpenedAsHidden, before macOS 13),
- *   or opened it at login while "Start minimized" is on (macOS 13+ ignores openAsHidden and
- *   Electron 17 cannot pass arguments to a macOS login item).
+ *   or at login (wasOpenedAtLogin: macOS 13+ ignores openAsHidden, and Electron 17 cannot pass
+ *   arguments to a macOS login item), or --hidden;
+ * - Linux: never. Electron cannot tell whether a tray host exists, so a hidden start could leave
+ *   no visible way back.
  * The window still opens if the tray icon is missing: see startHidden.
  */
 export function hiddenStartRequested(input: {
@@ -40,10 +45,11 @@ export function hiddenStartRequested(input: {
     login: Pick<LoginItemSettings, "wasOpenedAtLogin" | "wasOpenedAsHidden"> | null;
     settings: AppSettingsInterface;
 }): boolean {
+    if (!input.settings.launchAtLogin || !input.settings.startMinimized) return false;
+    if (input.platform !== "win32" && input.platform !== "darwin") return false;
     if (input.argv.includes(HIDDEN_ARG)) return true;
     if (input.platform !== "darwin" || !input.login) return false;
-    if (input.login.wasOpenedAsHidden) return true;
-    return input.login.wasOpenedAtLogin && input.settings.launchAtLogin && input.settings.startMinimized;
+    return input.login.wasOpenedAsHidden || input.login.wasOpenedAtLogin;
 }
 
 /** Never start hidden without a tray icon: there would be no way to open the window. */

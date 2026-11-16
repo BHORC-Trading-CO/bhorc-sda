@@ -23,7 +23,7 @@ import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import BrowserChannels from '../interfaces/IpcChannels/BrowserChannels';
 import BrowserSettingsInterface, { BrowserSettingsError, BrowserSettingsView } from '../interfaces/Browser/BrowserSettingsInterface';
 import AppSettingsChannels from '../interfaces/IpcChannels/AppSettingsChannels';
-import AppSettingsInterface, { AppSettingsError, AppSettingsView } from '../interfaces/AppSettings/AppSettingsInterface';
+import { AppSettingsError, AppSettingsPatch, AppSettingsView } from '../interfaces/AppSettings/AppSettingsInterface';
 import path from "path";
 import createStore from "../components/newStorage/createStore";
 import { exposeLanguageApi } from './languageBridge';
@@ -273,9 +273,9 @@ const appSettings = {
   onGet: (listener: (event: IpcRendererEvent, view: AppSettingsView) => void) => {
     ipcRenderer.on(AppSettingsChannels.APP_SETTINGS_GET, listener);
   },
-  /** Сохранить настройки; автозапуск main меняет в системе сам */
-  save: (settings: AppSettingsInterface) => {
-    ipcRenderer.send(AppSettingsChannels.APP_SETTINGS_SAVE, settings);
+  /** Сохранить один переключатель { key, value }; main сливает его с сохранёнными и меняет автозапуск сам */
+  save: (patch: AppSettingsPatch) => {
+    ipcRenderer.send(AppSettingsChannels.APP_SETTINGS_SAVE, patch);
   },
   /** Отказ сохранения: текст уже переведён */
   onError: (listener: (event: IpcRendererEvent, error: AppSettingsError) => void) => {

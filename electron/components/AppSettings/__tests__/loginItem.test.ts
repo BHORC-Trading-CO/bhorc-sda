@@ -1,4 +1,4 @@
-import { HIDDEN_ARG, isLoginItemRegistered, LOGIN_ITEM_NAME, loginItemQueries, loginItemRegisteredAnyForm, loginItemSettings, loginItemSupport, squirrelUpdateExe } from "../loginItem";
+import { HIDDEN_ARG, isOurLoginItemEnabled, LOGIN_ITEM_NAME, loginItemQueries, loginItemSettings, loginItemSupport, readLoginItemOn, squirrelUpdateExe } from "../loginItem";
 
 // Launch at login (SDA-36): the object passed to app.setLoginItemSettings per platform, built from
 // the platform, process.execPath and the settings. Windows paths are handled with path.win32, so
@@ -140,58 +140,60 @@ describe("app.getLoginItemSettings queries", () => {
     });
 });
 
-describe("is our Run entry registered for this copy (Windows startup check)", () => {
-    const settings = loginItemSettings("win32", SQUIRREL_EXE, on(true), only(UPDATE_EXE));
+describe("does the system start SDA at login (read-only, for the switch)", () => {
+    const settings = loginItemSettings("win32", FOLDER_EXE, on(false), only());
     // As Electron 17 reports it: program path unquoted, args parsed (quotes and switches gone).
-    const item = (over: object = {}) => ({ name: LOGIN_ITEM_NAME, path: UPDATE_EXE, args: ["trademanager.exe"], scope: "user", enabled: true, ...over });
+    const item = (over: object = {}) => ({ name: LOGIN_ITEM_NAME, path: FOLDER_EXE, args: [], scope: "user", enabled: true, ...over });
 
-    it("our name, this program, current user -> registered (args are not compared)", () => {
-        expect(isLoginItemRegistered({ launchItems: [item()] }, settings)).toBe(true);
-    });
-
-    it("path compared without case, as Windows does", () => {
-        expect(isLoginItemRegistered({ launchItems: [item({ path: UPDATE_EXE.toUpperCase() })] }, settings)).toBe(true);
-    });
-
-    it("disabled in Task Manager still counts as registered: it is not re-enabled", () => {
-        expect(isLoginItemRegistered({ launchItems: [item({ enabled: false })] }, settings)).toBe(true);
+    it("our name, this program, current user, enabled -> on (args are not compared)", () => {
+        expect(isOurLoginItemEnabled({ launchItems: [item()] }, settings)).toBe(true);
+        expect(isOurLoginItemEnabled({ launchItems: [item({ path: FOLDER_EXE.toUpperCase() })] }, settings)).toBe(true);
     });
 
     it.each([
         ["no entries", []],
-        ["another app's entry for the same program name", [{ name: "SomethingElse" }]],
-        ["the entry of another copy (moved folder / plain folder vs install)", [{ path: FOLDER_EXE }]],
+        ["disabled in Task Manager", [{ enabled: false }]],
+        ["another app's entry", [{ name: "SomethingElse" }]],
+        ["the entry of another copy (moved folder / installed vs plain folder)", [{ path: "C:\\Other\\trademanager.exe" }]],
         ["machine-wide entry", [{ scope: "machine" }]],
-    ])("%s -> not registered", (_name, overrides) => {
-        expect(isLoginItemRegistered({ launchItems: (overrides as object[]).map((over) => item(over)) }, settings)).toBe(false);
+    ])("%s -> off", (_name, overrides) => {
+        expect(isOurLoginItemEnabled({ launchItems: (overrides as object[]).map((over) => item(over)) }, settings)).toBe(false);
     });
 
-    it("missing state or settings -> not registered", () => {
-        expect(isLoginItemRegistered(null, settings)).toBe(false);
-        expect(isLoginItemRegistered({ launchItems: undefined as any }, settings)).toBe(false);
-        expect(isLoginItemRegistered({ launchItems: [item()] }, null)).toBe(false);
+    it("missing state or settings -> off", () => {
+        expect(isOurLoginItemEnabled(null, settings)).toBe(false);
+        expect(isOurLoginItemEnabled({ launchItems: undefined as any }, settings)).toBe(false);
+        expect(isOurLoginItemEnabled({ launchItems: [item()] }, null)).toBe(false);
     });
-});
 
-describe("startup check against either way Electron may read the query path", () => {
-    const entry = { name: LOGIN_ITEM_NAME, path: FOLDER_EXE, args: [], scope: "user", enabled: false };
-    // Command-line parsing: an unquoted path is cut at its first space ("...\\Downloads\\BHORC").
-    const parsing = (query: { path?: string }) => {
-        const program = query.path!.startsWith('"') ? query.path!.slice(1, -1) : query.path!.split(" ")[0];
-        return { launchItems: program.toLowerCase() === FOLDER_EXE.toLowerCase() ? [entry] : [] };
+    // Electron may read the query path as a command line (an unquoted path is cut at its first
+    // space) or verbatim; the entry of a folder with a space is found either way.
+    const parsing = (query?: { path?: string }) => {
+        const program = query!.path!.startsWith('"') ? query!.path!.slice(1, -1) : query!.path!.split(" ")[0];
+        return { openAtLogin: false, launchItems: program.toLowerCase() === FOLDER_EXE.toLowerCase() ? [item()] : [] };
     };
-    // Verbatim: the query path is compared as given, quotes included.
-    const verbatim = (query: { path?: string }) => ({ launchItems: query.path === FOLDER_EXE ? [entry] : [] });
+    const verbatim = (query?: { path?: string }) => ({ openAtLogin: false, launchItems: query!.path === FOLDER_EXE ? [item()] : [] });
 
-    it.each([["parsing", parsing], ["verbatim", verbatim]] as const)(
-        "%s: the entry of a folder with a space in its path is found, so it is not rewritten (or re-enabled)", (_name, read) => {
-            const settings = loginItemSettings("win32", FOLDER_EXE, on(false), only());
-            expect(loginItemRegisteredAnyForm(read, settings)).toBe(true);
-        });
+    it.each([["parsing", parsing], ["verbatim", verbatim]] as const)("Windows, %s: found for a path with a space", (_name, read) => {
+        expect(readLoginItemOn("win32", read, settings)).toBe(true);
+    });
 
-    it("an entry for another folder is not ours", () => {
-        const settings = loginItemSettings("win32", "C:\\Moved here\\trademanager.exe", on(false), only());
-        expect(loginItemRegisteredAnyForm(parsing, settings)).toBe(false);
-        expect(loginItemRegisteredAnyForm(verbatim, settings)).toBe(false);
+    it("Windows: an entry for another folder is not ours", () => {
+        const moved = loginItemSettings("win32", "C:\\Moved here\\trademanager.exe", on(false), only());
+        expect(readLoginItemOn("win32", parsing, moved)).toBe(false);
+        expect(readLoginItemOn("win32", verbatim, moved)).toBe(false);
+    });
+
+    it("macOS: openAtLogin, asked without options", () => {
+        const read = jest.fn(() => ({ openAtLogin: true, launchItems: [] }));
+        expect(readLoginItemOn("darwin", read, loginItemSettings("darwin", MAC_EXE, on(false)))).toBe(true);
+        expect(read).toHaveBeenCalledWith();
+        expect(readLoginItemOn("darwin", () => ({ openAtLogin: false, launchItems: [] }), null)).toBe(false);
+    });
+
+    it("Linux: off, nothing is asked", () => {
+        const read = jest.fn();
+        expect(readLoginItemOn("linux", read, null)).toBe(false);
+        expect(read).not.toHaveBeenCalled();
     });
 });

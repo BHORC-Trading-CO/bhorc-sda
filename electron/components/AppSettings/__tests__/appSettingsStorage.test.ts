@@ -1,6 +1,6 @@
 import AppSettingsStorage, { APP_SETTINGS_KEY } from "../../newStorage/AppSettingsStorage";
 import createStore from "../../newStorage/createStore";
-import { DEFAULT_APP_SETTINGS, parseAppSettingsUpdate, sanitizeAppSettings } from "../appSettings";
+import { DEFAULT_APP_SETTINGS, parseAppSettingsPatch, sanitizeAppSettings } from "../appSettings";
 
 // Settings of SDA-35/36 in config.json: additive key, existing installs read as everything off.
 
@@ -22,25 +22,27 @@ describe("stored value", () => {
     });
 });
 
-describe("save from the page", () => {
-    it("all three booleans -> accepted", () => {
-        expect(parseAppSettingsUpdate({ closeToTray: true, launchAtLogin: false, startMinimized: true }))
-            .toEqual({ closeToTray: true, launchAtLogin: false, startMinimized: true });
+describe("one switch from the page ({ key, value })", () => {
+    it.each(["closeToTray", "launchAtLogin", "startMinimized"])("%s with a boolean -> accepted", (key) => {
+        expect(parseAppSettingsPatch({ key, value: true })).toEqual({ key, value: true });
+        expect(parseAppSettingsPatch({ key, value: false })).toEqual({ key, value: false });
     });
 
-    it("unknown keys are dropped", () => {
-        expect(parseAppSettingsUpdate({ ...ALL_OFF, closeToTray: true, path: "C:\\evil.exe" })).toEqual({ ...ALL_OFF, closeToTray: true });
+    it("extra fields are dropped", () => {
+        expect(parseAppSettingsPatch({ key: "closeToTray", value: true, path: "C:\\evil.exe" })).toEqual({ key: "closeToTray", value: true });
     });
 
     it.each([
         null,
         "closeToTray",
-        [true, true, true],
-        { closeToTray: true, launchAtLogin: false },
-        { closeToTray: "true", launchAtLogin: false, startMinimized: false },
-        { closeToTray: true, launchAtLogin: 1, startMinimized: false },
-    ])("malformed (%j) -> rejected as a whole", (incoming) => {
-        expect(parseAppSettingsUpdate(incoming)).toBeNull();
+        [true],
+        { closeToTray: true, launchAtLogin: false, startMinimized: false },
+        { key: "language", value: true },
+        { key: "toString", value: true },
+        { key: "closeToTray", value: "true" },
+        { key: "closeToTray" },
+    ])("malformed (%j) -> rejected", (incoming) => {
+        expect(parseAppSettingsPatch(incoming)).toBeNull();
     });
 });
 

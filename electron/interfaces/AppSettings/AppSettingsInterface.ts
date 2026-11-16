@@ -11,6 +11,12 @@ export default interface AppSettingsInterface {
     startMinimized: boolean;
 }
 
+/** One switch flipped on the Settings page; main merges it into the stored settings. */
+export interface AppSettingsPatch {
+    key: keyof AppSettingsInterface;
+    value: boolean;
+}
+
 /**
  * Whether this run can register a login item:
  * - supported: packaged app on Windows or macOS;
@@ -21,7 +27,11 @@ export default interface AppSettingsInterface {
  */
 export type LoginItemSupport = "supported" | "unsupportedPlatform" | "notPackaged" | "translocated";
 
-/** What the Settings page shows. */
+/**
+ * What the Settings page shows. settings.launchAtLogin is what the system does: on only if it is
+ * stored on AND the system's login item is there and enabled (read at startup, then kept by our
+ * own writes). An entry removed or disabled in Windows / macOS shows as off.
+ */
 export interface AppSettingsView {
     settings: AppSettingsInterface;
     loginItem: LoginItemSupport;

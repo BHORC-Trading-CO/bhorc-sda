@@ -570,14 +570,14 @@
       "closeToTray": {
         "label": "Keep running in the tray when the window is closed",
         "labelMac": "Keep running in the menu bar when the window is closed",
-        "hint": "Closing the window hides it, and accounts keep working. Open the window again or quit from the tray icon menu.",
+        "hint": "Closing the window hides it, and accounts keep working. Open the window again or quit from the tray icon menu. If no tray icon appears, start SDA again to bring the window back.",
         "hintMac": "Closing the window hides it, and accounts keep working. Open the window again from the menu bar icon or the Dock; quit with ⌘Q or from the menu bar icon."
       },
       "trayUnavailable": "The tray icon could not be created, so closing the window still quits SDA.",
       "launchAtLogin": {
         "label": "Launch at system startup",
         "hint": "SDA starts when you sign in to the computer.",
-        "unsupportedPlatform": "Not available on Linux: add SDA to your desktop's autostart instead. Add --hidden to the command to start it in the tray.",
+        "unsupportedPlatform": "Not available on Linux: add SDA to your desktop's autostart instead.",
         "notPackaged": "Available only in the built app, not in a development run.",
         "translocated": "Move BHORC SDA to the Applications folder and open it from there: macOS now runs it from a temporary location that a login item cannot use."
       },

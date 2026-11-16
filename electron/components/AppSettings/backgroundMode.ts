@@ -1,8 +1,9 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, LoginItemSettings } from "electron";
 import AppSettingsInterface, { AppSettingsView, LoginItemSupport } from "../../interfaces/AppSettings/AppSettingsInterface";
 import AppSettingsStorage from "../newStorage/AppSettingsStorage";
-import { parseAppSettingsUpdate } from "./appSettings";
-import { loginItemRegisteredAnyForm, loginItemSettings, loginItemSupport } from "./loginItem";
+import { parseAppSettingsPatch } from "./appSettings";
+import { loginItemSettings, loginItemSupport, readLoginItemOn } from "./loginItem";
+import { squirrelMaintenanceEvent } from "./squirrelEvents";
 import { hiddenStartRequested, mainWindowCloseAction, revealOnSecondLaunch, revealWindow, startHidden, wantsTray } from "./background";
 import AppTray from "./appTray";
 import { t } from "../../i18n";
@@ -17,11 +18,18 @@ export type AppSettingsUpdate = { ok: true } | { ok: false; message: string };
  * Other windows (confirmations, family PIN / code requests, errors) are separate top-level windows:
  * hiding the main window leaves them open and working, and a login that needs a code still opens
  * its request window while the main window is hidden.
+ *
+ * The system login item is written only when the user flips a switch on the Settings page; at
+ * startup it is only read, to show the switch as the system has it.
  */
 export class BackgroundMode {
     private quitting = false;
     private startedHidden = false;
+    /** Squirrel install/update/obsolete launch: no tray, no close interception, no login-item writes. */
+    private maintenance = false;
     private settings: AppSettingsInterface | null = null;
+    /** System login item: read once at startup, then set by our own writes; null = not read. */
+    private loginItemOn: boolean | null = null;
     private mainWindow: BrowserWindow | null = null;
     /** macOS: the window waits for the end of the full-screen exit to hide; a reveal cancels that. */
     private hideAfterFullScreen = false;
@@ -49,7 +57,8 @@ export class BackgroundMode {
      * Quit, Cmd+Q, app menu Quit, app.quit()): from then on the main window closes for real.
      * macOS: a click on the Dock icon ('activate') brings a hidden main window back.
      */
-    install() {
+    install(argv: readonly string[] = process.argv) {
+        this.maintenance = squirrelMaintenanceEvent(this.platform, argv) !== null;
         app.on("before-quit", () => {
             this.quitting = true;
         });
@@ -65,8 +74,10 @@ export class BackgroundMode {
      */
     prepareStartup(argv: readonly string[]): { startHidden: boolean } {
         try {
+            if (this.maintenance) return { startHidden: false };
             const settings = this.getSettings();
-            const login = this.platform === "darwin" && this.loginItemSupport() === "supported" ? this.readLoginItem() : null;
+            const login = this.platform === "darwin" && this.loginItemSupport() === "supported" ? this.readMacLoginItem() : null;
+            this.loginItemOn = this.readLoginItemOn(login);
             const requested = hiddenStartRequested({ argv, platform: this.platform, login, settings });
             if (wantsTray(settings, requested)) this.tray.create();
             this.startedHidden = startHidden(requested, this.tray.ready);
@@ -75,13 +86,13 @@ export class BackgroundMode {
             console.log(`Background mode was not prepared: ${err}`);
             this.startedHidden = false;
         }
-        this.resyncLoginItem();
         return { startHidden: this.startedHidden };
     }
 
     attachMainWindow(win: BrowserWindow) {
         this.mainWindow = win;
         win.on("close", (event) => {
+            if (this.maintenance) return;
             const action = mainWindowCloseAction({
                 closeToTray: this.getSettings().closeToTray,
                 isQuitting: this.quitting,
@@ -128,53 +139,69 @@ export class BackgroundMode {
 
     view(): AppSettingsView {
         const settings = this.getSettings();
+        const loginItem = this.loginItemSupport();
         return {
-            settings: { ...settings },
-            loginItem: this.loginItemSupport(),
+            // The system is the truth: stored on, but the entry was removed or disabled -> off.
+            settings: { ...settings, launchAtLogin: loginItem === "supported" && settings.launchAtLogin && this.loginItemOn !== false },
+            loginItem,
             trayUnavailable: settings.closeToTray && this.tray.failed && this.platform !== "darwin",
         };
     }
 
     /**
-     * Save from the Settings page. The login item is changed first; if the system refuses, the
-     * startup fields keep their saved values and the page gets the reason. Where the login item
-     * is unsupported (Linux, development run), the startup fields cannot change: whatever the page
-     * sends, they keep the stored values (off on Linux; a development run sharing config.json with
-     * an installed copy does not switch that copy's setting off).
+     * --squirrel-uninstall (Windows): remove the login item this feature may have added, before
+     * Squirrel deletes the app. Deleted by its fixed name, whichever copy wrote it.
+     */
+    removeLoginItemForUninstall() {
+        try {
+            const settings = loginItemSettings(this.platform, process.execPath, { launchAtLogin: false, startMinimized: false });
+            if (settings) app.setLoginItemSettings(settings);
+        } catch (err) {
+            console.log(`Login item was not removed on uninstall: ${err}`);
+        }
+    }
+
+    /**
+     * A switch flipped on the Settings page ({ key, value }), merged into the stored settings in
+     * arrival order. The login item is written only here, and only when the user's flip changes
+     * what the system does (compared with what the page shows); if the system refuses, nothing
+     * is saved and the page gets the reason. Where the login item is unsupported (Linux,
+     * development run, translocated macOS app, Squirrel maintenance launch) the startup switches
+     * are ignored.
      */
     update(incoming: unknown): AppSettingsUpdate {
-        const parsed = parseAppSettingsUpdate(incoming);
-        if (!parsed) return { ok: false, message: t("errors.appSettings.invalid") };
-        const previous = this.getSettings();
-        const support = this.loginItemSupport();
-        let next: AppSettingsInterface = support === "supported"
-            ? parsed
-            : { ...parsed, launchAtLogin: previous.launchAtLogin, startMinimized: previous.startMinimized };
-        let result: AppSettingsUpdate = { ok: true };
-        const loginItemChanged = next.launchAtLogin !== previous.launchAtLogin
-            || (next.launchAtLogin && next.startMinimized !== previous.startMinimized);
-        if (support === "supported" && loginItemChanged) {
-            try {
-                const settings = loginItemSettings(this.platform, process.execPath, next);
-                if (settings) app.setLoginItemSettings(settings);
-            } catch (err) {
-                next = { ...next, launchAtLogin: previous.launchAtLogin, startMinimized: previous.startMinimized };
-                result = { ok: false, message: t("errors.appSettings.loginItem", { error: err instanceof Error ? err.message : String(err) }) };
+        const patch = parseAppSettingsPatch(incoming);
+        if (!patch) return { ok: false, message: t("errors.appSettings.invalid") };
+        const stored = this.getSettings();
+        const next: AppSettingsInterface = { ...stored, [patch.key]: patch.value };
+        if (patch.key !== "closeToTray") {
+            if (this.loginItemSupport() !== "supported" || this.maintenance) return { ok: true };
+            const shownOn = this.view().settings.launchAtLogin;
+            const willBeOn = patch.key === "launchAtLogin" ? patch.value : shownOn;
+            const changesSystem = willBeOn !== shownOn || (willBeOn && next.startMinimized !== stored.startMinimized);
+            if (changesSystem) {
+                try {
+                    const settings = loginItemSettings(this.platform, process.execPath, { launchAtLogin: willBeOn, startMinimized: next.startMinimized });
+                    if (settings) app.setLoginItemSettings(settings);
+                    this.loginItemOn = willBeOn;
+                } catch (err) {
+                    return { ok: false, message: t("errors.appSettings.loginItem", { error: err instanceof Error ? err.message : String(err) }) };
+                }
             }
         }
         AppSettingsStorage.Save(next);
         this.settings = next;
         this.syncTray();
-        return result;
+        return { ok: true };
     }
 
     /** Tray icon on or off after a settings change. */
     private syncTray() {
-        if (wantsTray(this.getSettings(), this.startedHidden)) this.tray.create();
+        if (!this.maintenance && wantsTray(this.getSettings(), this.startedHidden)) this.tray.create();
         else this.tray.destroy();
     }
 
-    private readLoginItem() {
+    private readMacLoginItem(): LoginItemSettings | null {
         try {
             return app.getLoginItemSettings();
         } catch (err) {
@@ -183,20 +210,16 @@ export class BackgroundMode {
         }
     }
 
-    /**
-     * Windows only: the setting is on, but our Run entry does not start this copy (a plain folder
-     * that was moved, a newer CI build unpacked elsewhere, a switch between the installed copy and
-     * a plain folder). Re-register it for this copy; the fixed entry name keeps it a single entry.
-     * Nothing is written while the entry matches, so "Disabled" in Task Manager stays disabled.
-     * macOS keeps its login item by itself, and a user who removed it in System Settings meant it.
-     */
-    private resyncLoginItem() {
+    /** Read-only, for the switch; null when it cannot be read (the stored value is shown then). */
+    private readLoginItemOn(macLogin: LoginItemSettings | null): boolean | null {
+        if (this.loginItemSupport() !== "supported") return null;
+        if (this.platform === "darwin") return macLogin ? macLogin.openAtLogin === true : null;
         try {
-            if (this.platform !== "win32" || !this.getSettings().launchAtLogin || this.loginItemSupport() !== "supported") return;
-            const settings = loginItemSettings(this.platform, process.execPath, this.getSettings());
-            if (settings && !loginItemRegisteredAnyForm((query) => app.getLoginItemSettings(query), settings)) app.setLoginItemSettings(settings);
+            const registration = loginItemSettings(this.platform, process.execPath, { launchAtLogin: true, startMinimized: this.getSettings().startMinimized });
+            return readLoginItemOn(this.platform, (query) => app.getLoginItemSettings(query), registration);
         } catch (err) {
-            console.log(`Login item was not re-registered: ${err}`);
+            console.log(`Login item state was not read: ${err}`);
+            return null;
         }
     }
 }

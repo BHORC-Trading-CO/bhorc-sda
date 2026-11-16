@@ -15,13 +15,18 @@ const mockApp = app as any;
 const quit = jest.fn();
 const modes: BackgroundMode[] = [];
 
-function makeMode(platform: NodeJS.Platform, stored: Partial<AppSettingsInterface> = {}) {
+function makeMode(platform: NodeJS.Platform, stored: Partial<AppSettingsInterface> = {}, argv: string[] = ["sda"]) {
     AppSettingsStorage.Save({ ...ALL_OFF, ...stored });
     const mode = new BackgroundMode(platform);
     modes.push(mode);
-    mode.install();
+    mode.install(argv);
     return mode;
 }
+
+const MINIMIZED_AT_LOGIN = { launchAtLogin: true, startMinimized: true };
+/** Our Windows Run entry for this program as Electron 17 lists it in launchItems. */
+const ourEntry = (over: object = {}) => ({ name: LOGIN_ITEM_NAME, path: process.execPath, args: [], scope: "user", enabled: true, ...over });
+const patch = (key: keyof AppSettingsInterface, value: boolean) => ({ key, value });
 
 function start(mode: BackgroundMode, argv: string[] = ["sda"]) {
     const { startHidden } = mode.prepareStartup(argv);
@@ -180,8 +185,8 @@ describe("second launch while running in the tray", () => {
 });
 
 describe("start without the main window", () => {
-    it("--hidden: tray icon created, window not shown", () => {
-        const mode = makeMode("win32");
+    it("--hidden with launch at login + start minimized on: tray icon created, window not shown", () => {
+        const mode = makeMode("win32", MINIMIZED_AT_LOGIN);
         const { win, startHidden } = start(mode, ["trademanager.exe", "--hidden"]);
         expect(startHidden).toBe(true);
         expect(mode.tray.ready).toBe(true);
@@ -193,8 +198,8 @@ describe("start without the main window", () => {
     it("--hidden but the tray icon cannot be created: the window is shown", () => {
         (nativeImage.createFromPath as jest.Mock).mockReturnValueOnce({ isEmpty: () => true, setTemplateImage: jest.fn() });
         const log = jest.spyOn(console, "log").mockImplementation(() => {});
-        const mode = makeMode("linux");
-        const { win, startHidden } = start(mode, ["bhorc-sda", "--hidden"]);
+        const mode = makeMode("win32", MINIMIZED_AT_LOGIN);
+        const { win, startHidden } = start(mode, ["trademanager.exe", "--hidden"]);
         expect(startHidden).toBe(false);
         expect(win.isVisible()).toBe(true);
         log.mockRestore();
@@ -202,20 +207,36 @@ describe("start without the main window", () => {
 
     it("macOS: opened at login with \"Start minimized\" on", () => {
         mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: true, wasOpenedAtLogin: true, wasOpenedAsHidden: false });
-        const mode = makeMode("darwin", { launchAtLogin: true, startMinimized: true });
+        const mode = makeMode("darwin", MINIMIZED_AT_LOGIN);
         expect(start(mode).startHidden).toBe(true);
+    });
+
+    it("macOS, everything off (an existing install): a hidden login item still gets the window, no tray icon", () => {
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: true, wasOpenedAtLogin: true, wasOpenedAsHidden: true });
+        const mode = makeMode("darwin");
+        const { win, startHidden } = start(mode, ["bhorc-sda", "--hidden"]);
+        expect(startHidden).toBe(false);
+        expect(win.isVisible()).toBe(true);
+        expect(mode.tray.ready).toBe(false);
+    });
+
+    it("Linux never starts hidden, even with both settings on and --hidden", () => {
+        const mode = makeMode("linux", MINIMIZED_AT_LOGIN);
+        const { win, startHidden } = start(mode, ["bhorc-sda", "--hidden"]);
+        expect(startHidden).toBe(false);
+        expect(win.isVisible()).toBe(true);
     });
 
     it("macOS development run: login flags are not read", () => {
         mockApp.isPackaged = false;
         mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: true, wasOpenedAtLogin: true, wasOpenedAsHidden: true });
-        const mode = makeMode("darwin", { launchAtLogin: true, startMinimized: true });
+        const mode = makeMode("darwin", MINIMIZED_AT_LOGIN);
         expect(start(mode).startHidden).toBe(false);
         expect(mockApp.getLoginItemSettings).not.toHaveBeenCalled();
     });
 
     it("a session that started hidden keeps the tray icon, but closing still quits when close-to-tray is off", () => {
-        const mode = makeMode("win32");
+        const mode = makeMode("win32", MINIMIZED_AT_LOGIN);
         const { win } = start(mode, ["trademanager.exe", "--hidden"]);
         trayMenuItem(0).click();
         win.close();
@@ -224,47 +245,58 @@ describe("start without the main window", () => {
     });
 });
 
-describe("saving from the Settings page", () => {
+describe("saving from the Settings page (one switch per save)", () => {
     it("close-to-tray on/off creates and removes the tray icon, and is stored", () => {
         const mode = makeMode("win32");
         start(mode);
-        expect(mode.update({ ...ALL_OFF, closeToTray: true })).toEqual({ ok: true });
+        expect(mode.update(patch("closeToTray", true))).toEqual({ ok: true });
         expect(mode.tray.ready).toBe(true);
         expect(AppSettingsStorage.Get().closeToTray).toBe(true);
-        expect(mode.update({ ...ALL_OFF })).toEqual({ ok: true });
+        expect(mode.update(patch("closeToTray", false))).toEqual({ ok: true });
         expect(mode.tray.ready).toBe(false);
         expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
+    });
+
+    it("a save changes only its own key; the others stay as stored", () => {
+        const mode = makeMode("win32", { closeToTray: true });
+        start(mode);
+        mode.update(patch("launchAtLogin", true));
+        mode.update(patch("startMinimized", true));
+        expect(AppSettingsStorage.Get()).toEqual({ closeToTray: true, launchAtLogin: true, startMinimized: true });
     });
 
     it("Windows: launch at login registers this exe, start minimized adds --hidden, off removes it", () => {
         const mode = makeMode("win32");
         start(mode);
-        mode.update({ ...ALL_OFF, launchAtLogin: true });
+        mode.update(patch("launchAtLogin", true));
         expect(mockApp.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: true, path: process.execPath, args: [], name: LOGIN_ITEM_NAME });
-        mode.update({ ...ALL_OFF, launchAtLogin: true, startMinimized: true });
+        expect(mode.view().settings.launchAtLogin).toBe(true);
+        mode.update(patch("startMinimized", true));
         expect(mockApp.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: true, path: process.execPath, args: ["--hidden"], name: LOGIN_ITEM_NAME });
-        mode.update({ ...ALL_OFF, launchAtLogin: false, startMinimized: true });
+        mode.update(patch("launchAtLogin", false));
         expect(mockApp.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: false, path: process.execPath, args: [], name: LOGIN_ITEM_NAME });
         expect(mockApp.setLoginItemSettings).toHaveBeenCalledTimes(3);
         // Start minimized while launch at login is off: nothing to change in the system.
-        mode.update({ ...ALL_OFF, startMinimized: false });
+        mode.update(patch("startMinimized", false));
         expect(mockApp.setLoginItemSettings).toHaveBeenCalledTimes(3);
         expect(AppSettingsStorage.Get()).toEqual(ALL_OFF);
     });
 
     it("macOS: openAtLogin + openAsHidden", () => {
-        const mode = makeMode("darwin");
+        const mode = makeMode("darwin", { startMinimized: true });
         start(mode);
-        mode.update({ ...ALL_OFF, launchAtLogin: true, startMinimized: true });
+        mode.update(patch("launchAtLogin", true));
         expect(mockApp.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: true, openAsHidden: true });
     });
 
     it.each([["linux", true, "unsupportedPlatform"], ["win32", false, "notPackaged"]] as const)(
-        "%s (packaged=%s): launch at login stays off and the system is not touched", (platform, packaged, support) => {
+        "%s (packaged=%s): startup switches are ignored and the system is not touched", (platform, packaged, support) => {
             mockApp.isPackaged = packaged;
             const mode = makeMode(platform);
             start(mode);
-            expect(mode.update({ ...ALL_OFF, closeToTray: true, launchAtLogin: true, startMinimized: true })).toEqual({ ok: true });
+            expect(mode.update(patch("closeToTray", true))).toEqual({ ok: true });
+            expect(mode.update(patch("launchAtLogin", true))).toEqual({ ok: true });
+            expect(mode.update(patch("startMinimized", true))).toEqual({ ok: true });
             expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
             expect(AppSettingsStorage.Get()).toEqual({ ...ALL_OFF, closeToTray: true });
             expect(mode.view()).toEqual({ settings: { ...ALL_OFF, closeToTray: true }, loginItem: support, trayUnavailable: false });
@@ -272,46 +304,76 @@ describe("saving from the Settings page", () => {
 
     it("a development run sharing config.json does not switch off the installed copy's launch at login", () => {
         mockApp.isPackaged = false;
-        const mode = makeMode("win32", { launchAtLogin: true, startMinimized: true });
+        const mode = makeMode("win32", MINIMIZED_AT_LOGIN);
         start(mode);
-        mode.update({ closeToTray: true, launchAtLogin: false, startMinimized: false });
-        expect(AppSettingsStorage.Get()).toEqual({ closeToTray: true, launchAtLogin: true, startMinimized: true });
+        mode.update(patch("launchAtLogin", false));
+        mode.update(patch("closeToTray", true));
+        expect(AppSettingsStorage.Get()).toEqual({ closeToTray: true, ...MINIMIZED_AT_LOGIN });
         expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
     });
 
-    it("the system refuses the login item: startup fields keep the saved values, the rest is saved, the reason comes back", () => {
+    it("the system refuses the login item: nothing is saved, the reason comes back", () => {
         const mode = makeMode("win32");
         start(mode);
         mockApp.setLoginItemSettings.mockImplementationOnce(() => { throw new Error("Access is denied."); });
-        const result = mode.update({ closeToTray: true, launchAtLogin: true, startMinimized: true });
-        expect(result).toEqual({ ok: false, message: "Could not change system startup: Access is denied." });
-        expect(AppSettingsStorage.Get()).toEqual({ ...ALL_OFF, closeToTray: true });
+        expect(mode.update(patch("launchAtLogin", true))).toEqual({ ok: false, message: "Could not change system startup: Access is denied." });
+        expect(AppSettingsStorage.Get()).toEqual(ALL_OFF);
+        expect(mode.view().settings.launchAtLogin).toBe(false);
     });
 
     it("malformed save: rejected, nothing changes", () => {
         const mode = makeMode("win32", { closeToTray: true });
         start(mode);
-        expect(mode.update({ closeToTray: "no" })).toEqual({ ok: false, message: "Settings were not saved: unexpected values." });
+        expect(mode.update({ closeToTray: false, launchAtLogin: false, startMinimized: false })).toEqual({ ok: false, message: "Settings were not saved: unexpected values." });
+        expect(mode.update({ key: "closeToTray", value: "no" })).toEqual({ ok: false, message: "Settings were not saved: unexpected values." });
         expect(AppSettingsStorage.Get()).toEqual({ ...ALL_OFF, closeToTray: true });
         expect(mode.tray.ready).toBe(true);
     });
 });
 
-describe("login item at startup", () => {
-    const ourEntry = (over: object = {}) => ({ name: LOGIN_ITEM_NAME, path: process.execPath, args: [], scope: "user", enabled: true, ...over });
-
-    it("Windows: setting on but no entry of ours starts this copy (moved folder, other copy) -> re-registered", () => {
+describe("login item at startup: read to show the switch, never written", () => {
+    it("Windows: stored on, no entry in the system -> zero writes, the switch shows off", () => {
         mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [] });
-        start(makeMode("win32", { launchAtLogin: true }));
+        const mode = makeMode("win32", { launchAtLogin: true });
+        start(mode);
         expect(mockApp.getLoginItemSettings).toHaveBeenCalledWith({ path: process.execPath, args: [] });
-        expect(mockApp.setLoginItemSettings).toHaveBeenCalledWith({ openAtLogin: true, path: process.execPath, args: [], name: LOGIN_ITEM_NAME });
+        expect(mockApp.setLoginItemSettings).toHaveBeenCalledTimes(0);
+        expect(mode.view().settings.launchAtLogin).toBe(false);
+        // The stored value is not rewritten either.
+        expect(AppSettingsStorage.Get().launchAtLogin).toBe(true);
     });
 
-    it("Windows: our entry already starts this copy -> left alone, even when Task Manager has it Disabled", () => {
-        // openAtLogin is read by the AppUserModelId name, not ours: it does not decide anything.
+    it("Windows: stored on, entry disabled in Task Manager -> zero writes, off; the user's flip writes it again", () => {
         mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [ourEntry({ enabled: false })] });
-        start(makeMode("win32", { launchAtLogin: true, startMinimized: true }));
-        expect(mockApp.getLoginItemSettings).toHaveBeenCalledWith({ path: process.execPath, args: ["--hidden"] });
+        const mode = makeMode("win32", MINIMIZED_AT_LOGIN);
+        start(mode);
+        expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
+        expect(mode.view().settings.launchAtLogin).toBe(false);
+        mode.update(patch("launchAtLogin", true));
+        expect(mockApp.setLoginItemSettings).toHaveBeenCalledWith({ openAtLogin: true, path: process.execPath, args: ["--hidden"], name: LOGIN_ITEM_NAME });
+        expect(mode.view().settings.launchAtLogin).toBe(true);
+    });
+
+    it("Windows: stored on, our enabled entry for this program -> on, zero writes", () => {
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [ourEntry()] });
+        const mode = makeMode("win32", { launchAtLogin: true });
+        start(mode);
+        expect(mode.view().settings.launchAtLogin).toBe(true);
+        expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
+    });
+
+    it("Windows: an entry of ours, but stored off -> shown off", () => {
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [ourEntry()] });
+        const mode = makeMode("win32");
+        start(mode);
+        expect(mode.view().settings.launchAtLogin).toBe(false);
+    });
+
+    it.each([[false, false], [true, true]])("macOS: stored on, system openAtLogin=%s -> shown %s, zero writes", (openAtLogin, shown) => {
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin, wasOpenedAtLogin: false, wasOpenedAsHidden: false });
+        const mode = makeMode("darwin", { launchAtLogin: true });
+        start(mode);
+        expect(mode.view().settings.launchAtLogin).toBe(shown);
         expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
     });
 
@@ -330,18 +392,53 @@ describe("login item at startup", () => {
         }
     });
 
-    it("Windows: reading the login items throws -> the app still starts, with its window", () => {
+    it("Windows: reading the login items throws -> window shown, the stored value is shown, nothing written", () => {
         mockApp.getLoginItemSettings.mockImplementationOnce(() => { throw new Error("registry"); });
         const log = jest.spyOn(console, "log").mockImplementation(() => {});
-        const { startHidden, win } = start(makeMode("win32", { launchAtLogin: true }));
+        const mode = makeMode("win32", { launchAtLogin: true });
+        const { startHidden, win } = start(mode);
         expect(startHidden).toBe(false);
         expect(win.isVisible()).toBe(true);
+        expect(mode.view().settings.launchAtLogin).toBe(true);
+        expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
         log.mockRestore();
     });
+});
 
-    it("setting off, or macOS: nothing is written at startup", () => {
-        start(makeMode("win32"));
-        start(makeMode("darwin", { launchAtLogin: true }));
-        expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
+describe("Squirrel.Windows maintenance launches", () => {
+    it.each(["--squirrel-install", "--squirrel-updated", "--squirrel-obsolete"])(
+        "%s: no tray icon, close is not intercepted, no login-item writes", (flag) => {
+            const mode = makeMode("win32", { closeToTray: true, ...MINIMIZED_AT_LOGIN }, ["trademanager.exe", flag, "1.0.6"]);
+            const { win, startHidden } = start(mode, ["trademanager.exe", flag, "1.0.6", "--hidden"]);
+            expect(startHidden).toBe(false);
+            expect(mode.tray.ready).toBe(false);
+            expect(mockApp.getLoginItemSettings).not.toHaveBeenCalled();
+            mode.update(patch("launchAtLogin", false));
+            mode.update(patch("closeToTray", true));
+            expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
+            expect(mode.tray.ready).toBe(false);
+            win.close();
+            expect(win.isDestroyed()).toBe(true);
+        });
+
+    it("--squirrel-firstrun is the ordinary first start: background mode works", () => {
+        const mode = makeMode("win32", { closeToTray: true }, ["trademanager.exe", "--squirrel-firstrun"]);
+        const { win } = start(mode, ["trademanager.exe", "--squirrel-firstrun"]);
+        expect(mode.tray.ready).toBe(true);
+        win.close();
+        expect(win.isDestroyed()).toBe(false);
+    });
+
+    it("uninstall: our login item is removed by its fixed name", () => {
+        new BackgroundMode("win32").removeLoginItemForUninstall();
+        expect(mockApp.setLoginItemSettings).toHaveBeenCalledTimes(1);
+        expect(mockApp.setLoginItemSettings).toHaveBeenCalledWith({ openAtLogin: false, path: process.execPath, args: [], name: LOGIN_ITEM_NAME });
+    });
+
+    it("uninstall: a refusal is logged, not thrown (the app still quits)", () => {
+        mockApp.setLoginItemSettings.mockImplementationOnce(() => { throw new Error("denied"); });
+        const log = jest.spyOn(console, "log").mockImplementation(() => {});
+        expect(() => new BackgroundMode("win32").removeLoginItemForUninstall()).not.toThrow();
+        log.mockRestore();
     });
 });

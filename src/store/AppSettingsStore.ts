@@ -2,8 +2,10 @@ import { makeAutoObservable } from "mobx";
 import { Store } from "./store";
 import AppSettingsInterface, { AppSettingsView, LoginItemSupport } from "../../electron/interfaces/AppSettings/AppSettingsInterface";
 
-// Store of the Settings page (SDA-35, SDA-36): tray and launch at login. Every switch is saved at
-// once; main replies with the saved state (and the reason, if the save or the login item failed).
+// Store of the Settings page (SDA-35, SDA-36): tray and launch at login. A flipped switch is sent
+// alone ({ key, value }); main merges it into the stored settings in arrival order and replies
+// with the full state, which replaces ours. A late reply can show an older state for a moment,
+// but it cannot make a later save carry that old value: no save sends more than its own key.
 class AppSettingsStore {
     root: Store;
     isLoaded: boolean;
@@ -44,11 +46,11 @@ class AppSettingsStore {
         this.error = message;
     }
 
-    set<K extends keyof AppSettingsInterface>(key: K, value: AppSettingsInterface[K]) {
+    set(key: keyof AppSettingsInterface, value: boolean) {
         this.error = null;
         // Shown at once; main's reply confirms it or brings the saved value back.
         this.settings = { ...this.settings, [key]: value };
-        window.Main.appSettings.save({ ...this.settings });
+        window.Main.appSettings.save({ key, value });
     }
 }
 

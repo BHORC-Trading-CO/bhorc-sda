@@ -81,8 +81,7 @@ export function loginItemSettings(
  * of `settings`. Electron 17 most likely parses the query path as a command line, so an unquoted
  * path with a space ("...\BHORC SDA-win32-x64\trademanager.exe", "C:\Users\John Doe\...") would
  * be cut at the space; if it takes the path verbatim instead, the quoted form would not match.
- * Without the Electron source at hand both forms are asked for a path with whitespace, and the
- * entry counts as registered if either finds it (isLoginItemRegistered compares the real path).
+ * Without the Electron source at hand both forms are asked for a path with whitespace.
  */
 export function loginItemQueries(settings: Settings | null): LoginItemSettingsOptions[] {
     if (!settings || settings.path === undefined) return [];
@@ -93,23 +92,30 @@ export function loginItemQueries(settings: Settings | null): LoginItemSettingsOp
 }
 
 /**
- * Windows: is there a Run entry under our name (HKCU) that starts this program? getLoginItemSettings
- * reads openAtLogin by the AppUserModelId name, not by LOGIN_ITEM_NAME, so launchItems is used.
- * Arguments are not compared: Electron returns them parsed (quotes and switches stripped), and
- * they only change through a save from the Settings page, which always rewrites the entry. The
- * enabled flag is ignored on purpose: "Disabled" in Task Manager is the user's choice.
+ * Windows: our Run entry (LOGIN_ITEM_NAME, current user) starts this program and is enabled.
+ * getLoginItemSettings reads openAtLogin by the AppUserModelId name, not by LOGIN_ITEM_NAME, so
+ * launchItems is used. Arguments are not compared: Electron returns them parsed (quotes and
+ * switches stripped). "Disabled" in Task Manager or Windows Settings counts as off.
  */
-export function isLoginItemRegistered(state: Pick<LoginItemSettings, "launchItems"> | null | undefined, settings: Settings | null): boolean {
+export function isOurLoginItemEnabled(state: Pick<LoginItemSettings, "launchItems"> | null | undefined, settings: Settings | null): boolean {
     if (!settings || settings.path === undefined) return false;
     const target = settings.path.toLowerCase();
     return (state?.launchItems || []).some((item) =>
-        item.name === LOGIN_ITEM_NAME && item.scope === "user" && typeof item.path === "string" && item.path.toLowerCase() === target);
+        item.name === LOGIN_ITEM_NAME && item.scope === "user" && item.enabled === true
+        && typeof item.path === "string" && item.path.toLowerCase() === target);
 }
 
-/** Asks getLoginItemSettings with every query form (loginItemQueries); registered if any finds our entry. */
-export function loginItemRegisteredAnyForm(
-    read: (query: LoginItemSettingsOptions) => Pick<LoginItemSettings, "launchItems">,
-    settings: Settings | null,
+/**
+ * Read-only: does the system start SDA at login right now? Used only to show the switch; nothing
+ * is ever written from here. Windows: our enabled Run entry for this program (registration from
+ * loginItemSettings, every query form). macOS: openAtLogin. Elsewhere: false.
+ */
+export function readLoginItemOn(
+    platform: NodeJS.Platform,
+    read: (query?: LoginItemSettingsOptions) => Pick<LoginItemSettings, "openAtLogin" | "launchItems">,
+    registration: Settings | null,
 ): boolean {
-    return loginItemQueries(settings).some((query) => isLoginItemRegistered(read(query), settings));
+    if (platform === "darwin") return read().openAtLogin === true;
+    if (platform !== "win32") return false;
+    return loginItemQueries(registration).some((query) => isOurLoginItemEnabled(read(query), registration));
 }
