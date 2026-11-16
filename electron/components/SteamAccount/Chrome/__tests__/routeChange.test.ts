@@ -1,4 +1,4 @@
-jest.mock("fs/promises", () => ({ access: jest.fn().mockResolvedValue(undefined) }));
+jest.mock("fs/promises", () => ({ access: jest.fn().mockResolvedValue(undefined), rm: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../resolveBrowserPath", () => ({ __esModule: true, default: jest.fn().mockResolvedValue("/fake/browser") }));
 jest.mock("../secureDnsPref", () => ({ ensureSecureDnsOff: jest.fn().mockResolvedValue(undefined), writeLocalState: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../../../application/application", () => ({ __esModule: true, default: { sendToMain: jest.fn() } }));
@@ -9,6 +9,7 @@ import puppeteer from "puppeteer-extra";
 import LinksStorage from "../../../newStorage/LinksStorage";
 import application from "../../../application/application";
 import SteamAccountChannels from "../../../../interfaces/IpcChannels/SteamAccountChannels";
+import fsp from "fs/promises";
 
 const make = () => new Chrome({ id: "a1", secondary: {} } as any);
 beforeEach(() => LinksStorage.Save({ steamAccounts: { a1: null }, groups: {}, profiles: {} }));
@@ -63,14 +64,19 @@ it("F4 route change during pending launch closes the returned browser before ope
 });
 
 function launched() {
+    // The browser's own first tab (about:blank): SDA-33 opens the first start page in it.
+    const target = { url: () => "about:blank" };
     const page = {
         authenticate: jest.fn().mockResolvedValue(undefined),
         evaluateOnNewDocument: jest.fn().mockResolvedValue(undefined),
         setCookie: jest.fn().mockResolvedValue(undefined),
-        goto: jest.fn().mockResolvedValue(undefined)
+        goto: jest.fn().mockResolvedValue(undefined),
+        target: () => target,
+        url: () => "about:blank"
     };
     const browser = {
         on: jest.fn(), newPage: jest.fn().mockResolvedValue(page),
+        pages: jest.fn().mockResolvedValue([page]), targets: () => [target],
         close: jest.fn().mockResolvedValue(undefined)
     };
     jest.spyOn(puppeteer, "launch").mockResolvedValue(browser as any);
@@ -222,5 +228,67 @@ it("SDA-26 a failed preparation does not block the next start", async () => {
     await expect(chrome.start()).rejects.toThrow("EACCES: Local State");
     const { browser } = launched();
     await chrome.start();
+    expect(chrome.browser).toBe(browser);
+});
+
+// SDA-33: with "restore tabs" off (the default) the last session's tabs are removed before the
+// launch, inside the same serialized preparation as SDA-26: a superseded start never removes them
+// (the next start may be the one that restores them), and the next start removes them only after
+// the superseded one has finished with the profile.
+it("SDA-33 the last session's tabs are removed inside the serialized preparation, never by a superseded start", async () => {
+    const order: string[] = [];
+    const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
+    let finishFirstSecureDns!: () => void;
+    const chrome = make();
+    (ensureSecureDnsOff as jest.Mock)
+        .mockImplementationOnce(() => new Promise<void>(resolve => {
+            order.push("A: secure DNS off (slow)");
+            finishFirstSecureDns = () => { order.push("A: secure DNS done"); resolve(); };
+        }))
+        .mockImplementation(async () => { order.push("B: secure DNS off"); });
+    (fsp.rm as jest.Mock).mockImplementation(async (dir: string) => { order.push(`remove ${dir.slice(chrome.profileDir.length)}`); });
+    const { browser } = launched();
+    (puppeteer.launch as jest.Mock).mockImplementation(async () => { order.push("B: launch"); return browser; });
+    try {
+        const first = chrome.start();
+        const rejected = expect(first).rejects.toMatchObject({ reason: "superseded" });
+        await flush();
+        const second = chrome.start();
+        await flush();
+        expect(order).toEqual(["A: secure DNS off (slow)"]);
+        finishFirstSecureDns();
+        await second;
+        await rejected;
+        expect(order).toEqual([
+            "A: secure DNS off (slow)", "A: secure DNS done",
+            "B: secure DNS off", "remove /Default/Sessions", "B: launch",
+        ]);
+        expect(fsp.rm).toHaveBeenCalledTimes(1);
+        expect(fsp.rm).toHaveBeenCalledWith(`${chrome.profileDir}/Default/Sessions`, expect.objectContaining({ recursive: true, force: true }));
+        expect(chrome.browser).toBe(browser);
+    } finally {
+        (ensureSecureDnsOff as jest.Mock).mockReset().mockResolvedValue(undefined);
+        (fsp.rm as jest.Mock).mockReset().mockResolvedValue(undefined);
+    }
+});
+it("SDA-33 a failed removal of the last session's tabs is logged and the browser still starts", async () => {
+    const log = jest.spyOn(console, "log").mockImplementation(() => {});
+    (fsp.rm as jest.Mock).mockRejectedValueOnce(Object.assign(new Error("EBUSY: resource busy or locked"), { code: "EBUSY" }));
+    const { browser, page } = launched();
+    const chrome = make();
+    await chrome.start();
+    expect(fsp.rm).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("EBUSY: resource busy or locked"));
+    expect(chrome.browser).toBe(browser);
+    expect(chrome.workStatus).toBe("working");
+    expect(page.goto).toHaveBeenCalledWith("https://steamcommunity.com/my/");
+});
+it("SDA-33 a session folder that is already gone is not an error", async () => {
+    const log = jest.spyOn(console, "log").mockImplementation(() => {});
+    (fsp.rm as jest.Mock).mockRejectedValueOnce(Object.assign(new Error("ENOENT: no such file or directory"), { code: "ENOENT" }));
+    const { browser } = launched();
+    const chrome = make();
+    await chrome.start();
+    expect(log).not.toHaveBeenCalledWith(expect.stringContaining("ENOENT"));
     expect(chrome.browser).toBe(browser);
 });
