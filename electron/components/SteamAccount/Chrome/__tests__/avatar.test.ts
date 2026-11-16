@@ -3,10 +3,13 @@ jest.mock("../../../Manager/Manager", () => ({ __esModule: true, default: { GetS
 
 jest.mock("fs/promises", () => ({ mkdir: jest.fn().mockResolvedValue(undefined), writeFile: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../../../someFuncs/downloadImage", () => ({ __esModule: true, default: jest.fn().mockResolvedValue(undefined) }));
+jest.mock("../secureDnsPref", () => ({ ensureSecureDnsOff: jest.fn().mockResolvedValue(undefined), writeLocalState: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("sharp", () => jest.fn(() => ({ resize: () => ({ toFile: (_path: string, callback: Function) => callback(null) }) })));
 
-import Chrome from "../Chrome";
+import Chrome, { AVATAR_TIMEOUT_MS } from "../Chrome";
 import downloadImage from "../../../someFuncs/downloadImage";
+import fsp from "fs/promises";
+import { writeLocalState } from "../secureDnsPref";
 import { DEFAULT_AVATAR_URL } from "../../../Functions/sanitizeAvatarUrl";
 const sharp = require("sharp");
 
@@ -25,4 +28,51 @@ it("createProfile сохраняет загрузку обычного ават�
     await chrome.createProfile();
     expect(downloadImage).toHaveBeenCalledWith(DEFAULT_AVATAR_URL, expect.stringContaining("/Avatars/avatar_generic_small.png"), "http://u%40x:p%3Ax@proxy.test:8080");
     expect(sharp).toHaveBeenCalledTimes(1);
+});
+
+// SDA-26: Local State нового профиля пишется только через writeLocalState (он выключает DoH),
+// а не напрямую в файл.
+it("createProfile пишет Local State только через writeLocalState", async () => {
+    (writeLocalState as jest.Mock).mockClear();
+    (fsp.writeFile as jest.Mock).mockClear();
+    const chrome = new Chrome({ id: "test-account", secondary: { nickname: "name", avatarUrl: "" } } as any);
+    await chrome.createProfile();
+    expect(writeLocalState).toHaveBeenCalledTimes(1);
+    expect(writeLocalState).toHaveBeenCalledWith(chrome.profileDir, expect.stringContaining('"name"'));
+    expect((fsp.writeFile as jest.Mock).mock.calls.some(([file]) => String(file).includes("Local State"))).toBe(false);
+});
+
+it("createProfile ждёт запись Local State: профиль не считается готовым, пока она не закончилась", async () => {
+    let finishWrite!: () => void;
+    (writeLocalState as jest.Mock).mockImplementationOnce(() => new Promise<void>(resolve => { finishWrite = resolve; }));
+    const chrome = new Chrome({ id: "test-account", secondary: { nickname: "name", avatarUrl: "" } } as any);
+    let done = false;
+    const creating = chrome.createProfile().then(() => { done = true; });
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    expect(done).toBe(false);
+    finishWrite();
+    await creating;
+    expect(done).toBe(true);
+});
+
+// Последний проход ревью: подготовка профиля идёт по очереди, и зависшее скачивание аватара
+// (своего таймаута у него нет) держало бы все следующие запуски браузера этого аккаунта.
+it("createProfile не ждёт зависший аватар дольше отведённого времени", async () => {
+    jest.useFakeTimers();
+    try {
+        (downloadImage as jest.Mock).mockImplementationOnce(() => new Promise(() => undefined));
+        const log = jest.spyOn(console, "log").mockImplementation(() => undefined);
+        const chrome = new Chrome({ id: "test-account", secondary: { nickname: "name", avatarUrl: DEFAULT_AVATAR_URL } } as any);
+        let done = false;
+        const creating = chrome.createProfile().then(() => { done = true; });
+        await jest.advanceTimersByTimeAsync(AVATAR_TIMEOUT_MS - 1);
+        expect(done).toBe(false);
+        await jest.advanceTimersByTimeAsync(2);
+        await creating;
+        expect(done).toBe(true);
+        expect(log).toHaveBeenCalledWith(expect.stringContaining("аватар пропущен"));
+        log.mockRestore();
+    } finally {
+        jest.useRealTimers();
+    }
 });

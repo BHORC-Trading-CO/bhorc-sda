@@ -33,6 +33,7 @@
     "importRejected": "Не імпортовано акаунтів: {{total}}. {{details}}",
     "proxiesRejected": "Не додано проксі: {{total}}. {{details}}",
     "saveSession": "Не вдалося зберегти сесію: {{error}}",
+    "openDataFolder": "Не вдалося відкрити папку даних {{path}}: {{error}}",
     "wrongPin": "Неправильний PIN",
     "askAborted": {
       "familyPin": "Введення PIN-коду сімейного перегляду перервано",

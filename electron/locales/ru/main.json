@@ -33,6 +33,7 @@
     "importRejected": "Не импортировано аккаунтов: {{total}}. {{details}}",
     "proxiesRejected": "Не добавлено прокси: {{total}}. {{details}}",
     "saveSession": "Не удалось сохранить сессию: {{error}}",
+    "openDataFolder": "Не удалось открыть папку данных {{path}}: {{error}}",
     "wrongPin": "Неправильный пин",
     "askAborted": {
       "familyPin": "Добавление пин кода от семейного доступа прервано",
