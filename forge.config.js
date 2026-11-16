@@ -21,8 +21,8 @@ module.exports = {
      * packager вычищает node_modules целиком. Всё, что скопировано раньше
      * prune, будет удалено.
      */
-    packageAfterPrune: async (_forgeConfig, buildPath) => {
-      const count = copyExternalModules(__dirname, buildPath);
+    packageAfterPrune: async (_forgeConfig, buildPath, _electronVersion, platform, arch) => {
+      const count = copyExternalModules(__dirname, buildPath, { platform, arch });
       console.log(`\nВнешних модулей скопировано в сборку: ${count}`);
     },
   },

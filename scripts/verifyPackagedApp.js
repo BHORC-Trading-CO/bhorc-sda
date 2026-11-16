@@ -113,6 +113,39 @@ function findBinDirs(root) {
   return found;
 }
 
+/**
+ * Платформа сборки по её пути: out/BHORC SDA-win32-x64/... -> "win32-x64".
+ * null, если в пути нет папки сборки (так вызывают тесты на временных папках).
+ */
+function targetOf(appDir) {
+  const prefix = `${APP_NAME}-`;
+  const segment = path
+    .resolve(appDir)
+    .split(path.sep)
+    .reverse()
+    .find((part) => part.startsWith(prefix));
+  return segment ? segment.slice(prefix.length) : null;
+}
+
+/**
+ * Какой бинарник Chromium обязан лежать в сборке; null — сборке он не нужен.
+ *
+ * node-chromium качает браузер в postinstall и глотает любую ошибку: npm install
+ * зелёный, а chrome.exe в сборке нет, и браузер аккаунта не стартует (SDA-30).
+ * Приложение теперь докачает сборку само, но официальная сборка должна быть полной.
+ * На darwin/arm64 бинарник из пакета не используется вовсе: там приложение качает
+ * нативную arm64-сборку при первом запуске (resolveBrowserPath.ts).
+ */
+function expectedBundledBrowser(target) {
+  if (!target || target === "darwin-arm64") return null;
+  if (target.startsWith("win32-")) return path.join("chrome-win", "chrome.exe");
+  if (target.startsWith("linux-")) return path.join("chrome-linux", "chrome");
+  if (target.startsWith("darwin-")) {
+    return path.join("chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium");
+  }
+  return null;
+}
+
 function verify(appDir) {
   const problems = [];
   const nodeModules = path.join(appDir, "node_modules");
@@ -120,6 +153,18 @@ function verify(appDir) {
   for (const name of externals) {
     const problem = resolveInsideApp(nodeModules, name);
     if (problem) problems.push(problem);
+  }
+
+  const browser = expectedBundledBrowser(targetOf(appDir));
+  if (browser) {
+    const binary = path.join(nodeModules, "chromium", "lib", "chromium", browser);
+    if (!fs.existsSync(binary)) {
+      problems.push(
+        `в сборке нет браузера Chromium (${path.relative(appDir, binary)}): ` +
+          `пакет chromium не скачал его при npm install. ` +
+          `Выполните npm run ensure:chromium и соберите заново.`
+      );
+    }
   }
 
   const bins = findBinDirs(nodeModules);
@@ -151,4 +196,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { findPackagedAppDirs, findBinDirs, verify };
+module.exports = { findPackagedAppDirs, findBinDirs, verify, targetOf, expectedBundledBrowser };

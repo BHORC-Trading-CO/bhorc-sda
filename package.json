@@ -14,6 +14,7 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "verify:package": "node scripts/verifyPackagedApp.js",
+    "ensure:chromium": "node scripts/ensureChromium.js",
     "make": "electron-forge make",
     "release": "electron-forge publish",
     "test": "jest"
