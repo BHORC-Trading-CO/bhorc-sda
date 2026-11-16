@@ -286,3 +286,47 @@ describe("extractArchive", () => {
     await expect(extractArchive(broken, path.join(destDir, "out"))).rejects.toBeTruthy();
   });
 });
+
+describe("resolveBrowserPath - одновременные запуски", () => {
+  const winExtract = () =>
+    jest.fn(async (_archive: string, destDir: string) => {
+      const binary = path.join(destDir, "chrome-win", "chrome.exe");
+      fs.mkdirSync(path.dirname(binary), { recursive: true });
+      fs.writeFileSync(binary, "");
+    });
+
+  it("два браузера, запущенные разом, ждут одно скачивание, а не качают в одну папку вдвоём", async () => {
+    const cacheRoot = makeCacheRoot();
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const deps = makeDeps({
+      platform: "win32", arch: "x64", cacheRoot, bundledPath: undefined,
+      download: jest.fn(() => gate),
+      extract: winExtract(),
+    });
+
+    const first = resolveBrowserPath(deps);
+    const second = resolveBrowserPath(deps);
+    release();
+    const [a, b] = await Promise.all([first, second]);
+
+    expect(a).toBe(path.join(cacheRoot, "1688726", "chrome-win", "chrome.exe"));
+    expect(b).toBe(a);
+    expect(deps.fetchText).toHaveBeenCalledTimes(1);
+    expect(deps.download).toHaveBeenCalledTimes(1);
+    expect(deps.extract).toHaveBeenCalledTimes(1);
+  });
+
+  it("после неудачи следующий запуск пробует заново, а не получает старую ошибку", async () => {
+    const cacheRoot = makeCacheRoot();
+    const download = jest
+      .fn<Promise<void>, [string, string]>()
+      .mockRejectedValueOnce(new Error("socket hang up"))
+      .mockResolvedValue(undefined);
+    const deps = makeDeps({ platform: "win32", arch: "x64", cacheRoot, bundledPath: undefined, download, extract: winExtract() });
+
+    await expect(resolveBrowserPath(deps)).rejects.toThrow(/socket hang up/);
+    await expect(resolveBrowserPath(deps)).resolves.toBe(path.join(cacheRoot, "1688726", "chrome-win", "chrome.exe"));
+    expect(download).toHaveBeenCalledTimes(2);
+  });
+});

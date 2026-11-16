@@ -220,11 +220,30 @@ function findCachedBinary(cacheRoot: string, binaryInsideArchive: string): strin
   return null;
 }
 
-export async function resolveBrowserPath(
+/**
+ * Скачивания, которые идут прямо сейчас. Браузеры нескольких аккаунтов можно запустить
+ * одновременно, и без этого каждый запуск качал бы сборку сам и распаковывал её в ту же
+ * папку ревизии поверх соседа. Все одновременные запуски ждут одно скачивание.
+ */
+const inFlight = new Map<string, Promise<string>>();
+
+export function resolveBrowserPath(
   overrides: Partial<ResolveBrowserDeps> = {}
 ): Promise<string> {
   const deps: ResolveBrowserDeps = { ...defaultDeps(), ...overrides };
+  const key = [deps.cacheRoot, deps.platform, deps.arch, deps.bundledPath || ""].join("|");
 
+  const running = inFlight.get(key);
+  if (running) return running;
+
+  const attempt = resolveOnce(deps).finally(() => {
+    if (inFlight.get(key) === attempt) inFlight.delete(key);
+  });
+  inFlight.set(key, attempt);
+  return attempt;
+}
+
+async function resolveOnce(deps: ResolveBrowserDeps): Promise<string> {
   const nativeArm = needsNativeArmBrowser(deps.platform, deps.arch);
   if (!nativeArm && deps.bundledPath) return deps.bundledPath;
 
