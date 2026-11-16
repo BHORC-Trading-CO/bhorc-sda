@@ -9,7 +9,8 @@ import steamAccountManager from "./steamAccountManager";
 import SteamCommunity from "steamcommunity";
 import Session from "../../interfaces/SteamAccount/SessionInterface";
 import { getSecondaries, getChangableSecondaries } from './Processes/loadSteamAccountData';
-import CConfirmation from "steamcommunity/classes/CConfirmation";
+import type { MobileConfirmation, MobileConfirmationRef, MobileConfirmationResult } from "../../interfaces/SteamAccount/MobileConfirmationInterface";
+import { fetchConfirmations, respondToConfirmations } from "./Functions/mobileConfirmations";
 import SecondaryInterface from "../../interfaces/SteamAccount/SecondaryInterface";
 import ProxyInterface from "../../interfaces/Proxy/ProxyInterface";
 import buildProxyUrl from "../Proxy/proxyUrl";
@@ -392,37 +393,24 @@ class SteamAccount {
             throw new Error(t('errors.saveSession', { error: String(err) }));
         }
     }
-    getConfirmations(): Promise<CConfirmation[]> {
+    getConfirmations(): Promise<MobileConfirmation[]> {
         return new Promise((resolve, reject) => {
             this.proxyUrl();
-            const time = Number((Number(new Date()) / 1000).toFixed(0));
-            const key = SteamTotp.generateConfirmationKey(this.params.maFile.identity_secret, time, "conf");
-            this.community.getConfirmations(time, key, (err, confirmations) => {
-                if (err) return reject(err);
-                resolve(confirmations);
-            });
+            fetchConfirmations(this.community, this.params.maFile.identity_secret).then(resolve, reject);
         });
     }
-    confirmItems(ids: number[], keys: string[]): Promise<void> {
+    respondConfirmations(refs: MobileConfirmationRef[], accept: boolean): Promise<MobileConfirmationResult[]> {
         return new Promise((resolve, reject) => {
             this.proxyUrl();
-            const time = Math.floor(Number(new Date()) / 1000);
-            const key = SteamTotp.getConfirmationKey(this.params.maFile.identity_secret, time, 'allow');
-            this.community.respondToConfirmation(ids, keys, time, key, true, (err) => {
-                if (err) return reject(err);
-                resolve();
-            });
-        });
-    }
-    cancelItems(ids: number[], keys: string[]): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.proxyUrl();
-            const time = Math.floor(Number(new Date()) / 1000);
-            const key = SteamTotp.getConfirmationKey(this.params.maFile.identity_secret, time, 'cancel');
-            this.community.respondToConfirmation(ids, keys, time, key, false, (err) => {
-                if (err) return reject(err);
-                resolve();
-            });
+            const community = this.community;
+            respondToConfirmations(community, this.params.maFile.identity_secret, refs, accept, () => {
+                this.proxyUrl();
+                // A queued operation must never use a client from an old route.
+                if (this.community !== community) {
+                    // The code marks the error as ours: its (localized) text is shown as it is.
+                    throw Object.assign(new Error(t('errors.confirmations.routeChanged')), { code: 'CONFIRMATION_ROUTE_CHANGED' });
+                }
+            }).then(resolve, reject);
         });
     }
     editParams(newParams: { [K in keyof SteamAccountInterface]?: SteamAccountInterface[K] }) {
