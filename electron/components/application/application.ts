@@ -14,6 +14,8 @@ import { initLanguage, localeToLanguage } from "../language/languageManager";
 import { setMainLanguage, t } from "../../i18n";
 import languageListeners from "./listenersRouters/languageListenersRouter";
 import type AccountImages from "../Images/accountImages";
+import backgroundMode from "../AppSettings/backgroundMode";
+import { squirrelMaintenanceEvent } from "../AppSettings/squirrelEvents";
 
 class Application {
   object: App;
@@ -35,13 +37,17 @@ class Application {
   }
 
   firstStage(cb: () => void) {
-    const isPrimary = ensureSingleInstance(app, () => {
-      const win = this.windowsManager.mainWindow;
-      if (!win) return;
-      if (win.isMinimized()) win.restore();
-      win.focus();
-    });
+    // Squirrel удаляет приложение (--squirrel-uninstall): убираем наш автозапуск и выходим — без окон,
+    // трея и проверки второго экземпляра (иначе при запущенной копии выход был бы без уборки).
+    if (squirrelMaintenanceEvent(process.platform, process.argv) === "uninstall") {
+      backgroundMode.removeLoginItemForUninstall();
+      app.quit();
+      return;
+    }
+    // Второй запуск поднимает и окно, спрятанное в трей (SDA-35); запуск с --hidden — нет.
+    const isPrimary = ensureSingleInstance(app, (_event, argv) => backgroundMode.onSecondLaunch(argv));
     if (!isPrimary) return;
+    backgroundMode.install(process.argv);
     app.on("ready", async () => {
       if (!areDataPathsPinned(app.getPath("userData"), getCreatedStorePaths())) {
         // Хранилище открыто не там, поэтому язык из него не читаем и не сохраняем — только язык системы.
@@ -56,7 +62,10 @@ class Application {
       // Обработчики языка — до окна и до Manager.Load(): preload ждёт ответа sendSync,
       // и если загрузка данных упадёт, окно не должно зависнуть без ответа.
       languageListeners();
-      this.windowsManager.createMain();
+      // После языка: подписи меню трея. Без значка в трее окно показывается всегда.
+      const { startHidden } = backgroundMode.prepareStartup(process.argv);
+      this.windowsManager.createMain(!startHidden);
+      backgroundMode.attachMainWindow(this.windowsManager.mainWindow!);
       //this.decrypt(cb);
       this.secondStage(cb);
     });

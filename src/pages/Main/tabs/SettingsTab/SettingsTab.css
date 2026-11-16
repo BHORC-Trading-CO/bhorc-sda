@@ -1,0 +1,36 @@
+/* Settings page (SDA-35, SDA-36): the card, rows and switch come from BrowserTab.css; here only
+   the setting row — switch on the left, name and hint on the right. The 20 px switch lines up
+   with the first line of the name (line-height 20 px). */
+
+.settings-row {
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+}
+.settings-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.settings-row__label {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--sda-text);
+}
+.settings-row__hint {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--sda-text-muted);
+}
+/* "Start minimized" depends on "Launch at system startup": indented under it. */
+.settings-row--nested {
+  margin-left: 24px;
+}
+.settings-row--disabled .settings-row__label {
+  color: var(--sda-text-muted);
+}
+.settings-row--disabled:hover {
+  background: transparent;
+}
