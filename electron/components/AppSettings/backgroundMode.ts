@@ -2,7 +2,7 @@ import { app, BrowserWindow } from "electron";
 import AppSettingsInterface, { AppSettingsView, LoginItemSupport } from "../../interfaces/AppSettings/AppSettingsInterface";
 import AppSettingsStorage from "../newStorage/AppSettingsStorage";
 import { parseAppSettingsUpdate } from "./appSettings";
-import { isLoginItemRegistered, loginItemQuery, loginItemSettings, loginItemSupport } from "./loginItem";
+import { loginItemRegisteredAnyForm, loginItemSettings, loginItemSupport } from "./loginItem";
 import { hiddenStartRequested, mainWindowCloseAction, revealOnSecondLaunch, revealWindow, startHidden, wantsTray } from "./background";
 import AppTray from "./appTray";
 import { t } from "../../i18n";
@@ -194,7 +194,7 @@ export class BackgroundMode {
         try {
             if (this.platform !== "win32" || !this.getSettings().launchAtLogin || this.loginItemSupport() !== "supported") return;
             const settings = loginItemSettings(this.platform, process.execPath, this.getSettings());
-            if (settings && !isLoginItemRegistered(app.getLoginItemSettings(loginItemQuery(settings)), settings)) app.setLoginItemSettings(settings);
+            if (settings && !loginItemRegisteredAnyForm((query) => app.getLoginItemSettings(query), settings)) app.setLoginItemSettings(settings);
         } catch (err) {
             console.log(`Login item was not re-registered: ${err}`);
         }

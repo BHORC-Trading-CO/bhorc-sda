@@ -315,6 +315,21 @@ describe("login item at startup", () => {
         expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
     });
 
+    it("Windows: reading the stored settings throws -> the app still starts, with its window", () => {
+        const mode = makeMode("win32", { launchAtLogin: true });
+        const get = jest.spyOn(AppSettingsStorage, "Get").mockImplementation(() => { throw new Error("config.json"); });
+        const log = jest.spyOn(console, "log").mockImplementation(() => {});
+        try {
+            const { startHidden, win } = start(mode);
+            expect(startHidden).toBe(false);
+            expect(win.isVisible()).toBe(true);
+            expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
+        } finally {
+            get.mockRestore();
+            log.mockRestore();
+        }
+    });
+
     it("Windows: reading the login items throws -> the app still starts, with its window", () => {
         mockApp.getLoginItemSettings.mockImplementationOnce(() => { throw new Error("registry"); });
         const log = jest.spyOn(console, "log").mockImplementation(() => {});

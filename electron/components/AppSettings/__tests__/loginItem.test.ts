@@ -1,4 +1,4 @@
-import { HIDDEN_ARG, isLoginItemRegistered, LOGIN_ITEM_NAME, loginItemQuery, loginItemSettings, loginItemSupport, squirrelUpdateExe } from "../loginItem";
+import { HIDDEN_ARG, isLoginItemRegistered, LOGIN_ITEM_NAME, loginItemQueries, loginItemRegisteredAnyForm, loginItemSettings, loginItemSupport, squirrelUpdateExe } from "../loginItem";
 
 // Launch at login (SDA-36): the object passed to app.setLoginItemSettings per platform, built from
 // the platform, process.execPath and the settings. Windows paths are handled with path.win32, so
@@ -120,15 +120,23 @@ describe("app.setLoginItemSettings argument", () => {
     });
 });
 
-describe("app.getLoginItemSettings query", () => {
-    it("Windows: the same path and args as the registration, or openAtLogin cannot match", () => {
+describe("app.getLoginItemSettings queries", () => {
+    it("Windows, path without spaces: one query with the registration's path and args", () => {
         const settings = loginItemSettings("win32", SQUIRREL_EXE, on(true), only(UPDATE_EXE));
-        expect(loginItemQuery(settings)).toEqual({ path: UPDATE_EXE, args: settings!.args });
+        expect(loginItemQueries(settings)).toEqual([{ path: UPDATE_EXE, args: settings!.args }]);
     });
 
-    it("macOS and Linux: no options", () => {
-        expect(loginItemQuery(loginItemSettings("darwin", MAC_EXE, on(true)))).toBeUndefined();
-        expect(loginItemQuery(null)).toBeUndefined();
+    it("Windows, path with a space (plain folder \"BHORC SDA-win32-x64\"): also the quoted form", () => {
+        const settings = loginItemSettings("win32", FOLDER_EXE, on(false), only());
+        expect(loginItemQueries(settings)).toEqual([
+            { path: FOLDER_EXE, args: [] },
+            { path: `"${FOLDER_EXE}"`, args: [] },
+        ]);
+    });
+
+    it("macOS and Linux: nothing to ask", () => {
+        expect(loginItemQueries(loginItemSettings("darwin", MAC_EXE, on(true)))).toEqual([]);
+        expect(loginItemQueries(null)).toEqual([]);
     });
 });
 
@@ -162,5 +170,28 @@ describe("is our Run entry registered for this copy (Windows startup check)", ()
         expect(isLoginItemRegistered(null, settings)).toBe(false);
         expect(isLoginItemRegistered({ launchItems: undefined as any }, settings)).toBe(false);
         expect(isLoginItemRegistered({ launchItems: [item()] }, null)).toBe(false);
+    });
+});
+
+describe("startup check against either way Electron may read the query path", () => {
+    const entry = { name: LOGIN_ITEM_NAME, path: FOLDER_EXE, args: [], scope: "user", enabled: false };
+    // Command-line parsing: an unquoted path is cut at its first space ("...\\Downloads\\BHORC").
+    const parsing = (query: { path?: string }) => {
+        const program = query.path!.startsWith('"') ? query.path!.slice(1, -1) : query.path!.split(" ")[0];
+        return { launchItems: program.toLowerCase() === FOLDER_EXE.toLowerCase() ? [entry] : [] };
+    };
+    // Verbatim: the query path is compared as given, quotes included.
+    const verbatim = (query: { path?: string }) => ({ launchItems: query.path === FOLDER_EXE ? [entry] : [] });
+
+    it.each([["parsing", parsing], ["verbatim", verbatim]] as const)(
+        "%s: the entry of a folder with a space in its path is found, so it is not rewritten (or re-enabled)", (_name, read) => {
+            const settings = loginItemSettings("win32", FOLDER_EXE, on(false), only());
+            expect(loginItemRegisteredAnyForm(read, settings)).toBe(true);
+        });
+
+    it("an entry for another folder is not ours", () => {
+        const settings = loginItemSettings("win32", "C:\\Moved here\\trademanager.exe", on(false), only());
+        expect(loginItemRegisteredAnyForm(parsing, settings)).toBe(false);
+        expect(loginItemRegisteredAnyForm(verbatim, settings)).toBe(false);
     });
 });

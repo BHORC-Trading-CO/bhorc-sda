@@ -77,12 +77,19 @@ export function loginItemSettings(
 }
 
 /**
- * Options for app.getLoginItemSettings that match a registration made with `settings`: on Windows
- * its launchItems list only Run entries whose program is this path.
+ * Options for app.getLoginItemSettings whose launchItems list the Run entries starting the program
+ * of `settings`. Electron 17 most likely parses the query path as a command line, so an unquoted
+ * path with a space ("...\BHORC SDA-win32-x64\trademanager.exe", "C:\Users\John Doe\...") would
+ * be cut at the space; if it takes the path verbatim instead, the quoted form would not match.
+ * Without the Electron source at hand both forms are asked for a path with whitespace, and the
+ * entry counts as registered if either finds it (isLoginItemRegistered compares the real path).
  */
-export function loginItemQuery(settings: Settings | null): LoginItemSettingsOptions | undefined {
-    if (!settings || settings.path === undefined) return undefined;
-    return { path: settings.path, args: settings.args || [] };
+export function loginItemQueries(settings: Settings | null): LoginItemSettingsOptions[] {
+    if (!settings || settings.path === undefined) return [];
+    const args = settings.args || [];
+    const queries: LoginItemSettingsOptions[] = [{ path: settings.path, args }];
+    if (/\s/.test(settings.path)) queries.push({ path: `"${settings.path}"`, args });
+    return queries;
 }
 
 /**
@@ -97,4 +104,12 @@ export function isLoginItemRegistered(state: Pick<LoginItemSettings, "launchItem
     const target = settings.path.toLowerCase();
     return (state?.launchItems || []).some((item) =>
         item.name === LOGIN_ITEM_NAME && item.scope === "user" && typeof item.path === "string" && item.path.toLowerCase() === target);
+}
+
+/** Asks getLoginItemSettings with every query form (loginItemQueries); registered if any finds our entry. */
+export function loginItemRegisteredAnyForm(
+    read: (query: LoginItemSettingsOptions) => Pick<LoginItemSettings, "launchItems">,
+    settings: Settings | null,
+): boolean {
+    return loginItemQueries(settings).some((query) => isLoginItemRegistered(read(query), settings));
 }
