@@ -44,7 +44,8 @@
     "chromium": {
       "tooManyRedirects": "Too many redirects: {{url}}",
       "httpStatus": "{{url}} responded with {{status}}",
-      "revision": "Failed to determine the Chromium revision for arm64: got \"{{revision}}\"",
+      "revision": "Failed to determine the Chromium revision for {{branch}}: got \"{{revision}}\"",
+      "bundledMissing": "This build has no Chromium browser for {{platform}} and there is no download for this platform.",
       "binaryMissing": "The downloaded Chromium archive has no executable: {{binary}}"
     },
     "browser": {
