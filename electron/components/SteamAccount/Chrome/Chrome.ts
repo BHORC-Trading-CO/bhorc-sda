@@ -509,7 +509,9 @@ export default class Chrome {
         // другими запусками этого же профиля, см. prepareProfile.
         const previousTabsMayReturn = await this.prepareProfile(assertCurrent, restoreTabs);
         assertCurrent();
-        const args = this.generateChromeFlags();
+        // То же значение настройки, что и для подготовки профиля. Не previousTabsMayReturn: в запасном
+        // режиме (папки сеанса не удалось убрать) Chromium не просим восстанавливать.
+        const args = this.generateChromeFlags(restoreTabs);
         const launchedBrowser = await puppeteer.launch({
           userDataDir: this.profileDir,
           headless: false,
@@ -668,7 +670,7 @@ export default class Chrome {
       }
     });
   }
-  generateChromeFlags() {
+  generateChromeFlags(restoreLastSession = false) {
     const args: string[] = [];
     //args.push(`--user-data-dir=${this.profileDir}`);
     //args.push('--app=https://www.google.com/');
@@ -676,6 +678,9 @@ export default class Chrome {
     args.push(`--gaia-profile-info`);
     args.push(`--no-default-browser-check`);
     args.push(`--suppress-message-center-popups`);
+    // SDA-33, включено «Восстанавливать вкладки»: Chrome 160 (сборка для Windows, замер в CI) без
+    // этого флага вкладки прошлого сеанса не открывает вовсе; Chromium 154 открывает и без него.
+    if (restoreLastSession) args.push(`--restore-last-session`);
     // Защита от утечки реального IP через WebRTC: UDP только через прокси.
     // HTTP-прокси UDP не передаёт, поэтому WebRTC не сможет раскрыть реальный IP.
     args.push(`--force-webrtc-ip-handling-policy=disable_non_proxied_udp`);

@@ -26,6 +26,7 @@ import Chrome, {
 const SESSION_DISCARD_PREFIX = sessionDiscardPrefix("Sessions");
 const ENCRYPTED_DISCARD_PREFIX = sessionDiscardPrefix("Sessions_Encrypted");
 import { DEFAULT_START_LINK } from "../../../Browser/browserSettings";
+import { ensureSecureDnsOff } from "../secureDnsPref";
 
 const puppeteer = require("puppeteer-extra");
 
@@ -329,6 +330,9 @@ describe("Chrome.start — вкладки при запуске (SDA-33)", () =>
             Object.assign(new Error(`EBUSY: resource busy or locked, rename '${chrome.profileDir}/Default/Sessions'`), { code: "EBUSY" })
         );
     const rmTargets = () => (fsp.rm as unknown as jest.Mock).mock.calls.map((call) => call[0]);
+    /** Аргументы командной строки, с которыми запущен Chromium. */
+    const launchArgs = (): string[] => puppeteer.launch.mock.calls[0][0].args;
+    const RESTORE_FLAG = "--restore-last-session";
     const renameCalls = () => (fsp.rename as unknown as jest.Mock).mock.calls as [string, string][];
     const enoent = () => Object.assign(new Error("ENOENT"), { code: "ENOENT" });
 
@@ -426,6 +430,32 @@ describe("Chrome.start — вкладки при запуске (SDA-33)", () =>
             expect(fake.pages).toHaveLength(1);
         });
 
+        it("Chromium запускается без --restore-last-session", async () => {
+            await run(makeChrome());
+            expect(launchArgs()).not.toContain(RESTORE_FLAG);
+        });
+
+        it("запасной режим (папки сеанса не убрать) — тоже без --restore-last-session: восстанавливать не просим", async () => {
+            mockSettings.current.startLinks = [A, B];
+            fake.initialTabs = ["about:blank", C];
+            const chrome = makeChrome();
+            removalAlwaysBusy(chrome);
+            await run(chrome);
+            expect(fsp.rename).toHaveBeenCalledTimes(2 * SESSION_REMOVE_ATTEMPTS);
+            // Запасной режим действует: вернувшиеся вкладки не засыпаны стартовыми страницами.
+            expect(fake.gotoOrder).toEqual([]);
+            expect(launchArgs()).not.toContain(RESTORE_FLAG);
+        });
+
+        it("настройку включили посреди запуска — этот запуск всё равно выключенный: папки убраны, флага нет", async () => {
+            (ensureSecureDnsOff as jest.Mock).mockImplementationOnce(async () => {
+                mockSettings.current = { ...mockSettings.current, restoreTabs: true };
+            });
+            await run(makeChrome());
+            expect(fsp.rename).toHaveBeenCalledTimes(2);
+            expect(launchArgs()).not.toContain(RESTORE_FLAG);
+        });
+
         it("ждать восстановленные вкладки не нужно: pages() читается один раз", async () => {
             const browser = await run(makeChrome());
             expect(browser.pages).toHaveBeenCalledTimes(1);
@@ -498,6 +528,25 @@ describe("Chrome.start — вкладки при запуске (SDA-33)", () =>
             mockSettings.current = { startLinks: [A, B], extensions: [], restoreTabs: true };
             // Сеанс прошлого запуска на диске: только тогда есть смысл ждать его вкладки.
             jest.spyOn(fsp, "readdir").mockResolvedValue(["Session_13370000000000000", "Tabs_13370000000000000"] as any);
+        });
+
+        it("Chromium запускается с --restore-last-session (Chrome 160 без него вкладки не возвращает)", async () => {
+            fake.initialTabs = ["about:blank", B];
+            await run(makeChrome());
+            expect(launchArgs().filter((arg) => arg === RESTORE_FLAG)).toEqual([RESTORE_FLAG]);
+            expect(fsp.rename).not.toHaveBeenCalled();
+        });
+
+        it("настройку выключили посреди запуска — этот запуск всё равно включённый: флаг есть, папки не тронуты", async () => {
+            (ensureSecureDnsOff as jest.Mock).mockImplementationOnce(async () => {
+                mockSettings.current = { ...mockSettings.current, restoreTabs: false };
+            });
+            fake.initialTabs = ["about:blank", B];
+            await run(makeChrome());
+            expect(launchArgs()).toContain(RESTORE_FLAG);
+            expect(fsp.rename).not.toHaveBeenCalled();
+            // И вкладки — как у включённого: вернувшаяся осталась, стартовые поверх не открыты.
+            expect(fake.gotoOrder).toEqual([]);
         });
 
         it("сеанса на диске нет — стартовые открываются сразу, без ожидания", async () => {
