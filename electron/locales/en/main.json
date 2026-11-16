@@ -10,6 +10,15 @@
     }
   },
   "errors": {
+    "confirmations": {
+      "network": "Network error ({{code}})",
+      "timedOut": "Confirmation request timed out",
+      "routeChanged": "Confirmation connection changed; refresh and try again",
+      "missingRef": "Missing confirmation id or nonce",
+      "actFailed": "Could not act on confirmation",
+      "listFailed": "Failed to get confirmation list",
+      "outcomeUnknown": "Outcome unknown; refresh the confirmation list before retrying"
+    },
     "browserRouteChanged": "The proxy route changed. Affected account browsers were stopped; start them again to use the new route.",
     "browserCloseTimeout": "The browser did not close in time. Its process was forcibly stopped.",
     "proxyUnavailable": "Proxy #{{id}} is unavailable. Connections are blocked. Choose another proxy or explicitly select No proxy in Edit account.",
@@ -34,9 +43,13 @@
     },
     "secretKeyTooShort": "Invalid key. It must be at least 8 characters long",
     "totpNotAccepted": "Steam did not accept any TOTP code in 30 attempts",
+    "profileUnrecognized": "Steam returned a profile page without the account name; profile data was not updated",
     "balance": {
-      "notFound": "Failed to get the balance",
-      "format": "Failed to parse the balance"
+      "unexpectedPage": "Steam returned a page that is not the Community Market (an error or maintenance page?); the balance was not read",
+      "walletMissing": "The Market page has no wallet data for this account",
+      "walletUnavailable": "Steam marked the wallet data as unavailable",
+      "notLoggedIn": "Steam does not see this session as logged in. Refresh the session",
+      "unrecognized": "The Market page has an unexpected format: the wallet balance could not be read"
     },
     "tradeState": {
       "unknown": "eligibilitycheck: allowed=0, reason={{reason}}, status unknown",

@@ -46,8 +46,7 @@ jest.mock("steamcommunity", () =>
   jest.fn().mockImplementation(() => ({
     setCookies: jest.fn(),
     loggedIn: jest.fn(),
-    getConfirmations: jest.fn(),
-    respondToConfirmation: jest.fn(),
+    httpRequest: jest.fn(),
     parentalUnlock: jest.fn(),
   }))
 );

@@ -102,6 +102,16 @@ describe("sanitizeSmaFile", () => {
     it("прокси с логином или портом, но без host — ошибка, а не тихий импорт с реального IP", () => {
         expect(() => sanitizeSmaFile({ ...account(), proxy: { host: "", port: "8080", username: "u", password: "p" } })).toThrow();
     });
+
+    // SDA-31: чего в файле нет, то не проверялось — «неизвестно» (null), а не «OK» или уровень 0.
+    it("недостающие уровень и статусы — null, сохранённые boolean и дата остаются как есть", () => {
+        const empty = sanitizeSmaFile({ ...account(), secondary: { nickname: "Name" } }).secondary;
+        expect(empty).toMatchObject({ level: null, ktState: null, tpState: null, tradeState: null });
+        const junk = sanitizeSmaFile({ ...account(), secondary: { level: "7", ktState: "yes", tpState: 1, tradeState: 0 } }).secondary;
+        expect(junk).toMatchObject({ level: null, ktState: null, tpState: null, tradeState: null });
+        const legacy = sanitizeSmaFile({ ...account(), secondary: { level: 0, ktState: false, tpState: false, tradeState: true } }).secondary;
+        expect(legacy).toMatchObject({ level: 0, ktState: false, tpState: false, tradeState: true });
+    });
 });
 
 describe("sanitizeProxySetup", () => {

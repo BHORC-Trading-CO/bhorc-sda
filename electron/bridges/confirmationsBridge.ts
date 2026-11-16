@@ -1,6 +1,6 @@
 import "../components/Functions/installConsoleRedaction";
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
-import CConfirmation from 'steamcommunity/classes/CConfirmation';
+import type { MobileConfirmation, MobileConfirmationResponse, MobileConfirmationResult } from '../interfaces/SteamAccount/MobileConfirmationInterface';
 import SteamAccountChannels from '../interfaces/IpcChannels/SteamAccountChannels';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import { exposeLanguageApi } from './languageBridge';
@@ -15,37 +15,36 @@ const api = {
   getParams(id: string) { ipcRenderer.send(WindowsChannels.GET_CONFIRMATIONS_WINDOW_PARMAS, id); },
   onGetParams(listener: (event: IpcRendererEvent, params: { id: string, steamAccountName: string }) => void) {
     ipcRenderer.on(WindowsChannels.GET_CONFIRMATIONS_WINDOW_PARMAS, listener);
+    return () => ipcRenderer.removeListener(WindowsChannels.GET_CONFIRMATIONS_WINDOW_PARMAS, listener);
   },
   getConfirmations(id: string) {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS, id);
   },
-  onGetConfirmations(listener: (event: IpcRendererEvent, data: { id: string, confirmations: CConfirmation[] }) => void) {
+  onGetConfirmations(listener: (event: IpcRendererEvent, data: { id: string, confirmations: MobileConfirmation[] }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS, listener);
+    return () => ipcRenderer.removeListener(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS, listener);
   },
   onGetConfirmationsError(listener: (event: IpcRendererEvent, data: { id: string, err: string }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS_ERROR, listener);
+    return () => ipcRenderer.removeListener(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS_ERROR, listener);
   },
   respondConfirmations(
     id: string,
-    data: {
-      allow: {
-        ids: number[],
-        keys: string[]
-      },
-      cancel: {
-        ids: number[],
-        keys: string[]
-      }
-    }
+    data: MobileConfirmationResponse
   ) {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM, {
       id: id,
       data: data
     });
   },
-  onRespondconfirmations(listener: (event: IpcRendererEvent, id: string) => void) {
+  onRespondConfirmations(listener: (event: IpcRendererEvent, data: { id: string, results: MobileConfirmationResult[] }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM, listener);
-  }
+    return () => ipcRenderer.removeListener(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM, listener);
+  },
+  onRespondConfirmationsError(listener: (event: IpcRendererEvent, data: { id: string, err: string }) => void) {
+    ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM_ERROR, listener);
+    return () => ipcRenderer.removeListener(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM_ERROR, listener);
+  },
 }
 
 const windowApi = {

@@ -5,8 +5,8 @@
 
 jest.mock("steamcommunity", () =>
   jest.fn().mockImplementation(() => ({
-    getConfirmations: jest.fn((_t: number, _k: string, cb: any) => cb(null, [])),
-    respondToConfirmation: jest.fn((_i: any, _k: any, _t: any, _key: any, _allow: any, cb: any) => cb(null)),
+    steamID: { getSteamID64: () => "76561198000000001" },
+    httpRequest: jest.fn((_options: any, cb: any) => cb(null, { statusCode: 200 }, { success: true, conf: [] })),
     setCookies: jest.fn(),
     loggedIn: jest.fn(),
     parentalUnlock: jest.fn(),
@@ -43,22 +43,22 @@ const proxy = { host: "127.0.0.1", port: 8888, username: "u", password: "p" } as
 describe("SteamAccount без прокси — методы работают напрямую", () => {
   it("getConfirmations доходит до community", async () => {
     const acc = makeAccount();
-    const spy = (acc as any).community.getConfirmations;
+    const spy = (acc as any).community.httpRequest;
     await expect(acc.getConfirmations()).resolves.toEqual([]);
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it("confirmItems доходит до community", async () => {
+  it("respondConfirmations allow доходит до community", async () => {
     const acc = makeAccount();
-    const spy = (acc as any).community.respondToConfirmation;
-    await expect(acc.confirmItems([1], ["k"])).resolves.toBeUndefined();
+    const spy = (acc as any).community.httpRequest;
+    await expect(acc.respondConfirmations([{ id: "1", nonce: "fake", type: 2, multi: true }], true)).resolves.toEqual([{ id: "1", ok: true }]);
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it("cancelItems доходит до community", async () => {
+  it("respondConfirmations cancel доходит до community", async () => {
     const acc = makeAccount();
-    const spy = (acc as any).community.respondToConfirmation;
-    await expect(acc.cancelItems([1], ["k"])).resolves.toBeUndefined();
+    const spy = (acc as any).community.httpRequest;
+    await expect(acc.respondConfirmations([{ id: "1", nonce: "fake", type: 2, multi: true }], false)).resolves.toEqual([{ id: "1", ok: true }]);
     expect(spy).toHaveBeenCalledTimes(1);
   });
 });
@@ -68,7 +68,7 @@ describe("SteamAccount с прокси — методы работают чер�
     const acc = makeAccount();
     mockLinked.proxy = proxy;
     acc.setProxy();
-    const spy = (acc as any).community.getConfirmations;
+    const spy = (acc as any).community.httpRequest;
     await expect(acc.getConfirmations()).resolves.toEqual([]);
     expect(spy).toHaveBeenCalledTimes(1);
   });

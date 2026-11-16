@@ -95,18 +95,18 @@ it('handle блокирует чужой вызов и сохраняет рез
 });
 
 it('не подтверждает сделки по IPC с чужой страницы, но сохраняет штатное подтверждение', async () => {
-    const account = { confirmItems: jest.fn().mockResolvedValue(undefined), cancelItems: jest.fn().mockResolvedValue(undefined) };
+    const account = { respondConfirmations: jest.fn().mockResolvedValue([{ id: "1", ok: true }]) };
     (steamAccountManager.getById as jest.Mock).mockReturnValue(account);
     onTrusted(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM, steamAccountConfirmListener);
-    const payload = { id: 'account', data: { allow: { ids: [1], keys: ['key'] }, cancel: { ids: [], keys: [] } } };
+    const payload = { id: 'account', data: { allow: [{ id: '1', nonce: 'fake', type: 2, multi: true }], cancel: [] } };
     ipcMain.emit(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM, foreign(), payload);
     expect(steamAccountManager.getById).not.toHaveBeenCalled();
-    expect(account.confirmItems).not.toHaveBeenCalled();
+    expect(account.respondConfirmations).not.toHaveBeenCalled();
     const event = trusted();
     ipcMain.emit(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM, event, payload);
     await Promise.resolve();
-    expect(account.confirmItems).toHaveBeenCalledWith([1], ['key']);
-    expect(event.reply).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM, 'account');
+    expect(account.respondConfirmations).toHaveBeenCalledWith(payload.data.allow, true);
+    expect(event.reply).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_CONFIRM, { id: 'account', results: [{ id: '1', ok: true }] });
 });
 
 it('в electron нет прямых регистраций ipcMain вне trustedIpc', () => {
