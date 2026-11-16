@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import application from '../application/application';
 import createStore from "./createStore";
-import Manager from '../manager/manager';
+import Manager from '../Manager/Manager';
 
 export const testCrypto = (secretKey: string) => {
     const store = createStore();

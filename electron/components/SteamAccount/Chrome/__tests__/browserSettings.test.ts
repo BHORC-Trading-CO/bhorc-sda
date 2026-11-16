@@ -8,7 +8,7 @@ jest.mock("../../../newStorage/BrowserSettingsStorage", () => ({
 jest.mock("../resolveBrowserPath", () => ({ __esModule: true, default: jest.fn(async () => "/fake/chromium") }));
 // Настройку профиля (SDA-26) здесь не пишем: у теста нет своей папки профиля, файл лёг бы в репозиторий.
 jest.mock("../secureDnsPref", () => ({ ensureSecureDnsOff: jest.fn(async () => undefined), writeLocalState: jest.fn(async () => undefined) }));
-jest.mock("../../../manager/manager", () => ({
+jest.mock("../../../Manager/Manager", () => ({
     __esModule: true,
     default: {
         GetSteamAccountLinkedData: () => ({ proxy: { host: "127.0.0.1", port: "9", username: "user", password: "pass" } }),

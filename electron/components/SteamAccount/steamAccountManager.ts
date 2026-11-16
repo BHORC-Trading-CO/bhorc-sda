@@ -2,7 +2,7 @@ import SteamAccountInterface from "../../interfaces/SteamAccount/SteamAccountInt
 import SteamAccount from "./SteamAccount";
 import CompiledSteamAccountInterface from "../../interfaces/SteamAccount/CompiledSteamAccountInterface";
 import SteamAccountStorage from "../newStorage/SteamAccountStorage";
-import Manager from "../manager/manager";
+import Manager from "../Manager/Manager";
 import application from "../application/application";
 import SteamAccountChannels from "../../interfaces/IpcChannels/SteamAccountChannels";
 import errorsToStrings from "../Functions/errorsToStrings";

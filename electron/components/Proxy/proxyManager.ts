@@ -5,7 +5,7 @@ import CompiledProxyInterface from '../../interfaces/Proxy/CompiledProxyInterfac
 import ProxySetupInterface from '../../interfaces/Proxy/ProxySetupInterface';
 import getProxyGeo, { ProxyGeo } from '../SteamAccount/Functions/getProxyGeo';
 import buildProxyUrl from './proxyUrl';
-import Manager from "../manager/manager";
+import Manager from "../Manager/Manager";
 import application from "../application/application";
 
 export class ProxyManager {

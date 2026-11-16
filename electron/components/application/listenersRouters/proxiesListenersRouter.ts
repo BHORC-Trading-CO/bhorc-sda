@@ -6,7 +6,7 @@ import TableProxyInterface from '../../../interfaces/Proxy/TableProxyInterface';
 import ProxySetupInterface from '../../../interfaces/Proxy/ProxySetupInterface';
 import Proxy from '../../Proxy/Proxy';
 import ProxyStorage from '../../newStorage/ProxyStorage';
-import Manager from '../../manager/manager';
+import Manager from '../../Manager/Manager';
 import SuperMethods from '../../SuperMethods/SuperMethods';
 import ProxyChannels from '../../../interfaces/IpcChannels/ProxyChannels';
 import proxyGetTableOptionsListener from '../../Proxy/listeners/proxyGetTableOptionsListener';

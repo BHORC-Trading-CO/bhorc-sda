@@ -48,5 +48,5 @@ Two processes communicate exclusively over Electron IPC. There is **no shared co
 
 - Comments and many error messages are in **Russian**; match the surrounding language when editing nearby code.
 - Domain methods overwhelmingly return hand-rolled `new Promise((resolve, reject) => …)` wrappers around callback-based Steam libraries — follow that pattern rather than mixing in raw `async` over the same callbacks.
-- Filesystem folder casing is inconsistent with imports (e.g. folders `Manager/`, `application/` are imported as `manager/manager`, `application/application`). This resolves on case-insensitive Windows; preserve existing import casing to avoid breaking other platforms.
+- Import paths must match file and folder names exactly, letter case included (`../Manager/Manager`, `./steamDataForm.css`). Windows and macOS forgive a mismatch; Linux does not, and the build breaks there.
 - `package-lock.json` and `yarn.lock` both exist; use Node 22 and `npm ci` as documented in the README. On macOS set `PYTHON=python3.11` for node-gyp.

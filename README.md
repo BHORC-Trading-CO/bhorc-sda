@@ -34,7 +34,7 @@ Installers are on [GitHub Releases](https://github.com/BHORC-Trading-CO/bhorc-sd
 | Windows 10 and 11, x64 | `BHORC-SDA-…-windows-x64-Setup.exe` | Supported |
 | macOS on Apple Silicon | `BHORC-SDA-…-macos-arm64.zip` | Supported |
 | macOS on Intel | build from source | Not tested |
-| Linux | — | Not yet: the code does not build on a case-sensitive file system. Planned. |
+| Linux | — | Not yet: the app builds and passes its tests, but account browsers do not start on Ubuntu 23.10 and later (sandbox restriction) and no installers are built. Planned. |
 
 The builds are not code-signed, so the system may warn on first start:
 

@@ -8,7 +8,7 @@
 const mockSendToMain = jest.fn();
 jest.mock("../../application/application", () => ({ __esModule: true, default: { sendToMain: (...args: any[]) => mockSendToMain(...args) } }));
 const mockProxy = { id: "p1", number: 1, host: "127.0.0.1", port: "9", username: "u", password: "p", deleted: false };
-jest.mock("../../manager/manager", () => ({
+jest.mock("../../Manager/Manager", () => ({
     __esModule: true,
     default: { GetSteamAccountLinkedData: () => ({ proxy: mockProxy, proxyState: "ok", proxyId: mockProxy.id }), GetSteamAccountGroup: () => null },
 }));

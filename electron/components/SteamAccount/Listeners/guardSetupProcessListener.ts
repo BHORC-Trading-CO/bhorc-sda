@@ -2,7 +2,7 @@ import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountCh
 import ProxyInterface from "../../../interfaces/Proxy/ProxyInterface";
 import CreationStepType from "../../../interfaces/SteamAccount/CreationStepType";
 import application from "../../application/application";
-import Manager from "../../manager/manager";
+import Manager from "../../Manager/Manager";
 import proxyManager from "../../Proxy/proxyManager";
 import SuperMethods from "../../SuperMethods/SuperMethods";
 import setupGuard from "../Processes/setupGuard";
