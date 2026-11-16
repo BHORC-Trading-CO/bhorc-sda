@@ -15,6 +15,8 @@ class BrowserSettingsStore {
     isLoaded: boolean;
     startLinks: string[];
     extensions: BrowserExtensionView[];
+    /** SDA-33: возвращать вкладки прошлого сеанса при запуске браузера. */
+    restoreTabs: boolean;
     /** Последний отказ main; блок страницы, где его показать, тоже говорит main. */
     error: BrowserSettingsError | null;
     isPicking: boolean;
@@ -24,6 +26,7 @@ class BrowserSettingsStore {
         this.isLoaded = false;
         this.startLinks = [];
         this.extensions = [];
+        this.restoreTabs = false;
         this.error = null;
         this.isPicking = false;
 
@@ -43,6 +46,7 @@ class BrowserSettingsStore {
     apply(settings: BrowserSettingsView) {
         this.startLinks = settings.startLinks;
         this.extensions = settings.extensions;
+        this.restoreTabs = settings.restoreTabs === true;
         this.isLoaded = true;
         this.isPicking = false;
     }
@@ -51,15 +55,21 @@ class BrowserSettingsStore {
         this.error = error;
     }
 
-    private save(startLinks: string[], extensions: BrowserExtensionView[]) {
+    private save(startLinks: string[], extensions: BrowserExtensionView[], restoreTabs: boolean = this.restoreTabs) {
         this.error = null;
         // Сразу показываем изменение; ответ main его подтвердит или вернёт прежнее.
         this.startLinks = startLinks;
         this.extensions = extensions;
+        this.restoreTabs = restoreTabs;
         window.Main.browser.save({
             startLinks: [...startLinks],
             extensions: extensions.map(({ path, enabled }) => ({ path, enabled })),
+            restoreTabs,
         });
+    }
+
+    setRestoreTabs(restoreTabs: boolean) {
+        this.save(this.startLinks, this.extensions, restoreTabs);
     }
 
     addLink(link: string) {

@@ -43,12 +43,12 @@ describe("хранилище настроек браузера", () => {
     it("у старой установки ключа нет — отдаёт значения по умолчанию", () => {
         jest.isolateModules(() => {
             const FreshStorage = require("../../newStorage/BrowserSettingsStorage").default;
-            expect(FreshStorage.Get()).toEqual({ startLinks: [DEFAULT_START_LINK], extensions: [] });
+            expect(FreshStorage.Get()).toEqual({ startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: false });
         });
     });
     it("сохранённое читается обратно", () => {
         BrowserSettingsStorage.Save({ startLinks: ["https://a.test/"], extensions: [{ path: "/x", enabled: false }] });
-        expect(BrowserSettingsStorage.Get()).toEqual({ startLinks: ["https://a.test/"], extensions: [{ path: "/x", enabled: false }] });
+        expect(BrowserSettingsStorage.Get()).toEqual({ startLinks: ["https://a.test/"], extensions: [{ path: "/x", enabled: false }], restoreTabs: false });
     });
 });
 
@@ -56,7 +56,7 @@ describe("IPC страницы Browser", () => {
     it("get отвечает видом настроек", () => {
         const event = makeEvent();
         browserSettingsGetListener(event);
-        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)).toEqual([{ startLinks: [DEFAULT_START_LINK], extensions: [] }]);
+        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)).toEqual([{ startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: false }]);
     });
 
     it("save с корректными данными сохраняет и отвечает новым видом", () => {
@@ -65,7 +65,7 @@ describe("IPC страницы Browser", () => {
         const event = makeEvent();
         browserSettingsSaveListener(event, { startLinks: ["https://a.test/"], extensions: [{ path: dir, enabled: false }] });
         expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR)).toEqual([]);
-        expect(BrowserSettingsStorage.Get()).toEqual({ startLinks: ["https://a.test/"], extensions: [{ path: dir, enabled: false }] });
+        expect(BrowserSettingsStorage.Get()).toEqual({ startLinks: ["https://a.test/"], extensions: [{ path: dir, enabled: false }], restoreTabs: false });
         expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)[0].extensions[0]).toMatchObject({ name: "Helper", version: "2.0", status: "ok" });
     });
 
@@ -76,8 +76,8 @@ describe("IPC страницы Browser", () => {
         expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR)).toEqual([
             { section: "extensions", message: `Extensions are added only through the folder dialog. This one was not saved: ${dir}` },
         ]);
-        expect(BrowserSettingsStorage.Get()).toEqual({ startLinks: [DEFAULT_START_LINK], extensions: [] });
-        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)).toEqual([{ startLinks: [DEFAULT_START_LINK], extensions: [] }]);
+        expect(BrowserSettingsStorage.Get()).toEqual({ startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: false });
+        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)).toEqual([{ startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: false }]);
         expect(showOpenDialog).not.toHaveBeenCalled();
     });
 
@@ -87,7 +87,7 @@ describe("IPC страницы Browser", () => {
         expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR))
             .toEqual([{ section: "links", message: "Not a valid http(s) address: file:///etc/passwd" }]);
         expect(BrowserSettingsStorage.Get().startLinks).toEqual([DEFAULT_START_LINK]);
-        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)).toEqual([{ startLinks: [DEFAULT_START_LINK], extensions: [] }]);
+        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)).toEqual([{ startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: false }]);
     });
 
     it("pickExtension: выбранная папка проверяется и добавляется", async () => {
@@ -126,5 +126,31 @@ describe("IPC страницы Browser", () => {
         await browserPickExtensionListener(event);
         expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR)).toEqual([]);
         expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)).toHaveLength(1);
+    });
+});
+
+describe("SDA-33: переключатель вкладок прошлого сеанса", () => {
+    it("хранилище: сохранённое значение читается обратно", () => {
+        BrowserSettingsStorage.Save({ startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: true });
+        expect(BrowserSettingsStorage.Get().restoreTabs).toBe(true);
+        BrowserSettingsStorage.Save({ startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: false });
+        expect(BrowserSettingsStorage.Get().restoreTabs).toBe(false);
+    });
+    it("save со страницы сохраняет и отвечает видом с новым значением; save без ключа его не сбрасывает", () => {
+        const event = makeEvent();
+        browserSettingsSaveListener(event, { startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: true });
+        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR)).toEqual([]);
+        expect(BrowserSettingsStorage.Get().restoreTabs).toBe(true);
+        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_GET)).toEqual([{ startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: true }]);
+        browserSettingsSaveListener(makeEvent(), { startLinks: ["https://a.test/"], extensions: [] });
+        expect(BrowserSettingsStorage.Get()).toEqual({ startLinks: ["https://a.test/"], extensions: [], restoreTabs: true });
+    });
+    it("save с не булевым значением — отказ, сохранённое не меняется", () => {
+        const event = makeEvent();
+        browserSettingsSaveListener(event, { startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: "on" });
+        expect(replies(event, BrowserChannels.BROWSER_SETTINGS_ERROR)).toEqual([
+            { section: "links", message: "Browser settings were not saved: invalid data." },
+        ]);
+        expect(BrowserSettingsStorage.Get().restoreTabs).toBe(false);
     });
 });

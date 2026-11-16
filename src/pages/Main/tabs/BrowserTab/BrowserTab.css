@@ -281,6 +281,37 @@
   color: var(--sda-text-muted);
 }
 
+/* --- Настройка под списком (SDA-33, вкладки прошлого сеанса): переключатель, подпись, пояснение --- */
+.browser-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sda-border);
+}
+.browser-option .browser-switch {
+  margin-top: 1px;
+}
+.browser-option__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.browser-option__label {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 19px;
+  color: var(--sda-text);
+}
+.browser-option__hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--sda-text-muted);
+}
+
 /* --- Поле адреса и строка «Добавить» --- */
 .browser-add {
   display: flex;

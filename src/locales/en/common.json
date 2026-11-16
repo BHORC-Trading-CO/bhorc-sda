@@ -541,6 +541,10 @@
         "invalid": "Enter a full address that starts with http:// or https://.",
         "duplicate": "This page is already in the list.",
         "tooMany": "You can add up to {{max}} start pages."
+      },
+      "restoreTabs": {
+        "label": "Restore the tabs of the previous session",
+        "hint": "On: the tabs that were open when the browser closed come back, and the start pages open only if none come back. Off: every start opens the start pages and nothing else."
       }
     },
     "extensions": {

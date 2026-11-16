@@ -142,6 +142,25 @@ const StartLinkRow: FC<{ link: string; index: number; total: number }> = observe
   );
 });
 
+/** SDA-33: вернуть вкладки прошлого сеанса или каждый раз открывать только стартовые страницы. */
+const RestoreTabsOption = observer(() => {
+  const { t } = useTranslation();
+  const { restoreTabs } = store.browserSettings;
+  return (
+    <div className="browser-option" data-testid="browser-restore-tabs">
+      <Switch
+        checked={restoreTabs}
+        label={t("browser.links.restoreTabs.label")}
+        onChange={(checked) => store.browserSettings.setRestoreTabs(checked)}
+      />
+      <div className="browser-option__text">
+        <span className="browser-option__label">{t("browser.links.restoreTabs.label")}</span>
+        <p className="browser-option__hint">{t("browser.links.restoreTabs.hint")}</p>
+      </div>
+    </div>
+  );
+});
+
 const StartLinksCard = observer(() => {
   const { t } = useTranslation();
   const links = store.browserSettings.startLinks;
@@ -211,6 +230,7 @@ const StartLinksCard = observer(() => {
           {t(`browser.links.errors.${error || "tooMany"}`, { max: MAX_START_LINKS })}
         </p>
       ) : null}
+      <RestoreTabsOption />
       {mainError ? <p className="browser-field-error" role="alert">{mainError}</p> : null}
     </section>
   );

@@ -242,12 +242,12 @@ describe("расширения при запуске", () => {
 
 describe("хранимая форма", () => {
     it("ключа нет -> по умолчанию", () => {
-        expect(sanitizeBrowserSettings(undefined)).toEqual({ startLinks: [DEFAULT_START_LINK], extensions: [] });
+        expect(sanitizeBrowserSettings(undefined)).toEqual({ startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: false });
     });
     it("мусор приводится к форме", () => {
-        expect(sanitizeBrowserSettings("x")).toEqual({ startLinks: [DEFAULT_START_LINK], extensions: [] });
+        expect(sanitizeBrowserSettings("x")).toEqual({ startLinks: [DEFAULT_START_LINK], extensions: [], restoreTabs: false });
         expect(sanitizeBrowserSettings({ startLinks: ["https://a.test/", 5], extensions: [{ path: "/x" }, { enabled: true }, null] }))
-            .toEqual({ startLinks: ["https://a.test/"], extensions: [{ path: "/x", enabled: true }] });
+            .toEqual({ startLinks: ["https://a.test/"], extensions: [{ path: "/x", enabled: true }], restoreTabs: false });
     });
     it("пустой список ссылок пользователя сохраняется (на старте подставится ссылка по умолчанию)", () => {
         expect(sanitizeBrowserSettings({ startLinks: [], extensions: [] }).startLinks).toEqual([]);
@@ -378,5 +378,48 @@ describe("папка из диалога", () => {
             ok: false,
             error: { section: "extensions", message: `manifest.json in ${dir} has an unsupported manifest_version (2 or 3 is required).` },
         });
+    });
+});
+
+describe("SDA-33: вкладки прошлого сеанса", () => {
+    const base = { startLinks: [DEFAULT_START_LINK], extensions: [] };
+
+    it("хранимая форма: ключа нет или не true — выключено", () => {
+        expect(sanitizeBrowserSettings({ startLinks: [], extensions: [] }).restoreTabs).toBe(false);
+        for (const value of ["yes", 1, null, {}]) expect(sanitizeBrowserSettings({ ...base, restoreTabs: value }).restoreTabs).toBe(false);
+        expect(sanitizeBrowserSettings({ ...base, restoreTabs: true }).restoreTabs).toBe(true);
+    });
+    it("вид для страницы несёт значение", () => {
+        expect(buildBrowserSettingsView({ ...base, restoreTabs: true }).restoreTabs).toBe(true);
+        expect(buildBrowserSettingsView({ ...base, restoreTabs: false }).restoreTabs).toBe(false);
+    });
+    it("сохранение: булево сохраняется, не прислано — остаётся прежнее, не булево — отказ в блоке стартовых страниц", () => {
+        expect(validateSettingsUpdate({ ...base, restoreTabs: true }, { ...base, restoreTabs: false }))
+            .toEqual({ ok: true, settings: { ...base, restoreTabs: true } });
+        expect(validateSettingsUpdate({ ...base, restoreTabs: false }, { ...base, restoreTabs: true }))
+            .toEqual({ ok: true, settings: { ...base, restoreTabs: false } });
+        expect(validateSettingsUpdate(base, { ...base, restoreTabs: true })).toEqual({ ok: true, settings: { ...base, restoreTabs: true } });
+        expect(validateSettingsUpdate({ ...base, restoreTabs: "true" }, { ...base, restoreTabs: false }))
+            .toEqual({ ok: false, error: { section: "links", message: "Browser settings were not saved: invalid data." } });
+    });
+    it("добавление расширения переключатель не сбрасывает", () => {
+        const dir = extensionDir(GOOD);
+        const update = addExtensionDir(dir, { ...base, restoreTabs: true });
+        expect(update.ok && update.settings.restoreTabs).toBe(true);
+    });
+    it("подпись и пояснение страницы Browser есть в en, uk и ru", () => {
+        const texts = ["en", "uk", "ru"].map((language) => {
+            const common = JSON.parse(fs.readFileSync(path.join(__dirname, `../../../../src/locales/${language}/common.json`), "utf8"));
+            return common.browser.links.restoreTabs;
+        });
+        for (const text of texts) {
+            expect(typeof text.label).toBe("string");
+            expect(text.label.trim()).not.toBe("");
+            expect(typeof text.hint).toBe("string");
+            expect(text.hint.trim()).not.toBe("");
+        }
+        // Переведено, а не скопировано из en.
+        expect(new Set(texts.map((text) => text.label)).size).toBe(3);
+        expect(new Set(texts.map((text) => text.hint)).size).toBe(3);
     });
 });
