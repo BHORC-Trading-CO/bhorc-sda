@@ -65,10 +65,10 @@ export type IconName =
   | "activity" | "help" | "archiveRestore"
   // Тип подтверждения на плитке (SellItem): обмен и лот на рынке.
   | "arrowLeftRight" | "tag"
+  // SDA-7: покупка на рынке, Web API-ключ, безопасность аккаунта, возврат средств.
+  | "shoppingCart" | "key" | "shieldAlert" | "undo"
   // Раздел Settings (трей и автозапуск, SDA-35/36).
   | "settings";
-  // SDA-7: покупка на рынке, Web API-ключ, безопасность аккаунта, возврат средств.
-  | "shoppingCart" | "key" | "shieldAlert" | "undo";
 
 export type IconSize = 13 | 14 | 16 | 18 | 20;
 
