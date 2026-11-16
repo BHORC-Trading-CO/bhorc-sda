@@ -39,6 +39,8 @@ export class BrowserStartCancelledError extends Error {
   }
 }
 export const BROWSER_CLOSE_TIMEOUT_MS = 3000;
+/** Сколько ждать аватар при создании профиля: он не должен держать запуск браузера. */
+export const AVATAR_TIMEOUT_MS = 10000;
 
 export default class Chrome {
   private startAttempt: { reason?: StartCancelReason } | null = null;
@@ -202,7 +204,7 @@ export default class Chrome {
         // С прокси качаем через него; без прокси — напрямую.
         const avatarUrl = this.params.secondary?.avatarUrl;
         if (avatarUrl && sanitizeAvatarUrl(avatarUrl) === avatarUrl) {
-          try {
+          const avatar = (async () => {
             const proxyUrl = this.proxyUrl();
             await downloadImage(
               avatarUrl,
@@ -216,8 +218,20 @@ export default class Chrome {
                   err ? rej(err) : res()
                 );
             });
+          })();
+          // У скачивания аватара нет своего таймаута, а подготовка профиля идёт по очереди:
+          // зависший аватар держал бы все следующие запуски браузера этого аккаунта.
+          // Ждём недолго; опоздавший аватар допишет только свои файлы в Avatars.
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          const timedOut = new Promise<"timeout">((res) => { timer = setTimeout(() => res("timeout"), AVATAR_TIMEOUT_MS); });
+          try {
+            const outcome = await Promise.race([avatar, timedOut]);
+            if (outcome === "timeout") console.log(`${this.params.id} - аватар пропущен: не скачался за ${AVATAR_TIMEOUT_MS / 1000} с`);
           } catch (avatarErr) {
             console.log(`${this.params.id} - аватар пропущен: ${avatarErr}`);
+          } finally {
+            clearTimeout(timer);
+            avatar.catch(() => undefined); // опоздавшая ошибка никому не нужна
           }
         }
         resolve();

@@ -6,7 +6,7 @@ jest.mock("../../../someFuncs/downloadImage", () => ({ __esModule: true, default
 jest.mock("../secureDnsPref", () => ({ ensureSecureDnsOff: jest.fn().mockResolvedValue(undefined), writeLocalState: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("sharp", () => jest.fn(() => ({ resize: () => ({ toFile: (_path: string, callback: Function) => callback(null) }) })));
 
-import Chrome from "../Chrome";
+import Chrome, { AVATAR_TIMEOUT_MS } from "../Chrome";
 import downloadImage from "../../../someFuncs/downloadImage";
 import fsp from "fs/promises";
 import { writeLocalState } from "../secureDnsPref";
@@ -53,4 +53,26 @@ it("createProfile ждёт запись Local State: профиль не счи�
     finishWrite();
     await creating;
     expect(done).toBe(true);
+});
+
+// Последний проход ревью: подготовка профиля идёт по очереди, и зависшее скачивание аватара
+// (своего таймаута у него нет) держало бы все следующие запуски браузера этого аккаунта.
+it("createProfile не ждёт зависший аватар дольше отведённого времени", async () => {
+    jest.useFakeTimers();
+    try {
+        (downloadImage as jest.Mock).mockImplementationOnce(() => new Promise(() => undefined));
+        const log = jest.spyOn(console, "log").mockImplementation(() => undefined);
+        const chrome = new Chrome({ id: "test-account", secondary: { nickname: "name", avatarUrl: DEFAULT_AVATAR_URL } } as any);
+        let done = false;
+        const creating = chrome.createProfile().then(() => { done = true; });
+        await jest.advanceTimersByTimeAsync(AVATAR_TIMEOUT_MS - 1);
+        expect(done).toBe(false);
+        await jest.advanceTimersByTimeAsync(2);
+        await creating;
+        expect(done).toBe(true);
+        expect(log).toHaveBeenCalledWith(expect.stringContaining("аватар пропущен"));
+        log.mockRestore();
+    } finally {
+        jest.useRealTimers();
+    }
 });
