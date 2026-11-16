@@ -219,22 +219,32 @@ function defaultFetchText(url: string): Promise<string> {
 }
 
 /**
- * Пишет тело ответа в файл. pipeline при любой ошибке закрывает файл сам: иначе на Windows
- * открытый файл не дал бы убрать временную папку, и её ошибка заслонила бы настоящую.
- * Длину сверяем с Content-Length: обрезанный архив не должен дойти до распаковки.
+ * Пишет тело ответа в файл и сообщает об исходе только после того, как файл закрыт.
+ *
+ * pipeline при ошибке сам уничтожает поток записи, но о результате сообщает раньше, чем
+ * закроется дескриптор. На Windows в этот промежуток файл ещё открыт, временную папку убрать
+ * нельзя (ENOTEMPTY — так упал тест на раннере Windows), и ошибка уборки заслонила бы
+ * настоящую. Длину сверяем с Content-Length: обрезанный архив не должен дойти до распаковки.
  */
 export function saveResponseToFile(res: any, destFile: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const expected = Number(res.headers && res.headers["content-length"]);
-    pipeline(res, fs.createWriteStream(destFile), (err) => {
-      if (err) return reject(err);
-      if (!Number.isFinite(expected) || expected <= 0) return resolve();
-      fs.stat(destFile, (statErr, stat) => {
-        if (statErr) return reject(statErr);
-        if (stat.size !== expected) {
-          return reject(new Error(t("errors.chromium.sizeMismatch", { got: stat.size, expected })));
-        }
-        resolve();
+    const file = fs.createWriteStream(destFile);
+    let closed = false;
+    file.once("close", () => (closed = true));
+    const afterClose = (done: () => void) => (closed ? done() : file.once("close", done));
+
+    pipeline(res, file, (err) => {
+      if (err) return afterClose(() => reject(err));
+      afterClose(() => {
+        if (!Number.isFinite(expected) || expected <= 0) return resolve();
+        fs.stat(destFile, (statErr, stat) => {
+          if (statErr) return reject(statErr);
+          if (stat.size !== expected) {
+            return reject(new Error(t("errors.chromium.sizeMismatch", { got: stat.size, expected })));
+          }
+          resolve();
+        });
       });
     });
   });
