@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import fsp from "fs/promises";
 import path from "path";
 
@@ -34,6 +35,30 @@ export function withSecureDnsOff(localState: string | null): string {
 }
 
 /**
+ * Единственный способ записать Local State профиля. Что бы ни пришло на вход, в файле окажется
+ * выключенный secure DNS, и окажется целиком: пишем во временный файл со своим именем и
+ * переименовываем.
+ *
+ * Зачем так строго: запуск браузера можно отменить новым запуском, и отменённый ещё дописывает
+ * свои файлы. Если бы он писал Local State сам (как раньше createProfile), его запись легла бы
+ * поверх уже выставленной настройки, и браузер стартовал бы с DoH по умолчанию. Теперь любая
+ * запись, чья бы ни оказалась последней, даёт файл с выключенным DoH.
+ */
+export async function writeLocalState(profileDir: string, content: string | null): Promise<void> {
+  const file = path.join(profileDir, LOCAL_STATE_FILE);
+  await fsp.mkdir(profileDir, { recursive: true });
+  // Имя своё у каждой записи: общий временный файл второй писатель обрезал бы под первым.
+  const tmp = `${file}.sda-tmp-${process.pid}-${randomBytes(6).toString("hex")}`;
+  try {
+    await fsp.writeFile(tmp, withSecureDnsOff(content));
+    await fsp.rename(tmp, file);
+  } catch (err) {
+    await fsp.rm(tmp, { force: true }).catch(() => undefined);
+    throw err;
+  }
+}
+
+/**
  * Выключает secure DNS в профиле перед запуском браузера. Вызывать, пока браузер этого профиля
  * не запущен: Chromium читает Local State на старте и переписывает его на выходе.
  * Ошибку записи пробрасываем: без этой настройки браузер запускать нельзя.
@@ -47,12 +72,6 @@ export async function ensureSecureDnsOff(profileDir: string): Promise<void> {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
   }
 
-  const next = withSecureDnsOff(current);
-  if (next === current) return;
-
-  await fsp.mkdir(profileDir, { recursive: true });
-  // Через временный файл: оборванная запись не должна оставить половину Local State.
-  const tmp = `${file}.sda-tmp`;
-  await fsp.writeFile(tmp, next);
-  await fsp.rename(tmp, file);
+  if (withSecureDnsOff(current) === current) return;
+  await writeLocalState(profileDir, current);
 }

@@ -1,6 +1,6 @@
 jest.mock("fs/promises", () => ({ access: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../resolveBrowserPath", () => ({ __esModule: true, default: jest.fn().mockResolvedValue("/fake/browser") }));
-jest.mock("../secureDnsPref", () => ({ ensureSecureDnsOff: jest.fn().mockResolvedValue(undefined) }));
+jest.mock("../secureDnsPref", () => ({ ensureSecureDnsOff: jest.fn().mockResolvedValue(undefined), writeLocalState: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../../../application/application", () => ({ __esModule: true, default: { sendToMain: jest.fn() } }));
 import Chrome, { BrowserStartCancelledError, BROWSER_CLOSE_TIMEOUT_MS } from "../Chrome";
 import resolveBrowserPath from "../resolveBrowserPath";

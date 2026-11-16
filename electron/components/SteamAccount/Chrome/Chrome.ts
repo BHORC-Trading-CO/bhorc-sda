@@ -28,7 +28,7 @@ import BrowserSettingsStorage from "../../newStorage/BrowserSettingsStorage";
 import { effectiveStartLinks, launchExtensionPaths } from "../../Browser/browserSettings";
 import { ProxyGeo, localeForCountry, acceptLanguageFor } from "../Functions/getProxyGeo";
 import resolveBrowserPath from "./resolveBrowserPath";
-import { ensureSecureDnsOff } from "./secureDnsPref";
+import { ensureSecureDnsOff, writeLocalState } from "./secureDnsPref";
 const sharp = require("sharp");
 
 type StartCancelReason = "superseded" | "stopped" | "routeChanged";
@@ -163,10 +163,9 @@ export default class Chrome {
       try {
         await fs.mkdir(`${this.profileDir}/Default`, { recursive: true });
         await fs.mkdir(`${this.profileDir}/Avatars`, { recursive: true });
-        await fs.writeFile(
-          `${this.profileDir}/Local State`,
-          LocalState(this.params.secondary.nickname)
-        );
+        // Только через writeLocalState: файл сразу получает выключенный DoH (SDA-26), даже если
+        // этот запуск уже отменён и пишет позже нового.
+        await writeLocalState(this.profileDir, LocalState(this.params.secondary.nickname));
         // Аватар — косметика профиля. Недопустимый или недоступный URL пропускаем.
         // С прокси качаем через него; без прокси — напрямую.
         const avatarUrl = this.params.secondary?.avatarUrl;

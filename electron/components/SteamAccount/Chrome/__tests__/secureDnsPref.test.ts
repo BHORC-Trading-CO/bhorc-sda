@@ -2,7 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
-import { ensureSecureDnsOff, LOCAL_STATE_FILE, withSecureDnsOff } from "../secureDnsPref";
+import { ensureSecureDnsOff, LOCAL_STATE_FILE, withSecureDnsOff, writeLocalState } from "../secureDnsPref";
 
 // SDA-26: DNS-over-HTTPS в браузере аккаунта шёл бы мимо прокси. Выключается настройкой профиля.
 describe("withSecureDnsOff", () => {
@@ -83,5 +83,73 @@ describe("ensureSecureDnsOff", () => {
     fs.mkdirSync(path.join(dir, LOCAL_STATE_FILE)); // на месте файла папка
 
     await expect(ensureSecureDnsOff(dir)).rejects.toBeTruthy();
+  });
+});
+
+// Повторное ревью: отменённый запуск дописывал свои файлы уже после того, как новый запуск
+// выставил настройку. Поэтому любая запись Local State идёт через writeLocalState.
+describe("writeLocalState - единственный писатель Local State", () => {
+  const dirs: string[] = [];
+  const makeProfile = () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sda-local-state-"));
+    dirs.push(dir);
+    return dir;
+  };
+  afterEach(() => {
+    for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const read = (dir: string) => JSON.parse(fs.readFileSync(path.join(dir, LOCAL_STATE_FILE), "utf8"));
+
+  it("стартовый шаблон нового профиля ложится на диск уже с выключенным DoH", async () => {
+    const dir = makeProfile();
+    await writeLocalState(dir, JSON.stringify({ profile: { info_cache: { Default: { name: "acc" } } } }));
+    expect(read(dir)).toEqual({ profile: { info_cache: { Default: { name: "acc" } } }, dns_over_https: { mode: "off" } });
+  });
+
+  it("запоздавшая запись шаблона отменённым запуском не включает DoH обратно", async () => {
+    const dir = makeProfile();
+    // Новый запуск уже выставил настройку…
+    await ensureSecureDnsOff(dir);
+    // …и тут отменённый старый дописывает свой шаблон (без dns_over_https).
+    await writeLocalState(dir, JSON.stringify({ browser: { shortcut_migration_version: "109.0.5412.0" } }));
+    expect(read(dir).dns_over_https).toEqual({ mode: "off" });
+  });
+
+  it("две записи разом не портят файл друг другу: итог — целый JSON с выключенным DoH", async () => {
+    const dir = makeProfile();
+    const big = JSON.stringify({ filler: "x".repeat(200000), dns_over_https: { mode: "automatic" } });
+    await Promise.all([
+      writeLocalState(dir, big),
+      writeLocalState(dir, JSON.stringify({ small: true })),
+      ensureSecureDnsOff(dir),
+      writeLocalState(dir, big),
+    ]);
+    expect(read(dir).dns_over_https).toEqual({ mode: "off" });
+    expect(fs.readdirSync(dir)).toEqual([LOCAL_STATE_FILE]); // временных файлов не осталось
+  });
+
+  it("при ошибке записи временный файл убирается, ошибка пробрасывается", async () => {
+    const dir = makeProfile();
+    fs.mkdirSync(path.join(dir, LOCAL_STATE_FILE)); // rename файла поверх папки не пройдёт
+    await expect(writeLocalState(dir, "{}")).rejects.toBeTruthy();
+    expect(fs.readdirSync(dir)).toEqual([LOCAL_STATE_FILE]);
+  });
+
+  it("никакой другой код приложения не пишет Local State в обход writeLocalState", () => {
+    const root = path.resolve(__dirname, "..", "..", "..", "..");
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name !== "__tests__" && entry.name !== "node_modules") walk(full);
+        } else if (/\.tsx?$/.test(entry.name) && !full.endsWith(path.join("Chrome", "secureDnsPref.ts"))) {
+          // Имя файла профиля в коде есть только у того, кто его пишет или читает напрямую.
+          if (/["'`/]Local State["'`]/.test(fs.readFileSync(full, "utf8"))) offenders.push(path.relative(root, full));
+        }
+      }
+    };
+    walk(root);
+    expect(offenders).toEqual([]);
   });
 });
