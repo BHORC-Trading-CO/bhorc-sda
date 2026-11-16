@@ -45,7 +45,11 @@
     "chromium": {
       "tooManyRedirects": "Забагато перенаправлень: {{url}}",
       "httpStatus": "{{url}} відповів {{status}}",
-      "revision": "Не вдалося визначити ревізію Chromium для arm64: отримано \"{{revision}}\"",
+      "revision": "Не вдалося визначити ревізію Chromium для {{branch}}: отримано \"{{revision}}\"",
+      "timeout": "Немає даних від {{url}} уже {{seconds}} с",
+      "sizeMismatch": "Chromium завантажено не повністю: {{got}} з {{expected}} байтів",
+      "extractTimeout": "Розпакування архіву Chromium не завершилось за {{minutes}} хв",
+      "bundledMissing": "У цій збірці немає браузера Chromium для {{platform}}, і завантажити його для цієї платформи немає звідки.",
       "binaryMissing": "У завантаженому архіві Chromium немає виконуваного файлу: {{binary}}"
     },
     "browser": {

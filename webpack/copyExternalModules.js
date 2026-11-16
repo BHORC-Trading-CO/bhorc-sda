@@ -77,6 +77,19 @@ function notBinDir(source) {
   return path.basename(source) !== ".bin";
 }
 
+/** Папка, куда пакет chromium скачивает браузер: …/node_modules/chromium/lib/chromium. */
+function isBundledBrowserDir(source) {
+  return source.replace(/\\/g, "/").replace(/\/+$/, "").endsWith("/node_modules/chromium/lib/chromium");
+}
+
+/**
+ * Тестовый бинарник из Windows-снапшота Chromium (~390 МБ распакованный, ~160 МБ в архиве).
+ * Браузеру он не нужен, а node-chromium распаковывает архив целиком.
+ */
+function isBrowserTestBinary(source) {
+  return source.replace(/\\/g, "/").endsWith("/chromium/lib/chromium/chrome-win/interactive_ui_tests.exe");
+}
+
 /**
  * Кладёт внешние модули в собранное приложение.
  *
@@ -86,8 +99,18 @@ function notBinDir(source) {
  * приложение падает на старте с "Cannot find module 'steamcommunity'".
  * Раньше это лечилось ручным копированием модулей в resources (шаг 5 README).
  */
-function copyExternalModules(projectDir, buildPath) {
+function copyExternalModules(projectDir, buildPath, target = {}) {
   const packageDirs = collectPackageDirs(projectDir);
+
+  // На darwin/arm64 приложение не пользуется браузером из пакета chromium: node-chromium
+  // качает для macOS только x86_64-сборку, а она на Apple Silicon не запускается, поэтому
+  // нативную сборку приложение качает само при первом запуске (resolveBrowserPath.ts).
+  // Класть в arm64-сборку ~400 МБ мёртвого x86_64-браузера незачем.
+  // Сравниваем по хвосту пути, а не по полному совпадению со склеенным путём: на раннере
+  // Windows полное совпадение не срабатывало, и папка браузера копировалась.
+  const skipBundledBrowser = target.platform === "darwin" && target.arch === "arm64";
+  const filter = (source) =>
+    notBinDir(source) && !isBrowserTestBinary(source) && !(skipBundledBrowser && isBundledBrowserDir(source));
 
   for (const source of packageDirs) {
     const relative = path.relative(projectDir, source);
@@ -96,10 +119,10 @@ function copyExternalModules(projectDir, buildPath) {
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     // Симлинки копируем как симлинки (dereference: false по умолчанию) — иначе
     // разъедется .framework внутри chromium, он на них держится.
-    fs.cpSync(source, destination, { recursive: true, force: true, filter: notBinDir });
+    fs.cpSync(source, destination, { recursive: true, force: true, filter });
   }
 
   return packageDirs.length;
 }
 
-module.exports = { copyExternalModules, collectPackageDirs };
+module.exports = { copyExternalModules, collectPackageDirs, isBundledBrowserDir, isBrowserTestBinary };

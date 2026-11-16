@@ -49,6 +49,12 @@ jobs:
           done
           exit 1
 
+      # Пакет chromium качает браузер в postinstall и глотает любую ошибку: npm install
+      # зелёный, а chrome.exe нет, и сборка выходит без браузера (SDA-30). npm к тому же
+      # прячет вывод postinstall. Проверяем явно и докачиваем, если его нет.
+      - name: Chromium binary
+        run: npm run ensure:chromium
+
       - name: Unit tests
         run: npm test
 
@@ -60,6 +66,15 @@ jobs:
       # раскладки собранного приложения и что в нём нет лишних .bin.
       - name: Verify packaged app
         run: npm run verify:package
+
+      # Браузер аккаунта из собранного приложения реально стартует, грузит страницу через
+      # прокси с авторизацией и переживает новую вкладку и попап (SDA-30, SDA-42). Только
+      # Windows: в сборке darwin/arm64 браузера нет, приложение качает его при первом запуске.
+      - name: Browser smoke test
+        if: runner.os == 'Windows'
+        run: node scripts/smokePackagedBrowser.js
+        env:
+          SDA_SMOKE_TRACE: "1"
 
       # Упакованное Windows-приложение для ручной проверки: на Windows локально
       # никто не запускает, поэтому коллега скачивает папку из артефакта прогона
