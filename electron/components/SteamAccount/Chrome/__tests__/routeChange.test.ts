@@ -2,7 +2,7 @@ jest.mock("fs/promises", () => ({ access: jest.fn().mockResolvedValue(undefined)
 jest.mock("../resolveBrowserPath", () => ({ __esModule: true, default: jest.fn().mockResolvedValue("/fake/browser") }));
 jest.mock("../secureDnsPref", () => ({ ensureSecureDnsOff: jest.fn().mockResolvedValue(undefined), writeLocalState: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../../../application/application", () => ({ __esModule: true, default: { sendToMain: jest.fn() } }));
-import Chrome, { BrowserStartCancelledError, BROWSER_CLOSE_TIMEOUT_MS } from "../Chrome";
+import Chrome, { BrowserStartCancelledError, BROWSER_CLOSE_TIMEOUT_MS, SESSION_REMOVE_ATTEMPTS, SESSION_REMOVE_RETRY_MS } from "../Chrome";
 import resolveBrowserPath from "../resolveBrowserPath";
 import { ensureSecureDnsOff } from "../secureDnsPref";
 import puppeteer from "puppeteer-extra";
@@ -271,17 +271,150 @@ it("SDA-33 the last session's tabs are removed inside the serialized preparation
         (fsp.rm as jest.Mock).mockReset().mockResolvedValue(undefined);
     }
 });
-it("SDA-33 a failed removal of the last session's tabs is logged and the browser still starts", async () => {
+const flushAll = async (turns = 20) => { for (let i = 0; i < turns; i++) await new Promise(resolve => setImmediate(resolve)); };
+const busy = () => Object.assign(new Error("EBUSY: resource busy or locked, rmdir '/Users/someone/browser_profiles/a1/Default/Sessions'"), { code: "EBUSY" });
+/** Waits for a promise while advancing fake timers (removal retry pauses, the wait for restored tabs). */
+async function settleOnFakeTimers<T>(promise: Promise<T>): Promise<T> {
+    let done = false;
+    promise.then(() => { done = true; }, () => { done = true; });
+    for (let i = 0; i < 200 && !done; i++) await jest.advanceTimersByTimeAsync(100);
+    return promise;
+}
+it("SDA-33 a removal that keeps failing is logged once, by error code only, and the browser still starts", async () => {
+    jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate", "queueMicrotask"] });
     const log = jest.spyOn(console, "log").mockImplementation(() => {});
-    (fsp.rm as jest.Mock).mockRejectedValueOnce(Object.assign(new Error("EBUSY: resource busy or locked"), { code: "EBUSY" }));
+    (fsp.rm as jest.Mock).mockRejectedValue(busy());
     const { browser, page } = launched();
     const chrome = make();
-    await chrome.start();
-    expect(fsp.rm).toHaveBeenCalledTimes(1);
-    expect(log).toHaveBeenCalledWith(expect.stringContaining("EBUSY: resource busy or locked"));
+    try {
+        await settleOnFakeTimers(chrome.start());
+        expect(fsp.rm).toHaveBeenCalledTimes(SESSION_REMOVE_ATTEMPTS);
+        const lines = log.mock.calls.map(call => String(call[0])).filter(line => line.includes("EBUSY"));
+        expect(lines).toHaveLength(1);
+        expect(lines[0]).toContain("a1");
+        expect(lines[0]).not.toMatch(/[\\/]/);
+        expect(chrome.browser).toBe(browser);
+        expect(chrome.workStatus).toBe("working");
+        // Nothing came back from the last session, so the start page opens as usual.
+        expect(page.goto).toHaveBeenCalledWith("https://steamcommunity.com/my/");
+    } finally {
+        (fsp.rm as jest.Mock).mockReset().mockResolvedValue(undefined);
+    }
+});
+// Review round 1, finding 1: fs.rm's own retries went on deleting after the start was cancelled,
+// possibly under a next start that restores the tabs. Every attempt now checks the start first.
+it("SDA-33 a removal that hit EBUSY makes no further attempt once the start is superseded during the pause", async () => {
+    const order: string[] = [];
+    const chrome = make();
+    (fsp.rm as jest.Mock)
+        .mockImplementationOnce(async () => { order.push("A: remove, EBUSY"); throw busy(); })
+        .mockImplementation(async () => { order.push("remove"); });
+    (ensureSecureDnsOff as jest.Mock).mockImplementation(async () => { order.push("secure DNS off"); });
+    const { browser } = launched();
+    try {
+        const first = chrome.start();
+        const rejected = expect(first).rejects.toMatchObject({ reason: "superseded" });
+        for (let i = 0; i < 100 && !order.includes("A: remove, EBUSY"); i++) await flushAll(1);
+        expect(order).toEqual(["secure DNS off", "A: remove, EBUSY"]);
+        // A now waits SESSION_REMOVE_RETRY_MS before its second attempt; a new Start arrives.
+        await chrome.start();
+        await rejected;
+        // No second attempt by A: the next removal is B's own, after B's preparation.
+        expect(order).toEqual(["secure DNS off", "A: remove, EBUSY", "secure DNS off", "remove"]);
+        expect(chrome.browser).toBe(browser);
+    } finally {
+        (ensureSecureDnsOff as jest.Mock).mockReset().mockResolvedValue(undefined);
+        (fsp.rm as jest.Mock).mockReset().mockResolvedValue(undefined);
+    }
+});
+it("SDA-33 Stop during a removal retry pause: nothing more is removed and nothing is launched", async () => {
+    jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate", "queueMicrotask"] });
+    (fsp.rm as jest.Mock).mockRejectedValue(busy());
+    const launch = jest.spyOn(puppeteer, "launch");
+    const chrome = make();
+    try {
+        const started = chrome.start();
+        const rejected = expect(started).rejects.toMatchObject({ reason: "stopped" });
+        for (let i = 0; i < 100 && (fsp.rm as jest.Mock).mock.calls.length === 0; i++) await flushAll(1);
+        expect(fsp.rm).toHaveBeenCalledTimes(1);
+        await chrome.stop();
+        await jest.advanceTimersByTimeAsync(SESSION_REMOVE_RETRY_MS * SESSION_REMOVE_ATTEMPTS);
+        await rejected;
+        expect(fsp.rm).toHaveBeenCalledTimes(1);
+        expect(launch).not.toHaveBeenCalled();
+    } finally {
+        (fsp.rm as jest.Mock).mockReset().mockResolvedValue(undefined);
+    }
+});
+// Review round 1, finding 2a: stop() lets go of this.browser before Chromium has closed, and the next
+// start used to prepare (and now clean) the profile while the old browser still held it.
+it("SDA-33 a start prepares the profile only after the account's previous browser has finished closing", async () => {
+    const order: string[] = [];
+    let finishClose!: () => void;
+    const chrome = make();
+    chrome.browser = {
+        close: () => new Promise<void>(resolve => { finishClose = () => { order.push("previous browser closed"); resolve(); }; }),
+    } as any;
+    jest.spyOn(chrome as any, "migrateLegacyProfile").mockImplementation(async () => { order.push("prepare profile"); });
+    const { browser } = launched();
+    const stopped = chrome.stop();
+    const started = chrome.start();
+    await flushAll();
+    expect(order).toEqual([]);
+    finishClose();
+    await stopped;
+    await started;
+    expect(order).toEqual(["previous browser closed", "prepare profile"]);
     expect(chrome.browser).toBe(browser);
-    expect(chrome.workStatus).toBe("working");
-    expect(page.goto).toHaveBeenCalledWith("https://steamcommunity.com/my/");
+});
+it("SDA-33 the next start also waits for the browser of a cancelled launch to close", async () => {
+    const order: string[] = [];
+    let resolveLaunch!: (browser: any) => void;
+    let launchStarted!: () => void;
+    const launching = new Promise<void>(resolve => { launchStarted = resolve; });
+    let finishClose!: () => void;
+    const cancelled = {
+        targets: () => [],
+        close: () => new Promise<void>(resolve => { finishClose = () => { order.push("cancelled launch's browser closed"); resolve(); }; }),
+    };
+    const { browser } = launched();
+    (puppeteer.launch as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { resolveLaunch = resolve; launchStarted(); }));
+    const chrome = make();
+    const first = chrome.start();
+    const rejected = expect(first).rejects.toMatchObject({ reason: "stopped" });
+    await launching;
+    await chrome.stop();
+    resolveLaunch(cancelled);
+    await flushAll();
+    jest.spyOn(chrome as any, "migrateLegacyProfile").mockImplementation(async () => { order.push("prepare profile"); });
+    const second = chrome.start();
+    await flushAll();
+    expect(order).toEqual([]);
+    finishClose();
+    await second;
+    await rejected;
+    expect(order).toEqual(["cancelled launch's browser closed", "prepare profile"]);
+    expect(chrome.browser).toBe(browser);
+});
+it("SDA-33 a close that fails (route change, killed child) does not block the next start", async () => {
+    const chrome = make();
+    chrome.browser = { close: jest.fn().mockRejectedValue(new Error("disconnected")), process: () => ({ kill: jest.fn() }) } as any;
+    await expect(chrome.stop("routeChanged")).rejects.toThrow("disconnected");
+    const { browser } = launched();
+    await chrome.start();
+    expect(chrome.browser).toBe(browser);
+});
+it("SDA-33 after the browser crashed (disconnected) the next start waits for no close", async () => {
+    const { browser } = launched();
+    const chrome = make();
+    await chrome.start();
+    const onDisconnected = browser.on.mock.calls.find(([event]: [string]) => event === "disconnected")[1];
+    onDisconnected();
+    expect(chrome.browser).toBeNull();
+    const next = launched();
+    await chrome.start();
+    expect(chrome.browser).toBe(next.browser);
+    expect(browser.close).not.toHaveBeenCalled();
 });
 it("SDA-33 a session folder that is already gone is not an error", async () => {
     const log = jest.spyOn(console, "log").mockImplementation(() => {});

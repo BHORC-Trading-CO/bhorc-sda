@@ -43,10 +43,21 @@ export const BROWSER_CLOSE_TIMEOUT_MS = 3000;
 export const AVATAR_TIMEOUT_MS = 10000;
 /**
  * SDA-33: сколько ждать вкладки прошлого сеанса после запуска (Chromium открывает их не сразу)
- * и как часто проверять. Не появились за это время — восстанавливать нечего.
+ * и как часто проверять. Ждём, только если сеанс есть на диске; обычно ожидание кончается, как
+ * только вкладки появились и их число перестало расти. Полный срок уходит, лишь когда сеанс на
+ * диске есть, а вернулись одни пустые вкладки (например, после аварийного закрытия Chromium
+ * показывает «Восстановить страницы?» вместо восстановления). Не появились за срок —
+ * восстанавливать нечего.
  */
-export const RESTORE_WAIT_MS = 2000;
+export const RESTORE_WAIT_MS = 5000;
 export const RESTORE_POLL_MS = 200;
+/**
+ * SDA-33: удаление папки сеанса. Закрывающийся Chromium (на Windows — и антивирус) может
+ * держать файлы: пробуем несколько раз с короткой паузой.
+ */
+export const SESSION_REMOVE_ATTEMPTS = 4;
+export const SESSION_REMOVE_RETRY_MS = 250;
+const SESSION_REMOVE_RETRY_CODES = ["EBUSY", "EPERM", "ENOTEMPTY"];
 
 /** Пустая вкладка (about:blank или «Новая вкладка»): восстановленной не считается (SDA-33). */
 export function isBlankTabUrl(url: string): boolean {
@@ -56,6 +67,14 @@ export function isBlankTabUrl(url: string): boolean {
     /^chrome:\/\/(newtab|new-tab-page)/.test(url) ||
     url.startsWith("chrome-search://local-ntp")
   );
+}
+
+/**
+ * Вкладка прошлого сеанса: не пустая и не страница расширения. Приветствие или настройки
+ * расширения открывает само расширение, а не восстановление сеанса (SDA-33).
+ */
+export function isRestoredTabUrl(url: string): boolean {
+  return !isBlankTabUrl(url) && !url.startsWith("chrome-extension://");
 }
 
 /**
@@ -190,7 +209,7 @@ export default class Chrome {
     for (let waited = 0; ; waited += RESTORE_POLL_MS) {
       const tabs = await browser.pages();
       assertCurrent();
-      const restored = tabs.some((tab) => !isBlankTabUrl(tabUrl(tab)));
+      const restored = tabs.some((tab) => isRestoredTabUrl(tabUrl(tab)));
       if ((restored && tabs.length === previousCount) || waited >= RESTORE_WAIT_MS) return tabs;
       previousCount = tabs.length;
       await new Promise((resolve) => setTimeout(resolve, RESTORE_POLL_MS));
@@ -199,6 +218,12 @@ export default class Chrome {
 
   /** Последняя начатая подготовка профиля: следующая ждёт её окончания. */
   private profilePreparation: Promise<void> = Promise.resolve();
+  /**
+   * Закрытия браузеров этого аккаунта, которые ещё идут (SDA-33): stop() отпускает this.browser
+   * сразу, а Chromium ещё держит профиль. Подготовка профиля ждёт их. Ожидание конечно:
+   * closeBrowser сдаётся через BROWSER_CLOSE_TIMEOUT_MS и убивает процесс.
+   */
+  private browserClosing: Promise<void> | null = null;
 
   /**
    * Готовит папку профиля к запуску: перенос со старого места, создание, настройка DoH (SDA-26).
@@ -209,10 +234,15 @@ export default class Chrome {
    * (в том числе поверх Local State с выключенным DoH) прямо перед стартом браузера. Поэтому
    * подготовки идут строго по очереди: новая начинается, только когда предыдущая закончилась, и
    * сама заканчивается проверкой настройки DoH и, если вкладки прошлого сеанса не нужны (SDA-33),
-   * их удалением. После этого запуск файлов профиля не пишет.
+   * их удалением. После этого запуск файлов профиля не пишет. Начинается подготовка, только когда
+   * прошлый браузер аккаунта закрылся.
+   *
+   * Результат (SDA-33): могут ли при запуске вернуться вкладки прошлого сеанса — включено
+   * восстановление и сеанс есть на диске, или выключено, но папку сеанса удалить не удалось.
    */
-  private prepareProfile(assertCurrent: () => void, restoreTabs: boolean): Promise<void> {
+  private prepareProfile(assertCurrent: () => void, restoreTabs: boolean): Promise<boolean> {
     const run = this.profilePreparation.then(async () => {
+      await this.browserClosing;
       assertCurrent();
       await this.migrateLegacyProfile();
       assertCurrent();
@@ -224,15 +254,22 @@ export default class Chrome {
       // DNS-over-HTTPS шёл бы мимо прокси, с реального IP. Не удалось записать настройку —
       // браузер не запускаем.
       await ensureSecureDnsOff(this.profileDir);
-      if (!restoreTabs) {
-        // Отменённый запуск вкладки не удаляет: следующий запуск, возможно, их восстанавливает.
-        assertCurrent();
-        await this.forgetPreviousTabs();
-      }
+      if (restoreTabs) return this.previousSessionOnDisk();
+      return !(await this.forgetPreviousTabs(assertCurrent));
     });
     // Ошибка или отмена одной подготовки не должна рвать очередь.
-    this.profilePreparation = run.catch(() => undefined);
+    this.profilePreparation = run.then(() => undefined, () => undefined);
     return run;
+  }
+
+  /** SDA-33: есть ли на диске вкладки прошлого сеанса. Нет — ждать их после запуска незачем. */
+  private async previousSessionOnDisk(): Promise<boolean> {
+    try {
+      return (await fs.readdir(`${this.profileDir}/Default/Sessions`)).length > 0;
+    } catch (err) {
+      // Папки нет — возвращать нечего. Другая ошибка — не знаем, поэтому ждём.
+      return (err as NodeJS.ErrnoException).code !== "ENOENT";
+    }
   }
 
   /**
@@ -240,15 +277,32 @@ export default class Chrome {
    * открывает вкладки прошлого сеанса — даже без настройки «продолжить с того же места»;
    * session.restore_on_startup и -ApplePersistenceIgnoreState этого не отключают. Не открывает,
    * только если в профиле нет папки Default/Sessions. Удаляем её перед запуском — и браузер
-   * начинает с одной пустой вкладки, а мы открываем стартовые страницы. Не удалось — пишем в лог
-   * и запускаем дальше: из-за истории вкладок браузер не должен не открыться.
+   * начинает с одной пустой вкладки, а мы открываем стартовые страницы.
+   *
+   * Повторы — свои, не maxRetries из fs.rm: перед каждой попыткой проверяем, что запуск ещё
+   * актуален. Отменённый (Stop, новый Start — возможно, уже с восстановлением) больше ничего не
+   * удаляет. Не удалось — пишем в лог только код ошибки (в тексте был бы путь с именем
+   * пользователя) и запускаем дальше: из-за истории вкладок браузер не должен не открыться.
+   * Возвращает, удалена ли папка.
    */
-  private async forgetPreviousTabs(): Promise<void> {
-    try {
-      await fs.rm(`${this.profileDir}/Default/Sessions`, { recursive: true, force: true, maxRetries: 3 });
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
-      console.log(`${this.params.id} - не удалось убрать вкладки прошлого сеанса: ${err}`);
+  private async forgetPreviousTabs(assertCurrent: () => void): Promise<boolean> {
+    for (let attempt = 1; ; attempt++) {
+      assertCurrent();
+      try {
+        await fs.rm(`${this.profileDir}/Default/Sessions`, { recursive: true, force: true });
+        return true;
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code || "";
+        if (code === "ENOENT") return true;
+        if (attempt >= SESSION_REMOVE_ATTEMPTS || !SESSION_REMOVE_RETRY_CODES.includes(code)) {
+          console.log(
+            `${this.params.id} - не удалось убрать вкладки прошлого сеанса (${code || "unknown"}), ` +
+              `этот запуск — как с восстановлением вкладок`
+          );
+          return false;
+        }
+        await new Promise((resolve) => setTimeout(resolve, SESSION_REMOVE_RETRY_MS));
+      }
     }
   }
 
@@ -392,7 +446,7 @@ export default class Chrome {
         const restoreTabs = BrowserSettingsStorage.Get().restoreTabs;
         // Перенос старого профиля, создание и настройки (SDA-26, SDA-33) — строго по очереди с
         // другими запусками этого же профиля, см. prepareProfile.
-        await this.prepareProfile(assertCurrent, restoreTabs);
+        const previousTabsMayReturn = await this.prepareProfile(assertCurrent, restoreTabs);
         assertCurrent();
         const args = this.generateChromeFlags();
         const launchedBrowser = await puppeteer.launch({
@@ -408,12 +462,13 @@ export default class Chrome {
             : {}),
         });
         if (attempt.reason) {
-          await this.closeBrowser(launchedBrowser);
+          await this.closeBrowserReleasingProfile(launchedBrowser);
           assertCurrent();
         }
         // Вкладки, открытые до того, как плагины puppeteer-extra подписались на targetcreated
         // (см. applyPluginHooks). Снимок — до первого await после запуска: вкладки, открытые
-        // позже, плагины уже видят сами.
+        // позже, плагины уже видят сами. Из этого же снимка берутся пустые вкладки, которые
+        // приложение может занять или закрыть: открытые позже — чужие (пользователя, расширения).
         const startupTargets = new Set<Target>(launchedBrowser.targets());
         this.browser = launchedBrowser;
 
@@ -447,18 +502,18 @@ export default class Chrome {
           }
         });
 
-        // SDA-33. Вкладки, которые уже есть: пустая, которую браузер открывает сам, и, если
-        // восстановление включено, вкладки прошлого сеанса (их недолго ждём).
-        const tabs = restoreTabs
+        // SDA-33. Вкладки, которые уже есть: пустая, которую браузер открывает сам, и, если вкладки
+        // прошлого сеанса могут вернуться, они (их недолго ждём).
+        const tabs = previousTabsMayReturn
           ? await this.waitForRestoredTabs(launchedBrowser, assertCurrent)
           : await launchedBrowser.pages();
         assertCurrent();
-        const blankTabs = tabs.filter((tab) => isBlankTabUrl(tabUrl(tab)));
-        const restoredTabs = tabs.filter((tab) => !blankTabs.includes(tab));
+        // Пустые вкладки самого браузера — только из снимка при запуске.
+        const blankTabs = tabs.filter((tab) => startupTargets.has(tab.target()) && isBlankTabUrl(tabUrl(tab)));
+        const restoredTabs = tabs.filter((tab) => isRestoredTabUrl(tabUrl(tab)));
         // Вкладки вернулись — стартовые страницы не открываем, иначе они копились бы с каждым
-        // запуском. При выключенном восстановлении открываем всегда: непустая вкладка тут бывает,
-        // только если папку сеанса не удалось удалить.
-        const openStartPages = !restoreTabs || !restoredTabs.length;
+        // запуском. Вернуться им неоткуда — открываем всегда.
+        const openStartPages = !previousTabsMayReturn || !restoredTabs.length;
         // Первая пустая вкладка достаётся первой стартовой странице, остальные пустые закрываем:
         // лишних about:blank не остаётся.
         const reusedTab = openStartPages ? blankTabs[0] : undefined;
@@ -620,6 +675,15 @@ export default class Chrome {
       if (timeout) clearTimeout(timeout);
     }
   }
+  /** Закрывает браузер и до конца закрытия держит подготовку профиля (см. browserClosing). */
+  private closeBrowserReleasingProfile(browser: Browser): Promise<void> {
+    const closing = this.closeBrowser(browser);
+    const released: Promise<void> = Promise.all([this.browserClosing, closing.catch(() => undefined)]).then(() => {
+      if (this.browserClosing === released) this.browserClosing = null;
+    });
+    this.browserClosing = released;
+    return closing;
+  }
   private cancelStart(reason: StartCancelReason) {
     if (this.startAttempt && !this.startAttempt.reason) this.startAttempt.reason = reason;
   }
@@ -633,7 +697,7 @@ export default class Chrome {
     application.sendToMain(SteamAccountChannels.GET_BROWSER_STARTUS, {
       status: this.workStatus, id: this.params.id,
     });
-    if (browser) await this.closeBrowser(browser);
+    if (browser) await this.closeBrowserReleasingProfile(browser);
   }
   addSteamCookies(webCookies: string[] = []): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
