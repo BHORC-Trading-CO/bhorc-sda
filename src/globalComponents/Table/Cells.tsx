@@ -1,6 +1,7 @@
 import React, { FC, ReactNode, useState } from 'react';
 import ReactTooltip from 'react-tooltip';
 import uuid from 'react-uuid';
+import Icon, { IconName } from '../Icon/Icon';
 
 // Общие кусочки ячеек таблицы (SDA-9): подсказка, текст с многоточием, бейдж статуса.
 
@@ -34,11 +35,13 @@ export const CellText: FC<{ text: string, className?: string }> = ({ text, class
     </span>
 );
 
-export type StatusTone = 'success' | 'danger' | 'warning';
+// neutral — статус неизвестен (SDA-31): ещё не проверялся или проверка не удалась
+export type StatusTone = 'success' | 'danger' | 'warning' | 'neutral';
 
 /** Бейдж статуса аккаунта: переводимый текст, цвет по смыслу, пояснение в подсказке */
-export const StatusBadge: FC<{ tone: StatusTone, label: string, tip: string }> = ({ tone, label, tip }) => (
+export const StatusBadge: FC<{ tone: StatusTone, label: string, tip: string, icon?: IconName }> = ({ tone, label, tip, icon }) => (
     <Tip tip={tip} className={`status-badge status-badge--${tone}`} role="img" ariaLabel={`${label}. ${tip}`}>
+        {icon ? <Icon name={icon} size={13} /> : null}
         {label}
     </Tip>
 );

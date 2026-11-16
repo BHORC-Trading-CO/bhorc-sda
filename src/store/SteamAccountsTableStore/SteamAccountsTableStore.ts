@@ -11,6 +11,17 @@ import ChangableSecondaryInterface from "../../../electron/interfaces/SteamAccou
 import { matchesSteamAccountSearch } from "../../../electron/components/Functions/steamAccountSearch";
 import i18n from "../../i18n/i18n";
 
+// Неудачная загрузка баланса: повтор по любому поводу — не раньше чем через минуту после ответа,
+// а сам по таймеру — через 1, 5 и 15 минут (дальше только по поводу или кнопкой обновления).
+const BALANCE_RETRY_FLOOR_MS = 60 * 1000;
+const BALANCE_RETRY_DELAYS_MS = [60 * 1000, 5 * 60 * 1000, 15 * 60 * 1000];
+// После смены маршрута баланс грузим заново через несколько секунд, а не в ту же секунду: main шлёт
+// смену прокси сразу после того, как пересоздал клиент и запустил вход (initSession) без ожидания,
+// и мгновенный запрос почти наверняка увидел бы «не вошёл». Переход на страницу грузит и раньше.
+const ROUTE_CHANGE_BALANCE_DELAY_MS = 10 * 1000;
+
+type BalanceLoad = { state: "loading" | "done" | "failed"; at: number; failures: number };
+
 class SteamAccountsTableStore {
   root: Store;
   fields: Field[];
@@ -33,6 +44,15 @@ class SteamAccountsTableStore {
       content: ChangableSecondaryInterface;
     };
   };
+  // Баланс — это страница /market/ (~1 МБ, SDA-38). Удачный ответ (done) запоминаем до конца
+  // запуска: новый список аккаунтов (смена вкладки, правка, импорт) несёт сохранённый в main баланс
+  // и не перезапрашивает его. Ответ с ошибкой (failed) не запоминается как готовый: его повторяют,
+  // см. BALANCE_RETRY_*. В том числе так восстанавливается старт, когда список приходит раньше,
+  // чем main поставил cookie сессии, и первый запрос видит «не вошёл». Смена маршрута аккаунта
+  // забывает запись, обновление сессии и кнопка строки грузят баланс заново (getSecondary).
+  balanceLoads: { [id: string]: BalanceLoad };
+  // Таймеры автоповтора; не observable
+  balanceRetryTimers: { [id: string]: ReturnType<typeof setTimeout> };
   browserStatuses: {
     [id: string]: "load" | "working" | "notworking";
   };
@@ -52,6 +72,8 @@ class SteamAccountsTableStore {
 
     this.authCodes = {};
     this.changableSecondaries = {};
+    this.balanceLoads = {};
+    this.balanceRetryTimers = {};
     this.browserStatuses = {};
 
     this.settingsForm = new SettingsFormStore(this);
@@ -64,7 +86,7 @@ class SteamAccountsTableStore {
     this.searchString = "";
     this.sortedField = null;
 
-    makeAutoObservable(this);
+    makeAutoObservable(this, { balanceRetryTimers: false });
 
     window.Main.steamAccounts.getTableFields();
     window.Main.steamAccounts.get();
@@ -85,6 +107,8 @@ class SteamAccountsTableStore {
       runInAction(() => {
         this.steamAccounts[data.id].isLoadSecondary = false;
       });
+      // Обновление не дошло до баланса: ответа с ним не будет, запись — на повтор
+      if (this.balanceLoads[data.id]?.state === "loading") this.recordBalanceResult(data.id, true);
     });
     window.Main.steamAccounts.onGetBrowserStatus((event, data) => {
       console.log("get browser status", data);
@@ -100,6 +124,8 @@ class SteamAccountsTableStore {
     });
     window.Main.steamAccounts.onGetChangableSecondaryError((event, data) => {
       //this.writeChangableSecondariesError(data.id, String(data.err));
+      // Ответа с балансом не будет: запись — на повтор
+      this.recordBalanceResult(data.id, true);
     });
     window.Main.steamAccounts.onGetTableFields((event, fields) => {
       this.setFields(fields);
@@ -109,8 +135,9 @@ class SteamAccountsTableStore {
       runInAction(() => {
         this.steamAccounts[id].isLogining = false;
       });
+      // Баланс приходит из того же обновления (одна загрузка /market/ на КТ, ТП и баланс, SDA-38):
+      // отдельный loadChangableSecondaries скачал бы страницу второй раз.
       this.loadSecondaries(id);
-      this.loadChangableSecondaries(id);
     });
     window.Main.steamAccounts.onRefreshSessionError((event, data) => {
       runInAction(() => {
@@ -150,7 +177,11 @@ class SteamAccountsTableStore {
         console.log(`proxy update for steam account #${id} skipped: not in the table yet`);
         return;
       }
+      // Маршрут сменился: прежняя запись о балансе (в том числе «не грузить») больше не действует,
+      // баланс по новому маршруту грузим заново
+      const routeChanged = routeOf(this.steamAccounts[id]) !== routeOf({ ...this.steamAccounts[id], ...changes });
       this.editSteamAccount(id, changes);
+      if (routeChanged) this.reloadBalanceForNewRoute(id);
     });
   }
 
@@ -189,7 +220,12 @@ class SteamAccountsTableStore {
     }
   }
   loadChangableSecondaries(id: string) {
-    if (this.steamAccounts[id].deleted) return;
+    if (!this.steamAccounts[id] || this.steamAccounts[id].deleted) return;
+    // Уже загружен в этом запуске или ещё грузится: стартовый таймер, setActivePage и
+    // onGetTableOptions иначе запрашивали баланс аккаунтов первой страницы по два-три раза.
+    // Неудачный — не раньше чем через минуту, чтобы не долбить сломанный прокси.
+    const memo = this.balanceLoads[id];
+    if (memo && (memo.state !== "failed" || Date.now() - memo.at < BALANCE_RETRY_FLOOR_MS)) return;
     const fields = this.getFields();
     const usefulFields = fields.filter(
       (f) => f.type === AvalibleTypes.steamAccountBalance
@@ -197,19 +233,65 @@ class SteamAccountsTableStore {
     if (usefulFields.filter((f) => !f.isVisible).length === 1) {
       return;
     }
-    this.changableSecondaries[id].isLoad = false;
+    this.startBalanceLoad(id);
+    if (this.changableSecondaries[id]) this.changableSecondaries[id].isLoad = false;
     window.Main.steamAccounts.getChangableSecondary(id);
   }
   loadSecondaries(id: string) {
     this.steamAccounts[id].isLoadSecondary = true;
+    // Полное обновление приносит и баланс (одна загрузка /market/): пока оно в пути, отдельный
+    // запрос баланса не нужен
+    this.startBalanceLoad(id);
     window.Main.steamAccounts.getSecondary(id);
+  }
+  startBalanceLoad(id: string) {
+    this.clearBalanceRetry(id);
+    this.balanceLoads[id] = { state: "loading", at: Date.now(), failures: this.balanceLoads[id]?.failures ?? 0 };
+  }
+  // Ответ с балансом: удачный запоминаем, неудачный ставим на повтор с паузой 1 → 5 → 15 мин
+  recordBalanceResult(id: string, failed: boolean) {
+    this.clearBalanceRetry(id);
+    if (!failed) {
+      this.balanceLoads[id] = { state: "done", at: Date.now(), failures: 0 };
+      return;
+    }
+    const failures = (this.balanceLoads[id]?.failures ?? 0) + 1;
+    this.balanceLoads[id] = { state: "failed", at: Date.now(), failures };
+    const delay = BALANCE_RETRY_DELAYS_MS[failures - 1];
+    if (delay === undefined) return;
+    this.balanceRetryTimers[id] = setTimeout(() => {
+      delete this.balanceRetryTimers[id];
+      this.loadChangableSecondaries(id);
+    }, delay);
+  }
+  // Забыть запись и показанный ответ: без isLoad=false аккаунт с показанной ошибкой старого прокси
+  // не подходил ни под переход на страницу, ни под повтор, и ошибка висела до ручного обновления
+  forgetBalance(id: string) {
+    this.clearBalanceRetry(id);
+    delete this.balanceLoads[id];
+    if (this.changableSecondaries[id]) this.changableSecondaries[id].isLoad = false;
+  }
+  reloadBalanceForNewRoute(id: string) {
+    this.forgetBalance(id);
+    this.balanceRetryTimers[id] = setTimeout(() => {
+      delete this.balanceRetryTimers[id];
+      this.loadChangableSecondaries(id);
+    }, ROUTE_CHANGE_BALANCE_DELAY_MS);
+  }
+  clearBalanceRetry(id: string) {
+    if (this.balanceRetryTimers[id] === undefined) return;
+    clearTimeout(this.balanceRetryTimers[id]);
+    delete this.balanceRetryTimers[id];
   }
   editChanableSecondaries(
     id: string,
     chanableSecondaries: ChangableSecondaryInterface
   ) {
-    this.changableSecondaries[id].content = chanableSecondaries;
-    this.changableSecondaries[id].isLoad = true;
+    // Баланс теперь приходит и с обновлением профиля — в том числе для аккаунта, которого
+    // в этом словаре ещё нет.
+    this.changableSecondaries[id] = { content: chanableSecondaries, isLoad: true };
+    // Ошибка приходит обычным ответом ({ steam: { error } }), а не каналом ошибки
+    this.recordBalanceResult(id, Boolean(chanableSecondaries?.steam?.error));
   }
   setSteamAccounts(steamAccounts: CompiledSteamAccountInterface[]) {
     try {
@@ -241,7 +323,9 @@ class SteamAccountsTableStore {
       }
       for (let sa of tableSteamAccounts) {
         this.changableSecondaries[sa.id] = {
-          isLoad: false,
+          // Ответ на баланс в этом запуске уже был (удачный или с ошибкой): main сохранил его,
+          // показываем без нового запроса. Повтор после ошибки — по правилам BALANCE_RETRY_*.
+          isLoad: this.balanceLoads[sa.id]?.state === "done" || this.balanceLoads[sa.id]?.state === "failed",
           content: sa.changableSecondary,
         };
       }
@@ -468,9 +552,12 @@ class SteamAccountsTableStore {
 
       if (balanceTableField && balanceTableField.isVisible)
         for (let sa of steamAccountInThisPage) {
+          // Неудачный баланс показан ошибкой (isLoad), но переход на страницу — повод повторить;
+          // паузу не меньше минуты держит loadChangableSecondaries
           if (
             (!this.changableSecondaries[sa.id] ||
-              !this.changableSecondaries[sa.id].isLoad) &&
+              !this.changableSecondaries[sa.id].isLoad ||
+              this.balanceLoads[sa.id]?.state === "failed") &&
             !sa.deleted
           ) {
             this.loadChangableSecondaries(sa.id);
@@ -501,6 +588,16 @@ class SteamAccountsTableStore {
       avaliblePageSizes[avaliblePageSizes.length - 1];
     this.setPageSize(fitted, true);
   }
+}
+
+// Маршрут аккаунта для сравнения: состояние прокси, его id и адрес с учётными данными
+function routeOf(account: { proxyState?: string; proxyId?: string | null; proxy?: { host?: string; port?: string | number; username?: string; password?: string } | null }) {
+  const proxy = account.proxy;
+  return JSON.stringify([
+    account.proxyState ?? null,
+    account.proxyId ?? null,
+    proxy ? [proxy.host ?? null, proxy.port ?? null, proxy.username ?? null, proxy.password ?? null] : null,
+  ]);
 }
 
 export default SteamAccountsTableStore;

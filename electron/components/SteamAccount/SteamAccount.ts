@@ -8,10 +8,9 @@ import ChangableSecondaryInterface from "../../interfaces/SteamAccount/Changable
 import steamAccountManager from "./steamAccountManager";
 import SteamCommunity from "steamcommunity";
 import Session from "../../interfaces/SteamAccount/SessionInterface";
-import { getSecondaries, getChangableSecondaries } from './Processes/loadSteamAccountData';
+import { getAccountData, getChangableSecondaries, AccountData } from './Processes/loadSteamAccountData';
 import type { MobileConfirmation, MobileConfirmationRef, MobileConfirmationResult } from "../../interfaces/SteamAccount/MobileConfirmationInterface";
 import { fetchConfirmations, respondToConfirmations } from "./Functions/mobileConfirmations";
-import SecondaryInterface from "../../interfaces/SteamAccount/SecondaryInterface";
 import ProxyInterface from "../../interfaces/Proxy/ProxyInterface";
 import buildProxyUrl from "../Proxy/proxyUrl";
 import ProxyUnavailableError from "../Proxy/ProxyUnavailableError";
@@ -325,12 +324,13 @@ class SteamAccount {
             });
         });
     }
-    getSecondary(): Promise<SecondaryInterface> {
+    // Полное обновление аккаунта: профиль, статусы и баланс за одну загрузку /market/ (SDA-38).
+    getSecondary(): Promise<AccountData> {
         return new Promise((resolve, reject) => {
-            getSecondaries(this.community, this.params.secondary)
+            getAccountData(this.community)
                 .then((data) => {
                     try {
-                        this.editParams({ secondary: data });
+                        this.editParams({ secondary: data.secondary, changableSecondary: data.changableSecondary });
                         resolve(data);
                     } catch (err) {
                         reject(err);

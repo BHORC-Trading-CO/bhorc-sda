@@ -148,10 +148,12 @@ export default function sanitizeSmaFile(value: unknown): SmaFileInterface {
         secondary: {
             nickname: string(secondary, "nickname"),
             avatarUrl: sanitizeAvatarUrl(own(secondary, "avatarUrl")),
-            level: typeof own(secondary, "level") === "number" && Number.isFinite(secondary.level) ? secondary.level as number : 0,
-            ktState: own(secondary, "ktState") === true,
-            tpState: typeof own(secondary, "tpState") === "string" ? secondary.tpState as string : own(secondary, "tpState") !== false,
-            tradeState: own(secondary, "tradeState") === true,
+            // Чего в файле нет, то не проверялось: null («неизвестно»), а не «OK» или уровень 0 (SDA-31).
+            level: typeof own(secondary, "level") === "number" && Number.isFinite(secondary.level) ? secondary.level as number : null,
+            ktState: typeof own(secondary, "ktState") === "boolean" ? secondary.ktState as boolean : null,
+            tpState: typeof own(secondary, "tpState") === "string" || typeof own(secondary, "tpState") === "boolean"
+                ? secondary.tpState as string | boolean : null,
+            tradeState: typeof own(secondary, "tradeState") === "boolean" ? secondary.tradeState as boolean : null,
         },
     };
     for (const key of ["profileName", "mail", "mailPassword"] as const) {
