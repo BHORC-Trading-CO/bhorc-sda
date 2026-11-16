@@ -59,10 +59,19 @@ export const SESSION_REMOVE_ATTEMPTS = 4;
 export const SESSION_REMOVE_RETRY_MS = 250;
 const SESSION_REMOVE_RETRY_CODES = ["EBUSY", "EPERM", "ENOTEMPTY"];
 /**
- * SDA-33: брошенная папка сеанса — Default/<префикс><pid>-<время>. Chromium её не читает, это мусор
- * до удаления. Удаляются только имена с этим префиксом.
+ * SDA-33: папки сеанса Chromium в Default. Sessions — открытая (с Chrome 85), Sessions_Encrypted —
+ * зашифрованная (с Chrome 148, crbug.com/479420496): сначала пишутся обе и читается открытая, позже
+ * источником становится зашифрованная. Убираем обе, других имён не трогаем.
  */
-export const SESSION_DISCARD_PREFIX = "Sessions.sda-discard-";
+export const SESSION_FOLDERS = ["Sessions", "Sessions_Encrypted"] as const;
+export type SessionFolder = typeof SESSION_FOLDERS[number];
+/**
+ * SDA-33: брошенная папка сеанса — Default/<папка сеанса>.sda-discard-<pid>-<время>. Chromium её не
+ * читает, это мусор до удаления. Удаляются только имена с этими префиксами.
+ */
+export function sessionDiscardPrefix(folder: SessionFolder): string {
+  return `${folder}.sda-discard-`;
+}
 
 /** Пустая вкладка (about:blank или «Новая вкладка»): восстановленной не считается (SDA-33). */
 export function isBlankTabUrl(url: string): boolean {
@@ -270,50 +279,71 @@ export default class Chrome {
     return run;
   }
 
-  /** SDA-33: есть ли на диске вкладки прошлого сеанса. Нет — ждать их после запуска незачем. */
+  /**
+   * SDA-33: есть ли на диске вкладки прошлого сеанса — в любой из папок сеанса. Нет — ждать их после
+   * запуска незачем. Брошенные папки сюда не входят.
+   */
   private async previousSessionOnDisk(): Promise<boolean> {
-    try {
-      return (await fs.readdir(`${this.profileDir}/Default/Sessions`)).length > 0;
-    } catch (err) {
-      // Папки нет — возвращать нечего. Другая ошибка — не знаем, поэтому ждём.
-      return (err as NodeJS.ErrnoException).code !== "ENOENT";
+    for (const folder of SESSION_FOLDERS) {
+      try {
+        if ((await fs.readdir(`${this.profileDir}/Default/${folder}`)).length > 0) return true;
+      } catch (err) {
+        // Папки нет — из неё возвращать нечего. Другая ошибка — не знаем, поэтому ждём.
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") return true;
+      }
     }
+    return false;
   }
 
   /**
    * SDA-33: Chromium 154 (проверено на macOS) после browser.close() при следующем запуске сам
    * открывает вкладки прошлого сеанса — даже без настройки «продолжить с того же места»;
    * session.restore_on_startup и -ApplePersistenceIgnoreState этого не отключают. Не открывает,
-   * только если в профиле нет папки Default/Sessions. Убираем её перед запуском — и браузер
-   * начинает с одной пустой вкладки, а мы открываем стартовые страницы.
+   * только если в профиле нет папки Default/Sessions. Новее Chromium может читать сеанс из
+   * Default/Sessions_Encrypted, поэтому убираем обе папки (SESSION_FOLDERS) перед запуском — и
+   * браузер начинает с одной пустой вкладки, а мы открываем стартовые страницы.
    *
-   * Убираем одним переименованием, а не рекурсивным удалением: fs.rm читает папку и удаляет файлы
-   * по одному, и отменённый посреди него запуск продолжал бы удалять. Переименование — один
-   * системный вызов: сеанс либо цел, либо ушёл целиком. Повторы — свои: перед каждой попыткой
-   * проверяем, что запуск ещё актуален; отменённый (Stop, новый Start — возможно, уже с
-   * восстановлением) больше ничего не трогает. Брошенную папку удаляем потом, не дожидаясь.
-   * Не удалось — пишем в лог только код ошибки (в тексте был бы путь с именем пользователя) и
-   * запускаем дальше: из-за истории вкладок браузер не должен не открыться.
-   * Возвращает, убрана ли папка.
+   * Порядок — как в SESSION_FOLDERS: сначала Sessions, её чтение измерено на Chromium 154, и
+   * одного её удаления там хватает; Sessions_Encrypted — запас на новые версии. Запуск, отменённый
+   * между ними, вторую не трогает (проверка перед каждой попыткой). Не удалось убрать хотя бы одну —
+   * одна строка в лог: имя папки и код ошибки, без пути (в тексте ошибки был бы путь с именем
+   * пользователя), и запускаем дальше: из-за истории вкладок браузер не должен не открыться.
+   * Возвращает, убраны ли все папки сеанса.
    */
   private async forgetPreviousTabs(assertCurrent: () => void): Promise<boolean> {
+    const failures: string[] = [];
+    for (const folder of SESSION_FOLDERS) {
+      const code = await this.dropSessionFolder(folder, assertCurrent);
+      if (code !== null) failures.push(`${folder}: ${code || "unknown"}`);
+    }
+    if (!failures.length) return true;
+    console.log(
+      `${this.params.id} - не удалось убрать вкладки прошлого сеанса (${failures.join(", ")}), ` +
+        `этот запуск — как с восстановлением вкладок`
+    );
+    return false;
+  }
+
+  /**
+   * SDA-33: одна папка сеанса — одним переименованием, а не рекурсивным удалением: fs.rm читает
+   * папку и удаляет файлы по одному, и отменённый посреди него запуск продолжал бы удалять.
+   * Переименование — один системный вызов: папка либо цела, либо ушла целиком. Повторы — свои:
+   * перед каждой попыткой проверяем, что запуск ещё актуален; отменённый (Stop, новый Start —
+   * возможно, уже с восстановлением) больше ничего не трогает. Брошенную папку удаляем потом, не
+   * дожидаясь. Результат: null — папка убрана или её нет, иначе код ошибки.
+   */
+  private async dropSessionFolder(folder: SessionFolder, assertCurrent: () => void): Promise<string | null> {
     for (let attempt = 1; ; attempt++) {
       assertCurrent();
-      const discarded = `${SESSION_DISCARD_PREFIX}${process.pid}-${Date.now()}`;
+      const discarded = `${sessionDiscardPrefix(folder)}${process.pid}-${Date.now()}`;
       try {
-        await fs.rename(`${this.profileDir}/Default/Sessions`, `${this.profileDir}/Default/${discarded}`);
+        await fs.rename(`${this.profileDir}/Default/${folder}`, `${this.profileDir}/Default/${discarded}`);
         this.removeDiscardedSessions([discarded]);
-        return true;
+        return null;
       } catch (err) {
         const code = (err as NodeJS.ErrnoException).code || "";
-        if (code === "ENOENT") return true;
-        if (attempt >= SESSION_REMOVE_ATTEMPTS || !SESSION_REMOVE_RETRY_CODES.includes(code)) {
-          console.log(
-            `${this.params.id} - не удалось убрать вкладки прошлого сеанса (${code || "unknown"}), ` +
-              `этот запуск — как с восстановлением вкладок`
-          );
-          return false;
-        }
+        if (code === "ENOENT") return null;
+        if (attempt >= SESSION_REMOVE_ATTEMPTS || !SESSION_REMOVE_RETRY_CODES.includes(code)) return code;
         await new Promise((resolve) => setTimeout(resolve, SESSION_REMOVE_RETRY_MS));
       }
     }
@@ -329,10 +359,11 @@ export default class Chrome {
     }
   }
 
-  /** SDA-33: находит в Default брошенные папки сеанса (точный префикс, больше ничего) и удаляет их. */
+  /** SDA-33: находит в Default брошенные папки сеанса (точные префиксы, больше ничего) и удаляет их. */
   private sweepDiscardedSessions(): void {
+    const prefixes = SESSION_FOLDERS.map(sessionDiscardPrefix);
     fs.readdir(`${this.profileDir}/Default`)
-      .then((names) => this.removeDiscardedSessions(names.filter((name) => name.startsWith(SESSION_DISCARD_PREFIX))))
+      .then((names) => this.removeDiscardedSessions(names.filter((name) => prefixes.some((prefix) => name.startsWith(prefix)))))
       .catch(() => undefined);
   }
 

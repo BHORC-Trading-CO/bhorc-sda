@@ -8,7 +8,7 @@ jest.mock("../resolveBrowserPath", () => ({ __esModule: true, default: jest.fn()
 jest.mock("../secureDnsPref", () => ({ ensureSecureDnsOff: jest.fn().mockResolvedValue(undefined), writeLocalState: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../../../application/application", () => ({ __esModule: true, default: { sendToMain: jest.fn() } }));
 import Chrome, {
-    BrowserStartCancelledError, BROWSER_CLOSE_TIMEOUT_MS, SESSION_DISCARD_PREFIX, SESSION_REMOVE_ATTEMPTS, SESSION_REMOVE_RETRY_MS,
+    BrowserStartCancelledError, BROWSER_CLOSE_TIMEOUT_MS, SESSION_REMOVE_ATTEMPTS, SESSION_REMOVE_RETRY_MS, sessionDiscardPrefix, SessionFolder,
 } from "../Chrome";
 import resolveBrowserPath from "../resolveBrowserPath";
 import { ensureSecureDnsOff } from "../secureDnsPref";
@@ -241,10 +241,16 @@ it("SDA-26 a failed preparation does not block the next start", async () => {
 // SDA-33: with "restore tabs" off (the default) the last session's tabs are dropped before the
 // launch, inside the same serialized preparation as SDA-26: a superseded start never drops them
 // (the next start may be the one that restores them), and the next start drops them only after
-// the superseded one has finished with the profile. Round 3: dropping is one rename of
-// Default/Sessions to a discard folder that Chromium does not read; the discard folder is deleted later.
+// the superseded one has finished with the profile. Round 3: dropping is one rename of each session
+// folder to a discard folder that Chromium does not read; the discard folder is deleted later.
+// Round 4: two session folders, Sessions first, then Sessions_Encrypted.
+const SESSION_DISCARD_PREFIX = sessionDiscardPrefix("Sessions");
+const ENCRYPTED_DISCARD_PREFIX = sessionDiscardPrefix("Sessions_Encrypted");
 const escapeRe = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const discardPath = (chrome: Chrome) => new RegExp(`^${escapeRe(chrome.profileDir)}/Default/${escapeRe(SESSION_DISCARD_PREFIX)}\\d+-\\d+$`);
+const discardPath = (chrome: Chrome, folder: SessionFolder) =>
+    new RegExp(`^${escapeRe(chrome.profileDir)}/Default/${escapeRe(sessionDiscardPrefix(folder))}\\d+-\\d+$`);
+const isDiscard = (chrome: Chrome, target: string) =>
+    [SESSION_DISCARD_PREFIX, ENCRYPTED_DISCARD_PREFIX].some(prefix => target.startsWith(`${chrome.profileDir}/Default/${prefix}`));
 const resetFsMocks = () => {
     (fsp.rm as jest.Mock).mockReset().mockResolvedValue(undefined);
     (fsp.rename as jest.Mock).mockReset().mockResolvedValue(undefined);
@@ -276,15 +282,17 @@ it("SDA-33 the last session's tabs are dropped inside the serialized preparation
         await rejected;
         expect(order).toEqual([
             "A: secure DNS off (slow)", "A: secure DNS done",
-            "B: secure DNS off", "drop /Default/Sessions", "B: launch",
+            "B: secure DNS off", "drop /Default/Sessions", "drop /Default/Sessions_Encrypted", "B: launch",
         ]);
-        expect(fsp.rename).toHaveBeenCalledTimes(1);
-        const [from, to] = (fsp.rename as jest.Mock).mock.calls[0];
+        expect(fsp.rename).toHaveBeenCalledTimes(2);
+        const [[from, to], [encryptedFrom, encryptedTo]] = (fsp.rename as jest.Mock).mock.calls;
         expect(from).toBe(`${chrome.profileDir}/Default/Sessions`);
-        expect(to).toMatch(discardPath(chrome));
-        // The discard folder is garbage: deleted afterwards, and nothing else is.
+        expect(to).toMatch(discardPath(chrome, "Sessions"));
+        expect(encryptedFrom).toBe(`${chrome.profileDir}/Default/Sessions_Encrypted`);
+        expect(encryptedTo).toMatch(discardPath(chrome, "Sessions_Encrypted"));
+        // The discard folders are garbage: deleted afterwards, and nothing else is.
         await flushAll();
-        expect((fsp.rm as jest.Mock).mock.calls).toEqual([[to, { recursive: true, force: true }]]);
+        expect((fsp.rm as jest.Mock).mock.calls).toEqual([[to, { recursive: true, force: true }], [encryptedTo, { recursive: true, force: true }]]);
         expect(chrome.browser).toBe(browser);
     } finally {
         (ensureSecureDnsOff as jest.Mock).mockReset().mockResolvedValue(undefined);
@@ -308,11 +316,14 @@ it("SDA-33 a drop that keeps failing is logged once, by error code only, and the
     const chrome = make();
     try {
         await settleOnFakeTimers(chrome.start());
-        expect(fsp.rename).toHaveBeenCalledTimes(SESSION_REMOVE_ATTEMPTS);
+        // Both session folders, SESSION_REMOVE_ATTEMPTS each.
+        expect(fsp.rename).toHaveBeenCalledTimes(2 * SESSION_REMOVE_ATTEMPTS);
         expect(fsp.rm).not.toHaveBeenCalled();
         const lines = log.mock.calls.map(call => String(call[0])).filter(line => line.includes("EBUSY"));
         expect(lines).toHaveLength(1);
         expect(lines[0]).toContain("a1");
+        expect(lines[0]).toContain("Sessions: EBUSY");
+        expect(lines[0]).toContain("Sessions_Encrypted: EBUSY");
         expect(lines[0]).not.toMatch(/[\\/]/);
         expect(chrome.browser).toBe(browser);
         expect(chrome.workStatus).toBe("working");
@@ -354,7 +365,7 @@ it("SDA-33 Stop while the session is being dropped: after the cancel only the di
         const later = calls.filter(call => call.afterStop);
         expect(later.length).toBeGreaterThan(0);
         for (const call of later) {
-            expect({ call, discard: call.path.startsWith(`${chrome.profileDir}/Default/${SESSION_DISCARD_PREFIX}`) }).toEqual({ call, discard: true });
+            expect({ call, discard: isDiscard(chrome, call.path) }).toEqual({ call, discard: true });
         }
         expect(launch).not.toHaveBeenCalled();
     } finally {
@@ -369,7 +380,7 @@ it("SDA-33 a drop that hit EBUSY makes no further attempt once the start is supe
     const chrome = make();
     (fsp.rename as jest.Mock)
         .mockImplementationOnce(async () => { order.push("A: drop, EBUSY"); throw busy(); })
-        .mockImplementation(async () => { order.push("drop"); });
+        .mockImplementation(async (from: string) => { order.push(`drop ${from.slice(chrome.profileDir.length)}`); });
     (ensureSecureDnsOff as jest.Mock).mockImplementation(async () => { order.push("secure DNS off"); });
     const { browser } = launched();
     try {
@@ -380,9 +391,43 @@ it("SDA-33 a drop that hit EBUSY makes no further attempt once the start is supe
         // A now waits SESSION_REMOVE_RETRY_MS (fake timer) before its second attempt; a new Start arrives.
         await settleOnFakeTimers(chrome.start());
         await rejected;
-        // No second attempt by A: the next drop is B's own, after B's preparation.
-        expect(order).toEqual(["secure DNS off", "A: drop, EBUSY", "secure DNS off", "drop"]);
-        expect(fsp.rename).toHaveBeenCalledTimes(2);
+        // No further attempt by A (neither folder): the next drops are B's own, after B's preparation.
+        expect(order).toEqual([
+            "secure DNS off", "A: drop, EBUSY",
+            "secure DNS off", "drop /Default/Sessions", "drop /Default/Sessions_Encrypted",
+        ]);
+        expect(fsp.rename).toHaveBeenCalledTimes(3);
+        expect(chrome.browser).toBe(browser);
+    } finally {
+        (ensureSecureDnsOff as jest.Mock).mockReset().mockResolvedValue(undefined);
+        resetFsMocks();
+    }
+});
+// Round 4: a start superseded between the two renames must not start the second one.
+it("SDA-33 a start superseded after its first rename never starts the second one", async () => {
+    const order: string[] = [];
+    let finishFirstRename!: () => void;
+    const chrome = make();
+    (fsp.rename as jest.Mock)
+        .mockImplementationOnce((from: string) => new Promise<void>(resolve => {
+            order.push(`A: drop ${from.slice(chrome.profileDir.length)}`);
+            finishFirstRename = resolve;
+        }))
+        .mockImplementation(async (from: string) => { order.push(`drop ${from.slice(chrome.profileDir.length)}`); });
+    (ensureSecureDnsOff as jest.Mock).mockImplementation(async () => { order.push("secure DNS off"); });
+    const { browser } = launched();
+    try {
+        const first = chrome.start();
+        const rejected = expect(first).rejects.toMatchObject({ reason: "superseded" });
+        for (let i = 0; i < 100 && !order.includes("A: drop /Default/Sessions"); i++) await flushAll(1);
+        const second = chrome.start();
+        finishFirstRename();
+        await second;
+        await rejected;
+        expect(order).toEqual([
+            "secure DNS off", "A: drop /Default/Sessions",
+            "secure DNS off", "drop /Default/Sessions", "drop /Default/Sessions_Encrypted",
+        ]);
         expect(chrome.browser).toBe(browser);
     } finally {
         (ensureSecureDnsOff as jest.Mock).mockReset().mockResolvedValue(undefined);
@@ -481,14 +526,19 @@ it("SDA-33 after the browser crashed (disconnected) the next start waits for no 
 });
 it("SDA-33 a session folder that is already gone is not an error", async () => {
     const log = jest.spyOn(console, "log").mockImplementation(() => {});
-    (fsp.rename as jest.Mock).mockRejectedValueOnce(Object.assign(new Error("ENOENT: no such file or directory"), { code: "ENOENT" }));
+    (fsp.rename as jest.Mock).mockRejectedValue(Object.assign(new Error("ENOENT: no such file or directory"), { code: "ENOENT" }));
     const { browser } = launched();
     const chrome = make();
-    await chrome.start();
-    expect(fsp.rename).toHaveBeenCalledTimes(1);
-    expect(fsp.rm).not.toHaveBeenCalled();
-    expect(log).not.toHaveBeenCalledWith(expect.stringContaining("ENOENT"));
-    expect(chrome.browser).toBe(browser);
-    // Nothing to drop is a success: no wait for restored tabs.
-    expect(browser.pages).toHaveBeenCalledTimes(1);
+    try {
+        await chrome.start();
+        // Neither session folder exists: one rename attempt each, nothing to delete.
+        expect(fsp.rename).toHaveBeenCalledTimes(2);
+        expect(fsp.rm).not.toHaveBeenCalled();
+        expect(log).not.toHaveBeenCalledWith(expect.stringContaining("ENOENT"));
+        expect(chrome.browser).toBe(browser);
+        // Nothing to drop is a success: no wait for restored tabs.
+        expect(browser.pages).toHaveBeenCalledTimes(1);
+    } finally {
+        resetFsMocks();
+    }
 });
