@@ -56,6 +56,14 @@ export function wantsTray(settings: AppSettingsInterface, startedHidden: boolean
     return settings.closeToTray || startedHidden;
 }
 
+/**
+ * Another launch while SDA runs (argv of 'second-instance'): the user opening SDA again gets the
+ * window; a launch with --hidden (a login item firing while SDA already runs) leaves it as it is.
+ */
+export function revealOnSecondLaunch(argv: readonly string[]): boolean {
+    return !argv.includes(HIDDEN_ARG);
+}
+
 type RevealableWindow = Pick<BrowserWindow, "isDestroyed" | "isMinimized" | "restore" | "isVisible" | "show" | "focus">;
 
 /**

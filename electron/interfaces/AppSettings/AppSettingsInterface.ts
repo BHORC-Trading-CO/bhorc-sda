@@ -15,9 +15,11 @@ export default interface AppSettingsInterface {
  * Whether this run can register a login item:
  * - supported: packaged app on Windows or macOS;
  * - unsupportedPlatform: Linux, where Electron has no login-item API;
- * - notPackaged: development run (npm start), where the executable is the bare Electron binary.
+ * - notPackaged: development run (npm start), where the executable is the bare Electron binary;
+ * - translocated: macOS runs the app from a temporary App Translocation path (opened from
+ *   Downloads without moving it to Applications), which a login item cannot point at.
  */
-export type LoginItemSupport = "supported" | "unsupportedPlatform" | "notPackaged";
+export type LoginItemSupport = "supported" | "unsupportedPlatform" | "notPackaged" | "translocated";
 
 /** What the Settings page shows. */
 export interface AppSettingsView {

@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import type { LoginItemSettingsOptions, Settings } from "electron";
+import type { LoginItemSettings, LoginItemSettingsOptions, Settings } from "electron";
 import AppSettingsInterface, { LoginItemSupport } from "../../interfaces/AppSettings/AppSettingsInterface";
 
 // Launch at login (SDA-36) with the login-item API of the installed Electron 17:
@@ -9,11 +9,23 @@ import AppSettingsInterface, { LoginItemSupport } from "../../interfaces/AppSett
 /** Command-line switch for a start without the main window (login item, Squirrel, manual autostart). */
 export const HIDDEN_ARG = "--hidden";
 
-export function loginItemSupport(platform: NodeJS.Platform, isPackaged: boolean): LoginItemSupport {
+/**
+ * Windows Run value name. Electron's default is the AppUserModelId, which it sets differently for
+ * a Squirrel install (com.squirrel.ElectronStarter.trademanager) and a plain folder: with the
+ * default, both copies (they share config.json) would each leave their own entry and both start
+ * at sign-in. One fixed name means one entry, rewritten by whichever copy registers last.
+ */
+export const LOGIN_ITEM_NAME = "BHORC SDA";
+
+export function loginItemSupport(platform: NodeJS.Platform, isPackaged: boolean, execPath = ""): LoginItemSupport {
     if (platform !== "win32" && platform !== "darwin") return "unsupportedPlatform";
     // In a development run execPath is the bare Electron binary: at login it would open Electron
     // without SDA (and on macOS there is no way to pass the app folder as an argument).
-    return isPackaged ? "supported" : "notPackaged";
+    if (!isPackaged) return "notPackaged";
+    // macOS App Translocation: an app opened from Downloads without moving it runs from a random
+    // read-only path that is gone after a restart; a login item would point there.
+    if (platform === "darwin" && execPath.includes("/AppTranslocation/")) return "translocated";
+    return "supported";
 }
 
 /**
@@ -59,16 +71,30 @@ export function loginItemSettings(
         const exeName = path.win32.basename(execPath);
         const args = ["--processStart", `"${exeName}"`];
         if (hidden) args.push("--process-start-args", `"${HIDDEN_ARG}"`);
-        return { openAtLogin, path: updateExe, args };
+        return { openAtLogin, path: updateExe, args, name: LOGIN_ITEM_NAME };
     }
-    return { openAtLogin, path: execPath, args: hidden ? [HIDDEN_ARG] : [] };
+    return { openAtLogin, path: execPath, args: hidden ? [HIDDEN_ARG] : [], name: LOGIN_ITEM_NAME };
 }
 
 /**
- * Options for app.getLoginItemSettings that match a registration made with `settings`. On Windows
- * openAtLogin is true only if the Run value equals exactly this path and these args.
+ * Options for app.getLoginItemSettings that match a registration made with `settings`: on Windows
+ * its launchItems list only Run entries whose program is this path.
  */
 export function loginItemQuery(settings: Settings | null): LoginItemSettingsOptions | undefined {
     if (!settings || settings.path === undefined) return undefined;
     return { path: settings.path, args: settings.args || [] };
+}
+
+/**
+ * Windows: is there a Run entry under our name (HKCU) that starts this program? getLoginItemSettings
+ * reads openAtLogin by the AppUserModelId name, not by LOGIN_ITEM_NAME, so launchItems is used.
+ * Arguments are not compared: Electron returns them parsed (quotes and switches stripped), and
+ * they only change through a save from the Settings page, which always rewrites the entry. The
+ * enabled flag is ignored on purpose: "Disabled" in Task Manager is the user's choice.
+ */
+export function isLoginItemRegistered(state: Pick<LoginItemSettings, "launchItems"> | null | undefined, settings: Settings | null): boolean {
+    if (!settings || settings.path === undefined) return false;
+    const target = settings.path.toLowerCase();
+    return (state?.launchItems || []).some((item) =>
+        item.name === LOGIN_ITEM_NAME && item.scope === "user" && typeof item.path === "string" && item.path.toLowerCase() === target);
 }

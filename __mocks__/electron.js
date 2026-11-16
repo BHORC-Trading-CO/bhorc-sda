@@ -41,6 +41,12 @@ module.exports = {
     isVisible() { return this.visible; }
     isMinimized() { return this.minimized; }
     restore() { this.minimized = false; }
+    isFullScreen() { return !!this.fullScreen; }
+    setFullScreen(flag) {
+      const left = this.fullScreen && !flag;
+      this.fullScreen = flag;
+      if (left) this.emit('leave-full-screen');
+    }
     focus() {}
     // Как в Electron (и при закрытии системной кнопкой): 'close', уничтожение, затем 'closed'.
     // preventDefault() в обработчике 'close' отменяет закрытие (окно в трей, SDA-35).

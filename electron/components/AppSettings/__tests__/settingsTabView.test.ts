@@ -52,7 +52,7 @@ it("start minimized depends on launch at login", () => {
     expect(switchOf(html, "settings-start-minimized")).toContain('disabled=""');
 });
 
-it.each(["unsupportedPlatform", "notPackaged"])("login item %s: both startup switches disabled, with the reason", (support) => {
+it.each(["unsupportedPlatform", "notPackaged", "translocated"])("login item %s: both startup switches disabled, with the reason", (support) => {
     const html = render("linux", { loginItem: support });
     expect(switchOf(html, "settings-launch-at-login")).toContain('disabled=""');
     expect(switchOf(html, "settings-start-minimized")).toContain('disabled=""');

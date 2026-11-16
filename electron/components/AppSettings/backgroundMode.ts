@@ -2,8 +2,8 @@ import { app, BrowserWindow } from "electron";
 import AppSettingsInterface, { AppSettingsView, LoginItemSupport } from "../../interfaces/AppSettings/AppSettingsInterface";
 import AppSettingsStorage from "../newStorage/AppSettingsStorage";
 import { parseAppSettingsUpdate } from "./appSettings";
-import { loginItemQuery, loginItemSettings, loginItemSupport } from "./loginItem";
-import { hiddenStartRequested, mainWindowCloseAction, revealWindow, startHidden, wantsTray } from "./background";
+import { isLoginItemRegistered, loginItemQuery, loginItemSettings, loginItemSupport } from "./loginItem";
+import { hiddenStartRequested, mainWindowCloseAction, revealOnSecondLaunch, revealWindow, startHidden, wantsTray } from "./background";
 import AppTray from "./appTray";
 import { t } from "../../i18n";
 
@@ -23,6 +23,8 @@ export class BackgroundMode {
     private startedHidden = false;
     private settings: AppSettingsInterface | null = null;
     private mainWindow: BrowserWindow | null = null;
+    /** macOS: the window waits for the end of the full-screen exit to hide; a reveal cancels that. */
+    private hideAfterFullScreen = false;
     readonly tray: AppTray;
 
     constructor(private readonly platform: NodeJS.Platform = process.platform) {
@@ -39,7 +41,7 @@ export class BackgroundMode {
     }
 
     loginItemSupport(): LoginItemSupport {
-        return loginItemSupport(this.platform, app.isPackaged);
+        return loginItemSupport(this.platform, app.isPackaged, process.execPath);
     }
 
     /**
@@ -88,10 +90,21 @@ export class BackgroundMode {
             });
             if (action !== "hide") return;
             event.preventDefault();
-            win.hide();
+            // macOS: a full-screen window hidden as is leaves an empty black Space behind.
+            if (this.platform === "darwin" && win.isFullScreen()) {
+                this.hideAfterFullScreen = true;
+                win.once("leave-full-screen", () => {
+                    if (!this.hideAfterFullScreen) return;
+                    this.hideAfterFullScreen = false;
+                    win.hide();
+                });
+                win.setFullScreen(false);
+            } else {
+                win.hide();
+            }
         });
-        // Windows shutdown, restart or sign-out: Electron does not emit before-quit then, and a
-        // window that only hides must not hold up the end of the session.
+        // Windows shutdown, restart or sign-out: Electron does not emit before-quit then. Should a
+        // close still arrive after session-end, it must not be turned into a hide.
         win.on("session-end", () => {
             this.quitting = true;
         });
@@ -104,7 +117,13 @@ export class BackgroundMode {
     }
 
     revealMainWindow(): boolean {
+        this.hideAfterFullScreen = false;
         return revealWindow(this.mainWindow, this.platform, app);
+    }
+
+    /** Another launch of SDA ('second-instance'): show the window unless that launch asked for --hidden. */
+    onSecondLaunch(argv: readonly string[] = []) {
+        if (revealOnSecondLaunch(argv)) this.revealMainWindow();
     }
 
     view(): AppSettingsView {
@@ -165,16 +184,17 @@ export class BackgroundMode {
     }
 
     /**
-     * Windows only: the setting is on, but the Run entry does not start this copy (a plain folder
-     * that was moved, or a newer CI build unpacked elsewhere). Re-register it for this copy.
+     * Windows only: the setting is on, but our Run entry does not start this copy (a plain folder
+     * that was moved, a newer CI build unpacked elsewhere, a switch between the installed copy and
+     * a plain folder). Re-register it for this copy; the fixed entry name keeps it a single entry.
      * Nothing is written while the entry matches, so "Disabled" in Task Manager stays disabled.
      * macOS keeps its login item by itself, and a user who removed it in System Settings meant it.
      */
     private resyncLoginItem() {
-        if (this.platform !== "win32" || !this.getSettings().launchAtLogin || this.loginItemSupport() !== "supported") return;
         try {
+            if (this.platform !== "win32" || !this.getSettings().launchAtLogin || this.loginItemSupport() !== "supported") return;
             const settings = loginItemSettings(this.platform, process.execPath, this.getSettings());
-            if (settings && !app.getLoginItemSettings(loginItemQuery(settings)).openAtLogin) app.setLoginItemSettings(settings);
+            if (settings && !isLoginItemRegistered(app.getLoginItemSettings(loginItemQuery(settings)), settings)) app.setLoginItemSettings(settings);
         } catch (err) {
             console.log(`Login item was not re-registered: ${err}`);
         }

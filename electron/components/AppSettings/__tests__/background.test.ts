@@ -1,4 +1,4 @@
-import { hiddenStartRequested, mainWindowCloseAction, revealWindow, startHidden, wantsTray } from "../background";
+import { hiddenStartRequested, mainWindowCloseAction, revealOnSecondLaunch, revealWindow, startHidden, wantsTray } from "../background";
 import { DEFAULT_APP_SETTINGS } from "../appSettings";
 
 // Pure decisions of the background mode (SDA-35, SDA-36).
@@ -72,6 +72,14 @@ describe("when the tray icon exists", () => {
         expect(wantsTray({ ...DEFAULT_APP_SETTINGS }, true)).toBe(true);
         // Launch at login alone does not put SDA in the tray.
         expect(wantsTray({ closeToTray: false, launchAtLogin: true, startMinimized: true }, false)).toBe(false);
+    });
+});
+
+describe("another launch while SDA runs", () => {
+    it("an ordinary launch brings the window; a --hidden one (login item) does not", () => {
+        expect(revealOnSecondLaunch(["C:\\...\\trademanager.exe"])).toBe(true);
+        expect(revealOnSecondLaunch([])).toBe(true);
+        expect(revealOnSecondLaunch(["C:\\...\\trademanager.exe", "--hidden"])).toBe(false);
     });
 });
 

@@ -36,8 +36,8 @@ class Application {
   }
 
   firstStage(cb: () => void) {
-    // Второй запуск поднимает и окно, спрятанное в трей (SDA-35).
-    const isPrimary = ensureSingleInstance(app, () => backgroundMode.revealMainWindow());
+    // Второй запуск поднимает и окно, спрятанное в трей (SDA-35); запуск с --hidden — нет.
+    const isPrimary = ensureSingleInstance(app, (_event, argv) => backgroundMode.onSecondLaunch(argv));
     if (!isPrimary) return;
     backgroundMode.install();
     app.on("ready", async () => {

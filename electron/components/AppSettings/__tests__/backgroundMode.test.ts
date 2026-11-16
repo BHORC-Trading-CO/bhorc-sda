@@ -4,6 +4,7 @@ import AppSettingsStorage from "../../newStorage/AppSettingsStorage";
 import ensureSingleInstance from "../../application/singleInstance";
 import AppSettingsInterface from "../../../interfaces/AppSettings/AppSettingsInterface";
 import { setMainLanguage } from "../../../i18n";
+import { LOGIN_ITEM_NAME } from "../loginItem";
 
 // Background mode wired to the mocked Electron (SDA-35, SDA-36): the main window's close, real
 // quits, start hidden, second launch, the tray menu and the login item. The mock BrowserWindow
@@ -69,6 +70,31 @@ describe("closing the main window", () => {
         expect(mode.tray.ready).toBe(true);
     });
 
+    it("macOS full screen: leaves full screen first, then hides (no empty black Space)", () => {
+        const mode = makeMode("darwin", { closeToTray: true });
+        const { win } = start(mode);
+        win.setFullScreen(true);
+        const order: string[] = [];
+        win.on("leave-full-screen", () => order.push(`left, visible=${win.isVisible()}`));
+        win.close();
+        expect(order).toEqual(["left, visible=true"]);
+        expect(win.isFullScreen()).toBe(false);
+        expect(win.isVisible()).toBe(false);
+        expect(win.isDestroyed()).toBe(false);
+    });
+
+    it("macOS full screen: brought back before the full-screen exit ends -> it stays visible", () => {
+        const mode = makeMode("darwin", { closeToTray: true });
+        const { win } = start(mode);
+        win.fullScreen = true;
+        // Electron leaves full screen with an animation: hold the event back.
+        win.setFullScreen = jest.fn();
+        win.close();
+        mode.revealMainWindow();
+        win.emit("leave-full-screen");
+        expect(win.isVisible()).toBe(true);
+    });
+
     it("a real quit (before-quit: tray Quit, Cmd+Q, app menu) closes even with the setting on; the tray goes too", () => {
         const mode = makeMode("darwin", { closeToTray: true });
         const { win } = start(mode);
@@ -124,14 +150,24 @@ describe("second launch while running in the tray", () => {
     it("the single-instance handler shows and focuses the hidden window", () => {
         const mode = makeMode("win32", { closeToTray: true });
         const fakeApp = { requestSingleInstanceLock: jest.fn(() => true), quit: jest.fn(), on: jest.fn() };
-        expect(ensureSingleInstance(fakeApp as any, () => mode.revealMainWindow())).toBe(true);
+        expect(ensureSingleInstance(fakeApp as any, (_event, argv) => mode.onSecondLaunch(argv))).toBe(true);
         const { win } = start(mode);
         const focus = jest.spyOn(win, "focus");
         win.close();
         const [, onSecondInstance] = fakeApp.on.mock.calls[0];
-        onSecondInstance();
+        onSecondInstance({}, ["trademanager.exe"]);
         expect(win.isVisible()).toBe(true);
         expect(focus).toHaveBeenCalled();
+    });
+
+    it("a second launch with --hidden (a login item firing while SDA runs) leaves the window hidden", () => {
+        const mode = makeMode("win32", { closeToTray: true });
+        const { win } = start(mode);
+        win.close();
+        mode.onSecondLaunch(["trademanager.exe", "--hidden"]);
+        expect(win.isVisible()).toBe(false);
+        mode.onSecondLaunch(["trademanager.exe"]);
+        expect(win.isVisible()).toBe(true);
     });
 
     it("before the window exists or after it was closed: no exception", () => {
@@ -204,11 +240,11 @@ describe("saving from the Settings page", () => {
         const mode = makeMode("win32");
         start(mode);
         mode.update({ ...ALL_OFF, launchAtLogin: true });
-        expect(mockApp.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: true, path: process.execPath, args: [] });
+        expect(mockApp.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: true, path: process.execPath, args: [], name: LOGIN_ITEM_NAME });
         mode.update({ ...ALL_OFF, launchAtLogin: true, startMinimized: true });
-        expect(mockApp.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: true, path: process.execPath, args: ["--hidden"] });
+        expect(mockApp.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: true, path: process.execPath, args: ["--hidden"], name: LOGIN_ITEM_NAME });
         mode.update({ ...ALL_OFF, launchAtLogin: false, startMinimized: true });
-        expect(mockApp.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: false, path: process.execPath, args: [] });
+        expect(mockApp.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: false, path: process.execPath, args: [], name: LOGIN_ITEM_NAME });
         expect(mockApp.setLoginItemSettings).toHaveBeenCalledTimes(3);
         // Start minimized while launch at login is off: nothing to change in the system.
         mode.update({ ...ALL_OFF, startMinimized: false });
@@ -262,18 +298,30 @@ describe("saving from the Settings page", () => {
 });
 
 describe("login item at startup", () => {
-    it("Windows: setting on but the Run entry is not this copy (moved folder) -> re-registered", () => {
-        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false });
+    const ourEntry = (over: object = {}) => ({ name: LOGIN_ITEM_NAME, path: process.execPath, args: [], scope: "user", enabled: true, ...over });
+
+    it("Windows: setting on but no entry of ours starts this copy (moved folder, other copy) -> re-registered", () => {
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [] });
         start(makeMode("win32", { launchAtLogin: true }));
         expect(mockApp.getLoginItemSettings).toHaveBeenCalledWith({ path: process.execPath, args: [] });
-        expect(mockApp.setLoginItemSettings).toHaveBeenCalledWith({ openAtLogin: true, path: process.execPath, args: [] });
+        expect(mockApp.setLoginItemSettings).toHaveBeenCalledWith({ openAtLogin: true, path: process.execPath, args: [], name: LOGIN_ITEM_NAME });
     });
 
-    it("Windows: the entry already matches -> left alone (a Task Manager \"Disabled\" stays disabled)", () => {
-        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: true });
+    it("Windows: our entry already starts this copy -> left alone, even when Task Manager has it Disabled", () => {
+        // openAtLogin is read by the AppUserModelId name, not ours: it does not decide anything.
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [ourEntry({ enabled: false })] });
         start(makeMode("win32", { launchAtLogin: true, startMinimized: true }));
         expect(mockApp.getLoginItemSettings).toHaveBeenCalledWith({ path: process.execPath, args: ["--hidden"] });
         expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
+    });
+
+    it("Windows: reading the login items throws -> the app still starts, with its window", () => {
+        mockApp.getLoginItemSettings.mockImplementationOnce(() => { throw new Error("registry"); });
+        const log = jest.spyOn(console, "log").mockImplementation(() => {});
+        const { startHidden, win } = start(makeMode("win32", { launchAtLogin: true }));
+        expect(startHidden).toBe(false);
+        expect(win.isVisible()).toBe(true);
+        log.mockRestore();
     });
 
     it("setting off, or macOS: nothing is written at startup", () => {
