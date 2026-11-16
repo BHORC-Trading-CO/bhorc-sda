@@ -1,14 +1,14 @@
 import { parseUsername, parseAvatarURL, parseLevel } from "../loadSteamAccountData";
 import { DEFAULT_AVATAR_URL } from "../../../Functions/sanitizeAvatarUrl";
 
-// Фрагмент реальной разметки профиля Steam (2026): data-miniprofile стоит на блоке аватара,
-// поэтому старый парсер возвращал пробелы/табы вместо ника.
+// Синтетический фрагмент по образцу разметки профиля Steam (2026): data-miniprofile стоит на блоке
+// аватара, поэтому старый парсер возвращал пробелы/табы вместо ника. Ник, хеш и id придуманы.
 const profileHeader = (name: string) => `
 <div class="profile_header_content">
-	<div class="playerAvatar profile_header_size offline" data-miniprofile="22202">
+	<div class="playerAvatar profile_header_size offline" data-miniprofile="1">
 		<div class="playerAvatarAutoSizeInner">
 			<picture>
-				<img srcset="https://avatars.akamai.steamstatic.com/c5d56249ee5d28a07db4ac9f7f60af961fab5426_full.jpg" >
+				<img srcset="https://avatars.akamai.steamstatic.com/0123456789abcdef0123456789abcdef01234567_full.jpg" >
 			</picture>
 		</div>
 	</div>
@@ -21,7 +21,7 @@ const profileHeader = (name: string) => `
 
 describe("parseUsername", () => {
     it("берёт ник из actual_persona_name, а не после data-miniprofile", () => {
-        expect(parseUsername(profileHeader("Rabscuttle"))).toBe("Rabscuttle");
+        expect(parseUsername(profileHeader("Test Nick"))).toBe("Test Nick");
     });
 
     it("декодирует HTML-сущности в нике", () => {
@@ -29,7 +29,7 @@ describe("parseUsername", () => {
     });
 
     it("фолбэк на personaname из g_rgProfileData", () => {
-        const body = `<script>g_rgProfileData = {"url":"https:\\/\\/steamcommunity.com\\/id\\/x\\/","steamid":"76561197960287930","personaname":"Nick \\"Q\\" \\u041f","summary":""};</script>`;
+        const body = `<script>g_rgProfileData = {"url":"https:\\/\\/steamcommunity.com\\/id\\/x\\/","steamid":"76561197960265729","personaname":"Nick \\"Q\\" \\u041f","summary":""};</script>`;
         expect(parseUsername(body)).toBe('Nick "Q" П');
     });
 
@@ -39,9 +39,9 @@ describe("parseUsername", () => {
 });
 
 describe("parseAvatarURL", () => {
-    const avatar = "https://avatars.akamai.steamstatic.com/c5d56249ee5d28a07db4ac9f7f60af961fab5426_full.jpg";
-    it("сохраняет реальный аватар из разметки профиля", () => {
-        expect(parseAvatarURL(profileHeader("Rabscuttle"))).toBe(avatar);
+    const avatar = "https://avatars.akamai.steamstatic.com/0123456789abcdef0123456789abcdef01234567_full.jpg";
+    it("сохраняет аватар из разметки профиля", () => {
+        expect(parseAvatarURL(profileHeader("Test Nick"))).toBe(avatar);
     });
     it("берёт первый URL из srcset с дескрипторами", () => {
         const fastly = avatar.replace("akamai", "fastly");
@@ -93,5 +93,17 @@ describe("parseLevel", () => {
         expect(parseLevel("<html></html>")).toBeNull();
         // Пустой свой блок не должен «дотянуться» до уровня друга ниже по странице
         expect(parseLevel('<div class="persona_name persona_level"></div>' + friends)).toBeNull();
+    });
+    // Ревью r1: закрывающий тег другим регистром или с пробелом раньше пропускался, и находился уровень друга 99
+    it.each(["</div >", "</DIV>", "</ div>", "</Div\n>"])("пустой свой блок, закрытый как %s, — не уровень друга", (closing) => {
+        const friend = '<div class="friendPlayerLevel lvl_99"><span class="friendPlayerLevelNum">99</span></div>';
+        expect(parseLevel(`<div class="persona_name persona_level">Level ${closing}${friend}`)).toBeNull();
+    });
+    it("свой блок с разметкой в другом регистре и одинарными кавычками", () => {
+        expect(parseLevel("<DIV CLASS='persona_name persona_level'>Level <DIV class='friendPlayerLevel lvl_10'><SPAN CLASS='friendPlayerLevelNum'> 16 </SPAN></DIV></DIV>")).toBe(16);
+    });
+    it("свой блок не закрыт в пределах лимита — уровень неизвестен", () => {
+        const padding = "x".repeat(2000);
+        expect(parseLevel(`<div class="persona_name persona_level">${padding}<span class="friendPlayerLevelNum">16</span></div>`)).toBeNull();
     });
 });

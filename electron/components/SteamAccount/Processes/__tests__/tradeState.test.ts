@@ -93,6 +93,29 @@ describe("trade-статус через eligibilitycheck", () => {
         expect(ktLockedFromEligibility(eligibility)).toBe(expected);
     });
 
+    // Ревью r1: reason — только целая неотрицательная маска (до 2^31−1), allowed — 0 или 1. Строка
+    // "nonsense" раньше побитово превращалась в 0 и давала «трейды OK» (это было и до SDA-31).
+    it.each([
+        ["reason строкой", { allowed: 0, reason: "nonsense" }],
+        ["reason строкой из цифр", { allowed: 0, reason: "16" }],
+        ["reason отрицательный", { allowed: 0, reason: -1 }],
+        ["reason дробный", { allowed: 0, reason: 1.5 }],
+        ["reason null", { allowed: 0, reason: null }],
+        ["reason больше 31 бита (2^32 + TradeBanned)", { allowed: 0, reason: 2 ** 32 + 16 }],
+        ["reason при allowed=1", { allowed: 1, reason: "nonsense" }],
+        ["allowed не 0 и не 1", { allowed: 2 }],
+    ])("непонятный ответ (%s) — и трейды, и КТ неизвестны", (_name, eligibility) => {
+        const value = eligibility as unknown as Parameters<typeof tradeStatusFromEligibility>[0];
+        expect(() => tradeStateFromEligibility(value)).toThrow("статус неизвестен");
+        expect(ktLockedFromEligibility(value)).toBeNull();
+        expect(tradeStatusFromEligibility(value)).toEqual({ tradeState: null, ktLocked: null });
+    });
+
+    it("непонятный reason в живой cookie — оба статуса неизвестны", async () => {
+        steamReplies({ allowed: 0, reason: "nonsense" });
+        await expect(getTradeState(community())).resolves.toEqual({ tradeState: null, ktLocked: null });
+    });
+
     it("ходит на свою проверку Steam без редиректа и читает живой ответ", async () => {
         const scope = steamReplies(LIVE_ALLOWED);
         await expect(getTradeState(community())).resolves.toEqual({ tradeState: true, ktLocked: false });

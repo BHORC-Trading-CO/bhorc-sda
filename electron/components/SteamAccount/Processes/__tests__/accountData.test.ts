@@ -27,7 +27,7 @@ const WALLET = '{"wallet_currency":18,"wallet_country":"UA","wallet_balance":"50
 const marketPage = ({ loggedIn = true, extra = "" } = {}) =>
     `<script type="text/javascript"> var g_bLoggedIn = ${loggedIn};${loggedIn ? ` var g_rgWalletInfo = ${WALLET};` : ""} </script>` +
     (loggedIn ? '<a id="marketWalletBalance" href="https://store.steampowered.com/account/">Wallet balance <span id="marketWalletBalanceAmount">50,99₴</span></a>' : "") +
-    extra;
+    '<div class="market_fixture_block"></div>' + extra;
 
 // Profile page with an avatar frame (first srcset), friends' levels before and after the own block.
 const friendLevels = [667, 313].map((level) =>
@@ -123,6 +123,16 @@ describe("one account refresh", () => {
         expect((await getAccountData(community().c)).secondary.level).toBeNull();
     });
 
+    // Review r1: an HTTP-200 page without the profile name must not overwrite nickname/avatar with empty values
+    it("fails as a whole when the fallback profile page has no account name", async () => {
+        const scope = nock("https://steamcommunity.com");
+        scope.get(`/miniprofile/${ACCOUNT_ID}/json`).reply(500, "");
+        scope.get(`/profiles/${STEAM_ID}/`).reply(200, "<html><body>Temporarily unavailable</body></html>");
+        const { c, uris } = community();
+        await expect(getAccountData(c)).rejects.toThrow("without the account name");
+        expect(uris).toEqual([MINIPROFILE, PROFILE]);
+    });
+
     it("fails as a whole when neither the miniprofile nor the profile page arrives", async () => {
         const scope = nock("https://steamcommunity.com");
         scope.get(`/miniprofile/${ACCOUNT_ID}/json`).reply(500, "");
@@ -175,6 +185,19 @@ describe("red flag (KT), Market and trade status", () => {
     it("an ambiguous eligibility answer (temporary failure) leaves KT and trades unknown", async () => {
         steam({ trade: { allowed: 0, reason: 1 } });
         expect((await getAccountData(community().c)).secondary).toMatchObject({ ktState: null, tradeState: null, tpState: true });
+    });
+
+    // Review r1: logged in + HTTP 200 is not proof of a Market page; with failed eligibility this used to give TP OK
+    it("a logged-in page that is not the Market gives unknown TP/KT and a balance error, not OK and a dash", async () => {
+        steam({ market: [200, '<script> var g_bLoggedIn = true; </script><h2>Temporarily unavailable</h2>'], trade: null });
+        const data = await getAccountData(community().c);
+        expect(data.secondary).toMatchObject({ ktState: null, tpState: null, tradeState: null });
+        expect(data.changableSecondary.steam).toEqual({ balance: null, currency: null, error: expect.stringContaining("not the Community Market") });
+    });
+
+    it("a malformed eligibility reason gives unknown trade and KT, not OK", async () => {
+        steam({ trade: { allowed: 0, reason: "nonsense" } });
+        expect((await getAccountData(community().c)).secondary).toMatchObject({ ktState: null, tradeState: null });
     });
 
     it("a logged-out /market/ makes the Market status unknown and the balance an error", async () => {

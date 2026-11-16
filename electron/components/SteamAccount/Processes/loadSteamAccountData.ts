@@ -91,7 +91,10 @@ async function getIdentity(community: SteamCommunity): Promise<Identity> {
         }
     }
     const body = await getProfilePage(community);
-    return { nickname: parseUsername(body), level: parseLevel(body), avatarUrl: parseAvatarURL(body) };
+    const nickname = parseUsername(body);
+    // HTTP 200 без ника — не страница профиля (ошибка, техработы): не затираем ник и аватар пустыми
+    if (!nickname) throw new Error(t("errors.profileUnrecognized"));
+    return { nickname, level: parseLevel(body), avatarUrl: parseAvatarURL(body) };
 }
 
 // accountid = SteamID64 − 76561197960265728; у SteamID из cookie он уже посчитан.
@@ -172,8 +175,12 @@ function decodeHtmlEntities(text: string): string {
         .replace(/&lt;/g, "<")
         .replace(/&gt;/g, ">")
         .replace(/&nbsp;/g, " ")
+        // Знаки валют, которые Steam может написать именованной сущностью (50,99&euro;)
+        .replace(/&(euro|pound|yen|cent|curren);/g, (_m, name: string) => NAMED_ENTITIES[name])
         .replace(/&amp;/g, "&");
 }
+
+const NAMED_ENTITIES: Record<string, string> = { euro: "€", pound: "£", yen: "¥", cent: "¢", curren: "¤" };
 
 export function parseAvatarURL(body: string): string {
     // Актуальная разметка Steam: аватар в хедере профиля лежит в
@@ -225,28 +232,48 @@ function imageUrls(html: string): string[] {
 
 // Только свой уровень — из блока persona_level в шапке профиля. friendPlayerLevelNum есть и у
 // друзей ниже по странице (на тестовом аккаунте их семь), и первым мог оказаться чужой (SDA-31).
-// Своего блока нет (закрытый или не настроенный профиль) — уровень неизвестен (null).
+// Ищем только до первого закрывающего </div> (любой регистр и пробелы) и не дальше
+// LEVEL_BLOCK_LIMIT символов: свой номер лежит во вложенном div, который закрывается позже.
+// Своего блока нет или он не закрыт в пределах лимита — уровень неизвестен (null).
+const LEVEL_BLOCK_LIMIT = 1000;
 export function parseLevel(body: string): number | null {
-    const own = /class="[^"]*\bpersona_level\b[^"]*"[^>]*>(?:[^<]|<(?!\/div>))*?class="friendPlayerLevelNum"[^>]*>\s*(\d+)\s*</.exec(body);
+    const open = /<div\b[^>]*\bclass\s*=\s*["'][^"']*\bpersona_level\b[^"']*["'][^>]*>/i.exec(body);
+    if (!open) return null;
+    const after = open.index + open[0].length;
+    const rest = body.slice(after, after + LEVEL_BLOCK_LIMIT);
+    const close = /<\/\s*div\s*>/i.exec(rest);
+    if (!close) return null;
+    const own = /\bclass\s*=\s*["'][^"']*\bfriendPlayerLevelNum\b[^"']*["'][^>]*>\s*(\d{1,6})\s*</i.exec(rest.slice(0, close.index));
     return own ? Number(own[1]) : null;
 }
 
 interface MarketPage {
-    // null — по странице не понять (аккаунт не вошёл или страница незнакомая)
+    // null — по странице не понять (аккаунт не вошёл или это не Торговая площадка)
     ktLocked: boolean | null;
     tpState: boolean | string | null;
     wallet: Wallet;
 }
 
 // Разбирает /market/ целиком: КТ по тексту, ТП и кошелёк. Без входа маркет не показывает ни
-// плашку, ни ограничения, поэтому статусы тогда неизвестны, а не «OK».
+// плашку, ни ограничения, а вход и HTTP 200 ещё не значат, что пришла Торговая площадка (страница
+// ошибки, техработы): в этих случаях статусы неизвестны, а баланс — ошибка, но не «OK» и не прочерк.
 export function parseMarketPage(body: string): MarketPage {
     const login = /\bg_bLoggedIn\s*=\s*(true|false)\b/.exec(body);
-    if (!login || login[1] !== "true") {
-        const error = t(login ? "errors.balance.notLoggedIn" : "errors.balance.unrecognized");
-        return { ktLocked: null, tpState: null, wallet: walletError(error) };
-    }
+    if (login && login[1] === "false") return unknownMarket(t("errors.balance.notLoggedIn"));
+    if (!login || !isMarketPage(body)) return unknownMarket(t("errors.balance.unexpectedPage"));
     return { ktLocked: parseKtState(body), tpState: parseTpState(body), wallet: parseWallet(body) };
+}
+
+function unknownMarket(error: string): MarketPage {
+    return { ktLocked: null, tpState: null, wallet: walletError(error) };
+}
+
+// Два признака живой страницы /market/ (есть на странице тестового аккаунта): кошелёк —
+// присваивание g_rgWalletInfo или элемент #marketWalletBalance, и хотя бы один класс market_*.
+function isMarketPage(body: string): boolean {
+    const wallet = /\bg_rgWalletInfo\s*=/.test(body) || /\bid\s*=\s*["']marketWalletBalance["']/.test(body);
+    const market = /\bclass\s*=\s*["'](?:[^"']*\s)?market_[\w-]+/.test(body);
+    return wallet && market;
 }
 
 function walletError(error: string): Wallet {
@@ -257,31 +284,96 @@ function walletError(error: string): Wallet {
 // wallet_balance — в сотых долях валюты (5099 = 50,99), wallet_currency — ECurrencyCode Steam.
 // Раньше баланс брали со store.steampowered.com/account/, но cookie приложения выписана только
 // для steamcommunity.com: Steam отвечал редиректом на вход, и баланс не грузился ни у кого (SDA-38).
+// Баланс принимаем, только если всё сходится; любое сомнение — ошибка в подсказке, а не число.
 function parseWallet(body: string): Wallet {
-    const block = /\bg_rgWalletInfo\s*=\s*(\{.*?\})\s*;/.exec(body);
-    // Вошёл, но данных кошелька нет (вживую не проверено: у тестового аккаунта кошелёк есть) —
-    // это не ошибка, а «баланса нет»: в таблице прочерк без значка.
-    if (!block) return { error: null, balance: null, currency: null };
-    let info: unknown;
-    try {
-        info = JSON.parse(block[1]);
-    } catch (err) {
-        return walletError(t("errors.balance.unrecognized"));
+    const unrecognized = () => walletError(t("errors.balance.unrecognized"));
+    const infos: Record<string, unknown>[] = [];
+    const assignment = /\bg_rgWalletInfo\s*=\s*/g;
+    for (let found = assignment.exec(body); found; found = assignment.exec(body)) {
+        const text = jsonObjectAt(body, found.index + found[0].length);
+        let info: unknown = null;
+        try {
+            info = text ? JSON.parse(text) : null;
+        } catch (err) {
+            info = null;
+        }
+        if (!info || typeof info !== "object" || Array.isArray(info)) return unrecognized();
+        infos.push(info as Record<string, unknown>);
     }
-    if (!info || typeof info !== "object") return walletError(t("errors.balance.unrecognized"));
-    const { wallet_balance, wallet_currency } = info as Record<string, unknown>;
-    const cents = typeof wallet_balance === "string" && /^\d+$/.test(wallet_balance) ? Number(wallet_balance)
-        : typeof wallet_balance === "number" && Number.isInteger(wallet_balance) && wallet_balance >= 0 ? wallet_balance
-            : null;
-    const code = Number(wallet_currency);
-    if (cents === null || !Number.isInteger(code) || code <= 0) return { error: null, balance: null, currency: null };
-    return { error: null, balance: cents / 100, currency: currencyFromPage(body) || currencyFromCode(code) };
+    // Признак кошелька на странице есть (#marketWalletBalance), а данных нет. Вживую такого не
+    // видели, и что это значит, не знаем, — поэтому ошибка с понятным текстом, а не прочерк.
+    if (!infos.length) return walletError(t("errors.balance.walletMissing"));
+    const fields = (info: Record<string, unknown>) => JSON.stringify([info.success, info.wallet_balance, info.wallet_currency]);
+    if (infos.some((info) => fields(info) !== fields(infos[0]))) return unrecognized();
+
+    const { success, wallet_balance: rawBalance, wallet_currency: code } = infos[0];
+    if (success !== 1 && success !== true) return walletError(t("errors.balance.walletUnavailable"));
+    // «Кошелька нет» — только когда Steam говорит это явно: валюты нет или она 0 (ECurrencyCode
+    // Invalid), и баланса нет или он 0. Валюта без баланса или баланс без валюты — противоречие.
+    const noCurrency = code === undefined || code === 0;
+    const noBalance = rawBalance === undefined || rawBalance === 0 || rawBalance === "0";
+    if (noCurrency && noBalance) return { error: null, balance: null, currency: null };
+    const cents = minorUnits(rawBalance);
+    if (cents === null || typeof code !== "number" || !Number.isSafeInteger(code) || code <= 0) return unrecognized();
+    return { error: null, balance: cents / 100, currency: currencyFromPage(body, cents) || currencyFromCode(code) };
+}
+
+// Целое неотрицательное число сотых: строка из цифр или число; иначе null.
+function minorUnits(raw: unknown): number | null {
+    const value = typeof raw === "string" && /^\d{1,16}$/.test(raw) ? Number(raw) : typeof raw === "number" ? raw : NaN;
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
+// Текст JSON-объекта, который начинается в body[start] с "{": по вложенности скобок с учётом
+// строк, поэтому работает и для объекта на несколько строк. Не длиннее limit символов.
+function jsonObjectAt(body: string, start: number, limit = 20000): string | null {
+    if (body[start] !== "{") return null;
+    const end = Math.min(body.length, start + limit);
+    let depth = 0;
+    let inString = false;
+    for (let i = start; i < end; i++) {
+        const ch = body[i];
+        if (inString) {
+            if (ch === "\\") i++;
+            else if (ch === '"') inString = false;
+        } else if (ch === '"') {
+            inString = true;
+        } else if (ch === "{") {
+            depth++;
+        } else if (ch === "}" && --depth === 0) {
+            return body.slice(start, i + 1);
+        }
+    }
+    return null;
 }
 
 // <span id="marketWalletBalanceAmount">50,99₴</span> — знак валюты так, как его пишет сам Steam.
-function currencyFromPage(body: string): string {
-    const amount = /id="marketWalletBalanceAmount"[^>]*>([^<]*)</.exec(body);
-    return amount ? currencyFromAmountText(decodeHtmlEntities(amount[1])) : "";
+// Берём его, только если сумма в тексте та же, что в wallet_balance: иначе это другая сумма или
+// другая валюта, и знак по коду валюты надёжнее.
+function currencyFromPage(body: string, cents: number): string {
+    const amount = /\bid\s*=\s*["']marketWalletBalanceAmount["'][^>]*>([^<]*)</.exec(body);
+    if (!amount) return "";
+    const text = decodeHtmlEntities(amount[1]);
+    return amountTextMinorUnits(text) === cents ? currencyFromAmountText(text) : "";
+}
+
+// Сумма из текста Steam в сотых: "50,99₴" -> 5099, "$1,234.56" -> 123456, "1 234,50 pуб." -> 123450,
+// "5,--€" -> 500, "¥ 1,234" -> 123400. Один-два знака после последнего разделителя — дробная часть,
+// три — разделитель тысяч. Без числа — null.
+export function amountTextMinorUnits(text: string): number | null {
+    const number = /\d[\d\s.,']*(?:--)?/.exec(text);
+    if (!number) return null;
+    let digits = number[0].trim();
+    let fraction = "00";
+    const tail = /[.,](\d{1,2}|--)$/.exec(digits);
+    if (tail) {
+        fraction = tail[1] === "--" ? "00" : tail[1].padEnd(2, "0");
+        digits = digits.slice(0, tail.index);
+    }
+    const whole = digits.replace(/\D/g, "");
+    if (!whole) return null;
+    const value = Number(whole) * 100 + Number(fraction);
+    return Number.isSafeInteger(value) ? value : null;
 }
 
 const CURRENCY_ALIASES: Record<string, string> = {
@@ -306,10 +398,11 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
     TRY: "₺", UAH: "₴", CNY: "¥", INR: "₹", KZT: "₸",
 };
 
-// Когда на странице нет суммы текстом: знак по коду валюты, для остальных валют — ISO-код.
+// Когда знак со страницы не подошёл: знак по коду валюты, для остальных валют — ISO-код,
+// для неизвестного кода — сам код ("#999"), а не пустая валюта.
 export function currencyFromCode(code: number): string {
     const iso = CURRENCY_ISO[code] || "";
-    return CURRENCY_SYMBOLS[iso] || iso;
+    return CURRENCY_SYMBOLS[iso] || iso || `#${code}`;
 }
 
 function parseKtState(body: string): boolean {
@@ -401,6 +494,9 @@ export function parseTradeEligibility(raw: string | undefined | null): TradeElig
 // (временный сбой Steam, проблема с cookie, allowed=0 без причины): tradeStatusFromEligibility
 // превращает его в null, и таблица показывает «неизвестно».
 export function tradeStateFromEligibility(eligibility: TradeEligibility): boolean {
+    if (!isValidEligibility(eligibility)) {
+        throw new Error(t("errors.tradeState.unknown", { reason: JSON.stringify(eligibility.reason) }));
+    }
     if (eligibility.allowed === 1) return true;
     const reason = eligibility.reason || 0;
     if (reason & TRADE_BLOCKING_REASONS) return false;
@@ -413,12 +509,22 @@ export function tradeStateFromEligibility(eligibility: TradeEligibility): boolea
 }
 
 export function ktLockedFromEligibility(eligibility: TradeEligibility): boolean | null {
+    if (!isValidEligibility(eligibility)) return null;
     if (eligibility.allowed === 1) return false;
     const reason = eligibility.reason || 0;
     if (reason & KT_REASONS) return true;
     // Временный сбой, проблема с cookie или пустая причина: по такому ответу бан не исключить.
     if (reason === 0 || reason & (REASON_TEMPORARY_FAILURE | REASON_INVALID_COOKIE)) return null;
     return false;
+}
+
+// allowed — 0 или 1; reason, если есть, — битовая маска: целое от 0 до 2^31−1 (побитовые операции
+// JS работают с int32, большее число «перевернулось» бы в другие биты). Строка вроде "nonsense"
+// раньше превращалась побитово в 0 и давала «трейды OK». Всё остальное — ответ не понять.
+function isValidEligibility(eligibility: TradeEligibility): boolean {
+    const reason: unknown = eligibility.reason;
+    return (eligibility.allowed === 0 || eligibility.allowed === 1) &&
+        (reason === undefined || (typeof reason === "number" && Number.isSafeInteger(reason) && reason >= 0 && reason <= 0x7fffffff));
 }
 
 export function tradeStatusFromEligibility(eligibility: TradeEligibility): TradeStatus {
