@@ -1,8 +1,15 @@
-jest.mock("fs/promises", () => ({ access: jest.fn().mockResolvedValue(undefined), rm: jest.fn().mockResolvedValue(undefined) }));
+jest.mock("fs/promises", () => ({
+    access: jest.fn().mockResolvedValue(undefined),
+    rm: jest.fn().mockResolvedValue(undefined),
+    rename: jest.fn().mockResolvedValue(undefined),
+    readdir: jest.fn().mockResolvedValue([]),
+}));
 jest.mock("../resolveBrowserPath", () => ({ __esModule: true, default: jest.fn().mockResolvedValue("/fake/browser") }));
 jest.mock("../secureDnsPref", () => ({ ensureSecureDnsOff: jest.fn().mockResolvedValue(undefined), writeLocalState: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../../../application/application", () => ({ __esModule: true, default: { sendToMain: jest.fn() } }));
-import Chrome, { BrowserStartCancelledError, BROWSER_CLOSE_TIMEOUT_MS, SESSION_REMOVE_ATTEMPTS, SESSION_REMOVE_RETRY_MS } from "../Chrome";
+import Chrome, {
+    BrowserStartCancelledError, BROWSER_CLOSE_TIMEOUT_MS, SESSION_DISCARD_PREFIX, SESSION_REMOVE_ATTEMPTS, SESSION_REMOVE_RETRY_MS,
+} from "../Chrome";
 import resolveBrowserPath from "../resolveBrowserPath";
 import { ensureSecureDnsOff } from "../secureDnsPref";
 import puppeteer from "puppeteer-extra";
@@ -231,11 +238,19 @@ it("SDA-26 a failed preparation does not block the next start", async () => {
     expect(chrome.browser).toBe(browser);
 });
 
-// SDA-33: with "restore tabs" off (the default) the last session's tabs are removed before the
-// launch, inside the same serialized preparation as SDA-26: a superseded start never removes them
-// (the next start may be the one that restores them), and the next start removes them only after
-// the superseded one has finished with the profile.
-it("SDA-33 the last session's tabs are removed inside the serialized preparation, never by a superseded start", async () => {
+// SDA-33: with "restore tabs" off (the default) the last session's tabs are dropped before the
+// launch, inside the same serialized preparation as SDA-26: a superseded start never drops them
+// (the next start may be the one that restores them), and the next start drops them only after
+// the superseded one has finished with the profile. Round 3: dropping is one rename of
+// Default/Sessions to a discard folder that Chromium does not read; the discard folder is deleted later.
+const escapeRe = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const discardPath = (chrome: Chrome) => new RegExp(`^${escapeRe(chrome.profileDir)}/Default/${escapeRe(SESSION_DISCARD_PREFIX)}\\d+-\\d+$`);
+const resetFsMocks = () => {
+    (fsp.rm as jest.Mock).mockReset().mockResolvedValue(undefined);
+    (fsp.rename as jest.Mock).mockReset().mockResolvedValue(undefined);
+    (fsp.readdir as jest.Mock).mockReset().mockResolvedValue([]);
+};
+it("SDA-33 the last session's tabs are dropped inside the serialized preparation, never by a superseded start", async () => {
     const order: string[] = [];
     const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
     let finishFirstSecureDns!: () => void;
@@ -246,7 +261,7 @@ it("SDA-33 the last session's tabs are removed inside the serialized preparation
             finishFirstSecureDns = () => { order.push("A: secure DNS done"); resolve(); };
         }))
         .mockImplementation(async () => { order.push("B: secure DNS off"); });
-    (fsp.rm as jest.Mock).mockImplementation(async (dir: string) => { order.push(`remove ${dir.slice(chrome.profileDir.length)}`); });
+    (fsp.rename as jest.Mock).mockImplementation(async (from: string) => { order.push(`drop ${from.slice(chrome.profileDir.length)}`); });
     const { browser } = launched();
     (puppeteer.launch as jest.Mock).mockImplementation(async () => { order.push("B: launch"); return browser; });
     try {
@@ -261,18 +276,23 @@ it("SDA-33 the last session's tabs are removed inside the serialized preparation
         await rejected;
         expect(order).toEqual([
             "A: secure DNS off (slow)", "A: secure DNS done",
-            "B: secure DNS off", "remove /Default/Sessions", "B: launch",
+            "B: secure DNS off", "drop /Default/Sessions", "B: launch",
         ]);
-        expect(fsp.rm).toHaveBeenCalledTimes(1);
-        expect(fsp.rm).toHaveBeenCalledWith(`${chrome.profileDir}/Default/Sessions`, expect.objectContaining({ recursive: true, force: true }));
+        expect(fsp.rename).toHaveBeenCalledTimes(1);
+        const [from, to] = (fsp.rename as jest.Mock).mock.calls[0];
+        expect(from).toBe(`${chrome.profileDir}/Default/Sessions`);
+        expect(to).toMatch(discardPath(chrome));
+        // The discard folder is garbage: deleted afterwards, and nothing else is.
+        await flushAll();
+        expect((fsp.rm as jest.Mock).mock.calls).toEqual([[to, { recursive: true, force: true }]]);
         expect(chrome.browser).toBe(browser);
     } finally {
         (ensureSecureDnsOff as jest.Mock).mockReset().mockResolvedValue(undefined);
-        (fsp.rm as jest.Mock).mockReset().mockResolvedValue(undefined);
+        resetFsMocks();
     }
 });
 const flushAll = async (turns = 20) => { for (let i = 0; i < turns; i++) await new Promise(resolve => setImmediate(resolve)); };
-const busy = () => Object.assign(new Error("EBUSY: resource busy or locked, rmdir '/Users/someone/browser_profiles/a1/Default/Sessions'"), { code: "EBUSY" });
+const busy = () => Object.assign(new Error("EBUSY: resource busy or locked, rename '/Users/someone/browser_profiles/a1/Default/Sessions'"), { code: "EBUSY" });
 /** Waits for a promise while advancing fake timers (removal retry pauses, the wait for restored tabs). */
 async function settleOnFakeTimers<T>(promise: Promise<T>): Promise<T> {
     let done = false;
@@ -280,15 +300,16 @@ async function settleOnFakeTimers<T>(promise: Promise<T>): Promise<T> {
     for (let i = 0; i < 200 && !done; i++) await jest.advanceTimersByTimeAsync(100);
     return promise;
 }
-it("SDA-33 a removal that keeps failing is logged once, by error code only, and the browser still starts", async () => {
+it("SDA-33 a drop that keeps failing is logged once, by error code only, and the browser still starts", async () => {
     jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate", "queueMicrotask"] });
     const log = jest.spyOn(console, "log").mockImplementation(() => {});
-    (fsp.rm as jest.Mock).mockRejectedValue(busy());
+    (fsp.rename as jest.Mock).mockRejectedValue(busy());
     const { browser, page } = launched();
     const chrome = make();
     try {
         await settleOnFakeTimers(chrome.start());
-        expect(fsp.rm).toHaveBeenCalledTimes(SESSION_REMOVE_ATTEMPTS);
+        expect(fsp.rename).toHaveBeenCalledTimes(SESSION_REMOVE_ATTEMPTS);
+        expect(fsp.rm).not.toHaveBeenCalled();
         const lines = log.mock.calls.map(call => String(call[0])).filter(line => line.includes("EBUSY"));
         expect(lines).toHaveLength(1);
         expect(lines[0]).toContain("a1");
@@ -298,52 +319,94 @@ it("SDA-33 a removal that keeps failing is logged once, by error code only, and 
         // Nothing came back from the last session, so the start page opens as usual.
         expect(page.goto).toHaveBeenCalledWith("https://steamcommunity.com/my/");
     } finally {
-        (fsp.rm as jest.Mock).mockReset().mockResolvedValue(undefined);
+        resetFsMocks();
     }
 });
-// Review round 1, finding 1: fs.rm's own retries went on deleting after the start was cancelled,
-// possibly under a next start that restores the tabs. Every attempt now checks the start first.
-it("SDA-33 a removal that hit EBUSY makes no further attempt once the start is superseded during the pause", async () => {
-    const order: string[] = [];
-    const chrome = make();
-    (fsp.rm as jest.Mock)
-        .mockImplementationOnce(async () => { order.push("A: remove, EBUSY"); throw busy(); })
-        .mockImplementation(async () => { order.push("remove"); });
-    (ensureSecureDnsOff as jest.Mock).mockImplementation(async () => { order.push("secure DNS off"); });
-    const { browser } = launched();
-    try {
-        const first = chrome.start();
-        const rejected = expect(first).rejects.toMatchObject({ reason: "superseded" });
-        for (let i = 0; i < 100 && !order.includes("A: remove, EBUSY"); i++) await flushAll(1);
-        expect(order).toEqual(["secure DNS off", "A: remove, EBUSY"]);
-        // A now waits SESSION_REMOVE_RETRY_MS before its second attempt; a new Start arrives.
-        await chrome.start();
-        await rejected;
-        // No second attempt by A: the next removal is B's own, after B's preparation.
-        expect(order).toEqual(["secure DNS off", "A: remove, EBUSY", "secure DNS off", "remove"]);
-        expect(chrome.browser).toBe(browser);
-    } finally {
-        (ensureSecureDnsOff as jest.Mock).mockReset().mockResolvedValue(undefined);
-        (fsp.rm as jest.Mock).mockReset().mockResolvedValue(undefined);
-    }
-});
-it("SDA-33 Stop during a removal retry pause: nothing more is removed and nothing is launched", async () => {
-    jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate", "queueMicrotask"] });
-    (fsp.rm as jest.Mock).mockRejectedValue(busy());
+// Review round 2: a recursive fs.rm reads the folder and then unlinks file by file, so a Stop that
+// landed during the directory read was followed by new unlinks of the session files. A rename is
+// one call: once the start is cancelled, nothing that changes Default/Sessions is started.
+it("SDA-33 Stop while the session is being dropped: after the cancel only the discard folder is touched", async () => {
+    const calls: { op: string; path: string; afterStop: boolean }[] = [];
+    let stopped = false;
+    let finishRename!: () => void;
+    (fsp.rename as jest.Mock).mockImplementation((from: string) => {
+        calls.push({ op: "rename", path: from, afterStop: stopped });
+        return new Promise<void>(resolve => { finishRename = resolve; });
+    });
+    (fsp.rm as jest.Mock).mockImplementation(async (target: string) => { calls.push({ op: "rm", path: target, afterStop: stopped }); });
+    (fsp.readdir as jest.Mock).mockImplementation(async (dir: string) => {
+        calls.push({ op: "readdir", path: dir, afterStop: stopped });
+        return [`${SESSION_DISCARD_PREFIX}1-2`];
+    });
     const launch = jest.spyOn(puppeteer, "launch");
     const chrome = make();
     try {
         const started = chrome.start();
         const rejected = expect(started).rejects.toMatchObject({ reason: "stopped" });
-        for (let i = 0; i < 100 && (fsp.rm as jest.Mock).mock.calls.length === 0; i++) await flushAll(1);
-        expect(fsp.rm).toHaveBeenCalledTimes(1);
+        for (let i = 0; i < 100 && !calls.some(call => call.op === "rename"); i++) await flushAll(1);
+        stopped = true;
+        await chrome.stop();
+        finishRename();
+        await rejected;
+        await flushAll();
+        const sessions = `${chrome.profileDir}/Default/Sessions`;
+        expect(calls.filter(call => call.op === "rename")).toEqual([{ op: "rename", path: sessions, afterStop: false }]);
+        const later = calls.filter(call => call.afterStop);
+        expect(later.length).toBeGreaterThan(0);
+        for (const call of later) {
+            expect({ call, discard: call.path.startsWith(`${chrome.profileDir}/Default/${SESSION_DISCARD_PREFIX}`) }).toEqual({ call, discard: true });
+        }
+        expect(launch).not.toHaveBeenCalled();
+    } finally {
+        resetFsMocks();
+    }
+});
+// Review round 1, finding 1: fs.rm's own retries went on deleting after the start was cancelled,
+// possibly under a next start that restores the tabs. Every attempt now checks the start first.
+it("SDA-33 a drop that hit EBUSY makes no further attempt once the start is superseded during the pause", async () => {
+    jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate", "queueMicrotask"] });
+    const order: string[] = [];
+    const chrome = make();
+    (fsp.rename as jest.Mock)
+        .mockImplementationOnce(async () => { order.push("A: drop, EBUSY"); throw busy(); })
+        .mockImplementation(async () => { order.push("drop"); });
+    (ensureSecureDnsOff as jest.Mock).mockImplementation(async () => { order.push("secure DNS off"); });
+    const { browser } = launched();
+    try {
+        const first = chrome.start();
+        const rejected = expect(first).rejects.toMatchObject({ reason: "superseded" });
+        for (let i = 0; i < 100 && !order.includes("A: drop, EBUSY"); i++) await flushAll(1);
+        expect(order).toEqual(["secure DNS off", "A: drop, EBUSY"]);
+        // A now waits SESSION_REMOVE_RETRY_MS (fake timer) before its second attempt; a new Start arrives.
+        await settleOnFakeTimers(chrome.start());
+        await rejected;
+        // No second attempt by A: the next drop is B's own, after B's preparation.
+        expect(order).toEqual(["secure DNS off", "A: drop, EBUSY", "secure DNS off", "drop"]);
+        expect(fsp.rename).toHaveBeenCalledTimes(2);
+        expect(chrome.browser).toBe(browser);
+    } finally {
+        (ensureSecureDnsOff as jest.Mock).mockReset().mockResolvedValue(undefined);
+        resetFsMocks();
+    }
+});
+it("SDA-33 Stop during a drop retry pause: nothing more is renamed and nothing is launched", async () => {
+    jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate", "queueMicrotask"] });
+    (fsp.rename as jest.Mock).mockRejectedValue(busy());
+    const launch = jest.spyOn(puppeteer, "launch");
+    const chrome = make();
+    try {
+        const started = chrome.start();
+        const rejected = expect(started).rejects.toMatchObject({ reason: "stopped" });
+        for (let i = 0; i < 100 && (fsp.rename as jest.Mock).mock.calls.length === 0; i++) await flushAll(1);
+        expect(fsp.rename).toHaveBeenCalledTimes(1);
         await chrome.stop();
         await jest.advanceTimersByTimeAsync(SESSION_REMOVE_RETRY_MS * SESSION_REMOVE_ATTEMPTS);
         await rejected;
-        expect(fsp.rm).toHaveBeenCalledTimes(1);
+        expect(fsp.rename).toHaveBeenCalledTimes(1);
+        expect(fsp.rm).not.toHaveBeenCalled();
         expect(launch).not.toHaveBeenCalled();
     } finally {
-        (fsp.rm as jest.Mock).mockReset().mockResolvedValue(undefined);
+        resetFsMocks();
     }
 });
 // Review round 1, finding 2a: stop() lets go of this.browser before Chromium has closed, and the next
@@ -418,10 +481,14 @@ it("SDA-33 after the browser crashed (disconnected) the next start waits for no 
 });
 it("SDA-33 a session folder that is already gone is not an error", async () => {
     const log = jest.spyOn(console, "log").mockImplementation(() => {});
-    (fsp.rm as jest.Mock).mockRejectedValueOnce(Object.assign(new Error("ENOENT: no such file or directory"), { code: "ENOENT" }));
+    (fsp.rename as jest.Mock).mockRejectedValueOnce(Object.assign(new Error("ENOENT: no such file or directory"), { code: "ENOENT" }));
     const { browser } = launched();
     const chrome = make();
     await chrome.start();
+    expect(fsp.rename).toHaveBeenCalledTimes(1);
+    expect(fsp.rm).not.toHaveBeenCalled();
     expect(log).not.toHaveBeenCalledWith(expect.stringContaining("ENOENT"));
     expect(chrome.browser).toBe(browser);
+    // Nothing to drop is a success: no wait for restored tabs.
+    expect(browser.pages).toHaveBeenCalledTimes(1);
 });

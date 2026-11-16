@@ -52,12 +52,17 @@ export const AVATAR_TIMEOUT_MS = 10000;
 export const RESTORE_WAIT_MS = 5000;
 export const RESTORE_POLL_MS = 200;
 /**
- * SDA-33: удаление папки сеанса. Закрывающийся Chromium (на Windows — и антивирус) может
- * держать файлы: пробуем несколько раз с короткой паузой.
+ * SDA-33: попытки убрать папку сеанса (переименованием, см. forgetPreviousTabs). Закрывающийся
+ * Chromium (на Windows — и антивирус) может держать файлы: пробуем несколько раз с короткой паузой.
  */
 export const SESSION_REMOVE_ATTEMPTS = 4;
 export const SESSION_REMOVE_RETRY_MS = 250;
 const SESSION_REMOVE_RETRY_CODES = ["EBUSY", "EPERM", "ENOTEMPTY"];
+/**
+ * SDA-33: брошенная папка сеанса — Default/<префикс><pid>-<время>. Chromium её не читает, это мусор
+ * до удаления. Удаляются только имена с этим префиксом.
+ */
+export const SESSION_DISCARD_PREFIX = "Sessions.sda-discard-";
 
 /** Пустая вкладка (about:blank или «Новая вкладка»): восстановленной не считается (SDA-33). */
 export function isBlankTabUrl(url: string): boolean {
@@ -254,6 +259,9 @@ export default class Chrome {
       // DNS-over-HTTPS шёл бы мимо прокси, с реального IP. Не удалось записать настройку —
       // браузер не запускаем.
       await ensureSecureDnsOff(this.profileDir);
+      // Брошенные папки сеанса, которые не успели удалить (сбой между переименованием и удалением), —
+      // при любой настройке: это мусор, а не вкладки.
+      this.sweepDiscardedSessions();
       if (restoreTabs) return this.previousSessionOnDisk();
       return !(await this.forgetPreviousTabs(assertCurrent));
     });
@@ -276,20 +284,25 @@ export default class Chrome {
    * SDA-33: Chromium 154 (проверено на macOS) после browser.close() при следующем запуске сам
    * открывает вкладки прошлого сеанса — даже без настройки «продолжить с того же места»;
    * session.restore_on_startup и -ApplePersistenceIgnoreState этого не отключают. Не открывает,
-   * только если в профиле нет папки Default/Sessions. Удаляем её перед запуском — и браузер
+   * только если в профиле нет папки Default/Sessions. Убираем её перед запуском — и браузер
    * начинает с одной пустой вкладки, а мы открываем стартовые страницы.
    *
-   * Повторы — свои, не maxRetries из fs.rm: перед каждой попыткой проверяем, что запуск ещё
-   * актуален. Отменённый (Stop, новый Start — возможно, уже с восстановлением) больше ничего не
-   * удаляет. Не удалось — пишем в лог только код ошибки (в тексте был бы путь с именем
-   * пользователя) и запускаем дальше: из-за истории вкладок браузер не должен не открыться.
-   * Возвращает, удалена ли папка.
+   * Убираем одним переименованием, а не рекурсивным удалением: fs.rm читает папку и удаляет файлы
+   * по одному, и отменённый посреди него запуск продолжал бы удалять. Переименование — один
+   * системный вызов: сеанс либо цел, либо ушёл целиком. Повторы — свои: перед каждой попыткой
+   * проверяем, что запуск ещё актуален; отменённый (Stop, новый Start — возможно, уже с
+   * восстановлением) больше ничего не трогает. Брошенную папку удаляем потом, не дожидаясь.
+   * Не удалось — пишем в лог только код ошибки (в тексте был бы путь с именем пользователя) и
+   * запускаем дальше: из-за истории вкладок браузер не должен не открыться.
+   * Возвращает, убрана ли папка.
    */
   private async forgetPreviousTabs(assertCurrent: () => void): Promise<boolean> {
     for (let attempt = 1; ; attempt++) {
       assertCurrent();
+      const discarded = `${SESSION_DISCARD_PREFIX}${process.pid}-${Date.now()}`;
       try {
-        await fs.rm(`${this.profileDir}/Default/Sessions`, { recursive: true, force: true });
+        await fs.rename(`${this.profileDir}/Default/Sessions`, `${this.profileDir}/Default/${discarded}`);
+        this.removeDiscardedSessions([discarded]);
         return true;
       } catch (err) {
         const code = (err as NodeJS.ErrnoException).code || "";
@@ -304,6 +317,23 @@ export default class Chrome {
         await new Promise((resolve) => setTimeout(resolve, SESSION_REMOVE_RETRY_MS));
       }
     }
+  }
+
+  /**
+   * SDA-33: удаляет брошенные папки сеанса. Best effort и без ожидания: запуск их не ждёт, удаление
+   * может закончиться и после Stop (их никто не читает), ошибки не пишем (в тексте был бы путь).
+   */
+  private removeDiscardedSessions(names: string[]): void {
+    for (const name of names) {
+      fs.rm(`${this.profileDir}/Default/${name}`, { recursive: true, force: true }).catch(() => undefined);
+    }
+  }
+
+  /** SDA-33: находит в Default брошенные папки сеанса (точный префикс, больше ничего) и удаляет их. */
+  private sweepDiscardedSessions(): void {
+    fs.readdir(`${this.profileDir}/Default`)
+      .then((names) => this.removeDiscardedSessions(names.filter((name) => name.startsWith(SESSION_DISCARD_PREFIX))))
+      .catch(() => undefined);
   }
 
   /**
