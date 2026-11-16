@@ -406,7 +406,10 @@ class SteamAccount {
             respondToConfirmations(community, this.params.maFile.identity_secret, refs, accept, () => {
                 this.proxyUrl();
                 // A queued operation must never use a client from an old route.
-                if (this.community !== community) throw new Error(t('errors.confirmations.routeChanged'));
+                if (this.community !== community) {
+                    // The code marks the error as ours: its (localized) text is shown as it is.
+                    throw Object.assign(new Error(t('errors.confirmations.routeChanged')), { code: 'CONFIRMATION_ROUTE_CHANGED' });
+                }
             }).then(resolve, reject);
         });
     }

@@ -28,7 +28,11 @@ const OWN_ERROR_CODES = new Set(['PROXY_UNAVAILABLE', 'CONFIRMATION_ROUTE_CHANGE
  * - text of our own errors (missing proxy, changed route) is shown as it is.
  */
 const PLAIN_PROSE = /^[\p{L}\p{N} .,:;()!?_-]{1,200}$/u;
-const SAFE_CODE = /^[A-Za-z0-9_ -]{1,40}$/;
+// Prose has no 24-character "words" and no 12-digit numbers; a key in hex or base64url and a
+// nonce are exactly that, so text containing such a run is not shown either.
+const LONG_TOKEN = /[\p{L}\p{N}_-]{24,}|\d{12,}/u;
+// Codes as Node and the HTTP libraries write them: ECONNRESET, ERR_TOO_MANY_REDIRECTS.
+const SAFE_CODE = /^E[A-Z0-9_]{2,30}$/;
 
 class ConfirmationRequestError extends Error {
     constructor(readonly kind: FailureKind, message: string, readonly code?: string | number) {
@@ -63,19 +67,28 @@ const steamText = (value: unknown): string => scrubConfirmationSecrets(text(valu
 /** A library's error as the window may show it: its text if it is plain prose, else the code only. */
 function transportMessage(error: unknown): string {
     const raw = rawMessage(error);
-    if (PLAIN_PROSE.test(raw)) return raw;
-    // "tunneling socket could not be established, statusCode=407": the proxy's answer is worth keeping.
-    const status = /\bstatusCode=(\d{3})\b/.exec(raw.slice(0, 2000));
+    if (PLAIN_PROSE.test(raw) && !LONG_TOKEN.test(raw)) return raw;
     const code = errorCode(error);
-    const shown = typeof code === 'number' || (typeof code === 'string' && SAFE_CODE.test(code)) ? String(code) : status ? `HTTP ${status[1]}` : '';
-    return shown ? t('errors.confirmations.network', { code: shown }) : t('errors.confirmations.actFailed');
+    const parts: string[] = [];
+    if (typeof code === 'string' && SAFE_CODE.test(code)) parts.push(code);
+    else if (typeof code === 'number' && Number.isInteger(code) && code >= 100 && code <= 599) parts.push(`HTTP ${code}`);
+    // "tunneling socket could not be established, statusCode=407": the proxy's answer says more
+    // than the ECONNRESET that comes with it.
+    const status = /\bstatusCode=([1-5]\d\d)\b/.exec(raw.slice(0, 2000));
+    if (status) parts.push(`HTTP ${status[1]}`);
+    return parts.length ? t('errors.confirmations.network', { code: parts.join(', ') }) : t('errors.confirmations.actFailed');
 }
 
-/** The only way an error becomes text for the window. */
+/** The only way an error becomes text for the window. Never throws, whatever the value is. */
 export function confirmationErrorMessage(error: unknown): string {
-    if (error instanceof ConfirmationRequestError) return error.message;
-    if (OWN_ERROR_CODES.has(String(errorCode(error)))) return rawMessage(error).slice(0, MAX_MESSAGE_LENGTH) || t('errors.confirmations.actFailed');
-    return transportMessage(error);
+    try {
+        if (error instanceof ConfirmationRequestError) return error.message;
+        if (OWN_ERROR_CODES.has(errorCode(error) as string)) return rawMessage(error).slice(0, MAX_MESSAGE_LENGTH) || t('errors.confirmations.actFailed');
+        return transportMessage(error);
+    } catch {
+        // A hostile or broken error object (throwing getters) must not strand the request.
+        return t('errors.confirmations.actFailed');
+    }
 }
 
 export function isBatchableConfirmation(ref: MobileConfirmationRef): boolean {
@@ -140,8 +153,13 @@ function mobileRequest(
             settled = true;
             clearTimeout(timer);
             // Whatever went wrong leaves as our error type, whose text is built by the rules above.
+            let code: string | number | undefined;
+            try {
+                const raw = errorCode(error);
+                code = typeof raw === 'string' || typeof raw === 'number' ? raw : undefined;
+            } catch { code = undefined; }
             reject(error instanceof ConfirmationRequestError ? error
-                : new ConfirmationRequestError('unknown', confirmationErrorMessage(error), errorCode(error)));
+                : new ConfirmationRequestError('unknown', confirmationErrorMessage(error), code));
         };
         // httpRequest exposes no abort handle. A late reply cannot change an unknown
         // outcome or trigger resends after this deadline.

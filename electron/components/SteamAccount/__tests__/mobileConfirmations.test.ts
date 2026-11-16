@@ -270,10 +270,53 @@ describe('library error text reaches the window only as plain prose', () => {
         }
     });
 
-    it('the status of a refused proxy tunnel survives even without an error code', () => {
+    it('the status of a refused proxy tunnel is shown, with the code when there is one', () => {
         const tunnel = 'tunneling socket could not be established, statusCode=407';
         expect(confirmationErrorMessage(new Error(tunnel))).toBe('Network error (HTTP 407)');
-        expect(confirmationErrorMessage(Object.assign(new Error(tunnel), { code: 'ECONNRESET' }))).toBe('Network error (ECONNRESET)');
+        expect(confirmationErrorMessage(Object.assign(new Error(tunnel), { code: 'ECONNRESET' }))).toBe('Network error (ECONNRESET, HTTP 407)');
+    });
+
+    // Fourth review pass: spellings that are made only of letters, digits, '-' and '_'.
+    it.each([
+        ['hex of the key in a library message', 'Invalid protocol: 51d326d0723a8db49cc1ae40bcadb9f13d6282b0:'],
+        ['a bare nonce', 'Invalid protocol: 12345678901234567890:'],
+        ['unpadded base64url key', 'key jAb1TWbxnDHkYhKSH_t6si-n3-4'],
+        ['nonce in prose', 'Invalid nonce 12345678901234567890'],
+    ])('%s is not shown', (_name, text) => {
+        expect(confirmationErrorMessage(new Error(text))).toBe('Could not act on confirmation');
+    });
+
+    it.each([
+        ['a nonce as the code', '12345678901234567890'],
+        ['hex as the code', '51d326d0723a8db49cc1ae40bcadb9f13d6282b0'],
+        ['a huge numeric code', 12345678901234567890],
+        ['NaN', NaN],
+    ])('%s is not shown as an error code', (_name, code) => {
+        expect(confirmationErrorMessage(Object.assign(new Error('x=1'), { code }))).toBe('Could not act on confirmation');
+    });
+
+    it('an HTTP status given as a numeric code is shown', () => {
+        expect(confirmationErrorMessage(Object.assign(new Error('x=1'), { code: 502 }))).toBe('Network error (HTTP 502)');
+    });
+
+    it('an error object with throwing getters cannot strand the request', async () => {
+        const hostile: any = { message: 'library failure', code: { toString() { throw hostile; } } };
+        expect(confirmationErrorMessage(hostile)).toBe('library failure');
+        const trap = { get message(): string { throw new Error('boom'); }, get code(): string { throw new Error('boom'); } };
+        expect(confirmationErrorMessage(trap)).toBe('Could not act on confirmation');
+        // What matters is that the request settles; the text is whatever the getter threw.
+        for (const value of [trap, hostile]) {
+            const community = client((_options, callback) => callback(value));
+            const error: Error = await fetchConfirmations(community, SECRET).then(() => { throw new Error('must reject'); }, e => e);
+            expect(typeof error.message).toBe('string');
+            expect(error.message).not.toBe('must reject');
+        }
+    });
+
+    it('the route-change message keeps its text in every language (it carries our own code)', () => {
+        for (const text of ['Confirmation connection changed; refresh and try again', 'З’єднання акаунта змінилося; оновіть список і спробуйте ще раз', 'Соединение аккаунта изменилось; обновите список и попробуйте ещё раз']) {
+            expect(confirmationErrorMessage(Object.assign(new Error(text), { code: 'CONFIRMATION_ROUTE_CHANGED' }))).toBe(text);
+        }
     });
 
     it('odd error values never throw and never show their content', () => {
