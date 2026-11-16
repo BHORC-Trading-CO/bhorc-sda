@@ -77,6 +77,11 @@ function notBinDir(source) {
   return path.basename(source) !== ".bin";
 }
 
+/** Папка, куда пакет chromium скачивает браузер: …/node_modules/chromium/lib/chromium. */
+function isBundledBrowserDir(source) {
+  return source.replace(/\\/g, "/").replace(/\/+$/, "").endsWith("/node_modules/chromium/lib/chromium");
+}
+
 /**
  * Кладёт внешние модули в собранное приложение.
  *
@@ -93,11 +98,10 @@ function copyExternalModules(projectDir, buildPath, target = {}) {
   // качает для macOS только x86_64-сборку, а она на Apple Silicon не запускается, поэтому
   // нативную сборку приложение качает само при первом запуске (resolveBrowserPath.ts).
   // Класть в arm64-сборку ~400 МБ мёртвого x86_64-браузера незачем.
-  const deadBrowserDir =
-    target.platform === "darwin" && target.arch === "arm64"
-      ? path.join(projectDir, "node_modules", "chromium", "lib", "chromium")
-      : null;
-  const filter = (source) => notBinDir(source) && source !== deadBrowserDir;
+  // Сравниваем по хвосту пути, а не по полному совпадению со склеенным путём: на раннере
+  // Windows полное совпадение не срабатывало, и папка браузера копировалась.
+  const skipBundledBrowser = target.platform === "darwin" && target.arch === "arm64";
+  const filter = (source) => notBinDir(source) && !(skipBundledBrowser && isBundledBrowserDir(source));
 
   for (const source of packageDirs) {
     const relative = path.relative(projectDir, source);
@@ -112,4 +116,4 @@ function copyExternalModules(projectDir, buildPath, target = {}) {
   return packageDirs.length;
 }
 
-module.exports = { copyExternalModules, collectPackageDirs };
+module.exports = { copyExternalModules, collectPackageDirs, isBundledBrowserDir };

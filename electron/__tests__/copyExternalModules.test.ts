@@ -2,7 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
-const { copyExternalModules } = require("../../webpack/copyExternalModules");
+const { copyExternalModules, isBundledBrowserDir } = require("../../webpack/copyExternalModules");
 const externals: string[] = require("../../webpack/externals");
 
 const temporaryDirs: string[] = [];
@@ -73,5 +73,21 @@ describe("copyExternalModules", () => {
     copyExternalModules(makeProject(), build, { platform: "win32", arch: "x64" });
 
     expect(fs.existsSync(path.join(build, "node_modules", "chromium", "node_modules", ".bin"))).toBe(false);
+  });
+});
+
+describe("isBundledBrowserDir", () => {
+  it("узнаёт папку браузера в любом виде пути", () => {
+    expect(isBundledBrowserDir("/repo/node_modules/chromium/lib/chromium")).toBe(true);
+    expect(isBundledBrowserDir("/repo/node_modules/chromium/lib/chromium/")).toBe(true);
+    expect(isBundledBrowserDir("C:\\repo\\node_modules\\chromium\\lib\\chromium")).toBe(true);
+    expect(isBundledBrowserDir("\\\\?\\C:\\repo\\node_modules\\chromium\\lib\\chromium")).toBe(true);
+  });
+
+  it("соседние папки и сам пакет не трогает", () => {
+    expect(isBundledBrowserDir("/repo/node_modules/chromium")).toBe(false);
+    expect(isBundledBrowserDir("/repo/node_modules/chromium/lib")).toBe(false);
+    expect(isBundledBrowserDir("/repo/node_modules/chromium/lib/chromium/chrome-mac")).toBe(false);
+    expect(isBundledBrowserDir("/repo/node_modules/other/lib/chromium")).toBe(false);
   });
 });
