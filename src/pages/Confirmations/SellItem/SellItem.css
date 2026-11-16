@@ -1,5 +1,6 @@
-/* Карточка подтверждения (R5): плитка картинки со значком типа, название, сумма моноширинным,
-   время, справа «Выбрать». Выбранная карточка — синяя рамка и лёгкий синий фон. */
+/* Карточка подтверждения (R5, SDA-7): плитка картинки со значком типа, бейдж типа, заголовок,
+   все строки Steam, время, справа «Выбрать» (пакетные) или свои «Подтвердить» и «Отклонить».
+   Выбранная карточка — синяя рамка и лёгкий синий фон. */
 .sell-item-container {
   display: flex;
   align-items: center;
@@ -47,18 +48,43 @@
   color: var(--sda-text-muted);
 }
 
+/* Без картинки (API-ключ, безопасность) плитка показывает значок типа. */
+.sell-item-logo .confirmation-type-icon { color: var(--sda-text-muted); }
+
 .sell-item-info { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
-.sell-item-name,
-.sell-item-price-new { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sell-item-name { font-size: 13px; font-weight: 500; line-height: 18px; color: var(--sda-text); }
-.sell-item-price-container { display: flex; min-width: 0; }
-.sell-item-price-new,
+/* Заголовок Steam переносится целиком: что именно подтверждается, должно быть видно. */
+.sell-item-name { font-size: 13px; font-weight: 500; line-height: 18px; color: var(--sda-text); overflow-wrap: anywhere; }
 .sell-item-date-container {
   font-family: var(--sda-font-mono);
   font-variant-numeric: tabular-nums;
 }
-.sell-item-price-new { font-size: 13px; line-height: 18px; color: var(--sda-text); }
 .sell-item-date-container { font-size: 11px; line-height: 16px; color: var(--sda-text-subtle); }
+
+/* SDA-7: тип подтверждения словом — нейтральный бейдж над заголовком. */
+.confirmation-type-badge {
+  align-self: flex-start;
+  max-width: 100%;
+  margin-bottom: 2px;
+  padding: 0 6px;
+  border-radius: var(--sda-radius-sm);
+  background: var(--sda-surface-3);
+  color: var(--sda-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+/* Строки summary, предупреждение Steam, подсказка у покупки и ответ Steam по этой карточке. */
+.confirmation-summary,
+.confirmation-warn,
+.confirmation-purchase-hint,
+.confirmation-item-error,
+.confirmation-item-unknown { font-size: 12px; line-height: 17px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.confirmation-summary { color: var(--sda-text-muted); }
+.confirmation-warn,
+.confirmation-item-error { color: var(--sda-danger); }
+.confirmation-purchase-hint { color: var(--sda-text-subtle); }
+.confirmation-item-unknown { color: var(--sda-warning); }
 
 /* «Выбрать»: контурная кнопка; выбранная — синяя с галочкой. */
 .sell-item-confirm-container { display: flex; align-items: center; justify-content: flex-end; flex: 0 0 auto; }
@@ -82,3 +108,23 @@
 .confirmation-wrapper .sell-item-confirm-container .button__icon + .button__text { margin-left: 6px; }
 .confirmation-wrapper .sell-item-container--selected .button { border-color: var(--sda-primary); background: var(--sda-primary); }
 .confirmation-wrapper .sell-item-container--selected .button:hover { border-color: var(--sda-primary-hover); background: var(--sda-primary-hover); }
+
+/* Свои кнопки не пакетной карточки (SDA-7) — в цветах полосы действий: «Подтвердить» синяя,
+   «Отклонить» контурная красная; столбиком, чтобы заголовку и строкам осталась ширина. */
+.confirmation-row-actions { display: flex; flex-direction: column; gap: 6px; }
+.confirmation-row-action {
+  min-width: 96px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--sda-radius-sm);
+  font: 500 13px/18px var(--sda-font);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--sda-transition), border-color var(--sda-transition), opacity var(--sda-transition);
+}
+.confirmation-row-confirm { background: var(--sda-primary); border-color: var(--sda-primary); color: var(--sda-text); }
+.confirmation-row-confirm:hover:not(:disabled) { background: var(--sda-primary-hover); border-color: var(--sda-primary-hover); }
+.confirmation-row-decline { background: transparent; border-color: var(--sda-danger); color: var(--sda-danger); }
+.confirmation-row-decline:hover:not(:disabled) { background: var(--sda-danger-bg); }
+.confirmation-row-action:disabled { opacity: .45; cursor: not-allowed; }

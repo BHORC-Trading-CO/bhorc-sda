@@ -60,8 +60,8 @@ it.each([
     (account: SteamAccount) => account.getSecondary(),
     (account: SteamAccount) => account.isLogin(),
     (account: SteamAccount) => account.getConfirmations(),
-    (account: SteamAccount) => account.confirmItems([1], ["key"]),
-    (account: SteamAccount) => account.cancelItems([1], ["key"]),
+    (account: SteamAccount) => account.respondConfirmations([{ id: "1", nonce: "fake", type: 2, multi: true }], true),
+    (account: SteamAccount) => account.respondConfirmations([{ id: "1", nonce: "fake", type: 2, multi: true }], false),
     (account: SteamAccount) => account.setPin(1234),
 ])("account network operation %# fails visibly without a socket", async operation => {
     await expect(operation(new SteamAccount(params()))).rejects.toMatchObject({ code: "PROXY_UNAVAILABLE" });

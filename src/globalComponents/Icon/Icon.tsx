@@ -24,6 +24,7 @@ import {
   GripVertical,
   Image,
   Info,
+  KeyRound,
   Languages,
   Link,
   LoaderCircle,
@@ -34,12 +35,15 @@ import {
   Puzzle,
   RefreshCw,
   Search,
+  ShieldAlert,
   ShieldCheck,
+  ShoppingCart,
   SlidersHorizontal,
   Square,
   Tag,
   Trash2,
   TriangleAlert,
+  Undo2,
   Upload,
   User,
   Users,
@@ -59,7 +63,9 @@ export type IconName =
   // в нём нет пары.
   | "activity" | "help" | "archiveRestore"
   // Тип подтверждения на плитке (SellItem): обмен и лот на рынке.
-  | "arrowLeftRight" | "tag";
+  | "arrowLeftRight" | "tag"
+  // SDA-7: покупка на рынке, Web API-ключ, безопасность аккаунта, возврат средств.
+  | "shoppingCart" | "key" | "shieldAlert" | "undo";
 
 export type IconSize = 13 | 14 | 16 | 18 | 20;
 
@@ -110,6 +116,10 @@ const ICONS: Record<IconName, LucideIcon> = {
   archiveRestore: ArchiveRestore,
   arrowLeftRight: ArrowLeftRight,
   tag: Tag,
+  shoppingCart: ShoppingCart,
+  key: KeyRound,
+  shieldAlert: ShieldAlert,
+  undo: Undo2,
 };
 
 // Классы анимаций из src/css/motion.css. Ховер-анимации срабатывают и при наведении на кнопку,

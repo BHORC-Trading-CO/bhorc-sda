@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "conf": [
+    { "id": "1002", "nonce": "synthetic-trade", "type": 2, "type_name": "Trade", "headline": "Test trade", "summary": ["Sending an item", "Receiving an item", "Extra summary"], "creation_time": 1700000000, "multi": true, "icon": "https://community.fastly.steamstatic.com/test.png", "accept": "Send offer", "cancel": "Cancel offer" },
+    { "id": "1003", "nonce": "synthetic-listing", "type": 3, "creator_id": "fake-listing", "type_name": "Market listing", "headline": "Test listing", "summary": ["Test item", "$0.03"], "creation_time": 1700000000 },
+    { "id": "1009", "nonce": "synthetic-key", "type": 9, "creator_id": null, "type_name": "Register API key", "headline": "Test API request", "summary": ["localhost"], "multi": true, "warn": "Only approve a request you started", "icon": "", "creation_time": 1700000000 },
+    { "type": 12, "type_name": "Account Security", "id": "1012", "creator_id": "5012", "nonce": "synthetic-purchase", "creation_time": 1700000000, "cancel": "Deny", "accept": "Confirm", "icon": "https://community.fastly.steamstatic.com/public/images/mobile/Inventory2x.png", "multi": false, "headline": "Community Market", "summary": ["Purchase confirmation needed"], "warn": null },
+    { "id": "1013", "nonce": "synthetic-refund", "type": 13, "type_name": "Refund", "summary": ["Test refund"], "multi": true },
+    { "id": "1099", "nonce": "synthetic-unknown", "type": 99, "type_name": "Future action", "headline": "Test future action", "summary": ["Future details"] }
+  ]
+}
