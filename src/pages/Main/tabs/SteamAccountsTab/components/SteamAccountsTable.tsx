@@ -2,7 +2,7 @@ import useAccountImage from "../../../../../globalComponents/Images/useAccountIm
 import react, { FC } from "react";
 import Table, { Line, Cell } from "../../../../../globalComponents/Table/Table";
 import { Tip, CellText } from "../../../../../globalComponents/Table/Cells";
-import { KtStatus, MarketStatus, TradeStatus, statusRank } from "./AccountStatusBadges";
+import { KtStatus, MarketStatus, TradeStatus, statusRank, balanceText } from "./AccountStatusBadges";
 import Icon from "../../../../../globalComponents/Icon/Icon";
 import AvalibleTypes from "../../../../../../electron/interfaces/TableFields/AvalibleFieldTypes";
 import store from "../../../../../store/store";
@@ -420,7 +420,7 @@ const CellJSX: FC<{
 
       if (changableSecondaries && changableSecondaries.isLoad) {
         const steam = changableSecondaries.content.steam;
-        // Аккаунт вошёл, но Steam не показал кошелёк: баланса нет, и это не ошибка (SDA-38)
+        // Steam явно сказал, что кошелька нет (валюта 0, баланса нет): прочерк без значка (SDA-38)
         if (!steam.error && (steam.balance === null || steam.balance === undefined)) {
           return <span className="cell-muted">—</span>;
         }
@@ -439,12 +439,7 @@ const CellJSX: FC<{
             </Tip>
           );
         } else {
-          return (
-            <>
-              {changableSecondaries.content.steam.balance}
-              {changableSecondaries.content.steam.currency}
-            </>
-          );
+          return <>{balanceText(steam.balance, steam.currency)}</>;
         }
       } else {
         return <Loading />;

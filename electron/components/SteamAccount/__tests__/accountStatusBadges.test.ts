@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { KtStatus, MarketStatus, TradeStatus, statusRank } from "../../../../src/pages/Main/tabs/SteamAccountsTab/components/AccountStatusBadges";
+import { KtStatus, MarketStatus, TradeStatus, statusRank, balanceText } from "../../../../src/pages/Main/tabs/SteamAccountsTab/components/AccountStatusBadges";
 
 // SDA-31: KT, Market and Trades columns have three states. Unknown must never look like OK, and
 // booleans saved by older versions must render exactly as before.
@@ -59,5 +59,13 @@ describe("status badges", () => {
         const rows = [true, null, "Dec 1, 2026", false, undefined].map((value) => ({ value }));
         const sorted = rows.sort((a, b) => statusRank(a.value) - statusRank(b.value)).map((row) => row.value);
         expect(sorted).toEqual([false, null, undefined, "Dec 1, 2026", true]);
+    });
+
+    it("balance text: a sign is attached, a letter code (incl. an unknown #code) is separated by a space", () => {
+        expect(balanceText(50.99, "₴")).toBe("50.99₴");
+        expect(balanceText(12.34, "$")).toBe("12.34$");
+        expect(balanceText(12.34, "CAD")).toBe("12.34 CAD");
+        expect(balanceText(12.34, "#999")).toBe("12.34 #999");
+        expect(balanceText(0, "zł")).toBe("0 zł");
     });
 });

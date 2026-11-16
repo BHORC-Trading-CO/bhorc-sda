@@ -65,3 +65,12 @@ export function statusRank(value: Status): number {
   if (typeof value === "string") return 2;
   return 3;
 }
+
+/**
+ * Balance cell text (SDA-38). A currency sign is attached ("50.99₴"); a letter code is separated by a
+ * space ("12.34 CAD", "12.34 #999" for a currency code the app does not know).
+ */
+export function balanceText(balance: number | null, currency: string | null): string {
+  const code = currency || "";
+  return `${balance}${/^[A-Za-z#]/.test(code) ? " " : ""}${code}`;
+}
