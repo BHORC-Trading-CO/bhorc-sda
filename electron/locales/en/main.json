@@ -28,6 +28,7 @@
     "importRejected": "Accounts not imported: {{total}}. {{details}}",
     "proxiesRejected": "Proxies not added: {{total}}. {{details}}",
     "saveSession": "Failed to save the session: {{error}}",
+    "openDataFolder": "Failed to open the data folder {{path}}: {{error}}",
     "wrongPin": "Wrong PIN",
     "askAborted": {
       "familyPin": "Entering the Family View PIN was cancelled",

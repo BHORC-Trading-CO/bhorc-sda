@@ -13,7 +13,6 @@ import GuardSetupResultInterface from '../interfaces/SteamAccount/GuardSetupResu
 import ProxySetupInterface from '../interfaces/Proxy/ProxySetupInterface';
 import ChangableSecondaryInterface from '../interfaces/SteamAccount/ChangableSecondaryInterface';
 import SecondaryInterface from '../interfaces/SteamAccount/SecondaryInterface';
-import { exec } from 'child_process';
 import SteamAccountChannels from '../interfaces/IpcChannels/SteamAccountChannels';
 import ProxyChannels from '../interfaces/IpcChannels/ProxyChannels';
 import GroupChannels from '../interfaces/IpcChannels/GroupChannels';
@@ -24,8 +23,6 @@ import BrowserChannels from '../interfaces/IpcChannels/BrowserChannels';
 import BrowserSettingsInterface, { BrowserSettingsError, BrowserSettingsView } from '../interfaces/Browser/BrowserSettingsInterface';
 import AppSettingsChannels from '../interfaces/IpcChannels/AppSettingsChannels';
 import { AppSettingsError, AppSettingsPatch, AppSettingsView } from '../interfaces/AppSettings/AppSettingsInterface';
-import path from "path";
-import createStore from "../components/newStorage/createStore";
 import { exposeLanguageApi } from './languageBridge';
 import ImageChannels from '../interfaces/IpcChannels/ImageChannels';
 import { requestImage } from './imageBridge';
@@ -284,20 +281,9 @@ const appSettings = {
 }
 
 const window = {
+  /** Открыть папку данных: путь берёт и открывает main (shell.openPath, без командной строки); ошибка приходит в 'ERROR' */
   openAppdata: () => {
-    const store = createStore();
-    const folderPath = path.dirname(store.path);
-
-    switch (process.platform) {
-      case 'darwin':
-        exec(`open ${folderPath}`);
-        break;
-      case 'win32':
-        exec(`start ${folderPath}`);
-        break;
-      default:
-        exec(`xdg-open ${folderPath}`);
-    }
+    ipcRenderer.send(WindowsChannels.OPEN_DATA_FOLDER);
   },
   /** Закрыть главное окно */
   close: () => {
