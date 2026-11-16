@@ -45,6 +45,9 @@
       "tooManyRedirects": "Слишком много редиректов: {{url}}",
       "httpStatus": "{{url}} ответил {{status}}",
       "revision": "Не удалось определить ревизию Chromium для {{branch}}: получено \"{{revision}}\"",
+      "timeout": "Нет данных от {{url}} уже {{seconds}} с",
+      "sizeMismatch": "Chromium скачан не полностью: {{got}} из {{expected}} байт",
+      "extractTimeout": "Распаковка архива Chromium не завершилась за {{minutes}} мин",
       "bundledMissing": "В этой сборке нет браузера Chromium для {{platform}}, и скачать его для этой платформы неоткуда.",
       "binaryMissing": "В скачанном архиве Chromium нет бинарника: {{binary}}"
     },

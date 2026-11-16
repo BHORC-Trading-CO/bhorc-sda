@@ -83,6 +83,14 @@ function isBundledBrowserDir(source) {
 }
 
 /**
+ * Тестовый бинарник из Windows-снапшота Chromium (~390 МБ распакованный, ~160 МБ в архиве).
+ * Браузеру он не нужен, а node-chromium распаковывает архив целиком.
+ */
+function isBrowserTestBinary(source) {
+  return source.replace(/\\/g, "/").endsWith("/chromium/lib/chromium/chrome-win/interactive_ui_tests.exe");
+}
+
+/**
  * Кладёт внешние модули в собранное приложение.
  *
  * plugin-webpack форджа обнуляет dependencies в package.json собранного
@@ -101,7 +109,8 @@ function copyExternalModules(projectDir, buildPath, target = {}) {
   // Сравниваем по хвосту пути, а не по полному совпадению со склеенным путём: на раннере
   // Windows полное совпадение не срабатывало, и папка браузера копировалась.
   const skipBundledBrowser = target.platform === "darwin" && target.arch === "arm64";
-  const filter = (source) => notBinDir(source) && !(skipBundledBrowser && isBundledBrowserDir(source));
+  const filter = (source) =>
+    notBinDir(source) && !isBrowserTestBinary(source) && !(skipBundledBrowser && isBundledBrowserDir(source));
 
   for (const source of packageDirs) {
     const relative = path.relative(projectDir, source);
@@ -116,4 +125,4 @@ function copyExternalModules(projectDir, buildPath, target = {}) {
   return packageDirs.length;
 }
 
-module.exports = { copyExternalModules, collectPackageDirs, isBundledBrowserDir };
+module.exports = { copyExternalModules, collectPackageDirs, isBundledBrowserDir, isBrowserTestBinary };

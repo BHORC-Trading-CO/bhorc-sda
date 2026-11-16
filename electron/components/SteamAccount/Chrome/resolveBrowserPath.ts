@@ -2,6 +2,7 @@ import { execFile } from "child_process";
 import fs from "fs";
 import fsp from "fs/promises";
 import https from "https";
+import { pipeline } from "stream";
 import os from "os";
 import path from "path";
 import { app } from "electron";
@@ -26,10 +27,9 @@ const chromium = require("chromium");
  *
  * Поэтому на darwin/arm64 берём нативную arm64-сборку из того же хранилища
  * снапшотов Chromium, только из ветки Mac_Arm. Ревизия фиксируется при первом
- * скачивании и дальше переиспользуется — ровно так же, как node-chromium
- * фиксирует ревизию на момент npm install. Версия при этом совпадает с той,
- * что получает Windows, так что отпечаток браузера между платформами не
- * расходится.
+ * скачивании и дальше переиспользуется — так же, как node-chromium фиксирует
+ * ревизию на момент npm install. Одинаковой версии на разных машинах это не
+ * гарантирует: каждая берёт последнюю ревизию на момент своего скачивания.
  */
 
 const SNAPSHOTS_BASE = "https://storage.googleapis.com/chromium-browser-snapshots";
@@ -63,6 +63,9 @@ export interface BrowserSnapshot {
   /** Имя папки кеша в userData. */
   cacheDirName: string;
 }
+
+/** Что в архиве снапшота лишнее для работы браузера (пути внутри архива). */
+export const BROWSER_TEST_BINARIES = [path.join("chrome-win", "interactive_ui_tests.exe")];
 
 export function snapshotFor(platform: string, arch: string): BrowserSnapshot | null {
   if (platform === "darwin" && (arch === "arm64" || arch === "x64")) {
@@ -106,7 +109,13 @@ export interface ResolveBrowserDeps {
   fetchText: (url: string) => Promise<string>;
   download: (url: string, destFile: string) => Promise<void>;
   extract: (archive: string, destDir: string) => Promise<void>;
+  /** Сколько ждать распаковку. Битый архив extract-zip может не закончить никогда. */
+  extractTimeoutMs: number;
 }
+
+/** Нет данных от сервера дольше этого — соединение считаем зависшим. */
+export const NETWORK_IDLE_TIMEOUT_MS = 60_000;
+export const EXTRACT_TIMEOUT_MS = 10 * 60_000;
 
 /**
  * Нужна ли нативная arm64-сборка вместо той, что кладёт node-chromium.
@@ -116,22 +125,56 @@ export function needsNativeArmBrowser(platform: string, arch: string): boolean {
   return platform === "darwin" && arch === "arm64";
 }
 
-function httpsGet(url: string, onResponse: (res: any) => void, reject: (err: any) => void, redirectsLeft = 5) {
-  https
-    .get(url, (res) => {
+type HttpGet = (url: string, callback: (res: any) => void) => { setTimeout: Function; destroy: Function; on: Function };
+export interface NetworkOptions {
+  get: HttpGet;
+  idleTimeoutMs: number;
+}
+const defaultNetwork = (): NetworkOptions => ({ get: https.get as unknown as HttpGet, idleTimeoutMs: NETWORK_IDLE_TIMEOUT_MS });
+
+/**
+ * GET с редиректами и таймаутом простоя. Без таймаута оборванное без RST соединение (сон,
+ * смена сети, VPN) не завершилось бы никогда, а скачивание одно на все запуски браузера —
+ * зависли бы все аккаунты до перезапуска приложения.
+ */
+export function httpsGet(
+  url: string,
+  onResponse: (res: any) => void,
+  reject: (err: any) => void,
+  redirectsLeft = 5,
+  network: NetworkOptions = defaultNetwork()
+) {
+  let req;
+  try {
+    req = network.get(url, (res) => {
       const status = res.statusCode || 0;
       if (status >= 300 && status < 400 && res.headers.location) {
         res.resume();
         if (redirectsLeft <= 0) return reject(new Error(t("errors.chromium.tooManyRedirects", { url })));
-        return httpsGet(res.headers.location, onResponse, reject, redirectsLeft - 1);
+        let next: string;
+        try {
+          // Location бывает относительным.
+          next = new URL(res.headers.location, url).toString();
+        } catch (err) {
+          return reject(err);
+        }
+        return httpsGet(next, onResponse, reject, redirectsLeft - 1, network);
       }
       if (status !== 200) {
         res.resume();
         return reject(new Error(t("errors.chromium.httpStatus", { url, status })));
       }
       onResponse(res);
-    })
-    .on("error", reject);
+    });
+  } catch (err) {
+    // Адрес, который нельзя открыть (например, редирект с https на http://), бросает сразу,
+    // внутри колбэка ответа — без этого исключение ушло бы мимо промиса.
+    return reject(err);
+  }
+  req.setTimeout(network.idleTimeoutMs, () => {
+    req.destroy(new Error(t("errors.chromium.timeout", { url, seconds: Math.round(network.idleTimeoutMs / 1000) })));
+  });
+  req.on("error", reject);
 }
 
 function defaultFetchText(url: string): Promise<string> {
@@ -150,19 +193,31 @@ function defaultFetchText(url: string): Promise<string> {
   });
 }
 
+/**
+ * Пишет тело ответа в файл. pipeline при любой ошибке закрывает файл сам: иначе на Windows
+ * открытый файл не дал бы убрать временную папку, и её ошибка заслонила бы настоящую.
+ * Длину сверяем с Content-Length: обрезанный архив не должен дойти до распаковки.
+ */
+export function saveResponseToFile(res: any, destFile: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const expected = Number(res.headers && res.headers["content-length"]);
+    pipeline(res, fs.createWriteStream(destFile), (err) => {
+      if (err) return reject(err);
+      if (!Number.isFinite(expected) || expected <= 0) return resolve();
+      fs.stat(destFile, (statErr, stat) => {
+        if (statErr) return reject(statErr);
+        if (stat.size !== expected) {
+          return reject(new Error(t("errors.chromium.sizeMismatch", { got: stat.size, expected })));
+        }
+        resolve();
+      });
+    });
+  });
+}
+
 function defaultDownload(url: string, destFile: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    httpsGet(
-      url,
-      (res) => {
-        const file = fs.createWriteStream(destFile);
-        res.pipe(file);
-        file.on("finish", () => file.close(() => resolve()));
-        file.on("error", reject);
-        res.on("error", reject);
-      },
-      reject
-    );
+    httpsGet(url, (res) => saveResponseToFile(res, destFile).then(resolve, reject), reject);
   });
 }
 
@@ -201,8 +256,13 @@ function defaultDeps(): ResolveBrowserDeps {
     fetchText: defaultFetchText,
     download: defaultDownload,
     extract: extractArchive,
+    extractTimeoutMs: EXTRACT_TIMEOUT_MS,
   };
 }
+
+/** Папка готовой ревизии называется её номером; всё остальное в кеше — недоделанное. */
+const REVISION_DIR = /^\d+$/;
+const PARTIAL_MARK = ".partial-";
 
 /** Уже скачанная ревизия, если она на месте и бинарник цел. */
 function findCachedBinary(cacheRoot: string, binaryInsideArchive: string): string | null {
@@ -213,11 +273,52 @@ function findCachedBinary(cacheRoot: string, binaryInsideArchive: string): strin
     return null;
   }
 
-  for (const entry of entries.sort().reverse()) {
+  // Только папки-номера: в «<ревизия>.partial-…» распаковка могла оборваться, а бинарник
+  // в архиве идёт одним из первых — по его наличию недораспакованную сборку не отличить.
+  for (const entry of entries.filter((name) => REVISION_DIR.test(name)).sort().reverse()) {
     const binary = path.join(cacheRoot, entry, binaryInsideArchive);
     if (fs.existsSync(binary)) return binary;
   }
   return null;
+}
+
+/** Убирает всё из кеша, кроме указанной ревизии: брошенные распаковки и старые сборки. */
+async function pruneCache(cacheRoot: string, keep: string | null): Promise<void> {
+  let entries: string[] = [];
+  try {
+    entries = await fsp.readdir(cacheRoot);
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (entry === keep) continue;
+    if (!REVISION_DIR.test(entry) && !entry.includes(PARTIAL_MARK)) continue;
+    // Не получилось убрать (файл занят) — не повод не запускать браузер.
+    await fsp.rm(path.join(cacheRoot, entry), { recursive: true, force: true }).catch(() => undefined);
+  }
+}
+
+/** rename папки с только что распакованными exe на Windows может упереться в антивирус. */
+async function renameWithRetry(from: string, to: string): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fsp.rename(from, to);
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (attempt >= 5 || !["EPERM", "EBUSY", "EACCES"].includes(code || "")) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+}
+
+function withTimeout<T>(work: Promise<T>, ms: number, onTimeout: () => Error): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(onTimeout()), ms);
+    work.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
 }
 
 /**
@@ -265,11 +366,15 @@ async function resolveOnce(deps: ResolveBrowserDeps): Promise<string> {
     throw new Error(t("errors.chromium.revision", { branch: snapshot.branch, revision }));
   }
 
-  const revisionDir = path.join(deps.cacheRoot, revision);
-  await fsp.mkdir(revisionDir, { recursive: true });
+  await fsp.mkdir(deps.cacheRoot, { recursive: true });
+  // Брошенные распаковки прошлых запусков: место занимают, а готовыми не станут.
+  await pruneCache(deps.cacheRoot, null);
 
-  // Качаем во временный файл: если скачивание оборвётся, в кеше не останется
-  // наполовину распакованной сборки, которую следующий запуск примет за готовую.
+  const revisionDir = path.join(deps.cacheRoot, revision);
+  // Распаковываем НЕ в папку ревизии: если приложение закроют посреди распаковки, в ней
+  // остался бы бинарник без половины файлов, и следующие запуски брали бы эту сборку вечно.
+  // Папка получает имя ревизии только целиком распакованной и проверенной.
+  const partialDir = `${revisionDir}${PARTIAL_MARK}${process.pid}-${Date.now()}`;
   const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), "bhorc-sda-chromium-"));
   const tmpArchive = path.join(tmpDir, snapshot.archiveName);
 
@@ -279,22 +384,35 @@ async function resolveOnce(deps: ResolveBrowserDeps): Promise<string> {
       `${SNAPSHOTS_BASE}/${snapshot.branch}/${revision}/${snapshot.archiveName}`,
       tmpArchive
     );
-    await deps.extract(tmpArchive, revisionDir);
-  } catch (err) {
-    // Оборванное скачивание или распаковка: папку ревизии убираем, иначе в ней
-    // останется часть файлов (без бинарника её и так не примут за готовую, но место займёт).
+    await fsp.mkdir(partialDir, { recursive: true });
+    await withTimeout(
+      deps.extract(tmpArchive, partialDir),
+      deps.extractTimeoutMs,
+      () => new Error(t("errors.chromium.extractTimeout", { minutes: Math.max(1, Math.round(deps.extractTimeoutMs / 60_000)) }))
+    );
+
+    if (!fs.existsSync(path.join(partialDir, snapshot.binaryInsideArchive))) {
+      throw new Error(t("errors.chromium.binaryMissing", { binary: path.join(revisionDir, snapshot.binaryInsideArchive) }));
+    }
+    // В снапшоте для Windows лежит тестовый бинарник на ~390 МБ, браузеру он не нужен.
+    for (const extra of BROWSER_TEST_BINARIES) {
+      await fsp.rm(path.join(partialDir, extra), { force: true }).catch(() => undefined);
+    }
+
     await fsp.rm(revisionDir, { recursive: true, force: true });
+    await renameWithRetry(partialDir, revisionDir);
+  } catch (err) {
+    await fsp.rm(partialDir, { recursive: true, force: true }).catch(() => undefined);
     throw err;
   } finally {
-    await fsp.rm(tmpDir, { recursive: true, force: true });
+    // Уборка не должна заслонить настоящую ошибку скачивания.
+    await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
   }
+
+  // Прежние ревизии больше не нужны: каждая — сотни мегабайт.
+  await pruneCache(deps.cacheRoot, revision);
 
   const binary = path.join(revisionDir, snapshot.binaryInsideArchive);
-  if (!fs.existsSync(binary)) {
-    await fsp.rm(revisionDir, { recursive: true, force: true });
-    throw new Error(t("errors.chromium.binaryMissing", { binary }));
-  }
-
   console.log(`Сборка Chromium ${snapshot.branch} готова: ${binary}`);
   return binary;
 }

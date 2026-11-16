@@ -2,11 +2,16 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
+import http from "http";
+import { PassThrough } from "stream";
+
 import resolveBrowserPath, {
   BINARY_INSIDE_ARCHIVE,
   extractArchive,
+  httpsGet,
   needsNativeArmBrowser,
   ResolveBrowserDeps,
+  saveResponseToFile,
   snapshotFor,
 } from "../resolveBrowserPath";
 import { setMainLanguage } from "../../../../i18n";
@@ -328,5 +333,187 @@ describe("resolveBrowserPath - одновременные запуски", () =>
     await expect(resolveBrowserPath(deps)).rejects.toThrow(/socket hang up/);
     await expect(resolveBrowserPath(deps)).resolves.toBe(path.join(cacheRoot, "1688726", "chrome-win", "chrome.exe"));
     expect(download).toHaveBeenCalledTimes(2);
+  });
+});
+
+// Ревью: распаковка шла прямо в папку ревизии, а chrome.exe в настоящем архиве — 9-й файл
+// из 258. Закрыли приложение посреди распаковки — и следующие запуски вечно брали эту сборку.
+describe("resolveBrowserPath - оборванная распаковка и уборка кеша", () => {
+  const WIN_BINARY = path.join("chrome-win", "chrome.exe");
+  const winDeps = (cacheRoot: string, overrides: Partial<ResolveBrowserDeps> = {}) =>
+    makeDeps({
+      platform: "win32", arch: "x64", cacheRoot, bundledPath: undefined,
+      extract: jest.fn(async (_archive: string, destDir: string) => {
+        fs.mkdirSync(path.join(destDir, "chrome-win"), { recursive: true });
+        fs.writeFileSync(path.join(destDir, WIN_BINARY), "");
+        fs.writeFileSync(path.join(destDir, "chrome-win", "chrome.dll"), "");
+        fs.writeFileSync(path.join(destDir, "chrome-win", "interactive_ui_tests.exe"), "big test binary");
+      }),
+      ...overrides,
+    });
+  const seed = (cacheRoot: string, dir: string, withBinary: boolean) => {
+    fs.mkdirSync(path.join(cacheRoot, dir, "chrome-win"), { recursive: true });
+    if (withBinary) fs.writeFileSync(path.join(cacheRoot, dir, WIN_BINARY), "");
+  };
+
+  it("недораспакованная папка с бинарником внутри готовой сборкой не считается", async () => {
+    const cacheRoot = makeCacheRoot();
+    seed(cacheRoot, "1688726.partial-4242-1", true);
+    const deps = winDeps(cacheRoot);
+
+    const result = await resolveBrowserPath(deps);
+
+    expect(deps.download).toHaveBeenCalledTimes(1);
+    expect(result).toBe(path.join(cacheRoot, "1688726", WIN_BINARY));
+    expect(fs.readdirSync(cacheRoot)).toEqual(["1688726"]);
+  });
+
+  it("папка с посторонним именем тоже не сборка, и её не трогаем", async () => {
+    const cacheRoot = makeCacheRoot();
+    seed(cacheRoot, "backup", true);
+    const deps = winDeps(cacheRoot);
+
+    await resolveBrowserPath(deps);
+
+    expect(deps.download).toHaveBeenCalledTimes(1);
+    expect(fs.readdirSync(cacheRoot).sort()).toEqual(["1688726", "backup"]);
+  });
+
+  it("распаковка идёт не в папку ревизии: пока она не закончилась, готовой сборки в кеше нет", async () => {
+    const cacheRoot = makeCacheRoot();
+    let seenDuringExtract: string[] = [];
+    const deps = winDeps(cacheRoot, {
+      extract: jest.fn(async (_archive: string, destDir: string) => {
+        fs.mkdirSync(path.join(destDir, "chrome-win"), { recursive: true });
+        fs.writeFileSync(path.join(destDir, WIN_BINARY), "");
+        // Здесь приложение могли бы закрыть: бинарник уже есть, остального ещё нет.
+        seenDuringExtract = fs.readdirSync(cacheRoot);
+      }),
+    });
+
+    await resolveBrowserPath(deps);
+
+    expect(seenDuringExtract).toHaveLength(1);
+    expect(seenDuringExtract[0]).toMatch(/^1688726\.partial-/);
+  });
+
+  it("зависшая распаковка обрывается по таймауту, следующая попытка идёт заново", async () => {
+    const cacheRoot = makeCacheRoot();
+    const hang = winDeps(cacheRoot, { extract: jest.fn(() => new Promise<void>(() => undefined)), extractTimeoutMs: 40 });
+
+    await expect(resolveBrowserPath(hang)).rejects.toThrow(/не завершилась/);
+    expect(fs.readdirSync(cacheRoot)).toEqual([]);
+
+    const ok = winDeps(cacheRoot);
+    await expect(resolveBrowserPath(ok)).resolves.toBe(path.join(cacheRoot, "1688726", WIN_BINARY));
+  });
+
+  it("после удачного скачивания в кеше одна ревизия, без тестового бинарника из архива", async () => {
+    const cacheRoot = makeCacheRoot();
+    seed(cacheRoot, "1500000", false); // старая ревизия, из которой антивирус убрал chrome.exe
+    seed(cacheRoot, "1500000.partial-1-1", true);
+    const deps = winDeps(cacheRoot);
+
+    const result = await resolveBrowserPath(deps);
+
+    expect(fs.readdirSync(cacheRoot)).toEqual(["1688726"]);
+    expect(fs.existsSync(result)).toBe(true);
+    expect(fs.existsSync(path.join(cacheRoot, "1688726", "chrome-win", "chrome.dll"))).toBe(true);
+    expect(fs.existsSync(path.join(cacheRoot, "1688726", "chrome-win", "interactive_ui_tests.exe"))).toBe(false);
+  });
+});
+
+// Ревью: у скачивания не было таймаута, а оно одно на все запуски браузера. Зависшее без RST
+// соединение вешало старт браузера у всех аккаунтов до перезапуска приложения.
+describe("httpsGet - зависшее соединение и кривой редирект", () => {
+  const servers: http.Server[] = [];
+  const serve = (handler: http.RequestListener) =>
+    new Promise<string>((resolve) => {
+      const server = http.createServer(handler);
+      servers.push(server);
+      server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server.address() as any).port}`));
+    });
+  afterEach(() => {
+    for (const server of servers.splice(0)) {
+      (server as any).closeAllConnections?.();
+      server.close();
+    }
+  });
+  const network = { get: http.get as any, idleTimeoutMs: 150 };
+  const run = (url: string) =>
+    new Promise<any>((resolve, reject) => httpsGet(url, (res) => { res.resume(); res.on("end", () => resolve("ok")); res.on("error", reject); }, reject, 5, network));
+
+  it("сервер замолчал посреди ответа - ошибка по таймауту простоя, а не вечное ожидание", async () => {
+    const url = await serve((_req, res) => {
+      res.writeHead(200, { "Content-Length": "1000000" });
+      res.write("x".repeat(1024)); // и тишина
+    });
+    await expect(run(`${url}/chrome-win.zip`)).rejects.toThrow(/Нет данных/);
+  });
+
+  it("сервер принял соединение и не ответил вовсе - тоже таймаут", async () => {
+    const url = await serve(() => undefined);
+    await expect(run(`${url}/LAST_CHANGE`)).rejects.toThrow(/Нет данных/);
+  });
+
+  it("редирект на адрес, который нельзя открыть, - отклонённый промис, а не исключение мимо него", async () => {
+    // http.get не умеет ftp: так же https.get в приложении откажет редиректу на http://.
+    const url = await serve((_req, res) => { res.writeHead(302, { Location: "ftp://example.invalid/chrome.zip" }); res.end(); });
+    await expect(run(url)).rejects.toBeTruthy();
+  });
+
+  it("редирект по кругу заканчивается ошибкой", async () => {
+    const url = await serve((_req, res) => { res.writeHead(302, { Location: "/again" }); res.end(); });
+    await expect(run(url)).rejects.toThrow(/редиректов/);
+  });
+
+  it("обычный ответ и редирект на него работают", async () => {
+    const url = await serve((req, res) => {
+      if (req.url === "/go") { res.writeHead(302, { Location: "/done" }); return res.end(); }
+      res.writeHead(200); res.end("fine");
+    });
+    await expect(run(`${url}/go`)).resolves.toBe("ok");
+  });
+});
+
+describe("saveResponseToFile", () => {
+  const target = () => path.join(makeCacheRoot(), "archive.zip");
+  const response = (headers: Record<string, string> = {}) => Object.assign(new PassThrough(), { headers });
+
+  it("пишет тело в файл", async () => {
+    const file = target();
+    const res = response({ "content-length": "5" });
+    const done = saveResponseToFile(res, file);
+    res.end("hello");
+    await done;
+    expect(fs.readFileSync(file, "utf8")).toBe("hello");
+  });
+
+  it("тело короче Content-Length - ошибка: обрезанный архив до распаковки не доходит", async () => {
+    const file = target();
+    const res = response({ "content-length": "500" });
+    const done = saveResponseToFile(res, file);
+    res.end("only a part");
+    await expect(done).rejects.toThrow(/не полностью/);
+  });
+
+  it("обрыв посреди тела - ошибка, и файл закрыт: временную папку можно убрать", async () => {
+    const file = target();
+    const res = response({ "content-length": "500" });
+    const done = saveResponseToFile(res, file);
+    res.write("part");
+    res.destroy(new Error("aborted"));
+    await expect(done).rejects.toThrow(/aborted/);
+    // На Windows открытый файл не дал бы удалить папку; здесь проверяем само удаление.
+    fs.rmSync(path.dirname(file), { recursive: true, force: true });
+    expect(fs.existsSync(path.dirname(file))).toBe(false);
+  });
+
+  it("без Content-Length длину не сверяет", async () => {
+    const file = target();
+    const res = response();
+    const done = saveResponseToFile(res, file);
+    res.end("chunked body");
+    await expect(done).resolves.toBeUndefined();
   });
 });

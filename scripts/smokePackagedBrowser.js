@@ -8,8 +8,16 @@
  *   3. новая вкладка и попап не роняют браузер (SDA-42: «нажимаю + — браузер падает»).
  *
  * В сеть не ходит: «сайт» отдаёт сам локальный прокси на 127.0.0.1, аккаунтов Steam нет.
- * Модули берутся из node_modules собранного приложения, то есть проверяется ровно то,
- * что получит пользователь.
+ * Модули и браузер берутся из node_modules собранного приложения.
+ *
+ * Чего тест НЕ проверяет:
+ *   - профиль: здесь он пустой временный, а приложение создаёт свой (Local State, аватар,
+ *     расширения со страницы Browser), и у пользователя он может быть ещё от старой сборки.
+ *     Падение, завязанное на состояние профиля, этот тест не увидит;
+ *   - полноту сборки: out/ лежит внутри репозитория, и модуль, которого нет в сборке, node
+ *     найдёт в node_modules проекта. Полноту проверяет verify:package (и то лишь по списку
+ *     внешних модулей);
+ *   - запасной путь, когда браузер докачивается в userData: в CI бинарник всегда в сборке.
  *
  * Запуск: npm run package && node scripts/smokePackagedBrowser.js
  *   --modules <dir>   взять модули из другой папки node_modules (например, из проекта)
@@ -169,6 +177,7 @@ async function main() {
       args: chromeFlags(proxy.port),
       dumpio: process.env.SDA_SMOKE_DUMPIO === "1",
     });
+    launchedProcess = browser.process();
     check("браузер стартовал", true, await browser.version());
     browser.on("disconnected", () => (disconnected = true));
     if (process.env.SDA_SMOKE_TRACE === "1") {
@@ -251,12 +260,20 @@ async function main() {
       if (child && child.exitCode === null) child.kill("SIGKILL");
     }
     proxy.server.close();
-    fs.rmSync(profileDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
+    try {
+      fs.rmSync(profileDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
+    } catch (err) {
+      // Процессы браузера на Windows могут ещё держать файлы профиля; на исход теста это не влияет.
+      console.log(`Профиль ${profileDir} не убран: ${err.message}`);
+    }
   }
 }
 
+/** Процесс запущенного браузера: по общему таймауту его нужно убить, а не оставить висеть. */
+let launchedProcess = null;
 const guard = setTimeout(() => {
   console.error(`FAIL тест не уложился в ${OVERALL_TIMEOUT_MS / 1000} с`);
+  if (launchedProcess && launchedProcess.exitCode === null) launchedProcess.kill("SIGKILL");
   process.exit(1);
 }, OVERALL_TIMEOUT_MS);
 

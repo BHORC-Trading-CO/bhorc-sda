@@ -29,6 +29,11 @@ function makeProject() {
   const browser = path.join(project, "node_modules", "chromium", "lib", "chromium", "chrome-mac", "Chromium");
   fs.mkdirSync(path.dirname(browser), { recursive: true });
   fs.writeFileSync(browser, "binary");
+  // Как в Windows-снапшоте: рядом с chrome.exe лежит тестовый бинарник.
+  const winDir = path.join(project, "node_modules", "chromium", "lib", "chromium", "chrome-win");
+  fs.mkdirSync(winDir, { recursive: true });
+  fs.writeFileSync(path.join(winDir, "chrome.exe"), "binary");
+  fs.writeFileSync(path.join(winDir, "interactive_ui_tests.exe"), "test binary");
   fs.mkdirSync(path.join(project, "node_modules", "chromium", "node_modules", ".bin"), { recursive: true });
   return project;
 }
@@ -89,5 +94,16 @@ describe("isBundledBrowserDir", () => {
     expect(isBundledBrowserDir("/repo/node_modules/chromium/lib")).toBe(false);
     expect(isBundledBrowserDir("/repo/node_modules/chromium/lib/chromium/chrome-mac")).toBe(false);
     expect(isBundledBrowserDir("/repo/node_modules/other/lib/chromium")).toBe(false);
+  });
+});
+
+describe("тестовый бинарник Chromium", () => {
+  it("в сборку не попадает, а chrome.exe рядом с ним - попадает", () => {
+    const build = tmpDir("bhorc-sda-copy-dst-");
+    copyExternalModules(makeProject(), build, { platform: "win32", arch: "x64" });
+
+    const winDir = path.join(build, "node_modules", "chromium", "lib", "chromium", "chrome-win");
+    expect(fs.existsSync(path.join(winDir, "chrome.exe"))).toBe(true);
+    expect(fs.existsSync(path.join(winDir, "interactive_ui_tests.exe"))).toBe(false);
   });
 });
