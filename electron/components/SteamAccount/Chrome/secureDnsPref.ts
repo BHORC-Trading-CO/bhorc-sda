@@ -35,6 +35,23 @@ export function withSecureDnsOff(localState: string | null): string {
 }
 
 /**
+ * rename поверх существующего файла на Windows отказывает (EPERM, EBUSY, EACCES), пока файл
+ * занят: его в этот миг переименовывает другая запись или читает антивирус. Это проходит
+ * само, поэтому пробуем несколько раз (на раннере Windows две записи разом так и падали).
+ */
+async function renameOver(from: string, to: string): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fsp.rename(from, to);
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code || "";
+      if (attempt >= 10 || !["EPERM", "EBUSY", "EACCES"].includes(code)) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
+    }
+  }
+}
+
+/**
  * Единственный способ записать Local State профиля. Что бы ни пришло на вход, в файле окажется
  * выключенный secure DNS, и окажется целиком: пишем во временный файл со своим именем и
  * переименовываем.
@@ -51,7 +68,7 @@ export async function writeLocalState(profileDir: string, content: string | null
   const tmp = `${file}.sda-tmp-${process.pid}-${randomBytes(6).toString("hex")}`;
   try {
     await fsp.writeFile(tmp, withSecureDnsOff(content));
-    await fsp.rename(tmp, file);
+    await renameOver(tmp, file);
   } catch (err) {
     await fsp.rm(tmp, { force: true }).catch(() => undefined);
     throw err;

@@ -101,7 +101,7 @@ describe("call sites and strings", () => {
         for (const file of walk(SRC)) {
             const source = fs.readFileSync(file, "utf8");
             for (const match of source.matchAll(/<Search\b([\s\S]*?)(?:\/>|<\/Search>)/g)) {
-                usages.push(path.relative(SRC, file));
+                usages.push(path.relative(SRC, file).split(path.sep).join("/"));
                 expect({ file: path.relative(SRC, file), controlled: /\bvalue=\{/.test(match[1]) }).toEqual({ file: path.relative(SRC, file), controlled: true });
             }
         }
