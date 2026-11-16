@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest a new feature or a change to how BHORC SDA works.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repository is public. Do not include passwords, maFile contents, secrets, cookies, session tokens or anything from the app's data folder.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is hard, slow or impossible today? Describe the situation, not the solution yet.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+      description: How should the app behave? What would you see and click?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other ways to solve the problem you considered, or how you work around it now.
+    validations:
+      required: false
+
+  - type: textarea
+    id: who-benefits
+    attributes:
+      label: Who benefits
+      description: Who would use this and how often (for example, people with many accounts, or everyone who uses proxies).
+    validations:
+      required: false

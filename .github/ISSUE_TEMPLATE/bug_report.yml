@@ -1,0 +1,119 @@
+name: Bug report
+description: Something in BHORC SDA does not work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Warning: this repository is public
+
+        Anyone can read everything you post here, including attachments and screenshots. **Never attach or paste:**
+
+        - maFile contents;
+        - passwords;
+        - shared secrets or identity secrets;
+        - revocation codes;
+        - `config.json` or anything from the app's data folder;
+        - cookies or session tokens.
+
+        Hide account logins and SteamIDs on screenshots and in logs if you do not want them public.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Describe the problem. Include the exact error text if the app showed one.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What should have happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest sequence of actions that makes the problem happen.
+      placeholder: |
+        1. Open the Accounts tab
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: The release tag you downloaded (for example v1.0.5) or the version shown by the app.
+      placeholder: v1.0.5
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS Apple Silicon
+        - macOS Intel
+        - Linux
+    validations:
+      required: true
+
+  - type: dropdown
+    id: accounts
+    attributes:
+      label: How many accounts are in the app (roughly)
+      options:
+        - 1-10
+        - 11-50
+        - 51-200
+        - More than 200
+    validations:
+      required: true
+
+  - type: dropdown
+    id: proxies
+    attributes:
+      label: Do the accounts use proxies
+      options:
+        - Yes, all of them
+        - Some of them
+        # Quoted: GitHub reads YAML 1.1, where a bare No is the boolean false.
+        - "No"
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag images here if they help. Hide account logins and SteamIDs first if you do not want them public.
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant log output, if you have it. Remove passwords, secrets, tokens, cookies, maFile contents, logins and SteamIDs before pasting.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: no-secrets
+    attributes:
+      label: Before you submit
+      options:
+        - label: Nothing I posted contains maFile contents, passwords, shared or identity secrets, revocation codes, config.json, cookies or session tokens.
+          required: true

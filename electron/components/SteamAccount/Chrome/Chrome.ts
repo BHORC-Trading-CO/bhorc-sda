@@ -28,6 +28,7 @@ import BrowserSettingsStorage from "../../newStorage/BrowserSettingsStorage";
 import { effectiveStartLinks, launchExtensionPaths } from "../../Browser/browserSettings";
 import { ProxyGeo, localeForCountry, acceptLanguageFor } from "../Functions/getProxyGeo";
 import resolveBrowserPath from "./resolveBrowserPath";
+import { ensureSecureDnsOff, writeLocalState } from "./secureDnsPref";
 const sharp = require("sharp");
 
 type StartCancelReason = "superseded" | "stopped" | "routeChanged";
@@ -38,6 +39,8 @@ export class BrowserStartCancelledError extends Error {
   }
 }
 export const BROWSER_CLOSE_TIMEOUT_MS = 3000;
+/** Сколько ждать аватар при создании профиля: он не должен держать запуск браузера. */
+export const AVATAR_TIMEOUT_MS = 10000;
 
 export default class Chrome {
   private startAttempt: { reason?: StartCancelReason } | null = null;
@@ -125,6 +128,38 @@ export default class Chrome {
       }
     }
   }
+  /** Последняя начатая подготовка профиля: следующая ждёт её окончания. */
+  private profilePreparation: Promise<void> = Promise.resolve();
+
+  /**
+   * Готовит папку профиля к запуску: перенос со старого места, создание, настройка DoH (SDA-26).
+   *
+   * Запуск можно отменить новым запуском, но начатое отменённый не бросает: копирование старого
+   * профиля или запись стартовых файлов он доводит до конца уже после отмены. Если бы новый
+   * запуск готовил профиль одновременно, эти хвосты легли бы поверх уже подготовленного профиля
+   * (в том числе поверх Local State с выключенным DoH) прямо перед стартом браузера. Поэтому
+   * подготовки идут строго по очереди: новая начинается, только когда предыдущая закончилась, и
+   * сама заканчивается проверкой настройки DoH. После неё этот запуск файлов профиля не пишет.
+   */
+  private prepareProfile(assertCurrent: () => void): Promise<void> {
+    const run = this.profilePreparation.then(async () => {
+      assertCurrent();
+      await this.migrateLegacyProfile();
+      assertCurrent();
+      await fs.access(this.profileDir).catch(async (err) => {
+        if (err.code == "ENOENT") await this.createProfile();
+        else throw err;
+      });
+      assertCurrent();
+      // DNS-over-HTTPS шёл бы мимо прокси, с реального IP. Не удалось записать настройку —
+      // браузер не запускаем.
+      await ensureSecureDnsOff(this.profileDir);
+    });
+    // Ошибка или отмена одной подготовки не должна рвать очередь.
+    this.profilePreparation = run.catch(() => undefined);
+    return run;
+  }
+
   /**
    * Одноразовая миграция профиля со старого места (рядом с бандлом, __dirname)
    * в userData. Best effort: rename в пределах диска, иначе рекурсивная копия;
@@ -162,15 +197,14 @@ export default class Chrome {
       try {
         await fs.mkdir(`${this.profileDir}/Default`, { recursive: true });
         await fs.mkdir(`${this.profileDir}/Avatars`, { recursive: true });
-        await fs.writeFile(
-          `${this.profileDir}/Local State`,
-          LocalState(this.params.secondary.nickname)
-        );
+        // Только через writeLocalState: файл сразу получает выключенный DoH (SDA-26), даже если
+        // этот запуск уже отменён и пишет позже нового.
+        await writeLocalState(this.profileDir, LocalState(this.params.secondary.nickname));
         // Аватар — косметика профиля. Недопустимый или недоступный URL пропускаем.
         // С прокси качаем через него; без прокси — напрямую.
         const avatarUrl = this.params.secondary?.avatarUrl;
         if (avatarUrl && sanitizeAvatarUrl(avatarUrl) === avatarUrl) {
-          try {
+          const avatar = (async () => {
             const proxyUrl = this.proxyUrl();
             await downloadImage(
               avatarUrl,
@@ -184,8 +218,20 @@ export default class Chrome {
                   err ? rej(err) : res()
                 );
             });
+          })();
+          // У скачивания аватара нет своего таймаута, а подготовка профиля идёт по очереди:
+          // зависший аватар держал бы все следующие запуски браузера этого аккаунта.
+          // Ждём недолго; опоздавший аватар допишет только свои файлы в Avatars.
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          const timedOut = new Promise<"timeout">((res) => { timer = setTimeout(() => res("timeout"), AVATAR_TIMEOUT_MS); });
+          try {
+            const outcome = await Promise.race([avatar, timedOut]);
+            if (outcome === "timeout") console.log(`${this.params.id} - аватар пропущен: не скачался за ${AVATAR_TIMEOUT_MS / 1000} с`);
           } catch (avatarErr) {
             console.log(`${this.params.id} - аватар пропущен: ${avatarErr}`);
+          } finally {
+            clearTimeout(timer);
+            avatar.catch(() => undefined); // опоздавшая ошибка никому не нужна
           }
         }
         resolve();
@@ -249,13 +295,9 @@ export default class Chrome {
         // качаться через него, а не напрямую (downloadImage получает proxyUrl).
         await this.setupProxy();
         assertCurrent();
-        await this.migrateLegacyProfile();
-        assertCurrent();
-        await fs.access(this.profileDir).catch(async (err) => {
-          if (err.code == "ENOENT") await this.createProfile();
-          else throw err;
-        });
-
+        // Перенос старого профиля, создание и настройки (SDA-26) — строго по очереди с другими
+        // запусками этого же профиля, см. prepareProfile.
+        await this.prepareProfile(assertCurrent);
         assertCurrent();
         const args = this.generateChromeFlags();
         const launchedBrowser = await puppeteer.launch({
