@@ -177,13 +177,17 @@
         "no": "No",
         "locked": "Locked",
         "later": "Later",
+        "unknown": "Unknown",
         "ktOk": "No red warning: Steam does not report the account as locked",
-        "ktLocked": "Red warning: on the Market page Steam says the account is currently locked",
+        "ktLocked": "Red warning: Steam reports the account as locked, disabled or trade-banned",
         "marketOk": "The Community Market is available",
         "marketBlocked": "The Community Market is not available on this account",
         "marketLater": "The Community Market will be available: {{date}}",
         "tradeOk": "The account can send trade offers",
-        "tradeBlocked": "Trade offers are blocked on this account"
+        "tradeBlocked": "Trade offers are blocked on this account",
+        "ktUnknown": "Red warning status is unknown: not checked yet, or the last check failed. Refresh profile data to check again",
+        "marketUnknown": "Community Market status is unknown: not checked yet, or the last check failed. Refresh profile data to check again",
+        "tradeUnknown": "Trade status is unknown: not checked yet, or the last check failed. Refresh profile data to check again"
       },
       "browser": {
         "start": "Start",

@@ -33,6 +33,11 @@ class SteamAccountsTableStore {
       content: ChangableSecondaryInterface;
     };
   };
+  // Баланс — это страница /market/ (~1 МБ, SDA-38), поэтому за запуск грузим его для аккаунта
+  // один раз: loading — запрос в пути, done — ответ пришёл. Новый список аккаунтов (смена вкладки,
+  // правка, импорт) несёт уже сохранённый в main баланс и не перезапрашивает его; обновить баланс
+  // вручную — кнопкой обновления строки (getSecondary приносит и его).
+  balanceLoads: { [id: string]: "loading" | "done" };
   browserStatuses: {
     [id: string]: "load" | "working" | "notworking";
   };
@@ -52,6 +57,7 @@ class SteamAccountsTableStore {
 
     this.authCodes = {};
     this.changableSecondaries = {};
+    this.balanceLoads = {};
     this.browserStatuses = {};
 
     this.settingsForm = new SettingsFormStore(this);
@@ -100,6 +106,10 @@ class SteamAccountsTableStore {
     });
     window.Main.steamAccounts.onGetChangableSecondaryError((event, data) => {
       //this.writeChangableSecondariesError(data.id, String(data.err));
+      // Ответа с балансом не будет: следующий переход на страницу может запросить его снова
+      runInAction(() => {
+        delete this.balanceLoads[data.id];
+      });
     });
     window.Main.steamAccounts.onGetTableFields((event, fields) => {
       this.setFields(fields);
@@ -109,8 +119,9 @@ class SteamAccountsTableStore {
       runInAction(() => {
         this.steamAccounts[id].isLogining = false;
       });
+      // Баланс приходит из того же обновления (одна загрузка /market/ на КТ, ТП и баланс, SDA-38):
+      // отдельный loadChangableSecondaries скачал бы страницу второй раз.
       this.loadSecondaries(id);
-      this.loadChangableSecondaries(id);
     });
     window.Main.steamAccounts.onRefreshSessionError((event, data) => {
       runInAction(() => {
@@ -190,6 +201,9 @@ class SteamAccountsTableStore {
   }
   loadChangableSecondaries(id: string) {
     if (this.steamAccounts[id].deleted) return;
+    // Уже загружен в этом запуске или ещё грузится: стартовый таймер, setActivePage и
+    // onGetTableOptions иначе запрашивали баланс аккаунтов первой страницы по два-три раза
+    if (this.balanceLoads[id]) return;
     const fields = this.getFields();
     const usefulFields = fields.filter(
       (f) => f.type === AvalibleTypes.steamAccountBalance
@@ -197,6 +211,7 @@ class SteamAccountsTableStore {
     if (usefulFields.filter((f) => !f.isVisible).length === 1) {
       return;
     }
+    this.balanceLoads[id] = "loading";
     this.changableSecondaries[id].isLoad = false;
     window.Main.steamAccounts.getChangableSecondary(id);
   }
@@ -208,8 +223,10 @@ class SteamAccountsTableStore {
     id: string,
     chanableSecondaries: ChangableSecondaryInterface
   ) {
-    this.changableSecondaries[id].content = chanableSecondaries;
-    this.changableSecondaries[id].isLoad = true;
+    // Баланс теперь приходит и с обновлением профиля — в том числе для аккаунта, которого
+    // в этом словаре ещё нет.
+    this.changableSecondaries[id] = { content: chanableSecondaries, isLoad: true };
+    this.balanceLoads[id] = "done";
   }
   setSteamAccounts(steamAccounts: CompiledSteamAccountInterface[]) {
     try {
@@ -241,7 +258,8 @@ class SteamAccountsTableStore {
       }
       for (let sa of tableSteamAccounts) {
         this.changableSecondaries[sa.id] = {
-          isLoad: false,
+          // Уже загруженный в этом запуске баланс main сохранил: показываем его без нового запроса
+          isLoad: this.balanceLoads[sa.id] === "done",
           content: sa.changableSecondary,
         };
       }

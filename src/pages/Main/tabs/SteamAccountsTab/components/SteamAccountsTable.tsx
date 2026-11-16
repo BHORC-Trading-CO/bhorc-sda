@@ -1,7 +1,8 @@
 import useAccountImage from "../../../../../globalComponents/Images/useAccountImage";
 import react, { FC } from "react";
 import Table, { Line, Cell } from "../../../../../globalComponents/Table/Table";
-import { Tip, CellText, StatusBadge } from "../../../../../globalComponents/Table/Cells";
+import { Tip, CellText } from "../../../../../globalComponents/Table/Cells";
+import { KtStatus, MarketStatus, TradeStatus, statusRank } from "./AccountStatusBadges";
 import Icon from "../../../../../globalComponents/Icon/Icon";
 import AvalibleTypes from "../../../../../../electron/interfaces/TableFields/AvalibleFieldTypes";
 import store from "../../../../../store/store";
@@ -98,46 +99,37 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
                 ? 1
                 : -1
             );
+          // Статусы трёхзначные (SDA-31): «неизвестно» (null) сортируется между false и true
           case AvalibleTypes.ktState:
-            return store.steamAccountsTable.sortSteamAccounts((a, b) =>
-              direction === "UP"
-                ? a.secondary.ktState < b.secondary.ktState
-                  ? 1
-                  : -1
-                : a.secondary.ktState > b.secondary.ktState
-                ? 1
-                : -1
-            );
           case AvalibleTypes.tpState:
-            return store.steamAccountsTable.sortSteamAccounts((a, b) =>
-              direction === "UP"
-                ? a.secondary.tpState < b.secondary.tpState
+          case AvalibleTypes.tradeState: {
+            const key = fieldType === AvalibleTypes.ktState ? "ktState"
+              : fieldType === AvalibleTypes.tpState ? "tpState" : "tradeState";
+            return store.steamAccountsTable.sortSteamAccounts((a, b) => {
+              const aRank = statusRank(a.secondary[key]);
+              const bRank = statusRank(b.secondary[key]);
+              return direction === "UP"
+                ? aRank < bRank
                   ? 1
                   : -1
-                : a.secondary.tpState > b.secondary.tpState
+                : aRank > bRank
                 ? 1
-                : -1
-            );
-          case AvalibleTypes.tradeState:
-            return store.steamAccountsTable.sortSteamAccounts((a, b) =>
-              direction === "UP"
-                ? a.secondary.tradeState < b.secondary.tradeState
-                  ? 1
-                  : -1
-                : a.secondary.tradeState > b.secondary.tradeState
-                ? 1
-                : -1
-            );
+                : -1;
+            });
+          }
           case AvalibleTypes.steamAccountLevel:
-            return store.steamAccountsTable.sortSteamAccounts((a, b) =>
-              direction === "UP"
-                ? a.secondary.level < b.secondary.level
+            return store.steamAccountsTable.sortSteamAccounts((a, b) => {
+              // Неизвестный уровень (null) — как самый низкий
+              const aLevel = a.secondary.level ?? -1;
+              const bLevel = b.secondary.level ?? -1;
+              return direction === "UP"
+                ? aLevel < bLevel
                   ? 1
                   : -1
-                : a.secondary.level > b.secondary.level
+                : aLevel > bLevel
                 ? 1
-                : -1
-            );
+                : -1;
+            });
           case AvalibleTypes.steamAccountName:
             return store.steamAccountsTable.sortSteamAccounts((a, b) =>
               direction === "UP"
@@ -410,69 +402,28 @@ const CellJSX: FC<{
           ></a>
         </div>
       );
+    // Три состояния: OK / проблема / неизвестно (SDA-31), см. AccountStatusBadges
     case AvalibleTypes.tradeState:
       if (steamAccount.deleted) return <></>;
       if (steamAccount.isLoadSecondary) return <Loading />;
-      return steamAccount.secondary.tradeState ? (
-        <StatusBadge
-          tone="success"
-          label={t("accounts.table.status.ok")}
-          tip={t("accounts.table.status.tradeOk")}
-        />
-      ) : (
-        <StatusBadge
-          tone="danger"
-          label={t("accounts.table.status.no")}
-          tip={t("accounts.table.status.tradeBlocked")}
-        />
-      );
+      return <TradeStatus value={steamAccount.secondary?.tradeState} />;
     case AvalibleTypes.ktState:
       if (steamAccount.deleted) return <></>;
       if (steamAccount.isLoadSecondary) return <Loading />;
-      return steamAccount.secondary.ktState ? (
-        <StatusBadge
-          tone="danger"
-          label={t("accounts.table.status.locked")}
-          tip={t("accounts.table.status.ktLocked")}
-        />
-      ) : (
-        <StatusBadge
-          tone="success"
-          label={t("accounts.table.status.ok")}
-          tip={t("accounts.table.status.ktOk")}
-        />
-      );
-    case AvalibleTypes.tpState: {
+      return <KtStatus value={steamAccount.secondary?.ktState} />;
+    case AvalibleTypes.tpState:
       if (steamAccount.deleted) return <></>;
       if (steamAccount.isLoadSecondary) return <Loading />;
-      const tpState = steamAccount.secondary.tpState;
-      // Строка — Steam назвал дату, с которой маркет станет доступен
-      if (typeof tpState === "string")
-        return (
-          <StatusBadge
-            tone="warning"
-            label={t("accounts.table.status.later")}
-            tip={t("accounts.table.status.marketLater", { date: tpState })}
-          />
-        );
-      return tpState ? (
-        <StatusBadge
-          tone="success"
-          label={t("accounts.table.status.ok")}
-          tip={t("accounts.table.status.marketOk")}
-        />
-      ) : (
-        <StatusBadge
-          tone="danger"
-          label={t("accounts.table.status.no")}
-          tip={t("accounts.table.status.marketBlocked")}
-        />
-      );
-    }
+      return <MarketStatus value={steamAccount.secondary?.tpState} />;
     case AvalibleTypes.steamAccountBalance:
       if (steamAccount.deleted) return <></>;
 
       if (changableSecondaries && changableSecondaries.isLoad) {
+        const steam = changableSecondaries.content.steam;
+        // Аккаунт вошёл, но Steam не показал кошелёк: баланса нет, и это не ошибка (SDA-38)
+        if (!steam.error && (steam.balance === null || steam.balance === undefined)) {
+          return <span className="cell-muted">—</span>;
+        }
         if (changableSecondaries.content.steam.error) {
           // Причину не прячем: прочерк, значок и текст ошибки в подсказке
           return (
@@ -523,14 +474,12 @@ const CellJSX: FC<{
       return steamId ? <>{steamId}</> : <span className="cell-muted">—</span>;
     }
     case AvalibleTypes.steamAccountLevel:
-      return (
-        <>
-          {steamAccount.isLoadSecondary ? (
-            <Loading />
-          ) : (
-            steamAccount.secondary.level
-          )}
-        </>
+      if (steamAccount.isLoadSecondary) return <Loading />;
+      // null — уровень неизвестен (SDA-31): прочерк вместо чужого уровня или нуля
+      return typeof steamAccount.secondary?.level === "number" ? (
+        <>{steamAccount.secondary.level}</>
+      ) : (
+        <span className="cell-muted">—</span>
       );
     case AvalibleTypes.steamAccountAvatar:
       return <AccountAvatar steamAccount={steamAccount} />;
