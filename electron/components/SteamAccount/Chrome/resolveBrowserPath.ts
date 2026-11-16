@@ -180,7 +180,9 @@ export function httpsGet(
       }
       if (status !== 200) {
         retired = true;
-        res.resume();
+        // Тело ответа с ошибкой не нужно: соединение закрываем сразу, иначе недосланное
+        // тело держало бы его открытым уже без таймаута.
+        req.destroy();
         return reject(new Error(t("errors.chromium.httpStatus", { url, status })));
       }
       onResponse(res);

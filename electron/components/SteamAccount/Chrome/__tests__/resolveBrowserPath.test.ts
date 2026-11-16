@@ -575,6 +575,28 @@ describe("httpsGet - зависание до соединения и хвост 
   });
 });
 
+describe("httpsGet - ответ с ошибкой", () => {
+  it("после ответа не 200 соединение закрывается сразу, даже если тело не дослано", async () => {
+    let socketClosed = false;
+    const server = http.createServer((req, res) => {
+      req.socket.on("close", () => (socketClosed = true));
+      res.writeHead(503, { "Content-Length": "100000" });
+      res.write("partial error body"); // и тишина
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      const url = `http://127.0.0.1:${(server.address() as any).port}/chrome-win.zip`;
+      const error: Error = await new Promise((resolve) => httpsGet(url, () => undefined, resolve, 5, { get: http.get as any, idleTimeoutMs: 5000 }));
+      expect(error.message).toMatch(/503/);
+      for (let i = 0; i < 40 && !socketClosed; i++) await new Promise((resolve) => setTimeout(resolve, 25));
+      expect(socketClosed).toBe(true);
+    } finally {
+      (server as any).closeAllConnections?.();
+      server.close();
+    }
+  });
+});
+
 describe("resolveBrowserPath - кеш до и после скачивания", () => {
   const WIN_BINARY = path.join("chrome-win", "chrome.exe");
 
