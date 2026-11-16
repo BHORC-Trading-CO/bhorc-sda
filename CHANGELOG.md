@@ -10,7 +10,7 @@ The first public release. Changes are listed against the internal 1.0.5 build (T
 ### Added
 - English, Ukrainian and Russian interface, switched from the top bar.
 - A new look: top navigation, account groups as a row of tabs, native window buttons, new icons and logo.
-- Browser page: pages to open when an account's browser starts, and unpacked extensions to load into it.
+- Browser page: pages to open when an account's browser starts, unpacked extensions to load into it, and a switch to bring back the tabs of the previous session instead of the start pages.
 - Confirmations for market purchases, market listings and API keys. Purchases, API keys and account security changes are confirmed one at a time; an API key only after a warning. A failed confirmation shows Steam's message instead of leaving the window waiting.
 - Settings page: keep running in the tray when the window is closed, launch at system startup, start minimized.
 - Clear button in the search field.

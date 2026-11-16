@@ -9,7 +9,7 @@ An open-source desktop app for running many Steam accounts from one window: Stea
 - **Steam Guard for many accounts.** Codes, trade and market confirmations, maFile import and export, account groups.
 - **Confirmations for everything Steam asks about now:** trades, market listings, market purchases, API keys. Purchases, API keys and account security changes are confirmed one at a time; an API key only after a warning.
 - **A proxy for every account.** All Steam traffic of an account goes through its proxy. If that proxy is gone, the account stays offline instead of quietly using your own address.
-- **A browser for every account.** Each account gets its own Chromium profile, already signed in, on the account's proxy, with the time zone and language of the proxy's country. Start pages and extensions are set once for all of them.
+- **A browser for every account.** Each account gets its own Chromium profile, already signed in, on the account's proxy, with the time zone and language of the proxy's country. Start pages and extensions are set once for all of them; a start opens the start pages, or the tabs of the previous session if you prefer.
 - **Status at a glance:** level, wallet balance, red flag, market and trade restrictions. When a check has not run or has failed the table says "unknown" instead of "OK".
 - **Runs in the background:** optional tray icon and launch at system startup.
 - English, Ukrainian and Russian interface.
