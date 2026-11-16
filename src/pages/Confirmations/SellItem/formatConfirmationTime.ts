@@ -1,5 +1,6 @@
-// steamcommunity отдаёт время подтверждения ISO-строкой в UTC ("2026-11-05T07:57:22.161Z"):
-// показываем его в местном времени и на языке интерфейса, а непонятную строку — как есть.
+// Время подтверждения — ISO-строка в UTC ("2026-11-05T07:57:22.161Z"; SellItem строит её из
+// creation_time getlist): показываем его в местном времени и на языке интерфейса, а непонятную
+// строку — как есть.
 export default function formatConfirmationTime(time: string, language: string, timeZone?: string): string {
     if (!time) return "";
     const date = new Date(time);

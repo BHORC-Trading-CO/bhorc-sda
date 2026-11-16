@@ -499,7 +499,7 @@
   "confirmations": {
     "title": "Confirmations",
     "selectedOf": "Selected: <n>{{selected}}</n> of <n>{{total}}</n>",
-    "toggleAll": "Select/deselect all confirmations",
+    "toggleAll": "Select/deselect all batch confirmations",
     "refresh": "Refresh",
     "empty": "No confirmations available",
     "loading": "Loading confirmations…",
@@ -507,18 +507,49 @@
     "confirmSelected": "Confirm selected",
     "item": {
       "select": "Select",
-      "deselect": "Selected"
+      "deselect": "Selected",
+      "confirm": "Confirm",
+      "decline": "Decline"
     },
     "retry": "Retry",
     "error": "Could not load confirmations.",
-    "confirming_one": "Confirming selected: <n>{{count}}</n>",
-    "confirming_other": "Confirming selected: <n>{{count}}</n>",
-    "declining_one": "Declining selected: <n>{{count}}</n>",
-    "declining_other": "Declining selected: <n>{{count}}</n>",
+    "confirming_one": "Confirming: <n>{{count}}</n>",
+    "confirming_other": "Confirming: <n>{{count}}</n>",
+    "declining_one": "Declining: <n>{{count}}</n>",
+    "declining_other": "Declining: <n>{{count}}</n>",
+    "actionError": "Could not respond to this confirmation.",
     "types": {
       "trade": "Trade",
       "listing": "Market listing",
+      "purchase": "Market purchase",
+      "apiKey": "Web API key",
+      "security": "Account security",
+      "family": "Steam Family",
+      "refund": "Refund",
       "unknown": "Confirmation"
+    },
+    "apiKey": {
+      "title": "Create a Web API key?",
+      "warning": "This will authorize creation of a Web API key. If you did not request it yourself, go back and decline it: unexpected API key requests are a common trade theft scheme. Check the request details below.",
+      "back": "Go back",
+      "confirm": "I requested this key — confirm"
+    },
+    "purchaseHint": "The purchase completes only if the page or bot that started it is still waiting. Check market history before starting another purchase.",
+    "time": {
+      "unknown": "Time unavailable"
+    },
+    "purchaseMayBeCompleted": "The purchase may already be completed — check market history; do not repeat it blindly.",
+    "outcomeUnknown": "Outcome unknown — refresh the list to check before trying again.",
+    "notSent": "Not sent because the operation stopped.",
+    "phoneChange": {
+      "title": "Change the account phone number?",
+      "warning": "Changing the phone number can give someone else control of your account. Confirm only if you requested this exact change. Otherwise, go back and decline it to prevent account takeover.",
+      "confirm": "I requested this phone change — confirm"
+    },
+    "accountRecovery": {
+      "title": "Approve account recovery?",
+      "warning": "Account recovery can transfer control of your account to someone else. Confirm only if you started this recovery yourself. Otherwise, go back and decline it to prevent account takeover.",
+      "confirm": "I started this recovery — confirm"
     }
   },
   "browser": {

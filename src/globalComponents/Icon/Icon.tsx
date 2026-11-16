@@ -24,6 +24,7 @@ import {
   GripVertical,
   Image,
   Info,
+  KeyRound,
   Languages,
   Link,
   LoaderCircle,
@@ -35,12 +36,15 @@ import {
   RefreshCw,
   Search,
   Settings,
+  ShieldAlert,
   ShieldCheck,
+  ShoppingCart,
   SlidersHorizontal,
   Square,
   Tag,
   Trash2,
   TriangleAlert,
+  Undo2,
   Upload,
   User,
   Users,
@@ -63,6 +67,8 @@ export type IconName =
   | "arrowLeftRight" | "tag"
   // Раздел Settings (трей и автозапуск, SDA-35/36).
   | "settings";
+  // SDA-7: покупка на рынке, Web API-ключ, безопасность аккаунта, возврат средств.
+  | "shoppingCart" | "key" | "shieldAlert" | "undo";
 
 export type IconSize = 13 | 14 | 16 | 18 | 20;
 
@@ -114,6 +120,10 @@ const ICONS: Record<IconName, LucideIcon> = {
   arrowLeftRight: ArrowLeftRight,
   tag: Tag,
   settings: Settings,
+  shoppingCart: ShoppingCart,
+  key: KeyRound,
+  shieldAlert: ShieldAlert,
+  undo: Undo2,
 };
 
 // Классы анимаций из src/css/motion.css. Ховер-анимации срабатывают и при наведении на кнопку,

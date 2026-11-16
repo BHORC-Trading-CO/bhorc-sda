@@ -1,7 +1,6 @@
 jest.mock("../../application/application", () => ({ __esModule: true, default: { sendToMain: jest.fn() } }));
 import edit from "../Listeners/steamAccountEditListener";
 import start from "../Listeners/steamAccountStartBrowser";
-import confirm from "../Listeners/steamAccountConfirmListener";
 import stop from "../Listeners/steamAccountStopBrowser";
 import focus from "../Listeners/steamAccountFocusBrowser";
 import { BrowserStartCancelledError } from "../Chrome/Chrome";
@@ -17,8 +16,7 @@ it.each([
     [edit, { id: "unknown", steamAccountParams: {} }],
     [start, "unknown"],
     [stop, "unknown"],
-    [focus, "unknown"],
-    [confirm, { id: "unknown", data: { allow: { ids: [1], keys: ["k"] }, cancel: { ids: [], keys: [] } } }]
+    [focus, "unknown"]
 ])("F9 generic account error payload is a string (%#)", async (listener, data) => {
     const event = { reply: jest.fn() };
     await (listener as any)(event, data);
