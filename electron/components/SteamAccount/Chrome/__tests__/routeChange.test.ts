@@ -182,3 +182,45 @@ it("SDA-26 when the profile setting cannot be written the browser is not launche
     expect(launch).not.toHaveBeenCalled();
     expect(chrome.browser).toBeNull();
 });
+
+// Третье ревью: отменённый запуск доводит до конца то, что уже начал (например, копирование
+// старого профиля), и эти файлы ложились поверх профиля, который успел подготовить новый запуск.
+it("SDA-26 a superseded start finishes touching the profile before the next one prepares and launches", async () => {
+    const order: string[] = [];
+    const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
+    let finishFirstMigration!: () => void;
+    const chrome = make();
+    jest.spyOn(chrome as any, "migrateLegacyProfile")
+        .mockImplementationOnce(() => new Promise<void>(resolve => {
+            order.push("A: copying the old profile");
+            finishFirstMigration = () => { order.push("A: copy finished"); resolve(); };
+        }))
+        .mockImplementation(async () => { order.push("B: migration"); });
+    (ensureSecureDnsOff as jest.Mock).mockImplementation(async () => { order.push("B: secure DNS off"); });
+    const { browser } = launched();
+    (puppeteer.launch as jest.Mock).mockImplementation(async () => { order.push("B: launch"); return browser; });
+    try {
+        const first = chrome.start();
+        const rejected = expect(first).rejects.toMatchObject({ reason: "superseded" });
+        await flush();
+        const second = chrome.start();
+        await flush();
+        // B ждёт: к профилю не прикасается, браузер не запускает.
+        expect(order).toEqual(["A: copying the old profile"]);
+        finishFirstMigration();
+        await second;
+        await rejected;
+        expect(order).toEqual(["A: copying the old profile", "A: copy finished", "B: migration", "B: secure DNS off", "B: launch"]);
+        expect(chrome.browser).toBe(browser);
+    } finally {
+        (ensureSecureDnsOff as jest.Mock).mockReset().mockResolvedValue(undefined);
+    }
+});
+it("SDA-26 a failed preparation does not block the next start", async () => {
+    const chrome = make();
+    (ensureSecureDnsOff as jest.Mock).mockRejectedValueOnce(new Error("EACCES: Local State"));
+    await expect(chrome.start()).rejects.toThrow("EACCES: Local State");
+    const { browser } = launched();
+    await chrome.start();
+    expect(chrome.browser).toBe(browser);
+});

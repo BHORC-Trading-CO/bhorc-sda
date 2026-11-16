@@ -126,6 +126,38 @@ export default class Chrome {
       }
     }
   }
+  /** Последняя начатая подготовка профиля: следующая ждёт её окончания. */
+  private profilePreparation: Promise<void> = Promise.resolve();
+
+  /**
+   * Готовит папку профиля к запуску: перенос со старого места, создание, настройка DoH (SDA-26).
+   *
+   * Запуск можно отменить новым запуском, но начатое отменённый не бросает: копирование старого
+   * профиля или запись стартовых файлов он доводит до конца уже после отмены. Если бы новый
+   * запуск готовил профиль одновременно, эти хвосты легли бы поверх уже подготовленного профиля
+   * (в том числе поверх Local State с выключенным DoH) прямо перед стартом браузера. Поэтому
+   * подготовки идут строго по очереди: новая начинается, только когда предыдущая закончилась, и
+   * сама заканчивается проверкой настройки DoH. После неё этот запуск файлов профиля не пишет.
+   */
+  private prepareProfile(assertCurrent: () => void): Promise<void> {
+    const run = this.profilePreparation.then(async () => {
+      assertCurrent();
+      await this.migrateLegacyProfile();
+      assertCurrent();
+      await fs.access(this.profileDir).catch(async (err) => {
+        if (err.code == "ENOENT") await this.createProfile();
+        else throw err;
+      });
+      assertCurrent();
+      // DNS-over-HTTPS шёл бы мимо прокси, с реального IP. Не удалось записать настройку —
+      // браузер не запускаем.
+      await ensureSecureDnsOff(this.profileDir);
+    });
+    // Ошибка или отмена одной подготовки не должна рвать очередь.
+    this.profilePreparation = run.catch(() => undefined);
+    return run;
+  }
+
   /**
    * Одноразовая миграция профиля со старого места (рядом с бандлом, __dirname)
    * в userData. Best effort: rename в пределах диска, иначе рекурсивная копия;
@@ -249,17 +281,9 @@ export default class Chrome {
         // качаться через него, а не напрямую (downloadImage получает proxyUrl).
         await this.setupProxy();
         assertCurrent();
-        await this.migrateLegacyProfile();
-        assertCurrent();
-        await fs.access(this.profileDir).catch(async (err) => {
-          if (err.code == "ENOENT") await this.createProfile();
-          else throw err;
-        });
-
-        assertCurrent();
-        // DNS-over-HTTPS шёл бы мимо прокси, с реального IP (SDA-26). Выключаем настройкой
-        // профиля до запуска; не удалось записать — браузер не запускаем.
-        await ensureSecureDnsOff(this.profileDir);
+        // Перенос старого профиля, создание и настройки (SDA-26) — строго по очереди с другими
+        // запусками этого же профиля, см. prepareProfile.
+        await this.prepareProfile(assertCurrent);
         assertCurrent();
         const args = this.generateChromeFlags();
         const launchedBrowser = await puppeteer.launch({

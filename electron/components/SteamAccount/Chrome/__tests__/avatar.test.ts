@@ -41,3 +41,16 @@ it("createProfile пишет Local State только через writeLocalState
     expect(writeLocalState).toHaveBeenCalledWith(chrome.profileDir, expect.stringContaining('"name"'));
     expect((fsp.writeFile as jest.Mock).mock.calls.some(([file]) => String(file).includes("Local State"))).toBe(false);
 });
+
+it("createProfile ждёт запись Local State: профиль не считается готовым, пока она не закончилась", async () => {
+    let finishWrite!: () => void;
+    (writeLocalState as jest.Mock).mockImplementationOnce(() => new Promise<void>(resolve => { finishWrite = resolve; }));
+    const chrome = new Chrome({ id: "test-account", secondary: { nickname: "name", avatarUrl: "" } } as any);
+    let done = false;
+    const creating = chrome.createProfile().then(() => { done = true; });
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    expect(done).toBe(false);
+    finishWrite();
+    await creating;
+    expect(done).toBe(true);
+});
