@@ -8,45 +8,31 @@ const NEVER_BATCH_TYPES = new Set([5, 6, 9, 10, 11, 12, 13]);
 const REQUEST_TIMEOUT = 30000;
 type FailureKind = 'steam' | 'http' | 'auth' | 'route' | 'throttled' | 'unknown';
 
-const MAX_MESSAGE_LENGTH = 1000;
+const MAX_MESSAGE_LENGTH = 300;
+// Errors raised by our own code (proxy gone, route changed): their text is ours and safe to show.
+const OWN_ERROR_CODES = new Set(['PROXY_UNAVAILABLE', 'CONFIRMATION_ROUTE_CHANGED']);
 
 /**
- * Error text from this module is shown in the confirmations window, and a signed mobileconf
- * request carries the confirmation key (k) and the item nonce (ck). Two layers keep them out:
+ * What may be shown in the confirmations window.
  *
- * 1. redactValues (the one that counts): the module knows the exact key and nonces of the request
- *    it made, so it removes those VALUES from any text, whatever the format: plain, URL-encoded,
- *    inside JSON, behind encoded delimiters.
- * 2. scrubConfirmationSecrets (this function): a format-based net for text whose origin is not a
- *    request of ours. It cuts the query off mobileconf URLs and masks k/ck/nonce parameters. Other
- *    links are left alone: a Steam help link in a message must stay usable.
+ * A signed mobileconf request carries the confirmation key (k) and the item nonce (ck), and an
+ * HTTP library may quote the request in its error text (request does so for a redirect loop).
+ * Masking such text by pattern, and then by the known values, lost twice in review to one more
+ * spelling of the same data, so the rule is the other way round:
+ *
+ * - text written by a library is shown only when it is plain prose (letters, digits, spaces and
+ *   . , : ; ( ) ! ? _ -). That leaves no room for a URL, a query string, JSON or a base64 value;
+ *   anything else becomes a fixed message with the error code;
+ * - text written by Steam's server (message/detail of its JSON) is shown, cut to a sane length,
+ *   with scrubConfirmationSecrets as a net for the unlikely case that it echoes the request;
+ * - text of our own errors (missing proxy, changed route) is shown as it is.
  */
-export function scrubConfirmationSecrets(message: string): string {
-    const bounded = message.length > MAX_MESSAGE_LENGTH ? `${message.slice(0, MAX_MESSAGE_LENGTH)}…` : message;
-    return bounded
-        .replace(/https?:\/\/[^\s"'<>]*\/mobileconf\/[^\s"'<>]*/gi, url => url.split(/[?#]|%3F|%23/i)[0])
-        .replace(/"(ck|k|nonce)"\s*:\s*"[^"]*"/gi, '"$1":"***"')
-        .replace(/\b(ck(?:\[\]|%5B%5D)?|k|nonce)=(?:"[^"]*"|[^&\s"'<>]+)/gi, '$1=***');
-}
-
-/** Removes the given secret values from the text in their plain and URL-encoded spellings. */
-export function redactValues(message: string, secrets: Iterable<unknown>): string {
-    let result = message;
-    for (const secret of secrets) {
-        const value = typeof secret === 'number' ? String(secret) : secret;
-        // A value this short cannot be told apart from ordinary text.
-        if (typeof value !== 'string' || value.length < 4) continue;
-        const once = encodeURIComponent(value);
-        for (const spelling of new Set([value, once, encodeURIComponent(once)])) {
-            result = result.split(spelling).join('***');
-        }
-    }
-    return result;
-}
+const PLAIN_PROSE = /^[\p{L}\p{N} .,:;()!?_-]{1,200}$/u;
+const SAFE_CODE = /^[A-Za-z0-9_ -]{1,40}$/;
 
 class ConfirmationRequestError extends Error {
     constructor(readonly kind: FailureKind, message: string, readonly code?: string | number) {
-        super(scrubConfirmationSecrets(message));
+        super(message);
     }
 }
 const errorCode = (error: unknown) => (error as { code?: string | number } | null)?.code;
@@ -58,11 +44,38 @@ const identifier = (value: unknown): string | null => {
     if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return String(value);
     return null;
 };
+const rawMessage = (error: unknown): string => {
+    const message = error && typeof error === 'object' && 'message' in error ? (error as { message: unknown }).message : error;
+    return typeof message === 'string' ? message : '';
+};
 
+/** Net for server-authored text: cuts the query off mobileconf URLs, masks k/ck/nonce parameters. */
+export function scrubConfirmationSecrets(message: string): string {
+    const scrubbed = message.slice(0, 4 * MAX_MESSAGE_LENGTH)
+        .replace(/https?:\/\/[^\s"'<>]*\/mobileconf\/[^\s"'<>]*/gi, url => url.split(/[?#]|%3F|%23/i)[0])
+        .replace(/"(ck|k|nonce)"\s*:\s*"[^"]*"/gi, '"$1":"***"')
+        .replace(/\b(ck(?:\[\]|%5B%5D)?|k|nonce)=(?:"[^"]*"|[^&\s"'<>]+)/gi, '$1=***');
+    return scrubbed.length > MAX_MESSAGE_LENGTH ? `${scrubbed.slice(0, MAX_MESSAGE_LENGTH)}…` : scrubbed;
+}
+/** Steam's own message or detail, ready for the window. */
+const steamText = (value: unknown): string => scrubConfirmationSecrets(text(value));
+
+/** A library's error as the window may show it: its text if it is plain prose, else the code only. */
+function transportMessage(error: unknown): string {
+    const raw = rawMessage(error);
+    if (PLAIN_PROSE.test(raw)) return raw;
+    // "tunneling socket could not be established, statusCode=407": the proxy's answer is worth keeping.
+    const status = /\bstatusCode=(\d{3})\b/.exec(raw.slice(0, 2000));
+    const code = errorCode(error);
+    const shown = typeof code === 'number' || (typeof code === 'string' && SAFE_CODE.test(code)) ? String(code) : status ? `HTTP ${status[1]}` : '';
+    return shown ? t('errors.confirmations.network', { code: shown }) : t('errors.confirmations.actFailed');
+}
+
+/** The only way an error becomes text for the window. */
 export function confirmationErrorMessage(error: unknown): string {
-    const message = error && typeof error === 'object' && 'message' in error
-        ? (error as { message: unknown }).message : error;
-    return scrubConfirmationSecrets(String(message || t('errors.confirmations.actFailed')));
+    if (error instanceof ConfirmationRequestError) return error.message;
+    if (OWN_ERROR_CODES.has(String(errorCode(error)))) return rawMessage(error).slice(0, MAX_MESSAGE_LENGTH) || t('errors.confirmations.actFailed');
+    return transportMessage(error);
 }
 
 export function isBatchableConfirmation(ref: MobileConfirmationRef): boolean {
@@ -120,18 +133,15 @@ function mobileRequest(
             json: true,
             timeout: REQUEST_TIMEOUT,
         };
-        // The key and nonces of THIS request: nothing that leaves it may contain them.
-        const secrets = [fields.k, identitySecret, ...[params.ck, params['ck[]']].flat()];
-        const seal = (error: unknown) => new ConfirmationRequestError(
-            failureKind(error), redactValues(confirmationErrorMessage(error), secrets), errorCode(error),
-        );
         // Also bound a stalled pre-request hook; all callback exceptions reject the promise.
         let settled = false;
         const fail = (error: unknown) => {
             if (settled) return;
             settled = true;
             clearTimeout(timer);
-            reject(seal(error));
+            // Whatever went wrong leaves as our error type, whose text is built by the rules above.
+            reject(error instanceof ConfirmationRequestError ? error
+                : new ConfirmationRequestError('unknown', confirmationErrorMessage(error), errorCode(error)));
         };
         // httpRequest exposes no abort handle. A late reply cannot change an unknown
         // outcome or trigger resends after this deadline.
@@ -146,7 +156,7 @@ function mobileRequest(
                     (community as SteamCommunity & { _notifySessionExpired?: (error: Error) => void })._notifySessionExpired?.(authError);
                     return;
                 }
-                const message = text(body?.message) || text(body?.detail);
+                const message = steamText(body?.message) || steamText(body?.detail);
                 const status = response?.statusCode;
                 const code = errorCode(err);
                 if (code === 'PROXY_UNAVAILABLE' || code === 'CONFIRMATION_ROUTE_CHANGED') {
@@ -172,8 +182,6 @@ function mobileRequest(
                     return fail(new ConfirmationRequestError('unknown', message || t(endpoint === 'getlist' ? 'errors.confirmations.listFailed' : 'errors.confirmations.actFailed')));
                 }
                 settled = true;
-                // Steam's own text on success goes to the window too.
-                if (typeof body.message === 'string') body.message = redactValues(scrubConfirmationSecrets(body.message), secrets);
                 resolve(body);
             } catch (error) {
                 fail(error);
@@ -227,7 +235,9 @@ export function respondToConfirmations(community: SteamCommunity, identitySecret
             const body = await mobileRequest(community, identitySecret, multi ? 'multiajaxop' : 'ajaxop', tag, state.lastTime,
                 multi ? { op: tag, 'cid[]': group.map(ref => ref.id), 'ck[]': group.map(ref => ref.nonce) }
                     : { op: tag, cid: group[0].id, ck: group[0].nonce });
-            for (const ref of group) results.set(ref.id, { id: ref.id, ok: true, ...(text(body.message) ? { message: body.message } : {}) });
+            // Steam's text on success goes to the window too.
+            const note = steamText(body.message);
+            for (const ref of group) results.set(ref.id, { id: ref.id, ok: true, ...(note ? { message: note } : {}) });
         };
         const stop = (error: unknown, attempted: MobileConfirmationRef[]) => {
             for (const ref of valid) {
@@ -258,13 +268,7 @@ export function respondToConfirmations(community: SteamCommunity, identitySecret
                 else stop(error, [ref]);
             }
         }
-        // Last exit: a row can carry the message of another row's request, so every message is
-        // cleared of every nonce of this operation once more.
-        const nonces = refs.map(ref => ref.nonce);
-        return unique.map(ref => {
-            const result = results.get(ref.id)!;
-            return typeof result.message === 'string' ? { ...result, message: redactValues(result.message, nonces) } : result;
-        });
+        return unique.map(ref => results.get(ref.id)!);
     });
     state.tail = operation.catch(() => undefined);
     return operation;

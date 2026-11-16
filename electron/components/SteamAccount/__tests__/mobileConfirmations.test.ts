@@ -1,4 +1,4 @@
-import { confirmationErrorMessage, fetchConfirmations, isBatchableConfirmation, parseConfirmations, redactValues, respondToConfirmations, scrubConfirmationSecrets } from '../Functions/mobileConfirmations';
+import { confirmationErrorMessage, fetchConfirmations, isBatchableConfirmation, parseConfirmations, respondToConfirmations, scrubConfirmationSecrets } from '../Functions/mobileConfirmations';
 import fixture from './fixtures/mobileConfirmations.json';
 
 const SECRET = Buffer.from('synthetic-identity').toString('base64');
@@ -232,155 +232,122 @@ it('purchases with multi=true always use individual GET requests until the live 
     expect(community.httpRequest.mock.calls.map(([options]) => [options.method, options.qs.cid])).toEqual([['GET', '12a'], ['GET', '12b']]);
 });
 
-// A signed mobileconf URL carries the confirmation key (k) and the item nonce (ck); the request
-// library quotes the URL in some transport errors (redirect loop), and error text reaches the window.
-describe('signed URLs never reach error text', () => {
-    const signedUrl = (endpoint: string, extra = '') =>
-        `https://steamcommunity.com/mobileconf/${endpoint}?op=allow&cid=1002&ck=NONCE-VALUE&p=android:device&a=76561198000000001&k=SIGNATURE-VALUE&t=1700000000&m=react&tag=allow${extra}`;
-    const redirectLoop = (endpoint: string) =>
-        Object.assign(new Error(`Exceeded maxRedirects. Probably stuck in a redirect loop ${signedUrl(endpoint)}`), {});
-    const clean = (message: unknown) => {
-        expect(String(message)).not.toContain('NONCE-VALUE');
-        expect(String(message)).not.toContain('SIGNATURE-VALUE');
-        expect(String(message)).not.toMatch(/[?&](k|ck)=/);
-    };
-
-    it('scrubs query strings and stray secret parameters, keeps ordinary text', () => {
-        expect(scrubConfirmationSecrets(`stuck in a redirect loop ${signedUrl('ajaxop')}`))
-            .toBe('stuck in a redirect loop https://steamcommunity.com/mobileconf/ajaxop');
-        expect(scrubConfirmationSecrets(`GET ${signedUrl('getlist', '#frag')} failed`)).toBe('GET https://steamcommunity.com/mobileconf/getlist failed');
-        expect(scrubConfirmationSecrets('body was ck[]=AAA&ck%5B%5D=BBB&k=CCC&nonce=DDD&ok=1')).toBe('body was ck[]=***&ck%5B%5D=***&k=***&nonce=***&ok=1');
-        expect(scrubConfirmationSecrets('You cannot confirm this trade right now. Try again in 5 minutes.'))
-            .toBe('You cannot confirm this trade right now. Try again in 5 minutes.');
-        expect(scrubConfirmationSecrets('HTTP error 429')).toBe('HTTP error 429');
-        clean(confirmationErrorMessage(redirectLoop('ajaxop')));
-    });
-
-    it('a list error that quotes the signed URL is shown without the key', async () => {
-        const community = client((_options, callback) => callback(redirectLoop('getlist')));
-        const error: Error = await fetchConfirmations(community, SECRET).then(() => { throw new Error('must reject'); }, e => e);
-        expect(error.message).toContain('redirect loop');
-        expect(error.message).toContain('https://steamcommunity.com/mobileconf/getlist');
-        clean(error.message);
-    });
-
-    it('fallback rows that were never sent do not inherit the signed URL of another row', async () => {
-        jest.useFakeTimers();
-        let call = 0;
-        const community = client((_options, callback) => {
-            call += 1;
-            // 1: Steam refuses the batch -> individual fallback; 2: the first single request dies quoting its URL.
-            if (call === 1) return callback(null, { statusCode: 200 }, { success: false, message: 'Batch refused' });
-            return callback(redirectLoop('ajaxop'));
-        });
-        const pending = respondToConfirmations(community, SECRET, [ref('1'), ref('2'), ref('3')], true);
-        await jest.advanceTimersByTimeAsync(5000);
-        const results = await pending;
-
-        expect(community.httpRequest).toHaveBeenCalledTimes(2);
-        expect(results.map(r => r.ok)).toEqual([false, false, false]);
-        expect(results[0]).toMatchObject({ unknown: true });
-        expect(results[1]).toMatchObject({ notSent: true });
-        expect(results[2]).toMatchObject({ notSent: true });
-        for (const result of results) clean(result.message);
-        expect(results[1].message).toContain('redirect loop');
-    });
-
-    it('a help link in a Steam message stays usable: only mobileconf URLs lose their query', async () => {
-        const message = 'See https://help.steampowered.com/en/wizard/HelpWithGame/?appid=730 for details';
-        const community = client((_options, callback) => callback(null, { statusCode: 200 }, { success: false, message }));
-        await expect(fetchConfirmations(community, SECRET)).rejects.toThrow(message);
-    });
-
-    it('format-based net: encoded delimiters, JSON and quoted values', () => {
-        expect(scrubConfirmationSecrets('https://steamcommunity.com/mobileconf/getlist%3Fop=conf%26k=SIG%26ck=NON'))
-            .toBe('https://steamcommunity.com/mobileconf/getlist');
-        expect(scrubConfirmationSecrets('{"k":"SIG","ck":"NON","tag":"conf"}')).toBe('{"k":"***","ck":"***","tag":"conf"}');
-        expect(scrubConfirmationSecrets('ck="NON" and k="SIG"')).toBe('ck=*** and k=***');
-        expect(scrubConfirmationSecrets('(see https://steamcommunity.com/market/)')).toBe('(see https://steamcommunity.com/market/)');
-        expect(scrubConfirmationSecrets('x'.repeat(5000)).length).toBeLessThanOrEqual(1001);
-    });
-});
-
-// The layer that does not depend on format: the module removes the VALUES it signed the request with.
-describe('the key and nonces of a request never leave it, whatever the text looks like', () => {
-    const spellings = (k: string, ck: string) => [
-        `GET https://steamcommunity.com/mobileconf/ajaxop%3Fk=${encodeURIComponent(k)}%26ck=${encodeURIComponent(ck)} failed`,
-        `{"k":"${k}","ck":"${ck}"}`,
-        `key ${k} nonce ${ck}`,
-        `k="${k}"; ck='${ck}'`,
-        `double-encoded ${encodeURIComponent(encodeURIComponent(k))} ${encodeURIComponent(encodeURIComponent(ck))}`,
+// A signed mobileconf request carries the confirmation key (k) and the item nonce (ck). An HTTP
+// library may quote the request in its error text, and error text reaches the confirmations window.
+// The rule: library text is shown only when it is plain prose; otherwise only the error code is.
+describe('library error text reaches the window only as plain prose', () => {
+    const KEY = 'OaBzCT4Gb/MhY7Shl0vW+jim/NQ=';
+    const NONCE = '12345678901234567890';
+    // Every spelling of the same request that reviewers produced, plus a few more.
+    const spellings = [
+        `Exceeded maxRedirects. Probably stuck in a redirect loop https://steamcommunity.com/mobileconf/ajaxop?op=allow&cid=1&ck=${NONCE}&k=${encodeURIComponent(KEY)}&t=1&m=react&tag=allow`,
+        `GET https://steamcommunity.com/mobileconf/getlist%3Fk=${encodeURIComponent(KEY)}%26ck=${NONCE} failed`,
+        `{"k":"${KEY}","ck":"${NONCE}"}`,
+        `k="${KEY}"; ck='${NONCE}'`,
+        `raw ${KEY.replace(/\//g, '%2f').replace(/\+/g, '%2b').replace(/=/g, '%3d')}`,
+        `base64url ${KEY.replace(/\+/g, '-').replace(/\//g, '_')}`,
+        `json escaped ${KEY.replace(/\//g, '\\/')}`,
+        `double ${encodeURIComponent(encodeURIComponent(KEY))}`,
+        `${'x'.repeat(990)}${KEY}`,
+        `key ${KEY} nonce ${NONCE}`,
+        `https://${KEY}:${NONCE}@steamcommunity.com/mobileconf/ajaxop`,
     ];
-    const expectClean = (message: unknown, values: string[]) => {
-        for (const value of values) {
-            expect(String(message)).not.toContain(value);
-            expect(String(message)).not.toContain(encodeURIComponent(value));
-        }
+    const expectNoKey = (message: unknown) => {
+        const shown = String(message);
+        // No run of the key long enough to matter, in any of the spellings above.
+        for (const part of ['OaBzCT4Gb', 'MhY7Shl0vW', 'jim', 'NQ=', 'NQ%3', NONCE]) expect(shown).not.toContain(part);
+        expect(shown.length).toBeLessThanOrEqual(310);
     };
 
-    it('redactValues handles plain, encoded and double-encoded spellings and ignores too-short values', () => {
-        const key = 'ab+/cd==';
-        expect(redactValues(`a ${key} b ${encodeURIComponent(key)} c ${encodeURIComponent(encodeURIComponent(key))}`, [key])).toBe('a *** b *** c ***');
-        expect(redactValues('nonce 123456789 stays? no', [123456789])).toBe('nonce *** stays? no');
-        expect(redactValues('id 7 and 77', ['7', undefined, null, ''])).toBe('id 7 and 77');
+    it.each(spellings.map((text, index) => [index, text]))('spelling %i of a signed request is replaced by the error code', (_index, text) => {
+        expect(confirmationErrorMessage(Object.assign(new Error(text as string), { code: 'ECONNRESET' }))).toBe('Network error (ECONNRESET)');
+        expectNoKey(confirmationErrorMessage(new Error(text as string)));
     });
 
-    it('a list failure quoting the signed request in any spelling is shown without the key', async () => {
-        for (let index = 0; index < 5; index++) {
-            let key = '';
-            const community = client((options, callback) => {
-                key = options.qs.k;
-                callback(new Error(spellings(key, 'unused-nonce')[index]));
-            });
-            const error: Error = await fetchConfirmations(community, SECRET).then(() => { throw new Error('must reject'); }, e => e);
-            expect(key.length).toBeGreaterThan(10);
-            expectClean(error.message, [key]);
+    it('plain prose from a library is shown as it is, in any language', () => {
+        for (const text of ['socket hang up', 'read ECONNRESET', 'Not Logged In', 'Proxy connection timed out', 'Проксі не відповідає', 'Malformed JSON response']) {
+            expect(confirmationErrorMessage(new Error(text))).toBe(text);
         }
     });
 
-    it('a failed single action in any spelling loses both the key and the nonce', async () => {
-        for (let index = 0; index < 5; index++) {
-            let key = '';
-            const community = client((options, callback) => {
-                key = options.qs.k;
-                // An explicit Steam refusal: its text is shown on the row as it is.
-                callback(null, { statusCode: 200 }, { success: false, message: spellings(key, options.qs.ck)[index] });
-            });
-            const [result] = await respondToConfirmations(community, SECRET, [ref('1', 12, false)], true);
-            expect(result.ok).toBe(false);
-            expectClean(result.message, [key, 'fake-1']);
+    it('the status of a refused proxy tunnel survives even without an error code', () => {
+        const tunnel = 'tunneling socket could not be established, statusCode=407';
+        expect(confirmationErrorMessage(new Error(tunnel))).toBe('Network error (HTTP 407)');
+        expect(confirmationErrorMessage(Object.assign(new Error(tunnel), { code: 'ECONNRESET' }))).toBe('Network error (ECONNRESET)');
+    });
+
+    it('odd error values never throw and never show their content', () => {
+        for (const value of [undefined, null, 42, {}, { message: {} }, { message: 'a\uD800b=c' }, Object.assign(new Error('x=1'), { code: 'bad code!{}' }), new Error('')]) {
+            expect(typeof confirmationErrorMessage(value)).toBe('string');
+            expect(confirmationErrorMessage(value)).toBe('Could not act on confirmation');
         }
     });
 
-    it('a success message from Steam is cleaned too', async () => {
-        let key = '';
-        const community = client((options, callback) => {
-            key = options.qs.k;
-            callback(null, { statusCode: 200 }, { success: true, message: `done https://steamcommunity.com/mobileconf/ajaxop?k=${encodeURIComponent(key)}&ck=${options.qs.ck}` });
-        });
-        const [result] = await respondToConfirmations(community, SECRET, [ref('1', 12, false)], true);
-        expect(result.ok).toBe(true);
-        expect(result.message).toBe('done https://steamcommunity.com/mobileconf/ajaxop');
-        expectClean(result.message, [key, 'fake-1']);
+    it('our own errors (missing proxy, changed route) keep their text', () => {
+        const own = Object.assign(new Error('Proxy "p1" is gone: account stays offline (id=7)'), { code: 'PROXY_UNAVAILABLE' });
+        expect(confirmationErrorMessage(own)).toBe('Proxy "p1" is gone: account stays offline (id=7)');
     });
 
-    it('rows that were not sent do not show the nonce of the row whose request failed', async () => {
+    it('a list failure that quotes the signed request shows the code only', async () => {
+        const community = client((_options, callback) => callback(Object.assign(new Error(spellings[0]), { code: 'ERR_TOO_MANY_REDIRECTS' })));
+        const error: Error = await fetchConfirmations(community, SECRET).then(() => { throw new Error('must reject'); }, e => e);
+        expect(error.message).toBe('Network error (ERR_TOO_MANY_REDIRECTS)');
+    });
+
+    it('rows that were never sent inherit the safe message, not the failed request', async () => {
         jest.useFakeTimers();
         let call = 0;
-        const keys: string[] = [];
         const community = client((options, callback) => {
             call += 1;
+            // 1: Steam refuses the batch -> individual fallback; 2: the first single request dies quoting itself.
             if (call === 1) return callback(null, { statusCode: 200 }, { success: false, message: 'Batch refused' });
-            keys.push(options.qs.k);
-            // Transport failure that quotes the request as JSON: no URL for a pattern to catch.
             return callback(Object.assign(new Error(`socket hang up {"k":"${options.qs.k}","ck":"${options.qs.ck}"}`), { code: 'ECONNRESET' }));
         });
         const pending = respondToConfirmations(community, SECRET, [ref('1'), ref('2'), ref('3')], true);
         await jest.advanceTimersByTimeAsync(5000);
         const results = await pending;
 
+        expect(community.httpRequest).toHaveBeenCalledTimes(2);
         expect(results.map(r => !!r.notSent)).toEqual([false, true, true]);
-        for (const result of results) expectClean(result.message, [...keys, 'fake-1', 'fake-2', 'fake-3']);
-        expect(results[1].message).toContain('socket hang up');
+        expect(results[0]).toMatchObject({ ok: false, unknown: true });
+        expect(results[1].message).toBe('Network error (ECONNRESET)');
+        expect(results[2].message).toBe('Network error (ECONNRESET)');
+    });
+
+    it('an error thrown by the pre-request hook is shown by the same rule', async () => {
+        const hook = () => { throw new Error(`route: ${KEY}`); };
+        const [result] = await respondToConfirmations(client(), SECRET, [ref('1', 12, false)], true, hook);
+        expect(result).toMatchObject({ ok: false, stopped: true, message: 'Could not act on confirmation' });
+    });
+
+    it('a nonce with a lone surrogate cannot leave the request pending', async () => {
+        const odd = { id: '1', nonce: 'bad\uD800', type: 12, multi: false };
+        const ok = client((_options, callback) => callback(null, { statusCode: 200 }, { success: true, message: 'done' }));
+        await expect(respondToConfirmations(ok, SECRET, [odd], true)).resolves.toEqual([{ id: '1', ok: true, message: 'done' }]);
+        const refused = client((_options, callback) => callback(null, { statusCode: 200 }, { success: false, message: 'refused' }));
+        await expect(respondToConfirmations(refused, SECRET, [odd], true)).resolves.toEqual([{ id: '1', ok: false, message: 'refused' }]);
+    });
+});
+
+// Steam's own text (message/detail of its JSON) is shown; a net handles the unlikely echo of the request.
+describe('text written by Steam', () => {
+    it('is shown as it is, including a help link with its parameters', async () => {
+        const message = 'See https://help.steampowered.com/en/wizard/HelpWithGame/?appid=730 for details';
+        const community = client((_options, callback) => callback(null, { statusCode: 200 }, { success: false, message }));
+        await expect(fetchConfirmations(community, SECRET)).rejects.toThrow(message);
+    });
+
+    it('loses the query of a mobileconf URL and masked parameters if it ever echoes the request', async () => {
+        const echoed = 'failed https://steamcommunity.com/mobileconf/ajaxop?k=SIG&ck=NON and {"k":"SIG","ck":"NON"} and ck="NON"';
+        const community = client((_options, callback) => callback(null, { statusCode: 200 }, { success: true, message: echoed }));
+        const [result] = await respondToConfirmations(community, SECRET, [ref('1', 12, false)], true);
+        expect(result).toEqual({ id: '1', ok: true, message: 'failed https://steamcommunity.com/mobileconf/ajaxop and {"k":"***","ck":"***"} and ck=***' });
+    });
+
+    it('is cut to a sane length after scrubbing', () => {
+        expect(scrubConfirmationSecrets('x'.repeat(5000)).length).toBe(301);
+        expect(scrubConfirmationSecrets(`${'x'.repeat(290)} k=SIGNATURE-VALUE`)).not.toContain('SIGNATURE');
+        expect(scrubConfirmationSecrets('You cannot confirm this trade right now. Try again in 5 minutes.'))
+            .toBe('You cannot confirm this trade right now. Try again in 5 minutes.');
     });
 });

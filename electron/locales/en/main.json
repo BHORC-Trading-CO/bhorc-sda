@@ -11,6 +11,7 @@
   },
   "errors": {
     "confirmations": {
+      "network": "Network error ({{code}})",
       "timedOut": "Confirmation request timed out",
       "routeChanged": "Confirmation connection changed; refresh and try again",
       "missingRef": "Missing confirmation id or nonce",
