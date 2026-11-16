@@ -66,6 +66,18 @@ it.each([
 ])("account network operation %# fails visibly without a socket", async operation => {
     await expect(operation(new SteamAccount(params()))).rejects.toMatchObject({ code: "PROXY_UNAVAILABLE" });
 });
+it("a refresh with a known SteamID (miniprofile path) fails closed without falling back to the profile page", async () => {
+    const account = new SteamAccount(params());
+    account.community.setCookies(["steamLoginSecure=76561198000000001%7C%7Cfake"]);
+    const original = account.community.httpRequestGet.bind(account.community);
+    const uris: string[] = [];
+    jest.spyOn(account.community, "httpRequestGet").mockImplementation(((options: { uri: string }, callback: unknown) => {
+        uris.push(options.uri);
+        return original(options as never, callback as never);
+    }) as never);
+    await expect(account.getSecondary()).rejects.toMatchObject({ code: "PROXY_UNAVAILABLE" });
+    expect(uris).toEqual(["https://steamcommunity.com/miniprofile/39734273/json"]);
+});
 it("balance errors are strings suitable for IPC", async () => {
     const result = await new SteamAccount(params()).getChangableSecondary();
     expect(result.steam.error).toEqual(expect.stringContaining("Proxy #gone is unavailable"));

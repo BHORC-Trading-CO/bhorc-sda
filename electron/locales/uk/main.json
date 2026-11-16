@@ -34,8 +34,8 @@
     "secretKeyTooShort": "Некоректний ключ. Потрібно щонайменше 8 символів",
     "totpNotAccepted": "Steam не прийняв жодного коду TOTP за 30 спроб",
     "balance": {
-      "notFound": "Не вдалося отримати баланс",
-      "format": "Не вдалося розібрати баланс"
+      "notLoggedIn": "Steam не бачить входу в цій сесії. Оновіть сесію",
+      "unrecognized": "Сторінка Торгового майданчика має несподіваний формат: баланс гаманця не прочитано"
     },
     "tradeState": {
       "unknown": "eligibilitycheck: allowed=0, reason={{reason}}, статус невідомий",

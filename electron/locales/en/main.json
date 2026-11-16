@@ -34,8 +34,8 @@
     "secretKeyTooShort": "Invalid key. It must be at least 8 characters long",
     "totpNotAccepted": "Steam did not accept any TOTP code in 30 attempts",
     "balance": {
-      "notFound": "Failed to get the balance",
-      "format": "Failed to parse the balance"
+      "notLoggedIn": "Steam does not see this session as logged in. Refresh the session",
+      "unrecognized": "The Market page has an unexpected format: the wallet balance could not be read"
     },
     "tradeState": {
       "unknown": "eligibilitycheck: allowed=0, reason={{reason}}, status unknown",

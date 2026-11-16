@@ -34,8 +34,8 @@
     "secretKeyTooShort": "Ключ некорректный. Нужно минимум 8 символов",
     "totpNotAccepted": "Steam не принял ни один код TOTP за 30 попыток",
     "balance": {
-      "notFound": "Не удалось получить баланс",
-      "format": "Не получилось отформатировать"
+      "notLoggedIn": "Steam не видит входа в этой сессии. Обновите сессию",
+      "unrecognized": "Страница Торговой площадки в неожиданном формате: баланс кошелька не прочитан"
     },
     "tradeState": {
       "unknown": "eligibilitycheck: allowed=0, reason={{reason}}, статус неизвестен",

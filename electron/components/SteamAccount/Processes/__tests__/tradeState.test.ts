@@ -3,7 +3,7 @@ import path from "path";
 import nock from "nock";
 import request from "request";
 import SteamCommunity from "steamcommunity";
-import { getTradeState, parseTradeEligibility, tradeStateFromEligibility } from "../loadSteamAccountData";
+import { getTradeState, ktLockedFromEligibility, parseTradeEligibility, tradeStateFromEligibility, tradeStatusFromEligibility } from "../loadSteamAccountData";
 import { setMainLanguage } from "../../../../i18n";
 
 // Сообщения проверяем на русском: ru — прежний текст без изменений (SDA-18).
@@ -64,23 +64,48 @@ describe("trade-статус через eligibilitycheck", () => {
         ["проблема с cookie", { allowed: 0, reason: 1 << 10 }],
         ["неизвестный новый бит", { allowed: 0, reason: 1 << 17 }],
         ["только маркет + неизвестный бит", { allowed: 0, reason: (1 << 14) | (1 << 20) }],
-    ])("статус неизвестен (%s) — исключение, чтобы оставить прежний", (_name, eligibility) => {
+    ])("статус неизвестен (%s) — исключение, в таблице «неизвестно»", (_name, eligibility) => {
         expect(() => tradeStateFromEligibility(eligibility)).toThrow("статус неизвестен");
+        expect(tradeStatusFromEligibility(eligibility).tradeState).toBeNull();
+    });
+
+    // SDA-31: КТ по битам reason, без английского текста на /market/. Соответствие битов — по
+    // именам флагов Valve (EMarketNotAllowedReasonFlags); забаненного аккаунта под рукой нет.
+    it.each([
+        ["AccountDisabled", 1 << 1],
+        ["AccountLockedDown", 1 << 2],
+        ["TradeBanned", 1 << 4],
+        ["TradeBanned вместе с временным сбоем", (1 << 4) | 1],
+    ])("КТ: бит %s", (_name, reason) => {
+        expect(ktLockedFromEligibility({ allowed: 0, reason })).toBe(true);
+        expect(tradeStatusFromEligibility({ allowed: 0, reason })).toEqual({ tradeState: false, ktLocked: true });
+    });
+
+    it.each([
+        ["разрешено", { allowed: 1 }, false],
+        ["ограниченный аккаунт — не КТ", { allowed: 0, reason: 1 << 3 }, false],
+        ["новое устройство — не КТ", { allowed: 0, reason: 1 << 11 }, false],
+        ["только маркет", { allowed: 0, reason: 1 << 14 }, false],
+        ["без причины", { allowed: 0 }, null],
+        ["временный сбой", { allowed: 0, reason: 1 }, null],
+        ["проблема с cookie", { allowed: 0, reason: 1 << 10 }, null],
+    ])("КТ: %s", (_name, eligibility, expected) => {
+        expect(ktLockedFromEligibility(eligibility)).toBe(expected);
     });
 
     it("ходит на свою проверку Steam без редиректа и читает живой ответ", async () => {
         const scope = steamReplies(LIVE_ALLOWED);
-        await expect(getTradeState(community())).resolves.toBe(true);
+        await expect(getTradeState(community())).resolves.toEqual({ tradeState: true, ktLocked: false });
         expect(scope.isDone()).toBe(true);
     });
 
     it("берёт свежий вердикт, даже если старая cookie уже лежит в jar", async () => {
         const c = community();
         steamReplies({ allowed: 1 });
-        await expect(getTradeState(c)).resolves.toBe(true);
+        await expect(getTradeState(c)).resolves.toEqual({ tradeState: true, ktLocked: false });
         // Худший случай: Steam ставит cookie, только если запрос пришёл без неё.
         steamReplies({ allowed: 0, reason: 1 << 4 }, { onlyWithoutCookie: true });
-        await expect(getTradeState(c)).resolves.toBe(false);
+        await expect(getTradeState(c)).resolves.toEqual({ tradeState: false, ktLocked: true });
     });
 
     it("сессия истекла (редирект на /login) — отклоняет", async () => {

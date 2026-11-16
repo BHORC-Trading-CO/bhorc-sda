@@ -222,15 +222,15 @@ describe("Импорт и экспорт старых файлов", () => {
 
         const exported = JSON.parse(JSON.stringify(account.getSmaFile()));
         // secondary нормализуется при импорте (SDA-17): неизвестные поля отброшены,
-        // недостающие заполнены значениями по умолчанию.
+        // недостающие уровень и статусы — null, «не проверялось» (SDA-31).
         expect(exported).toEqual({
             secondary: {
                 nickname: legacy.secondary.nickname,
                 ktState: legacy.secondary.ktState,
                 tpState: legacy.secondary.tpState,
                 avatarUrl: expect.stringMatching(/^https:\/\/avatars\.akamai\.steamstatic\.com\//),
-                level: 0,
-                tradeState: false,
+                level: null,
+                tradeState: null,
             },
             accountName: legacy.accountName,
             password: legacy.password,

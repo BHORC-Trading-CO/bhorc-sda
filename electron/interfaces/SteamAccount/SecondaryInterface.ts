@@ -1,8 +1,12 @@
 export default interface SecondaryInterface {
     nickname: string;
-    level: number;
+    // null — уровень неизвестен: miniprofile не ответил, а в профиле нет своего блока уровня
+    level: number | null;
     avatarUrl: string;
-    ktState: boolean;
-    tpState: boolean | string;
-    tradeState: boolean;
+    // Статусы (SDA-31): null — неизвестно (ещё не проверялся или последняя проверка не удалась),
+    // в таблице это нейтральный бейдж, а не «OK». В config.json прежних версий лежат только
+    // boolean (у tpState ещё строка с датой) — они показываются как раньше до следующей проверки.
+    ktState: boolean | null;
+    tpState: boolean | string | null;
+    tradeState: boolean | null;
 }
