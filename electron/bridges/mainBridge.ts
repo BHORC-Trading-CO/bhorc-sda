@@ -21,6 +21,8 @@ import TableOptions from '../interfaces/TableOptions/TableOptions';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import BrowserChannels from '../interfaces/IpcChannels/BrowserChannels';
 import BrowserSettingsInterface, { BrowserSettingsError, BrowserSettingsView } from '../interfaces/Browser/BrowserSettingsInterface';
+import AppSettingsChannels from '../interfaces/IpcChannels/AppSettingsChannels';
+import { AppSettingsError, AppSettingsPatch, AppSettingsView } from '../interfaces/AppSettings/AppSettingsInterface';
 import { exposeLanguageApi } from './languageBridge';
 import ImageChannels from '../interfaces/IpcChannels/ImageChannels';
 import { requestImage } from './imageBridge';
@@ -258,6 +260,26 @@ const browser = {
   }
 }
 
+/** Настройки приложения (страница Settings, SDA-35/36): трей и автозапуск */
+const appSettings = {
+  /** Получить настройки и что доступно на этой системе (запрос) */
+  get: () => {
+    ipcRenderer.send(AppSettingsChannels.APP_SETTINGS_GET);
+  },
+  /** Получить настройки (слушатель); приходит и после save */
+  onGet: (listener: (event: IpcRendererEvent, view: AppSettingsView) => void) => {
+    ipcRenderer.on(AppSettingsChannels.APP_SETTINGS_GET, listener);
+  },
+  /** Сохранить один переключатель { key, value }; main сливает его с сохранёнными и меняет автозапуск сам */
+  save: (patch: AppSettingsPatch) => {
+    ipcRenderer.send(AppSettingsChannels.APP_SETTINGS_SAVE, patch);
+  },
+  /** Отказ сохранения: текст уже переведён */
+  onError: (listener: (event: IpcRendererEvent, error: AppSettingsError) => void) => {
+    ipcRenderer.on(AppSettingsChannels.APP_SETTINGS_ERROR, listener);
+  }
+}
+
 const window = {
   /** Открыть папку данных: путь берёт и открывает main (shell.openPath, без командной строки); ошибка приходит в 'ERROR' */
   openAppdata: () => {
@@ -313,6 +335,8 @@ const mainApi = {
   groups,
   /** Методы для настроек браузера аккаунтов */
   browser,
+  /** Методы для настроек приложения: трей и автозапуск */
+  appSettings,
   /**Методы для подключения гуарда */
   guardConnection,
   /** Платформа для рамки окна: отступ полосы TitleBar под системные кнопки */

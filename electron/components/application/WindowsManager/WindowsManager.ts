@@ -89,10 +89,12 @@ class WindowsManager {
         });
         this.authWindow.loadURL(AUTH_WINDOW_WEBPACK_ENTRY);
     }
-    createMain() {
+    /** show: false — запуск в трей (SDA-36): окно создаётся и грузит страницу, но не показывается. */
+    createMain(show = true) {
         this.mainWindow = new BrowserWindow({
             ...windowsConfig.mainWindow,
             ...windowChrome(process.platform),
+            show,
             icon: windowIcon(process.platform, 'main'),
             webPreferences: {
                 nodeIntegration: false,

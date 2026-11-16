@@ -5,6 +5,7 @@ import TabsStore from './TabStore';
 import SteamAccountsTableStore from './SteamAccountsTableStore/SteamAccountsTableStore';
 import GroupsStore from './GroupsStore';
 import BrowserSettingsStore from './BrowserSettingsStore';
+import AppSettingsStore from './AppSettingsStore';
 import i18n from '../i18n/i18n';
 
 export class Store {
@@ -14,6 +15,7 @@ export class Store {
     windows: WindowStore;
     tabs: TabsStore;
     browserSettings: BrowserSettingsStore;
+    appSettings: AppSettingsStore;
 
     constructor() {
         this.steamAccountsTable = new SteamAccountsTableStore(this);
@@ -22,6 +24,7 @@ export class Store {
         this.windows = new WindowStore(this);
         this.tabs = new TabsStore(this);
         this.browserSettings = new BrowserSettingsStore(this);
+        this.appSettings = new AppSettingsStore(this);
         makeAutoObservable(this);
 
         //ЭТА ФУНКЦИЯ ПОКА ЧТО ЗАЛОЧЕНА

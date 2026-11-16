@@ -3,7 +3,8 @@
     "label": "Розділи",
     "steamAccounts": "Акаунти Steam",
     "proxies": "Проксі",
-    "browser": "Браузер"
+    "browser": "Браузер",
+    "settings": "Налаштування"
   },
   "groups": {
     "label": "Групи акаунтів",

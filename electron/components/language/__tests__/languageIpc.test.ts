@@ -134,7 +134,8 @@ describe("порядок запуска", () => {
         const ready = app.slice(app.indexOf('app.on("ready"'));
         const initAt = ready.indexOf("initLanguage(");
         const listenersAt = ready.indexOf("languageListeners();");
-        const mainAt = ready.indexOf("this.windowsManager.createMain();");
+        // createMain(show): окно может создаваться скрытым (запуск в трей, SDA-36).
+        const mainAt = ready.indexOf("this.windowsManager.createMain(");
         const stageAt = ready.indexOf("this.secondStage(cb);");
         expect(initAt).toBeGreaterThan(-1);
         expect(listenersAt).toBeGreaterThan(initAt);

@@ -1,7 +1,7 @@
 import { Store } from "./store";
 import { makeAutoObservable } from 'mobx';
 
-type Tab = 'steamAccounts' | 'proxies' | 'browser';
+type Tab = 'steamAccounts' | 'proxies' | 'browser' | 'settings';
 
 class TabsStore {
     root: Store;
@@ -22,6 +22,8 @@ class TabsStore {
         }
         // Состояние папок расширений могло измениться, пока страница была закрыта.
         if (tab === 'browser') this.root.browserSettings.load();
+        // Свежее состояние настроек и значка в трее.
+        if (tab === 'settings') this.root.appSettings.load();
         this.active = tab;
     }
 }

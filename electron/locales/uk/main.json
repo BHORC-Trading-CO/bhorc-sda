@@ -9,6 +9,10 @@
       "button": "Вибрати папку"
     }
   },
+  "tray": {
+    "show": "Показати вікно",
+    "quit": "Вийти"
+  },
   "errors": {
     "confirmations": {
       "network": "Помилка мережі ({{code}})",
@@ -100,6 +104,10 @@
       "invalidProxyAddress": "Неправильна адреса проксі",
       "missingCredentials": "Не вказано логін або пароль акаунта",
       "invalidFamilyViewPin": "Неправильний familyViewPin"
+    },
+    "appSettings": {
+      "invalid": "Налаштування не збережено: неочікувані значення.",
+      "loginItem": "Не вдалося змінити автозапуск: {{error}}"
     }
   }
 }

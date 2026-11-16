@@ -9,6 +9,10 @@
       "button": "Choose folder"
     }
   },
+  "tray": {
+    "show": "Show window",
+    "quit": "Quit"
+  },
   "errors": {
     "confirmations": {
       "network": "Network error ({{code}})",
@@ -100,6 +104,10 @@
       "invalidProxyAddress": "Invalid proxy address",
       "missingCredentials": "Account login or password is missing",
       "invalidFamilyViewPin": "Invalid familyViewPin"
+    },
+    "appSettings": {
+      "invalid": "Settings were not saved: unexpected values.",
+      "loginItem": "Could not change system startup: {{error}}"
     }
   }
 }
