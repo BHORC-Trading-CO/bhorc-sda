@@ -3,7 +3,8 @@
     "label": "Разделы",
     "steamAccounts": "Steam аккаунты",
     "proxies": "Прокси",
-    "browser": "Браузер"
+    "browser": "Браузер",
+    "settings": "Настройки"
   },
   "groups": {
     "label": "Группы аккаунтов",

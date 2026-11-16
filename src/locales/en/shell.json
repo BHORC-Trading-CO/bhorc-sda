@@ -3,7 +3,8 @@
     "label": "Sections",
     "steamAccounts": "Steam accounts",
     "proxies": "Proxies",
-    "browser": "Browser"
+    "browser": "Browser",
+    "settings": "Settings"
   },
   "groups": {
     "label": "Account groups",

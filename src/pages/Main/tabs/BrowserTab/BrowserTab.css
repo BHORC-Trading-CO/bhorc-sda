@@ -439,6 +439,11 @@
 .browser-switch--on .browser-switch__knob {
   transform: translateX(16px);
 }
+/* Недоступный переключатель (страница Settings: автозапуск в Linux и т. п.). */
+.browser-switch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .browser-switch,

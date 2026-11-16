@@ -34,6 +34,7 @@ import {
   Puzzle,
   RefreshCw,
   Search,
+  Settings,
   ShieldCheck,
   SlidersHorizontal,
   Square,
@@ -59,7 +60,9 @@ export type IconName =
   // в нём нет пары.
   | "activity" | "help" | "archiveRestore"
   // Тип подтверждения на плитке (SellItem): обмен и лот на рынке.
-  | "arrowLeftRight" | "tag";
+  | "arrowLeftRight" | "tag"
+  // Раздел Settings (трей и автозапуск, SDA-35/36).
+  | "settings";
 
 export type IconSize = 13 | 14 | 16 | 18 | 20;
 
@@ -110,6 +113,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   archiveRestore: ArchiveRestore,
   arrowLeftRight: ArrowLeftRight,
   tag: Tag,
+  settings: Settings,
 };
 
 // Классы анимаций из src/css/motion.css. Ховер-анимации срабатывают и при наведении на кнопку,

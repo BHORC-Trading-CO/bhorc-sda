@@ -11,6 +11,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import store from "../../store/store";
 import { observer } from "mobx-react";
 import BrowserTab from "./tabs/BrowserTab/BrowserTab";
+import SettingsTab from "./tabs/SettingsTab/SettingsTab";
 
 // Главное окно (R2): верхняя панель с разделами, под ней строка групп (только у Steam аккаунтов),
 // ниже — открытый раздел.
@@ -24,6 +25,7 @@ const Main = observer(() => {
           {store.tabs.active === "steamAccounts" ? <SteamAccountsTab /> : <></>}
           {store.tabs.active === "proxies" ? <ProxiesTab /> : <></>}
           {store.tabs.active === "browser" ? <BrowserTab /> : <></>}
+          {store.tabs.active === "settings" ? <SettingsTab /> : <></>}
         </div>
         <Prompt />
         <MiniNotification />

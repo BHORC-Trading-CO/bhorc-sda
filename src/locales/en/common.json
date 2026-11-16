@@ -562,6 +562,32 @@
       }
     }
   },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "How SDA keeps running in the background and starts with the computer. Changes are saved right away.",
+    "background": {
+      "title": "Background and startup",
+      "closeToTray": {
+        "label": "Keep running in the tray when the window is closed",
+        "labelMac": "Keep running in the menu bar when the window is closed",
+        "hint": "Closing the window hides it, and accounts keep working. Open the window again or quit from the tray icon menu.",
+        "hintMac": "Closing the window hides it, and accounts keep working. Open the window again from the menu bar icon or the Dock; quit with ⌘Q or from the menu bar icon."
+      },
+      "trayUnavailable": "The tray icon could not be created, so closing the window still quits SDA.",
+      "launchAtLogin": {
+        "label": "Launch at system startup",
+        "hint": "SDA starts when you sign in to the computer.",
+        "unsupportedPlatform": "Not available on Linux: add SDA to your desktop's autostart instead. Add --hidden to the command to start it in the tray.",
+        "notPackaged": "Available only in the built app, not in a development run."
+      },
+      "startMinimized": {
+        "label": "Start minimized to tray",
+        "labelMac": "Start minimized to the menu bar",
+        "hint": "At startup the window stays hidden; open it from the tray icon.",
+        "hintMac": "At startup the window stays hidden; open it from the menu bar icon or the Dock."
+      }
+    }
+  },
   "ask": {
     "nothing": "nothing here yet...",
     "unknown": "What???",

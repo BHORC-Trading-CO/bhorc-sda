@@ -33,14 +33,25 @@ const IconButton: FC<{
 
 const PlusIcon: FC = () => <Icon name="plus" size={14} motion="pop" />;
 
-const Switch: FC<{ checked: boolean; label: string; onChange: (checked: boolean) => void }> = ({ checked, label, onChange }) => (
+// Переключатель QBS; им же пользуется страница Settings (SDA-35/36).
+export const Switch: FC<{
+  checked: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+  describedBy?: string;
+  testId?: string;
+}> = ({ checked, label, onChange, disabled, describedBy, testId }) => (
   <button
     type="button"
     role="switch"
     aria-checked={checked}
     aria-label={label}
+    aria-describedby={describedBy}
     title={label}
     className={`browser-switch${checked ? " browser-switch--on" : ""}`}
+    disabled={disabled}
+    data-testid={testId}
     onClick={() => onChange(!checked)}
   >
     <span className="browser-switch__knob" aria-hidden="true"></span>

@@ -22,6 +22,8 @@ import TableOptions from '../interfaces/TableOptions/TableOptions';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import BrowserChannels from '../interfaces/IpcChannels/BrowserChannels';
 import BrowserSettingsInterface, { BrowserSettingsError, BrowserSettingsView } from '../interfaces/Browser/BrowserSettingsInterface';
+import AppSettingsChannels from '../interfaces/IpcChannels/AppSettingsChannels';
+import AppSettingsInterface, { AppSettingsError, AppSettingsView } from '../interfaces/AppSettings/AppSettingsInterface';
 import path from "path";
 import createStore from "../components/newStorage/createStore";
 import { exposeLanguageApi } from './languageBridge';
@@ -261,6 +263,26 @@ const browser = {
   }
 }
 
+/** Настройки приложения (страница Settings, SDA-35/36): трей и автозапуск */
+const appSettings = {
+  /** Получить настройки и что доступно на этой системе (запрос) */
+  get: () => {
+    ipcRenderer.send(AppSettingsChannels.APP_SETTINGS_GET);
+  },
+  /** Получить настройки (слушатель); приходит и после save */
+  onGet: (listener: (event: IpcRendererEvent, view: AppSettingsView) => void) => {
+    ipcRenderer.on(AppSettingsChannels.APP_SETTINGS_GET, listener);
+  },
+  /** Сохранить настройки; автозапуск main меняет в системе сам */
+  save: (settings: AppSettingsInterface) => {
+    ipcRenderer.send(AppSettingsChannels.APP_SETTINGS_SAVE, settings);
+  },
+  /** Отказ сохранения: текст уже переведён */
+  onError: (listener: (event: IpcRendererEvent, error: AppSettingsError) => void) => {
+    ipcRenderer.on(AppSettingsChannels.APP_SETTINGS_ERROR, listener);
+  }
+}
+
 const window = {
   openAppdata: () => {
     const store = createStore();
@@ -327,6 +349,8 @@ const mainApi = {
   groups,
   /** Методы для настроек браузера аккаунтов */
   browser,
+  /** Методы для настроек приложения: трей и автозапуск */
+  appSettings,
   /**Методы для подключения гуарда */
   guardConnection,
   /** Платформа для рамки окна: отступ полосы TitleBar под системные кнопки */

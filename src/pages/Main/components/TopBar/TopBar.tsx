@@ -15,6 +15,7 @@ const NAV_ITEMS: { tab: Tab; icon: IconName }[] = [
   { tab: "steamAccounts", icon: "users" },
   { tab: "proxies", icon: "link" },
   { tab: "browser", icon: "globe" },
+  { tab: "settings", icon: "settings" },
 ];
 
 // Уже 1200px у пунктов только иконки, подпись — в тултипе и aria-label (как в прежней навигации).
