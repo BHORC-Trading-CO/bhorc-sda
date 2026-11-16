@@ -8,16 +8,40 @@ const NEVER_BATCH_TYPES = new Set([5, 6, 9, 10, 11, 12, 13]);
 const REQUEST_TIMEOUT = 30000;
 type FailureKind = 'steam' | 'http' | 'auth' | 'route' | 'throttled' | 'unknown';
 
+const MAX_MESSAGE_LENGTH = 1000;
+
 /**
- * Error text from this module is shown in the confirmations window. A transport error can quote
- * the request URL (request's redirect-loop error does), and a mobileconf URL carries the
- * confirmation key (k) and the item nonce (ck). Every message therefore leaves through this
- * function: URLs lose their query string and fragment, stray k/ck/nonce parameters are masked.
+ * Error text from this module is shown in the confirmations window, and a signed mobileconf
+ * request carries the confirmation key (k) and the item nonce (ck). Two layers keep them out:
+ *
+ * 1. redactValues (the one that counts): the module knows the exact key and nonces of the request
+ *    it made, so it removes those VALUES from any text, whatever the format: plain, URL-encoded,
+ *    inside JSON, behind encoded delimiters.
+ * 2. scrubConfirmationSecrets (this function): a format-based net for text whose origin is not a
+ *    request of ours. It cuts the query off mobileconf URLs and masks k/ck/nonce parameters. Other
+ *    links are left alone: a Steam help link in a message must stay usable.
  */
 export function scrubConfirmationSecrets(message: string): string {
-    return message
-        .replace(/(https?:\/\/[^\s?#"'<>]+)[?#][^\s"'<>]*/gi, '$1')
-        .replace(/\b(ck(?:\[\]|%5B%5D)?|k|nonce)=[^&\s"'<>]+/gi, '$1=***');
+    const bounded = message.length > MAX_MESSAGE_LENGTH ? `${message.slice(0, MAX_MESSAGE_LENGTH)}…` : message;
+    return bounded
+        .replace(/https?:\/\/[^\s"'<>]*\/mobileconf\/[^\s"'<>]*/gi, url => url.split(/[?#]|%3F|%23/i)[0])
+        .replace(/"(ck|k|nonce)"\s*:\s*"[^"]*"/gi, '"$1":"***"')
+        .replace(/\b(ck(?:\[\]|%5B%5D)?|k|nonce)=(?:"[^"]*"|[^&\s"'<>]+)/gi, '$1=***');
+}
+
+/** Removes the given secret values from the text in their plain and URL-encoded spellings. */
+export function redactValues(message: string, secrets: Iterable<unknown>): string {
+    let result = message;
+    for (const secret of secrets) {
+        const value = typeof secret === 'number' ? String(secret) : secret;
+        // A value this short cannot be told apart from ordinary text.
+        if (typeof value !== 'string' || value.length < 4) continue;
+        const once = encodeURIComponent(value);
+        for (const spelling of new Set([value, once, encodeURIComponent(once)])) {
+            result = result.split(spelling).join('***');
+        }
+    }
+    return result;
 }
 
 class ConfirmationRequestError extends Error {
@@ -96,13 +120,18 @@ function mobileRequest(
             json: true,
             timeout: REQUEST_TIMEOUT,
         };
+        // The key and nonces of THIS request: nothing that leaves it may contain them.
+        const secrets = [fields.k, identitySecret, ...[params.ck, params['ck[]']].flat()];
+        const seal = (error: unknown) => new ConfirmationRequestError(
+            failureKind(error), redactValues(confirmationErrorMessage(error), secrets), errorCode(error),
+        );
         // Also bound a stalled pre-request hook; all callback exceptions reject the promise.
         let settled = false;
         const fail = (error: unknown) => {
             if (settled) return;
             settled = true;
             clearTimeout(timer);
-            reject(error);
+            reject(seal(error));
         };
         // httpRequest exposes no abort handle. A late reply cannot change an unknown
         // outcome or trigger resends after this deadline.
@@ -143,6 +172,8 @@ function mobileRequest(
                     return fail(new ConfirmationRequestError('unknown', message || t(endpoint === 'getlist' ? 'errors.confirmations.listFailed' : 'errors.confirmations.actFailed')));
                 }
                 settled = true;
+                // Steam's own text on success goes to the window too.
+                if (typeof body.message === 'string') body.message = redactValues(scrubConfirmationSecrets(body.message), secrets);
                 resolve(body);
             } catch (error) {
                 fail(error);
@@ -227,7 +258,13 @@ export function respondToConfirmations(community: SteamCommunity, identitySecret
                 else stop(error, [ref]);
             }
         }
-        return unique.map(ref => results.get(ref.id)!);
+        // Last exit: a row can carry the message of another row's request, so every message is
+        // cleared of every nonce of this operation once more.
+        const nonces = refs.map(ref => ref.nonce);
+        return unique.map(ref => {
+            const result = results.get(ref.id)!;
+            return typeof result.message === 'string' ? { ...result, message: redactValues(result.message, nonces) } : result;
+        });
     });
     state.tail = operation.catch(() => undefined);
     return operation;
