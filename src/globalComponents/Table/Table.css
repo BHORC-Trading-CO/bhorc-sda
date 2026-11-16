@@ -337,6 +337,13 @@
     background: var(--sda-warning-bg);
 }
 
+/* Статус неизвестен: серая пилюля со значком вопроса, чтобы не читалась как «OK» */
+.status-badge--neutral {
+    gap: 4px;
+    color: var(--sda-text-muted);
+    background: var(--sda-surface-3);
+}
+
 /* Баланс не загрузился: приглушённый прочерк и значок, причина в подсказке */
 .cell-warn {
     display: inline-flex;
