@@ -179,6 +179,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
         run: |
+          # Та же проверка, что перед сборкой: за время сборки тег могли создать или передвинуть.
+          existing="$(git ls-remote origin "refs/tags/${TAG}^{}" | cut -f1)"
+          if [ -z "$existing" ]; then existing="$(git ls-remote origin "refs/tags/${TAG}" | cut -f1)"; fi
+          if [ -n "$existing" ] && [ "$existing" != "$GITHUB_SHA" ]; then
+            echo "Тег $TAG уже существует и указывает на $existing, а сборка шла из $GITHUB_SHA"
+            exit 1
+          fi
           gh release create "$TAG" release-files/* \
             --draft \
             --target "$GITHUB_SHA" \

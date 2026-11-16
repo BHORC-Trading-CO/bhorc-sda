@@ -9,7 +9,7 @@ An open-source desktop app for running many Steam accounts from one window: Stea
 - **Steam Guard for many accounts.** Codes, trade and market confirmations, maFile import and export, account groups.
 - **Confirmations:** trades, market listings, market purchases and API keys. Purchases, API keys and account security changes are confirmed one at a time; an API key only after a warning.
 - **A proxy for every account.** An account with a proxy sends all its Steam traffic through it. If that proxy is gone, the account stays offline instead of quietly using your own address. An account you set to "No proxy" connects directly.
-- **A browser for every account.** Each account gets its own Chromium profile on the account's proxy, signed in to Steam automatically if you turn that on for the account, with the time zone and language of the proxy's country when they can be determined. Start pages and extensions are set once for all of them; a start opens the start pages, or the tabs of the previous session if you prefer.
+- **A browser for every account.** Each account gets its own Chromium profile, on the account's proxy when it has one. With automatic sign-in turned on for the account, the app puts the account's Steam session into the browser when one is available. The proxy's location gives the browser its time zone and language when it can be determined. Start pages and extensions are set once for all of them; a start opens the start pages, or the tabs of the previous session if you prefer.
 - **Status at a glance:** level, wallet balance, red flag, market and trade restrictions. A status that has never been checked, or whose check has failed, shows "unknown" instead of "OK".
 - **Runs in the background:** optional tray icon and launch at system startup.
 - English, Ukrainian and Russian interface.
@@ -54,8 +54,8 @@ BHORC SDA does not talk to any server of ours and does not collect your data: th
 What the app does send, and where:
 
 - Requests to Steam for an account with a proxy go through that proxy. An account whose linked proxy is missing stays offline. An account you set to "No proxy" connects from your own address.
-- To give an account's browser the time zone and language of its proxy, the app asks [ipwho.is](https://ipwho.is/) where the proxy is. The request goes through that proxy, once per proxy, and carries nothing about your accounts.
-- Account browsers load the start pages you set and whatever you open in them, through the account's proxy.
+- To give an account's browser the time zone and language of its proxy, the app asks [ipwho.is](https://ipwho.is/) where the proxy is. The app makes the request itself before the browser starts, through that proxy, and it carries nothing about your accounts. The answer is saved, so normally it is asked once per proxy; a failed lookup is repeated on the next browser start, and changing the proxy's address clears the saved answer.
+- Account browsers load the start pages you set and whatever you open in them, through the account's proxy when it has one.
 - The windows of the built app have no network access. Avatars and item icons are fetched by the main process, through the account's proxy when it has one.
 - Chromium for account browsers is downloaded from Google's public snapshot storage, from your own address, when the build does not already contain it. The request carries nothing about your accounts.
 - DNS-over-HTTPS is off, in the app and in every account browser.
