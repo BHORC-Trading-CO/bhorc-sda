@@ -1,0 +1,193 @@
+# Сборка установщиков и ЧЕРНОВИК релиза на GitHub.
+#
+# Запуск: Actions -> release -> Run workflow, в поле tag указать тег версии (v1.1.0).
+# Версия в package.json должна совпадать с тегом: установщик Windows (Squirrel) сравнивает
+# версии, и сборка со старым номером не обновит уже установленное приложение.
+#
+# Релиз создаётся черновиком: его видят только участники репозитория, пока кто-то из них не
+# нажмёт Publish. Тег появляется в репозитории в момент публикации, не раньше.
+#
+# Пробный прогон без релиза: запушить нужный коммит в ветку release-dry-run. Установщики
+# соберутся и лягут в артефакты прогона, релиз и тег не создаются.
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Тег версии, например v1.1.0 (должен совпадать с version в package.json)"
+        required: true
+        type: string
+  push:
+    branches: [release-dry-run]
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || 'dry-run' }}
+
+# Сборка выполняет чужой код (npm-зависимости с их скриптами), поэтому токен у неё только на
+# чтение и не остаётся в .git после checkout. Право писать в репозиторий есть лишь у задания,
+# которое создаёт черновик релиза.
+permissions:
+  contents: read
+
+jobs:
+  check-version:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Tag matches package.json
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$version" ]; then
+            echo "Тег $TAG не совпадает с версией в package.json ($version)"
+            exit 1
+          fi
+          # Заголовок раздела сравниваем буквально: в grep точка версии была бы «любым символом».
+          if ! awk -v v="${TAG#v}" 'index($0, "## " v " ") == 1 { found = 1 } END { exit !found }' CHANGELOG.md; then
+            echo "В CHANGELOG.md нет раздела для ${TAG#v}"
+            exit 1
+          fi
+      # Тег с таким именем уже есть и указывает на другой коммит: релиз привязал бы свежие файлы
+      # к чужому коду (--target действует только на новый тег).
+      - name: Existing tag points at this commit
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          existing="$(git ls-remote origin "refs/tags/${TAG}^{}" | cut -f1)"
+          if [ -z "$existing" ]; then existing="$(git ls-remote origin "refs/tags/${TAG}" | cut -f1)"; fi
+          if [ -n "$existing" ] && [ "$existing" != "$GITHUB_SHA" ]; then
+            echo "Тег $TAG уже существует и указывает на $existing, а сборка идёт из $GITHUB_SHA"
+            exit 1
+          fi
+
+  build:
+    needs: check-version
+    # В пробном прогоне проверки версии нет (она пропущена), собираем всё равно.
+    if: always() && (needs.check-version.result == 'success' || needs.check-version.result == 'skipped')
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # См. build.yml: sharp качает libvips и иногда падает по таймауту.
+      - name: Install dependencies
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            npm install && exit 0
+            echo "npm install failed (attempt $attempt of 3)"
+            sleep 30
+          done
+          exit 1
+
+      - name: Chromium binary
+        run: npm run ensure:chromium
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Make installers
+        run: npm run make
+
+      - name: Verify packaged app
+        run: npm run verify:package
+
+      - name: Browser smoke test
+        if: runner.os == 'Windows'
+        run: node scripts/smokePackagedBrowser.js
+
+      # Контрольные суммы рядом с файлами: по ним скачавший может сверить, что получил то же,
+      # что собрал CI.
+      - name: Collect release files
+        shell: bash
+        run: |
+          mkdir release-files
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cp out/make/squirrel.windows/x64/*Setup.exe "release-files/BHORC-SDA-${RELEASE_TAG}-windows-x64-Setup.exe"
+          else
+            cp out/make/zip/darwin/arm64/*.zip "release-files/BHORC-SDA-${RELEASE_TAG}-macos-arm64.zip"
+          fi
+          cd release-files
+          for f in *; do
+            if command -v sha256sum >/dev/null; then sha256sum "$f" > "$f.sha256"; else shasum -a 256 "$f" > "$f.sha256"; fi
+          done
+          ls -la
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ runner.os }}
+          path: release-files/
+          retention-days: 7
+          if-no-files-found: error
+
+  draft-release:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-files
+          merge-multiple: true
+
+      - name: Release notes from CHANGELOG.md
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          # Раздел версии: от его заголовка до следующего заголовка второго уровня.
+          awk -v v="${TAG#v}" '
+            index($0, "## " v " ") == 1 { on = 1; next }
+            on && /^## / { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          # Раздел из одних пустых строк — тоже отсутствие текста
+          grep -q '[^[:space:]]' notes.md
+          cat notes.md
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          # Та же проверка, что перед сборкой: за время сборки тег могли создать или передвинуть.
+          existing="$(git ls-remote origin "refs/tags/${TAG}^{}" | cut -f1)"
+          if [ -z "$existing" ]; then existing="$(git ls-remote origin "refs/tags/${TAG}" | cut -f1)"; fi
+          if [ -n "$existing" ] && [ "$existing" != "$GITHUB_SHA" ]; then
+            echo "Тег $TAG уже существует и указывает на $existing, а сборка шла из $GITHUB_SHA"
+            exit 1
+          fi
+          gh release create "$TAG" release-files/* \
+            --draft \
+            --target "$GITHUB_SHA" \
+            --title "BHORC SDA ${TAG#v}" \
+            --notes-file notes.md
