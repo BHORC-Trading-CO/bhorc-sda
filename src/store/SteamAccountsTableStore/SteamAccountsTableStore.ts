@@ -53,6 +53,9 @@ class SteamAccountsTableStore {
   balanceLoads: { [id: string]: BalanceLoad };
   // Таймеры автоповтора; не observable
   balanceRetryTimers: { [id: string]: ReturnType<typeof setTimeout> };
+  // Перезагрузка баланса после смены маршрута — отдельным таймером. Пока он заведён, новый запрос
+  // ещё не отправлен: любой ответ по аккаунту относится к запросу старого маршрута и не принимается
+  routeReloadTimers: { [id: string]: ReturnType<typeof setTimeout> };
   browserStatuses: {
     [id: string]: "load" | "working" | "notworking";
   };
@@ -74,6 +77,7 @@ class SteamAccountsTableStore {
     this.changableSecondaries = {};
     this.balanceLoads = {};
     this.balanceRetryTimers = {};
+    this.routeReloadTimers = {};
     this.browserStatuses = {};
 
     this.settingsForm = new SettingsFormStore(this);
@@ -86,7 +90,7 @@ class SteamAccountsTableStore {
     this.searchString = "";
     this.sortedField = null;
 
-    makeAutoObservable(this, { balanceRetryTimers: false });
+    makeAutoObservable(this, { balanceRetryTimers: false, routeReloadTimers: false });
 
     window.Main.steamAccounts.getTableFields();
     window.Main.steamAccounts.get();
@@ -246,10 +250,13 @@ class SteamAccountsTableStore {
   }
   startBalanceLoad(id: string) {
     this.clearBalanceRetry(id);
+    this.clearRouteReload(id);
     this.balanceLoads[id] = { state: "loading", at: Date.now(), failures: this.balanceLoads[id]?.failures ?? 0 };
   }
   // Ответ с балансом: удачный запоминаем, неудачный ставим на повтор с паузой 1 → 5 → 15 мин
   recordBalanceResult(id: string, failed: boolean) {
+    // Ответ запроса, отправленного до смены маршрута: ждём запрос по новому маршруту
+    if (this.routeReloadTimers[id] !== undefined) return;
     this.clearBalanceRetry(id);
     if (!failed) {
       this.balanceLoads[id] = { state: "done", at: Date.now(), failures: 0 };
@@ -273,10 +280,16 @@ class SteamAccountsTableStore {
   }
   reloadBalanceForNewRoute(id: string) {
     this.forgetBalance(id);
-    this.balanceRetryTimers[id] = setTimeout(() => {
-      delete this.balanceRetryTimers[id];
+    this.clearRouteReload(id);
+    this.routeReloadTimers[id] = setTimeout(() => {
+      delete this.routeReloadTimers[id];
       this.loadChangableSecondaries(id);
     }, ROUTE_CHANGE_BALANCE_DELAY_MS);
+  }
+  clearRouteReload(id: string) {
+    if (this.routeReloadTimers[id] === undefined) return;
+    clearTimeout(this.routeReloadTimers[id]);
+    delete this.routeReloadTimers[id];
   }
   clearBalanceRetry(id: string) {
     if (this.balanceRetryTimers[id] === undefined) return;
@@ -287,6 +300,9 @@ class SteamAccountsTableStore {
     id: string,
     chanableSecondaries: ChangableSecondaryInterface
   ) {
+    // Ответ запроса, отправленного до смены маршрута (см. routeReloadTimers): не показываем,
+    // иначе он отменил бы загрузку по новому маршруту или вернул ошибку старого прокси
+    if (this.routeReloadTimers[id] !== undefined) return;
     // Баланс теперь приходит и с обновлением профиля — в том числе для аккаунта, которого
     // в этом словаре ещё нет.
     this.changableSecondaries[id] = { content: chanableSecondaries, isLoad: true };
@@ -370,7 +386,16 @@ class SteamAccountsTableStore {
     }
   }
   setFields(fields: Field[]) {
+    const balanceShown = (list: Field[]) =>
+      list.some((f) => f.type === AvalibleTypes.steamAccountBalance && f.isVisible);
+    const wasShown = balanceShown(this.fields);
     this.fields = fields;
+    // Колонку баланса показали. Пока она скрыта, баланс не грузится (в том числе после смены
+    // маршрута): без этой загрузки ячейки крутили бы спиннер до перехода на другую страницу.
+    // На старте поля приходят раньше аккаунтов — тогда грузить ещё нечего.
+    if (!wasShown && balanceShown(fields) && Object.keys(this.steamAccounts).length) {
+      this.loadPageBalances(this.activePage);
+    }
   }
   saveFields(fields: Field[]) {
     window.Main.steamAccounts.saveTableFields(toJS(fields));
@@ -519,6 +544,26 @@ class SteamAccountsTableStore {
     }
     throw new Error(i18n.t("accounts.errors.editNotFound", { id }));
   }
+  // Балансы аккаунтов страницы: ещё не загруженные и неудачные
+  loadPageBalances(n: number) {
+    const balanceTableField = this.fields.filter(
+      (field) => field.type === AvalibleTypes.steamAccountBalance
+    )[0];
+    if (!balanceTableField || !balanceTableField.isVisible) return;
+    // Под поиском без совпадений страницы может не быть вовсе
+    for (let sa of this.getSteamAccountsByPages()[n - 1] || []) {
+      // Неудачный баланс показан ошибкой (isLoad), но переход на страницу — повод повторить;
+      // паузу не меньше минуты держит loadChangableSecondaries
+      if (
+        (!this.changableSecondaries[sa.id] ||
+          !this.changableSecondaries[sa.id].isLoad ||
+          this.balanceLoads[sa.id]?.state === "failed") &&
+        !sa.deleted
+      ) {
+        this.loadChangableSecondaries(sa.id);
+      }
+    }
+  }
   setActivePage(n: number, save: boolean = false) {
     try {
       for (var i = n; i >= 1; i--) {
@@ -544,25 +589,7 @@ class SteamAccountsTableStore {
         console.log(`set new page size: ${this.pageSize}`);
       }
 
-      const balanceTableField = this.fields.filter(
-        (field) => field.type === AvalibleTypes.steamAccountBalance
-      )[0];
-      // Под поиском без совпадений страницы может не быть вовсе
-      const steamAccountInThisPage = this.getSteamAccountsByPages()[n - 1] || [];
-
-      if (balanceTableField && balanceTableField.isVisible)
-        for (let sa of steamAccountInThisPage) {
-          // Неудачный баланс показан ошибкой (isLoad), но переход на страницу — повод повторить;
-          // паузу не меньше минуты держит loadChangableSecondaries
-          if (
-            (!this.changableSecondaries[sa.id] ||
-              !this.changableSecondaries[sa.id].isLoad ||
-              this.balanceLoads[sa.id]?.state === "failed") &&
-            !sa.deleted
-          ) {
-            this.loadChangableSecondaries(sa.id);
-          }
-        }
+      this.loadPageBalances(n);
       this.activePage = n;
     } catch (err) {
       console.log(`Ошибка при установке страницы ${n}`);

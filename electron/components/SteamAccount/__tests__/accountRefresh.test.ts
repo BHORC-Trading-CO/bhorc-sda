@@ -210,6 +210,86 @@ describe("renderer: table store", () => {
         expect(balanceCalls()).toEqual(["a", "a"]);
     });
 
+    // Review r3: replies carry no request id, so a request sent before the route change could
+    // answer after it. A success cancelled the scheduled reload (it shared the retry timer slot),
+    // an error replaced it with the 60 s retry and showed the old proxy's error as current.
+    it("a reply to a request sent before the route change is not shown and does not cancel the reload", () => {
+        const table = startedStore(["a"]);
+        expect(balanceCalls()).toEqual(["a"]); // still in flight on the old route
+        listener("onEditProxy")({}, { id: "a", proxy: proxy("proxy-b.test"), proxyState: "ok", proxyId: "p" });
+        jest.advanceTimersByTime(1000);
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: data.changableSecondary });
+        expect(table.changableSecondaries.a.isLoad).toBe(false);
+        expect(table.changableSecondaries.a.content).not.toEqual(data.changableSecondary);
+        jest.advanceTimersByTime(9000);
+        expect(balanceCalls()).toEqual(["a", "a"]);
+        const fresh = { steam: { balance: 7.25, currency: "$", error: null } };
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: fresh });
+        expect(table.changableSecondaries.a).toEqual({ isLoad: true, content: fresh });
+        jest.advanceTimersByTime(60 * 60 * 1000);
+        table.setActivePage(1);
+        expect(balanceCalls()).toEqual(["a", "a"]);
+    });
+
+    it("an error from the old route does not move the reload from 10 s to the 60 s retry", () => {
+        const table = startedStore(["a"]);
+        listener("onEditProxy")({}, { id: "a", proxy: proxy("proxy-b.test"), proxyState: "ok", proxyId: "p" });
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: failed("Error: old proxy is down") });
+        listener("onGetChangableSecondaryError")({}, { id: "a", err: "Error: old proxy is down" });
+        expect(table.changableSecondaries.a.isLoad).toBe(false);
+        jest.advanceTimersByTime(10 * 1000);
+        expect(balanceCalls()).toEqual(["a", "a"]);
+        // The new route's own failure is shown and retried by the usual rules
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: failed("Error: new proxy refused") });
+        expect(table.changableSecondaries.a).toEqual({ isLoad: true, content: failed("Error: new proxy refused") });
+        jest.advanceTimersByTime(60 * 1000);
+        expect(balanceCalls()).toEqual(["a", "a", "a"]);
+    });
+
+    it("a manual refresh during the 10 s wait takes over: its balance is shown and no second load follows", () => {
+        const table = startedStore(["a"]);
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: data.changableSecondary });
+        listener("onEditProxy")({}, { id: "a", proxy: proxy("proxy-b.test"), proxyState: "ok", proxyId: "p" });
+        table.loadSecondaries("a");
+        const fresh = { steam: { balance: 7.25, currency: "$", error: null } };
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: fresh });
+        expect(table.changableSecondaries.a).toEqual({ isLoad: true, content: fresh });
+        jest.advanceTimersByTime(60 * 60 * 1000);
+        expect(balanceCalls()).toEqual(["a"]);
+        expect(methods.getSecondary.mock.calls).toEqual([["a"]]);
+    });
+
+    // Review r3: with the balance column hidden the scheduled reload is skipped (nothing loads a
+    // hidden column), the cell was left "loading" and showing the column again asked for nothing.
+    it("showing the balance column again loads what was skipped while it was hidden", () => {
+        const table = startedStore(["a", "b"]);
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: data.changableSecondary });
+        listener("onGetChangableSecondary")({}, { id: "b", changableSecondary: data.changableSecondary });
+        table.setFields([{ ...balanceField, isVisible: false }]);
+        listener("onEditProxy")({}, { id: "a", proxy: proxy("proxy-b.test"), proxyState: "ok", proxyId: "p" });
+        jest.advanceTimersByTime(60 * 60 * 1000);
+        expect(balanceCalls()).toEqual(["a", "b"]); // hidden: no download
+
+        table.setFields([balanceField]);
+        expect(balanceCalls()).toEqual(["a", "b", "a"]); // only the account that has nothing to show
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: data.changableSecondary });
+        expect(table.changableSecondaries.a).toEqual({ isLoad: true, content: data.changableSecondary });
+        // Saving the same visible column again asks for nothing
+        table.setFields([balanceField]);
+        expect(balanceCalls()).toEqual(["a", "b", "a"]);
+    });
+
+    it("a store started with the balance column hidden loads the page when the column is shown", () => {
+        const table = new SteamAccountsTableStore({ windows: { openMiniNotification: jest.fn() }, groups: { activeGroupId: null } } as any);
+        listener("onGetTableFields")({}, [{ ...balanceField, isVisible: false }]);
+        listener("onGet")({}, accounts(["a", "b"]));
+        listener("onGetTableOptions")({}, { pageSize: 10, activePage: 1 });
+        jest.advanceTimersByTime(60 * 60 * 1000);
+        expect(balanceCalls()).toEqual([]);
+        table.setFields([balanceField]);
+        expect(balanceCalls()).toEqual(["a", "b"]);
+    });
+
     it("an edit with the same route keeps the balance and its memo", () => {
         const table = startedStore(["a"]);
         listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: data.changableSecondary });
