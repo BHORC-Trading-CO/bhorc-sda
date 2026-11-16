@@ -178,16 +178,46 @@ describe("renderer: table store", () => {
         expect(balanceCalls()).toHaveLength(4);
     });
 
-    it("a route change forgets the account's balance; an edit with the same route does not", () => {
+    // Review r2, exact sequence and no extra account list: a balance fails on the old proxy (error shown,
+    // retry timer set), then the user picks a working proxy in the edit form. Forgetting the memo used to
+    // cancel the timer but leave the error displayed as loaded, so nothing ever loaded it again.
+    it("a route change after a failed balance loads it again on the new route without a page switch or a new list", () => {
         const table = startedStore(["a", "b"]);
-        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: data.changableSecondary });
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: failed("Error: tunneling socket could not be established") });
         listener("onGetChangableSecondary")({}, { id: "b", changableSecondary: data.changableSecondary });
-        listener("onEditProxy")({}, { id: "b", proxy: proxy("proxy-a.test"), proxyState: "ok", proxyId: "p" });
+        expect(table.changableSecondaries.a.isLoad).toBe(true);
+
         listener("onEditProxy")({}, { id: "a", proxy: proxy("proxy-b.test"), proxyState: "ok", proxyId: "p" });
-        listener("onGet")({}, accounts(["a", "b"]));
-        jest.advanceTimersByTime(3000);
+        expect(table.changableSecondaries.a.isLoad).toBe(false); // the old proxy's error is not shown as current
+        jest.advanceTimersByTime(10 * 1000);
         expect(balanceCalls()).toEqual(["a", "b", "a"]);
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: data.changableSecondary });
+
+        jest.advanceTimersByTime(60 * 60 * 1000);
+        table.setActivePage(1);
+        expect(balanceCalls()).toEqual(["a", "b", "a"]);
+        expect(table.changableSecondaries.a).toEqual({ isLoad: true, content: data.changableSecondary });
         expect(table.changableSecondaries.b.isLoad).toBe(true);
+    });
+
+    it("after a route change a page switch loads at once, and the scheduled load does not repeat it", () => {
+        const table = startedStore(["a"]);
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: failed("proxy down") });
+        listener("onEditProxy")({}, { id: "a", proxy: proxy("proxy-b.test"), proxyState: "ok", proxyId: "p" });
+        table.setActivePage(1);
+        expect(balanceCalls()).toEqual(["a", "a"]);
+        jest.advanceTimersByTime(60 * 1000);
+        expect(balanceCalls()).toEqual(["a", "a"]);
+    });
+
+    it("an edit with the same route keeps the balance and its memo", () => {
+        const table = startedStore(["a"]);
+        listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: data.changableSecondary });
+        listener("onEditProxy")({}, { id: "a", proxy: proxy("proxy-a.test"), proxyState: "ok", proxyId: "p" });
+        jest.advanceTimersByTime(60 * 60 * 1000);
+        table.setActivePage(1);
+        expect(balanceCalls()).toEqual(["a"]);
+        expect(table.changableSecondaries.a.isLoad).toBe(true);
     });
 
     it("a session refresh reloads the balance through the full refresh only, and a failed refresh is retried", () => {

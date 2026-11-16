@@ -15,6 +15,10 @@ import i18n from "../../i18n/i18n";
 // а сам по таймеру — через 1, 5 и 15 минут (дальше только по поводу или кнопкой обновления).
 const BALANCE_RETRY_FLOOR_MS = 60 * 1000;
 const BALANCE_RETRY_DELAYS_MS = [60 * 1000, 5 * 60 * 1000, 15 * 60 * 1000];
+// После смены маршрута баланс грузим заново через несколько секунд, а не в ту же секунду: main шлёт
+// смену прокси сразу после того, как пересоздал клиент и запустил вход (initSession) без ожидания,
+// и мгновенный запрос почти наверняка увидел бы «не вошёл». Переход на страницу грузит и раньше.
+const ROUTE_CHANGE_BALANCE_DELAY_MS = 10 * 1000;
 
 type BalanceLoad = { state: "loading" | "done" | "failed"; at: number; failures: number };
 
@@ -173,11 +177,11 @@ class SteamAccountsTableStore {
         console.log(`proxy update for steam account #${id} skipped: not in the table yet`);
         return;
       }
-      // Маршрут сменился: прежняя запись о балансе (в том числе «не грузить») больше не действует
-      if (routeOf(this.steamAccounts[id]) !== routeOf({ ...this.steamAccounts[id], ...changes })) {
-        this.forgetBalance(id);
-      }
+      // Маршрут сменился: прежняя запись о балансе (в том числе «не грузить») больше не действует,
+      // баланс по новому маршруту грузим заново
+      const routeChanged = routeOf(this.steamAccounts[id]) !== routeOf({ ...this.steamAccounts[id], ...changes });
       this.editSteamAccount(id, changes);
+      if (routeChanged) this.reloadBalanceForNewRoute(id);
     });
   }
 
@@ -260,9 +264,19 @@ class SteamAccountsTableStore {
       this.loadChangableSecondaries(id);
     }, delay);
   }
+  // Забыть запись и показанный ответ: без isLoad=false аккаунт с показанной ошибкой старого прокси
+  // не подходил ни под переход на страницу, ни под повтор, и ошибка висела до ручного обновления
   forgetBalance(id: string) {
     this.clearBalanceRetry(id);
     delete this.balanceLoads[id];
+    if (this.changableSecondaries[id]) this.changableSecondaries[id].isLoad = false;
+  }
+  reloadBalanceForNewRoute(id: string) {
+    this.forgetBalance(id);
+    this.balanceRetryTimers[id] = setTimeout(() => {
+      delete this.balanceRetryTimers[id];
+      this.loadChangableSecondaries(id);
+    }, ROUTE_CHANGE_BALANCE_DELAY_MS);
   }
   clearBalanceRetry(id: string) {
     if (this.balanceRetryTimers[id] === undefined) return;
