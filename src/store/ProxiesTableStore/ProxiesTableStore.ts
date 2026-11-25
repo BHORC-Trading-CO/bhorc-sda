@@ -39,6 +39,7 @@ class ProxiesTableStore {
   isSettingsFormOpen: boolean;
   isCreationFormOpen: boolean;
   isBulkFormOpen: boolean;
+  isSavingBulk: boolean = false;
   pageSize: number;
   activePage: number;
   isTestingEditingProxy: boolean;
@@ -403,6 +404,7 @@ class ProxiesTableStore {
   // Числа и отклонённые строки приходят из main после сохранения (SDA-64).
   createBulk(rawText: string): Promise<ProxyBulkResult> {
     const requestId = this.nextRequestId();
+    this.isSavingBulk = true;
     return new Promise((resolve) => {
       this.pendingBulk.set(requestId, resolve);
       window.Main.proxies.bulkNew(rawText, requestId);
@@ -412,6 +414,7 @@ class ProxiesTableStore {
     const resolve = this.pendingBulk.get(data.requestId);
     if (!resolve) return;
     this.pendingBulk.delete(data.requestId);
+    this.isSavingBulk = this.pendingBulk.size > 0;
     const { added, duplicates, rejected } = data;
     if (added > 0) {
       // Показываем все добавленные прокси сразу, не пряча их за пагинацией

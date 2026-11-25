@@ -10,16 +10,17 @@
  * запрос ушёл бы не туда (или мимо прокси).
  */
 import ProxyUnavailableError from "./ProxyUnavailableError";
-import { isProxyHost, isProxyPort } from "../Functions/proxyAddress";
+import { canonicalProxyHost, isProxyPort } from "../Functions/proxyAddress";
 
 /**
- * Адрес сохранённого прокси для сетевых клиентов и для --proxy-server браузера (SDA-64). Запись с любым
- * другим host (старая или правленная вручную) не работает вовсе, а не уходит в Chromium как правило.
+ * Адрес сохранённого прокси для сетевых клиентов и для --proxy-server браузера (SDA-64). Запись с host,
+ * который не имя и не IP (старая или правленная вручную), не работает вовсе, а не уходит в Chromium как
+ * правило. IDN, сохранённый раньше буквами, — то же имя: читаем его в punycode.
  */
 export function proxyEndpoint(proxy: { id?: string; host: string; port: string | number }): { host: string; port: string } {
-    const host = String(proxy.host ?? "").trim();
+    const host = canonicalProxyHost(String(proxy.host ?? "").trim());
     const port = String(proxy.port ?? "").trim();
-    if (!isProxyHost(host) || !isProxyPort(port)) throw new ProxyUnavailableError(proxy.id);
+    if (!host || !isProxyPort(port)) throw new ProxyUnavailableError(proxy.id);
     return { host, port };
 }
 

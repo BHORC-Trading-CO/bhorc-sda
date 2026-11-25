@@ -409,7 +409,7 @@ class SteamAccount {
     }
     private stopBrowserForRouteChange() {
         // A launch in progress is cancelled too; Chromium cannot switch routes live.
-        if (this.chrome.workStatus !== "notworking" || this.chrome.browser) {
+        if (this.chrome.isRunning) {
             this.chrome.stop("routeChanged").catch(err => console.log(`Browser stop after route change: ${String(err)}`));
             notifyBrowserRouteChanged();
         }

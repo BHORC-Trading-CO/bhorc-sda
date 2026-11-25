@@ -26,10 +26,10 @@ const ProxiesBulkForm: FC = observer(() => {
   );
 });
 
-const BulkFormContent: FC = () => {
+const BulkFormContent: FC = observer(() => {
   const [rawText, setRawText] = useState("");
   const [rejectedReasons, setRejectedReasons] = useState<ProxyBulkReason[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
+  const isSaving = store.proxiesTable.isSavingBulk;
   const isMounted = useRef(true);
   useEffect(() => () => { isMounted.current = false; }, []);
   const { t } = useTranslation();
@@ -43,14 +43,12 @@ const BulkFormContent: FC = () => {
       });
       return;
     }
-    setIsSaving(true);
     const { rejected } = await store.proxiesTable.createBulk(rawText);
     if (!isMounted.current) return;
     if (rejected.length === 0) return store.proxiesTable.closeBulkForm();
     // Отклонённые строки остаются в поле: их можно исправить и сохранить ещё раз (SDA-64).
     setRawText(rejected.map(({ line }) => line).join("\n"));
     setRejectedReasons(rejected.map(({ reason }) => reason));
-    setIsSaving(false);
   };
 
   return (
@@ -66,6 +64,8 @@ const BulkFormContent: FC = () => {
           className="text-area text-grey-medium proxy-bulk-textarea"
           placeholder={t("proxies.bulk.placeholder")}
           value={rawText}
+          // Ответ заменит текст отклонёнными строками: набранное за это время пропало бы (SDA-64).
+          readOnly={isSaving}
           onChange={(e) => {
             setRawText(e.target.value);
           }}
@@ -92,7 +92,7 @@ const BulkFormContent: FC = () => {
       </div>
     </div>
   );
-};
+});
 
 // Сколько строк не добавлено и почему: по строке на причину.
 export const BulkRejected: FC<{ reasons: ProxyBulkReason[] }> = ({ reasons }) => {

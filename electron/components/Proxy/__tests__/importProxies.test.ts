@@ -49,7 +49,8 @@ describe("parseProxyString", () => {
         ["1.1.1.1:7777", read("", "", "1.1.1.1", "7777")],
         ["gate.test:7777", read("", "", "gate.test", "7777")],
         ["http://user:pass@gateway.test:8080", read("user", "pass", "gateway.test", "8080")],
-        ["HTTPS://user:pass@gateway.test:8080/", read("user", "pass", "gateway.test", "8080")],
+        ["HTTP://user:pass@gateway.test:8080", read("user", "pass", "gateway.test", "8080")],
+        ["http://user:p%2Fa%3Fs%23s@gateway.test:8080", read("user", "p/a?s#s", "gateway.test", "8080")],
         ["http://user:p%40s%3As@1.1.1.1:80", read("user", "p@s:s", "1.1.1.1", "80")],
         ["http://user:p@s:s@1.1.1.1:80", read("user", "p@s:s", "1.1.1.1", "80")],
         ["http://user:@1.1.1.1:80", read("user", "", "1.1.1.1", "80")],
@@ -59,12 +60,17 @@ describe("parseProxyString", () => {
         expect(parseProxyString(value)).toEqual(expected.proxy);
     });
     it.each([
+        // Клиенты говорят с прокси по HTTP: логин и пароль https-прокси ушли бы открыто.
+        ["https://user:pass@gateway.test:8080", "scheme"], ["HTTPS://1.1.1.1:8080", "scheme"],
+        // Путь, запрос, якорь: "@" в них меняла бы, какому host уйдут логин и пароль.
+        ["http://u:p@good.test:80/x@evil.test:90", "format"], ["http://u:p@good.test:80?x@evil.test:90", "format"], ["http://u:p@good.test:80#@evil.test:90", "format"],
+        ["http://u:p@good.test:80\\@evil.test:90", "format"], ["http://good.test:80/u:p@evil.test:90", "format"], ["http://1.1.1.1:80/", "format"], ["http://u:p/w@1.1.1.1:80", "format"],
         ["socks5://user:pass@1.1.1.1:1080", "scheme"], ["socks4://1.1.1.1:1080", "scheme"], ["ftp://1.1.1.1:21", "scheme"],
         ["", "format"], ["user", "format"], ["user:pass", "format"], ["user:1234", "format"], ["user@1.1.1.1:80", "format"], [":pass@1.1.1.1:80", "format"],
         ["user:@1.1.1.1:80", "format"], ["1.1.1.1:80:user", "format"], ["1.1.1.1", "format"], ["http://user@1.1.1.1:80", "format"], ["http://user:100%@1.1.1.1:80", "format"],
         ["user:pass:1.1.1.1:8080", "format"],
         ["user:pass@", "address"], ["user:pass@host", "address"], ["user:pass@host:port", "address"], ["user:pass@host:70000", "address"], ["user:pass@::1:80", "address"],
-        ["user:pass@http=proxy.test:80", "address"], ["user:pass@a;b:80", "address"], ["http://user:pass@1.1.1.1", "address"], ["http://u:p@1.1.1.1:80/path", "address"],
+        ["user:pass@http=proxy.test:80", "address"], ["user:pass@a;b:80", "address"], ["http://user:pass@1.1.1.1", "address"], ["http://u:p@1.1.1.1:80/path", "format"],
         // Читается двояко: сохранить можно было бы не тот адрес и не тот пароль.
         ["1.1.1.1:80:user:pass@2.2.2.2:90", "ambiguous"], ["my.login:1234:x@gate.test:80", "ambiguous"], ["1.1.1.1:8080:user@mail.test:1234", "ambiguous"],
         ["1.1.1.1:8080:2.2.2.2:9090", "ambiguous"], ["user.name:1234:1.1.1.1:8080", "ambiguous"], ["a.test:80:b.test:90", "ambiguous"],
