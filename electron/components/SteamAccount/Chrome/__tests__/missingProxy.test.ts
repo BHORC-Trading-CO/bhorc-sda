@@ -18,7 +18,7 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks());
 it.each([null, { id: "gone", host: "", port: "8080" }, { id: "gone", host: "proxy.test", port: "" },
     // SDA-64: синтаксис правил --proxy-server в сохранённой записи.
-    { id: "gone", host: "http=proxy.test", port: "8080" }, { id: "gone", host: "proxy.test;direct", port: "8080" }, { id: "gone", host: "проксі.example", port: "8080" }])("start blocks missing/incomplete proxy %o before any browser work", async proxy => {
+    { id: "gone", host: "http=proxy.test", port: "8080" }, { id: "gone", host: "proxy.test;direct", port: "8080" }, { id: "gone", host: "проксі.example;direct", port: "8080" }])("start blocks missing/incomplete proxy %o before any browser work", async proxy => {
     if (proxy) proxyManager.objects = [new Proxy(proxy as any)];
     const chrome = new Chrome({ id: "a1", secondary: {} } as any);
     const launch = jest.spyOn(puppeteer, "launch");
@@ -48,4 +48,11 @@ it.each([{ host: "http=proxy.test" }, { host: "proxy.test;direct" }, { port: "80
     jest.spyOn(Manager, "GetSteamAccountLinkedData").mockReturnValue({ proxy, proxyState: "ok", proxyId: "p1" });
     await expect(chrome.setupProxy()).rejects.toMatchObject({ code: "PROXY_UNAVAILABLE" });
     expect(chrome.proxy).toBeUndefined();
+});
+it("a host stored as IDN letters reaches Chromium as punycode, not as a missing proxy", async () => {
+    proxyManager.objects = [new Proxy({ id: "gone", host: "проксі.example", port: "8080", username: "", password: "" } as any)];
+    expect(Manager.GetSteamAccountLinkedData("a1").proxyState).toBe("ok");
+    const chrome = new Chrome({ id: "a1", secondary: {} } as any);
+    await chrome.setupProxy();
+    expect(chrome.generateChromeFlags()).toContain("--proxy-server=xn--j1ahceh0k.example:8080");
 });
