@@ -6,6 +6,7 @@ import sanitizeAvatarUrl from "./sanitizeAvatarUrl";
 import { getSteamID64 } from "./steamAccountSearch";
 import { isRegistrationDate } from "./registrationDate";
 import { canonicalProxyHost, isProxyPort } from "./proxyAddress";
+import isGuardSecret from "./guardSecret";
 import { t } from "../../i18n";
 
 type Data = Record<string, unknown>;
@@ -88,6 +89,8 @@ function sanitizeMaFile(value: unknown): MaFileInterface {
     for (const key of ["shared_secret", "revocation_code", "uri", "account_name", "identity_secret", "secret_1", "device_id"]) {
         if (own(source, key) !== undefined) result[key] = string(source, key);
     }
+    // Негодный секрет — его отсутствие: из него библиотека собирает правдоподобный, но неверный код (SDA-62)
+    if (!isGuardSecret(result.shared_secret)) delete result.shared_secret;
     for (const key of ["serial_number", "token_gid"]) {
         if (own(source, key) !== undefined) result[key] = identifier(source[key]);
     }
@@ -158,5 +161,9 @@ export default function sanitizeSmaFile(value: unknown): SmaFileInterface {
     const emptyProxy = typeof proxy === "object" && proxy !== null && !Array.isArray(proxy) &&
         ["host", "port", "username", "password"].every((key) => !own(proxy as Data, key));
     if (proxy !== undefined && !emptyProxy) result.proxy = sanitizeProxySetup(proxy);
+    // Прокси аккаунта пропал до экспорта (SDA-62). Любое значение, кроме false, — маршрут не решён:
+    // ошибка в поле не должна пустить аккаунт напрямую.
+    const proxyMissing = own(source, "proxyMissing");
+    if (!result.proxy && proxyMissing !== undefined && proxyMissing !== false) result.proxyMissing = true;
     return result;
 }

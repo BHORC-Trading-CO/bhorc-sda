@@ -33,7 +33,11 @@
     "errorTitle": "Помилка 😒",
     "unknownStep": "Невідомий крок: {{step}}",
     "canCloseWindow": "Можна закрити вікно",
-    "inDevelopment": "У розробці"
+    "inDevelopment": "У розробці",
+    "crash": {
+      "text": "Не вдалося показати це вікно.",
+      "reload": "Перезавантажити вікно"
+    }
   },
   "prompt": {
     "cancel": "Скасувати",
@@ -255,7 +259,8 @@
       "loadDataMany": "Не оновились акаунти ({{total}}): {{names}}. Причина — у рядку кожного акаунта",
       "refreshSession": "Не вдалося увійти в акаунт {{account}}: {{error}}",
       "refreshSessionMany": "Не вдалося увійти в акаунти ({{total}}): {{names}}. Причина — у рядку кожного акаунта",
-      "editNotFound": "Не вдалося змінити дані акаунта: #{{id}} - такого акаунта не існує"
+      "editNotFound": "Не вдалося змінити дані акаунта: #{{id}} - такого акаунта не існує",
+      "export": "Не вдалося експортувати акаунт: {{error}}"
     },
     "form": {
       "accountSection": "Акаунт Steam",
@@ -270,7 +275,8 @@
       "showPassword": "Показати пароль",
       "hidePassword": "Сховати пароль",
       "useSteamCookies": "Використовувати cookie Steam у браузері (автовхід)",
-      "maFileNameMismatch": "Ім’я акаунта Steam у maFile не збігається з указаним вище!"
+      "maFileNameMismatch": "Ім’я акаунта Steam у maFile не збігається з указаним вище!",
+      "pinInvalid": "PIN-код — рівно 4 цифри"
     },
     "editing": {
       "title": "Редагування акаунта Steam #{{number}} {{name}}"
@@ -337,7 +343,8 @@
       "skippedFiles": "Пропущено файлів: {{count}}. {{details}}",
       "view": "Переглянути",
       "pickProxy": "Вибрати проксі",
-      "remove": "Прибрати зі списку"
+      "remove": "Прибрати зі списку",
+      "routeRequired": "Виберіть проксі або «Без проксі» для: {{names}}. Проксі цих акаунтів більше не існує"
     }
   },
   "maFile": {

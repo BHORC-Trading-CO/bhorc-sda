@@ -146,3 +146,41 @@ it("the proxy edit window restarts its local state when it is opened for another
         expect(mockUi.content.key).toBe(id);
     }
 });
+
+// SDA-62: PIN — строка: в числе «0123» превращался в 123, а пустое поле показывало «null».
+it("a PIN keeps its leading zeros", () => {
+    open(A);
+    type("accounts.form.pin", "0");
+    type("accounts.form.pin", "0123");
+    render();
+    expect(mockUi.inputs["accounts.form.pin"].value).toBe("0123");
+    press("common.buttons.saveChanges");
+    expect(sent).toEqual([["a", { familyViewPin: "0123" }]]);
+});
+
+it("a cleared PIN is empty and saves as null", () => {
+    open(A);
+    type("accounts.form.pin", "");
+    render();
+    expect(mockUi.inputs["accounts.form.pin"].value).toBe("");
+    press("common.buttons.saveChanges");
+    expect(sent).toEqual([["a", { familyViewPin: null }]]);
+});
+
+it("an unfinished PIN is not saved, letters and a fifth digit are not accepted", () => {
+    open(A);
+    type("accounts.form.pin", "12");
+    type("accounts.form.pin", "12a");
+    type("accounts.form.pin", "12345");
+    press("common.buttons.saveChanges");
+    expect(sent).toEqual([]);
+    expect(form.isOpen).toBe(true);
+    expect(mockStore.windows.openMiniNotification).toHaveBeenCalledWith({ type: "error", text: "accounts.form.pinInvalid" });
+});
+
+it("a short PIN saved by an older version does not block other edits", () => {
+    open({ ...A, familyViewPin: 123 });
+    type("accounts.form.mail", "new@example.invalid");
+    press("common.buttons.saveChanges");
+    expect(sent).toEqual([["a", { mail: "new@example.invalid" }]]);
+});

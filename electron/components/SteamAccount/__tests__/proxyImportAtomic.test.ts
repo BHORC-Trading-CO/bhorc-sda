@@ -39,12 +39,15 @@ const file = () => ({ accountName: "fake", password: "fake", maFile: { revocatio
 const proxy = { id: "p1", host: "proxy.test", port: "8080", username: "", password: "" } as any;
 const params = () => ({ steamAccount: {}, accountName: "fake", password: "fake", links: { proxyMode: "savedProxy", proxyId: "p1", newProxy: null } } as any);
 let connect: jest.SpyInstance;
+let profile: jest.SpyInstance;
 beforeEach(() => {
     new Store().clear();
     proxyManager.objects = [new Proxy({ ...proxy })];
     ProxyStorage.Save("p1", proxy);
     steamAccountManager.objects = [];
     nock.disableNetConnect();
+    // Мастер Guard догружает профиль после сохранения
+    profile = jest.spyOn(SteamAccount.prototype, "getSecondary").mockResolvedValue({} as any);
     connect = jest.spyOn(net.Socket.prototype, "connect").mockImplementation(() => { throw new Error("Unexpected socket"); });
 });
 afterEach(() => { expect(connect).not.toHaveBeenCalled(); jest.restoreAllMocks(); nock.enableNetConnect(); });
@@ -81,7 +84,10 @@ it("F1 failed atomic write leaves neither a stored nor a live direct account", (
     expect(steamAccountManager.objects).toEqual([]);
 });
 it("F1 Guard recovery result precedes local import failure", async () => {
-    (setupGuard as jest.Mock).mockResolvedValueOnce(file());
+    (setupGuard as jest.Mock).mockImplementationOnce(async (_params, _proxy, onRecovery) => {
+        onRecovery("R-TEST", "76561198000000001", null);
+        return file();
+    });
     jest.spyOn(SteamAccountStorage, "SaveWithProxyLink").mockImplementationOnce(() => {
         expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT,
             expect.objectContaining({ revocationCode: "R-TEST" }));
@@ -131,4 +137,40 @@ it("R2 N5 new proxy is saved after successful login and before the atomic accoun
     const account = steamAccountManager.objects[0];
     expect(LinksStorage.Get().steamAccounts[account.params.id]).toBe(selected.id);
     expect(account.proxyState).toBe("ok");
+});
+it("SDA-62 the Guard wizard passes the form's fields on", async () => {
+    const extra = { mail: "m@example.invalid", mailPassword: "mail-password", profileName: "profile", useSteamCookies: false };
+    (setupGuard as jest.Mock).mockClear().mockResolvedValueOnce({ ...file(), ...extra });
+    await guardListener({ reply: jest.fn() } as any, { ...params(), ...extra });
+    expect((setupGuard as jest.Mock).mock.calls[0][0]).toEqual({ accountName: "fake", password: "fake", ...extra });
+    expect(steamAccountManager.objects[0].params).toMatchObject(extra);
+});
+it("SDA-62 a new account signs in once right after the import; a failure goes to its row", async () => {
+    const init = jest.spyOn(SteamAccount.prototype, "initSession").mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("sign-in failed"));
+    (application.sendToMain as jest.Mock).mockClear();
+    steamAccountImport(file(), "p1");
+    expect(init).toHaveBeenCalledTimes(1);
+    expect(init.mock.instances[0]).toBe(steamAccountManager.objects[0]);
+    const failed = steamAccountImport(file(), "p1");
+    expect(init).toHaveBeenCalledTimes(2);
+    // Список с новой строкой уходит в окно раньше ошибки: она приходит асинхронно
+    expect(application.sendToMain).not.toHaveBeenCalled();
+    await new Promise(resolve => setImmediate(resolve));
+    expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR,
+        { id: failed.id, err: "sign-in failed" });
+});
+it("SDA-63 a connected Guard account is saved before its profile is loaded, and a failed load loses nothing", async () => {
+    (setupGuard as jest.Mock).mockResolvedValueOnce({ ...file(), secondary: { nickname: "", avatarUrl: "", level: null, ktState: null, tpState: null, tradeState: null } });
+    profile.mockImplementationOnce(() => {
+        expect(Object.keys(SteamAccountStorage.GetAll())).toHaveLength(1);
+        return Promise.reject(new Error("proxy dropped"));
+    });
+    const event = { reply: jest.fn() };
+    await guardListener(event as any, params());
+    expect(event.reply).not.toHaveBeenCalled();
+    expect(profile).toHaveBeenCalledTimes(1);
+    const [saved] = Object.values(SteamAccountStorage.GetAll());
+    expect(saved).toMatchObject({ maFile: { revocation_code: "R-TEST" }, secondary: { nickname: "", level: null, ktState: null, tpState: null, tradeState: null } });
+    expect(LinksStorage.Get().steamAccounts[saved.id]).toBe("p1");
+    expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, "end");
 });

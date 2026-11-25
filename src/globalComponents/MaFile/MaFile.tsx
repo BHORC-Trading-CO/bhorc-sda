@@ -57,7 +57,7 @@ function MaFile(props: MaFileListInterface) {
         );
       })}
 
-      {isSessionOpen ? Object.keys(maFile.Session).map((field, index)=>{
+      {isSessionOpen ? Object.keys(maFile.Session ?? {}).map((field, index)=>{
         return(
           <li key={index} className="maFile-item" >
           <div className="maFile-item-data">

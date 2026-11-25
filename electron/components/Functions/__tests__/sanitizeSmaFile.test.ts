@@ -6,7 +6,7 @@ const account = () => ({
     tmApiKey: "test-key", profileName: "profile", mail: "test@example.invalid", mailPassword: "test-mail-password",
     secondary: { nickname: "Name", avatarUrl: "http://unix:/tmp/socket:/img", level: 12, ktState: true, tpState: "limited", tradeState: false, extra: "drop" },
     maFile: {
-        shared_secret: "shared", serial_number: "1", revocation_code: "R", uri: "otpauth://test",
+        shared_secret: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA=", serial_number: "1", revocation_code: "R", uri: "otpauth://test",
         server_time: 123, account_name: "test-account", token_gid: "2", identity_secret: "identity",
         secret_1: "secret", status: 1, device_id: "android:test", fully_enrolled: true,
         phone_number_hint: "12", confirm_type: 1, custom: null,
@@ -63,8 +63,8 @@ describe("sanitizeSmaFile", () => {
 
     it("не переносит ключи прототипа и унаследованные поля", () => {
         const source: any = account();
-        source.maFile = JSON.parse('{"__proto__":"bad","constructor":"bad","prototype":"bad","shared_secret":"ok"}');
-        expect(sanitizeSmaFile(source).maFile).toEqual({ shared_secret: "ok" });
+        source.maFile = JSON.parse('{"__proto__":"bad","constructor":"bad","prototype":"bad","shared_secret":"MTIzNDU2Nzg5MDEyMzQ1Njc4OTA="}');
+        expect(sanitizeSmaFile(source).maFile).toEqual({ shared_secret: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA=" });
         expect(() => sanitizeSmaFile(Object.create(account()))).toThrow();
     });
 
@@ -92,6 +92,19 @@ describe("sanitizeSmaFile", () => {
         });
         expect(result.maFile.Session).toEqual({ SteamID: "76561198000000000", SteamLogin: null });
         expect(result).not.toHaveProperty("mail");
+    });
+
+    it.each(["", "  ", "!!!", "c2VjcmV0", "MTIzNDU2Nzg5MDEyMzQ1"])("негодный shared_secret (%j) — его отсутствие: из него получался бы неверный код (SDA-62)", secret => {
+        expect(sanitizeSmaFile({ ...account(), maFile: { ...account().maFile, shared_secret: secret } }).maFile).not.toHaveProperty("shared_secret");
+    });
+
+    it("настоящие секреты проходят: 20 байт base64 (28 знаков с «=»), 16 байт, hex, пробелы по краям", () => {
+        const bytes = (length: number) => Buffer.from(Array.from({ length }, (_, i) => (i * 37 + 251) % 256));
+        const secrets = [bytes(20).toString("base64"), bytes(16).toString("base64"), bytes(20).toString("hex"), ` ${bytes(20).toString("base64")}\n`];
+        expect(secrets[0]).toMatch(/^.{27}=$/);
+        for (const secret of secrets) {
+            expect(sanitizeSmaFile({ ...account(), maFile: { ...account().maFile, shared_secret: secret } }).maFile.shared_secret).toBe(secret);
+        }
     });
 
     it("пустой прокси в файле — без прокси, а не ошибка", () => {

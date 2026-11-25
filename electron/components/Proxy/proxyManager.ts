@@ -128,12 +128,15 @@ export class ProxyManager {
         if (objects.length === 0) return null;
         return objects[0];
     }
-    /** Находит активный (не удалённый) прокси по host:port или создаёт новый. Возвращает прокси. */
+    /** Находит активный (не удалённый) прокси с теми же адресом, логином и паролем или создаёт новый.
+     *  На общем шлюзе логин выбирает выходной IP, поэтому другие логин или пароль — другой прокси (SDA-62). */
     getOrCreateBySetup(setup: ProxySetupInterface) {
         const existing = this.objects.find(p =>
             !p.params.deleted &&
             p.params.host === setup.host &&
-            String(p.params.port) === String(setup.port)
+            String(p.params.port) === String(setup.port) &&
+            (p.params.username || "") === (setup.username || "") &&
+            (p.params.password || "") === (setup.password || "")
         );
         if (existing) return existing;
 

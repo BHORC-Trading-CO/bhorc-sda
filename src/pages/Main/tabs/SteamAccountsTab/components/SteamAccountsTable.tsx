@@ -12,7 +12,7 @@ import Button from "../../../../../globalComponents/Button/Button";
 import Password from "../../../../../globalComponents/Password/Password";
 import { observer, useLocalObservable } from "mobx-react";
 import TableSteamAccountInterface from "../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface";
-import convertMaFileToStr from "../../../../../../electron/components/Functions/converMaFileToStr";
+import exportAccountFile from "./exportAccountFile";
 import { getSteamID64 } from "../../../../../../electron/components/Functions/steamAccountSearch";
 import { formatRegistrationDate, isRegistrationDate } from "../../../../../../electron/components/Functions/registrationDate";
 import { compareBalances } from "../../../../../store/SteamAccountsTableStore/SteamAccountsTableStore";
@@ -396,26 +396,9 @@ const CellJSX: FC<{
             view="icon"
             className="row-action"
             icon="file"
-            onClick={() => {
-              const el = document.getElementById(
-                `exportMaFile${steamAccount.id}`
-              );
-              el?.click();
-            }}
+            onClick={() => exportAccountFile(steamAccount.id, "maFile")}
             altText={t("accounts.table.actions.saveMaFile")}
           />
-
-          <a
-            style={{ display: "none" }}
-            id={`exportMaFile${steamAccount.id}`}
-            href={
-              "data:text/json;charset=utf-8," +
-              encodeURIComponent(
-                convertMaFileToStr(steamAccount.smaFile.maFile)
-              )
-            }
-            download={`${steamAccount.maFile.Session.SteamID}.maFile`}
-          ></a>
         </div>
       );
     // Три состояния: OK / проблема / неизвестно (SDA-31), см. AccountStatusBadges
@@ -575,36 +558,9 @@ const CellJSX: FC<{
             className="row-action"
             testId="row-export"
             icon="download"
-            onClick={() => {
-              const el = document.getElementById(
-                `exportSmaFile${steamAccount.id}`
-              );
-              el?.click();
-            }}
+            onClick={() => exportAccountFile(steamAccount.id, "smaFile")}
             altText={t("accounts.table.actions.exportSmaFile")}
           />
-          <a
-            style={{ display: "none" }}
-            id={`exportSmaFile${steamAccount.id}`}
-            href={
-              "data:text/json;charset=utf-8," +
-              encodeURIComponent(
-                JSON.stringify({
-                  ...steamAccount.smaFile,
-                  // round-trip: вкладываем привязанный прокси (только setup-поля, без локальных id/number/deleted)
-                  proxy: steamAccount.proxy
-                    ? {
-                        host: steamAccount.proxy.host,
-                        port: steamAccount.proxy.port,
-                        username: steamAccount.proxy.username,
-                        password: steamAccount.proxy.password,
-                      }
-                    : undefined,
-                })
-              )
-            }
-            download={`${steamAccount.accountName}.smaFile`}
-          ></a>
         </div>
       );
     case AvalibleTypes.startButton:

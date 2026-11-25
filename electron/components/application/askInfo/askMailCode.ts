@@ -1,5 +1,5 @@
-import application from "../application";
+import askCode from "./askCode";
 
-export default (accountId: string, accountName: string) => {
-    return application.windowsManager.askSomething(accountId, accountName, 'mailCode');
+export default (accountId: string, accountName: string, signal?: AbortSignal) => {
+    return askCode(accountName, 'mailCode', signal);
 }

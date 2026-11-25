@@ -37,7 +37,7 @@ const EditFormContent = observer(() => {
     const steamAccount = content.steamAccount;
     const steamAccountInStorage = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(sa => sa.id === steamAccount.id)[0];
     const avatar = useAccountImage('avatar', steamAccount.id, steamAccount.secondary?.avatarUrl, `${steamAccountInStorage.proxyState}:${steamAccountInStorage.proxyId}`);
-    const pin = steamAccount.familyViewPin === 0 ? '' : String(steamAccount.familyViewPin);
+    const pin = steamAccount.familyViewPin ? String(steamAccount.familyViewPin) : '';
     return <div className='steam-account_edit-form'>
         <section className='sda-form-section steam-data-block'>
             <div className="sda-form-section__head">
@@ -57,10 +57,9 @@ const EditFormContent = observer(() => {
                 {
                     steamAccountInStorage.familyViewPin ?
                         <Input type='password' value={pin} placeholder={t('accounts.form.pin')} onChange={(newValue) => {
-                            if (newValue != '' && !Number(newValue)) return;
-                            if (newValue.length > 4) return;
-                            if (newValue.length === 0) return form.editSteamAccountField('familyViewPin', null);
-                            form.editSteamAccountField('familyViewPin', Number(newValue));
+                            // Строкой: в числе пропадали ведущие нули, и «0123» сохранялся как 123 (SDA-62)
+                            if (!/^[0-9]{0,4}$/.test(newValue)) return;
+                            form.editSteamAccountField('familyViewPin', newValue || null);
                         }} />
                         :
                         <></>
@@ -136,6 +135,10 @@ const EditFormContent = observer(() => {
             <Button text={t('common.buttons.saveChanges')} size='medium' color='gradient' hoverColor='gradient' onClick={() => {
                 // Только правки этой сессии; close() ниже выбрасывает патч.
                 const changes = form.getChanges();
+                if (changes.familyViewPin && String(changes.familyViewPin).length !== 4) {
+                    store.windows.openMiniNotification({ type: 'error', text: t('accounts.form.pinInvalid') });
+                    return;
+                }
                 if (form.switches.proxy === "newProxy") {
                     store.proxiesTable.createNew(content.proxy.new, { steamAccountIds: [steamAccount.id], profileIds: [] });
                     window.Main.steamAccounts.edit(steamAccount.id, changes);

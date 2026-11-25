@@ -8,6 +8,7 @@ import SettingsFormStore from "./SettingsFormStore";
 import CreationFormStore from "./CreationFormStore";
 import EditingFormStore from "./EditingFormStore";
 import ChangableSecondaryInterface from "../../../electron/interfaces/SteamAccount/ChangableSecondaryInterface";
+import isGuardSecret from "../../../electron/components/Functions/guardSecret";
 import { matchesSteamAccountSearch } from "../../../electron/components/Functions/steamAccountSearch";
 import i18n from "../../i18n/i18n";
 
@@ -770,13 +771,16 @@ class SteamAccountsTableStore {
     return this.authCodes[id];
   }
   updateAuthCode(id: string) {
+    // Аккаунт без пригодного shared_secret (импорт неполного файла) кодов не даёт, и ошибка одного
+    // не должна оставить без кодов и статусов браузера остальных (SDA-62, SDA-65)
+    let code = "";
     try {
-      this.authCodes[id] = String(window.Main.guardConnection.getAuthCode(this.steamAccounts[id].maFile.shared_secret));
+      const secret = this.steamAccounts[id].maFile.shared_secret;
+      if (isGuardSecret(secret)) code = String(window.Main.guardConnection.getAuthCode(secret));
     } catch (err) {
-      // Один аккаунт без секрета не должен оставить без кодов остальных
-      this.authCodes[id] = "";
       console.log(`no Guard code for steam account #${id}: ${err}`);
     }
+    this.authCodes[id] = code;
   }
   editSteamAccount(
     id: string,

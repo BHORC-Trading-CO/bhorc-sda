@@ -112,10 +112,22 @@ const DataFillingForm: FC = observer(() => {
                     });
                   }
                 } else {
+                  // Прокси аккаунта пропал до экспорта: маршрут выбирают явно (SDA-62)
+                  const unrouted = params.importedAccounts.filter(
+                    (account) => account.smaFile.proxyMissing && !account.proxyId && !account.noProxy
+                  );
+                  if (unrouted.length) {
+                    return store.windows.openMiniNotification({
+                      type: "error",
+                      text: t("accounts.import.routeRequired", {
+                        names: unrouted.map((account) => account.smaFile.accountName).join(", "),
+                      }),
+                    });
+                  }
                   const importedAccounts = params.importedAccounts.map(
                     (account) => {
                       return {
-                        links: { proxyId: account.proxyId },
+                        links: { proxyId: account.proxyId, noProxy: account.noProxy },
                         smaFile: account.smaFile,
                       };
                     }
@@ -250,6 +262,7 @@ const ImportSteamAccountsForm: FC = observer(() => {
             <ImportAccountItem
               key={index}
               proxyId={data.proxyId}
+              noProxy={data.noProxy}
               tempId={data.tempId}
               smaFile={data.smaFile}
             ></ImportAccountItem>

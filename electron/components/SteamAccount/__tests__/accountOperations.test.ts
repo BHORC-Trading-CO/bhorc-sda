@@ -646,7 +646,7 @@ describe("вход по паролю", () => {
     it("Steam не принял код из maFile — понятная ошибка, а не вечное ожидание", async () => {
         const account = add("a1");
         withSession(account).startWithCredentials.mockResolvedValue({ actionRequired: true, validActions: [{ type: EAuthSessionGuardType.DeviceCode }] });
-        await expect(account.loginByPassword()).rejects.toThrow("did not accept the Guard code");
+        await expect(account.loginByPassword()).rejects.toThrow("rejected the Guard code");
         expect(mockAskMailCode).not.toHaveBeenCalled();
     });
 

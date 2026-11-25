@@ -9,8 +9,10 @@ import AvalibleTypes from "../../../interfaces/TableFields/AvalibleFieldTypes";
 const methods: Record<string, jest.Mock> = {};
 const api = new Proxy({}, { get: (_target, key: string) => methods[key] ||= jest.fn() });
 const emit = (name: string, data: unknown) => methods[name].mock.calls[0][0]({}, data);
+// Секрет настоящей длины (20 байт в base64): короткий приложение считает непригодным
+const secretOf = (id: string) => `${id.padEnd(27, "A")}=`;
 const account = (id: string, number: number, extra: Record<string, unknown> = {}) => ({
-    id, number, accountName: `login-${id}`, password: "p", deleted: false, maFile: { shared_secret: `secret-${id}`, Session: { SteamID: "1" } },
+    id, number, accountName: `login-${id}`, password: "p", deleted: false, maFile: { shared_secret: secretOf(id), Session: { SteamID: "1" } },
     secondary: { nickname: `nick-${id}` }, changableSecondary: { steam: { balance: number, currency: "$", error: null } },
     proxy: null, proxyState: "none", proxyId: null, group: null, ...extra,
 });
@@ -223,7 +225,7 @@ describe("коды Guard", () => {
         (globalThis as any).window.addEventListener = (name: string, listener: () => void) => { listeners[name] = listener; };
         const table = started(1);
         methods.getAuthCode.mockReturnValue("now");
-        expect(table.authCodes.a1).toBe("code-secret-a1");
+        expect(table.authCodes.a1).toBe(`code-${secretOf("a1")}`);
         expect(table.freshAuthCode("a1")).toBe("now");
         methods.getAuthCode.mockReturnValue("later");
         listeners.focus();
@@ -245,7 +247,7 @@ describe("коды Guard", () => {
         const table = started(1);
         methods.getAuthCode.mockReturnValue("next");
         jest.advanceTimersByTime(19 * 1000);
-        expect(table.authCodes.a1).toBe("code-secret-a1");
+        expect(table.authCodes.a1).toBe(`code-${secretOf("a1")}`);
         jest.advanceTimersByTime(1100);
         expect(table.authCodes.a1).toBe("next");
         // Компьютер спал: часы ушли вперёд на 7 с внутрь следующего окна, таймер сработал позже
@@ -258,7 +260,7 @@ describe("коды Guard", () => {
 
     it("аккаунт без секрета не оставляет без кодов и статусов остальных", () => {
         methods.getAuthCode = jest.fn((secret: string) => {
-            if (secret === "secret-a1") throw new Error("no secret");
+            if (secret === secretOf("a1")) throw new Error("no secret");
             return "ok";
         });
         const table = started(3);

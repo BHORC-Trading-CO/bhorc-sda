@@ -27,6 +27,7 @@ import { AppSettingsError, AppSettingsPatch, AppSettingsView } from '../interfac
 import { exposeLanguageApi } from './languageBridge';
 import ImageChannels from '../interfaces/IpcChannels/ImageChannels';
 import { requestImage } from './imageBridge';
+import type { ExportedFile } from '../components/SteamAccount/Listeners/steamAccountExportListener';
 
 const SteamTotp = require('steam-totp');
 
@@ -91,8 +92,12 @@ const steamAccounts = {
   edit: (id: string, steamAccountParams: { [K in keyof TableSteamAccountInterface]?: TableSteamAccountInterface[K] }, links?: { proxyId: null | string }) => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_EDIT, { id, steamAccountParams, links });
   },
-  import: (accounts: { smaFile: SmaFileInterface, links: { proxyId: null | string } }[]) => {
+  import: (accounts: { smaFile: SmaFileInterface, links: { proxyId: null | string, noProxy?: boolean } }[]) => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_IMPORT, accounts);
+  },
+  /** Файл экспорта собирает main из живого аккаунта; ответ приходит этим же вызовом */
+  exportFile: (id: string, kind: 'maFile' | 'smaFile'): Promise<ExportedFile> => {
+    return ipcRenderer.invoke(SteamAccountChannels.STEAM_ACCOUNT_EXPORT, { id, kind });
   },
   delete: (id: string) => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_DELETE, id);
@@ -144,7 +149,7 @@ const steamAccounts = {
     ipcRenderer.send('ENTER_FAMILY_PIN', pin);
   },
   abortCreation() {
-    ipcRenderer.send('ABORT_LOGIN_BY_MAFILE');
+    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT);
   },
   getTableOptions() {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_TABLE_OPTIONS);
@@ -314,7 +319,7 @@ const window = {
 }
 
 const guardConnection = {
-  setup(params: { accountName: string, password: string }, links: ProxySelection) {
+  setup(params: { accountName: string, password: string, profileName?: string, mail?: string, mailPassword?: string, useSteamCookies?: boolean }, links: ProxySelection) {
     ipcRenderer.send(SteamAccountChannels.GUARD_SETUP_PROCESS, { ...params, links });
   },
   onSetupError: (listener: (event: IpcRendererEvent, error: string) => void) => {
@@ -330,7 +335,7 @@ const guardConnection = {
     ipcRenderer.on(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT, listener);
   },
   abortSetup: () => {
-    ipcRenderer.send('ABORT_SETUP_GUARD');
+    ipcRenderer.send(SteamAccountChannels.GUARD_SETUP_PROCESS_ABORT);
   },
   getAuthCode: (shared_secret: string) => {
     return SteamTotp.getAuthCode(shared_secret);

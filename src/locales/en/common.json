@@ -33,7 +33,11 @@
     "errorTitle": "Error 😒",
     "unknownStep": "Unknown step: {{step}}",
     "canCloseWindow": "You can close the window",
-    "inDevelopment": "In development"
+    "inDevelopment": "In development",
+    "crash": {
+      "text": "This window could not be displayed.",
+      "reload": "Reload the window"
+    }
   },
   "prompt": {
     "cancel": "Cancel",
@@ -247,7 +251,8 @@
       "loadDataMany": "Could not refresh {{total}} accounts: {{names}}. The reason is in the row of each account",
       "refreshSession": "Could not sign in to {{account}}: {{error}}",
       "refreshSessionMany": "Could not sign in to {{total}} accounts: {{names}}. The reason is in the row of each account",
-      "editNotFound": "Could not change account data: #{{id}} - no such account"
+      "editNotFound": "Could not change account data: #{{id}} - no such account",
+      "export": "Could not export the account: {{error}}"
     },
     "form": {
       "accountSection": "Steam account",
@@ -262,7 +267,8 @@
       "showPassword": "Show password",
       "hidePassword": "Hide password",
       "useSteamCookies": "Use Steam cookies in the browser (auto login)",
-      "maFileNameMismatch": "The Steam account name in the maFile does not match the one entered above!"
+      "maFileNameMismatch": "The Steam account name in the maFile does not match the one entered above!",
+      "pinInvalid": "The PIN must be exactly 4 digits"
     },
     "editing": {
       "title": "Edit Steam account #{{number}} {{name}}"
@@ -327,7 +333,8 @@
       "skippedFiles": "Files skipped: {{count}}. {{details}}",
       "view": "View",
       "pickProxy": "Pick a proxy",
-      "remove": "Remove from the list"
+      "remove": "Remove from the list",
+      "routeRequired": "Choose a proxy or “No proxy” for: {{names}}. These accounts had a proxy that no longer exists"
     }
   },
   "maFile": {
