@@ -1,6 +1,6 @@
 const mockOrder: string[] = [];
 let mockLoginEvent: [string, unknown?] = ["authenticated"];
-const mockRaw = { status: 1, revocation_code: "R-TEST", shared_secret: "test", server_time: "1" };
+const mockRaw = { status: 1, revocation_code: "R-TEST", shared_secret: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA=", identity_secret: "identity", server_time: "1" };
 jest.mock("steam-session", () => {
     const { EventEmitter } = require("events");
     return {

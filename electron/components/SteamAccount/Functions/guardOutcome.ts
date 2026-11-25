@@ -4,8 +4,12 @@
  */
 const UNKNOWN = "GUARD_OUTCOME_UNKNOWN";
 
-export function unknownOutcome(cause: unknown): Error {
-    return Object.assign(new Error((cause as Error | undefined)?.message ?? String(cause)), { code: UNKNOWN });
+// Объект, а не константа: тесты подменяют срок. Сколько мастер ждёт ответ на Finalize (сам запрос не обрывается).
+export const GUARD_DEADLINES = { finalizeMs: 3 * 60_000 };
+
+/** late — итог запроса, который ещё в пути: мастер его уже не ждёт. */
+export function unknownOutcome<T>(cause: unknown, late?: Promise<T>): Error & { late?: Promise<T> } {
+    return Object.assign(new Error((cause as Error | undefined)?.message ?? String(cause)), { code: UNKNOWN, late });
 }
 
 export function isUnknownOutcome(err: unknown): boolean {

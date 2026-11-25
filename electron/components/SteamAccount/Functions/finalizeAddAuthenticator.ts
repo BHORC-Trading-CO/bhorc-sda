@@ -24,6 +24,22 @@ const MAX_ATTEMPTS = 30;
 // Steam мог уже включить Guard: обрыв ожидания выглядел бы ошибкой. Срок — только на CONNECT (SDA-60).
 const NO_RESPONSE_DEADLINE = { wholeRequest: false, idle: false };
 
+// Steam отдаёт время и числом, и строкой цифр
+const isServerTime = (value: unknown) =>
+    (typeof value === "number" && Number.isFinite(value) && value > 0) || (typeof value === "string" && /^[1-9]\d{0,14}$/.test(value));
+
+/** Ответ, из которого ясен исход: типы верные, поля не спорят, есть успех, просьба о коде или код отказа. */
+function isTrustworthy(response: any): boolean {
+    if (!response || typeof response !== "object") return false;
+    const { success, want_more, status, server_time } = response;
+    const isFlag = (value: unknown) => value == null || typeof value === "boolean";
+    if (!isFlag(success) || !isFlag(want_more)) return false;
+    if (status != null && !Number.isFinite(status)) return false;
+    if (server_time != null && !isServerTime(server_time)) return false;
+    if (success === true && status === 89) return false;
+    return success === true || want_more === true || status != null;
+}
+
 export default function finalizeAddAuthenticator(params: {
     accessToken: string;
     steamID64: string;
@@ -50,7 +66,8 @@ export default function finalizeAddAuthenticator(params: {
         : boundedRequest(defaults, NO_RESPONSE_DEADLINE);
 
     const now = () => Math.floor(Date.now() / 1000);
-    let offset = Number(serverTime) - now();
+    // Без времени Steam — по своим часам: из NaN получился бы код 1970 года (SDA-63)
+    let offset = isServerTime(serverTime) ? Number(serverTime) - now() : 0;
 
     return new Promise<void>((resolve, reject) => {
         let attemptsLeft = MAX_ATTEMPTS;
@@ -74,15 +91,16 @@ export default function finalizeAddAuthenticator(params: {
                     if (err) return reject(isLostResponse(err) ? unknownOutcome(err) : err);
 
                     const response = body && body.response;
-                    // Ни успеха, ни кода отказа: чем кончился запрос, Steam не сказал
-                    if (!response || (!response.success && !response.want_more && response.status === undefined)) {
-                        const failed = resp?.statusCode >= 400
-                            ? Object.assign(new Error(`HTTP error ${resp.statusCode}`), { code: resp.statusCode })
-                            : new Error("Malformed response");
-                        return reject(isLostResponse(failed) ? unknownOutcome(failed) : failed);
+                    const http = resp?.statusCode;
+                    if (http < 200 || http >= 300) {
+                        const failed = Object.assign(new Error(`HTTP error ${http}`), { code: http });
+                        // Отказ — только 4xx, и только если он не спорит с телом
+                        const refused = http >= 400 && http < 500 && response?.success !== true;
+                        return reject(refused ? failed : unknownOutcome(failed));
                     }
+                    if (!isTrustworthy(response)) return reject(unknownOutcome(new Error("Malformed response")));
 
-                    if (response.server_time) {
+                    if (response.server_time != null) {
                         offset = Number(response.server_time) - now();
                     }
 
@@ -100,7 +118,7 @@ export default function finalizeAddAuthenticator(params: {
                         return attempt();
                     }
 
-                    if (!response.success) {
+                    if (response.success !== true) {
                         return reject(new Error(`Error ${response.status}`));
                     }
 

@@ -20,8 +20,14 @@ import { EAuthSessionGuardType } from "steam-session";
 import createLoginSession from "../../Proxy/loginSession";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
 import { writeUnredacted } from "../../Functions/redactSecrets";
-import { isLostResponse, unknownOutcome } from "../Functions/guardOutcome";
+import { GUARD_DEADLINES, isLostResponse, unknownOutcome } from "../Functions/guardOutcome";
+import isGuardSecret from "../../Functions/guardSecret";
+import quietly from "../../Functions/quietly";
 import passwordSignIn from "./passwordSignIn";
+import { t } from "../../../i18n";
+
+// Аккаунты, чьё подключение ещё не завершилось: второй запрос заменил бы секреты первого (SDA-63)
+const unresolved = new Set<string>();
 
 type StepType =
   | SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP
@@ -50,11 +56,18 @@ export default async function setupGuard(
       : boundedRequest({ headers: STEAM_WEB_HEADERS }, { wholeRequest: false });
     const community = new SteamCommunity({ request: communityRequest, userAgent: STEAM_MOBILE_USER_AGENT });
     const EResult = SteamCommunity.EResult;
+    const account = steamAccountParams.accountName.trim().toLowerCase();
+    const unresolvedError = () => new Error(t("errors.guard.unresolved", { login: steamAccountParams.accountName }));
+    if (unresolved.has(account)) return reject(unresolvedError());
 
     const nextStep = (step: CreationStepType) => {
       // Шаги отменённого запуска не попадают в следующий мастер (SDA-63)
-      if (!signal?.aborted) application.sendToMain(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, step);
+      if (!signal?.aborted) quietly(() => application.sendToMain(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, step));
     };
+
+    // Отмена и истёкшее ожидание: новых окон и запросов нет, ответ на отправленный дожидаемся.
+    const stop = new AbortController();
+    signal?.addEventListener("abort", () => stop.abort());
 
     const signIn = (accountName: string, password: string) => {
       nextStep("loginByPassword");
@@ -122,19 +135,29 @@ export default async function setupGuard(
             if (error) return reject(error);
             if (!loggedIn) return reject(new Error("Not logged in"));
             if (familyView) return reject(new Error("Family view"));
+            if (unresolved.has(account)) return reject(unresolvedError());
             let sent = false;
             try {
               // Библиотека проверяет токен исключениями
               //@ts-ignore
               community.setMobileAppAccessToken(session.accessToken);
+              const steamID64 = session.steamID.getSteamID64();
               enrolling = true;
+              unresolved.add(account);
               community.enableTwoFactor((err, response) => {
                 // Ошибка до возврата из вызова — отказ самой библиотеки, в Steam ничего не ушло
-                if (err && sent && isLostResponse(err)) return reject(unknownOutcome(err));
-                activate(err, response).then(resolve, reject);
+                const lost = err && sent && isLostResponse(err);
+                const activation = lost ? Promise.reject(unknownOutcome(err)) : activate(err, response, steamID64, () => {
+                  // Итог всё ещё в пути: мастер заканчиваем, а аккаунт сохраним, если Steam ответит
+                  const late = activation.then(toSmaFile);
+                  late.catch(() => undefined);
+                  reject(unknownOutcome(new Error(t("errors.guard.noAnswer")), late));
+                });
+                activation.finally(() => unresolved.delete(account)).then(resolve, reject);
               });
               sent = true;
             } catch (err) {
+              if (enrolling) unresolved.delete(account);
               reject(err);
             }
           });
@@ -142,8 +165,7 @@ export default async function setupGuard(
       });
     };
 
-    const activate = async (err: any, response: any): Promise<MaFileInterface> => {
-      nextStep("enableTwoFactor");
+    const activate = async (err: any, response: any, steamID64: string, onSlow: () => void): Promise<MaFileInterface> => {
       if (err) {
         if (err.eresult == EResult.Fail) {
           throw new Error(
@@ -155,18 +177,16 @@ export default async function setupGuard(
         }
         throw err;
       }
-      if (response.status != EResult.OK) {
-        throw new Error(`Status ${response.status}`);
-      }
       const rawMaFile: TwoFactorResponseInterface = response;
       // Секреты на диск ПЕРВЫМ делом: Steam отдаёт shared_secret и revocation_code
       // ровно один раз, и всё, что идёт ниже (ввод кода, finalize), может оборваться.
       const backupFile = savePendingAuthenticator(
         steamAccountParams.accountName,
         rawMaFile,
-        session.steamID.getSteamID64()
+        steamID64
       );
-      onRecovery?.(rawMaFile.revocation_code, session.steamID.getSteamID64(), backupFile);
+      quietly(() => onRecovery?.(rawMaFile.revocation_code, steamID64, backupFile));
+      nextStep("enableTwoFactor");
       console.log(
         backupFile
           ? `${steamAccountParams.accountName} - секреты аутентификатора сохранены: ${backupFile}`
@@ -176,6 +196,14 @@ export default async function setupGuard(
       // иначе revocation_code потеряется. В остальных случаях им в логе не место.
       // secret-log-ok: резервная копия при сбое записи на диск (мимо маскировки console)
       if (!backupFile) writeUnredacted(`${steamAccountParams.accountName} - секреты аутентификатора:`, rawMaFile); // i18n-ok: только лог
+
+      if (response.status != EResult.OK) {
+        throw new Error(`Status ${response.status}`);
+      }
+      // Без любого из этих секретов включённый Guard стал бы ловушкой: не включаем
+      if (!isGuardSecret(rawMaFile.shared_secret) || !rawMaFile.identity_secret || !rawMaFile.revocation_code) {
+        throw new Error(t("errors.guard.incomplete"));
+      }
 
       // Код подтверждения приходит на ПОЧТУ, если телефон к аккаунту не привязан,
       // и в SMS, если привязан. Эндпоинт и поле activation_code одни и те же,
@@ -192,26 +220,34 @@ export default async function setupGuard(
         const code = await askSmsCode(
           uuidv4(),
           steamAccountParams.accountName,
-          signal
+          stop.signal
         );
-        if (signal?.aborted) throw "abort";
+        if (stop.signal.aborted) throw "abort";
         nextStep("trySmsCode");
+        // Молчащий прокси держал бы мастер вечно. Запрос не обрываем: Steam мог его выполнить
+        const timer = setTimeout(() => {
+          stop.abort();
+          onSlow();
+        }, GUARD_DEADLINES.finalizeMs);
         try {
           await finalizeAddAuthenticator({
             accessToken: session.accessToken,
-            steamID64: session.steamID.getSteamID64(),
+            steamID64,
             sharedSecret: rawMaFile.shared_secret,
             activationCode: code,
             serverTime: Number(rawMaFile.server_time),
             proxyUrl,
-            signal,
+            signal: stop.signal,
           });
         } catch (error) {
+          clearTimeout(timer);
           if (error.message == "Invalid activation code") {
             await promtActivationCode();
           } else {
             throw error;
           }
+        } finally {
+          clearTimeout(timer);
         }
       };
 
@@ -229,24 +265,25 @@ export default async function setupGuard(
       };
     };
 
+    // Guard уже включён: аккаунт отдаём сразу, без профиля. Раньше сбой его загрузки терял
+    // аккаунт целиком (SDA-63); профиль догружает слушатель после сохранения.
+    const toSmaFile = (maFile: MaFileInterface): SmaFileInterface => ({
+      accountName: steamAccountParams.accountName,
+      password: steamAccountParams.password,
+      maFile: maFile,
+      secondary: { nickname: "", level: null, avatarUrl: "", ktState: null, tpState: null, tradeState: null, registeredAt: null },
+      familyViewPin: null,
+      // Заполненное в форме раньше терялось, а куки включались всегда (SDA-62)
+      useSteamCookies: steamAccountParams.useSteamCookies ?? true,
+      profileName: steamAccountParams.profileName,
+      mail: steamAccountParams.mail,
+      mailPassword: steamAccountParams.mailPassword,
+    });
+
     signIn(steamAccountParams.accountName, steamAccountParams.password)
       .then(enroll)
       .then((maFile) => {
-        // Guard уже включён: аккаунт отдаём сразу, без профиля. Раньше сбой его загрузки терял
-        // аккаунт целиком (SDA-63); профиль догружает слушатель после сохранения.
-        const sMaFile: SmaFileInterface = {
-          accountName: steamAccountParams.accountName,
-          password: steamAccountParams.password,
-          maFile: maFile,
-          secondary: { nickname: "", level: null, avatarUrl: "", ktState: null, tpState: null, tradeState: null, registeredAt: null },
-          familyViewPin: null,
-          // Заполненное в форме раньше терялось, а куки включались всегда (SDA-62)
-          useSteamCookies: steamAccountParams.useSteamCookies ?? true,
-          profileName: steamAccountParams.profileName,
-          mail: steamAccountParams.mail,
-          mailPassword: steamAccountParams.mailPassword,
-        };
-        resolve(sMaFile);
+        resolve(toSmaFile(maFile));
       })
       .catch((err) => {
         reject(err);

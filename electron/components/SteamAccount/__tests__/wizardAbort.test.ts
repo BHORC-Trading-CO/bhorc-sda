@@ -186,3 +186,101 @@ it("Guard wizard: the profile is loaded after the save, and the list is sent aga
     expect(getSecondary).toHaveBeenCalledTimes(1);
     expect(steamAccountManager.sendAccountsToFront).toHaveBeenCalledTimes(2);
 });
+
+// V62b: сначала запись, потом окно
+describe("Guard wizard: persistence does not depend on the window", () => {
+    it("the account is imported before anything is sent about it", async () => {
+        (setupGuard as jest.Mock).mockImplementationOnce(async (_params, _proxy, onRecovery) => {
+            onRecovery("R-TEST", "76561198000000001", "/data/fake.json");
+            sendToMain.mockClear();
+            return file();
+        });
+        (steamAccountImport as jest.Mock).mockImplementationOnce(() => {
+            expect(sendToMain).not.toHaveBeenCalled();
+            return { id: "new-account" };
+        });
+        await guardListener({ reply: jest.fn() } as any, params());
+        expect(steamAccountImport).toHaveBeenCalledTimes(1);
+        expect(sentTo(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP)).toEqual(["end"]);
+    });
+    it.each([["success", false], ["failure", true]])("a window that throws on every send changes nothing: %s", async (_name, failure) => {
+        const gone = () => { throw new Error("Object has been destroyed"); };
+        sendToMain.mockImplementation(gone);
+        (steamAccountManager.sendAccountsToFront as jest.Mock).mockImplementation(gone);
+        (setupGuard as jest.Mock).mockImplementationOnce(async (_params, _proxy, onRecovery) => {
+            onRecovery("R-TEST", "76561198000000001", "/data/fake.json");
+            if (failure) throw new Error("refused");
+            return file();
+        });
+        try {
+            await expect(guardListener({ reply: gone } as any, params())).resolves.toBeUndefined();
+        } finally {
+            sendToMain.mockReset();
+            (steamAccountManager.sendAccountsToFront as jest.Mock).mockReset();
+        }
+        expect(steamAccountImport).toHaveBeenCalledTimes(failure ? 0 : 1);
+    });
+    it("a list that cannot be sent does not turn a saved account into an error", async () => {
+        (setupGuard as jest.Mock).mockResolvedValueOnce(file());
+        (steamAccountManager.sendAccountsToFront as jest.Mock).mockImplementationOnce(() => { throw new Error("Object has been destroyed"); });
+        const event = { reply: jest.fn() };
+        await guardListener(event as any, params());
+        expect(event.reply).not.toHaveBeenCalled();
+        expect(sentTo(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP)).toContain("end");
+    });
+    it("without a revocation code none is shown, and the file is named", async () => {
+        (setupGuard as jest.Mock).mockImplementationOnce(async (_params, _proxy, onRecovery) => {
+            onRecovery(undefined, "76561198000000001", "/data/fake.json");
+            throw new Error("incomplete");
+        });
+        const event = { reply: jest.fn() };
+        await guardListener(event as any, params());
+        expect(event.reply.mock.calls[0][1]).toMatch(/incomplete.*saved in \/data\/fake\.json/);
+        expect(event.reply.mock.calls[0][1]).not.toMatch(/Revocation|undefined/);
+        expect(sentTo(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT)).toEqual([]);
+    });
+});
+
+describe("Guard wizard: an answer that comes after the wizard ended", () => {
+    let late: { resolve: (file: unknown) => void, reject: (err: unknown) => void };
+    const expired = (abort: boolean) => (setupGuard as jest.Mock).mockImplementationOnce(async (_params, _proxy, onRecovery) => {
+        onRecovery("R-TEST", "76561198000000001", "/data/fake.json");
+        if (abort) abortSetup();
+        throw unknownOutcome(new Error("no answer"), new Promise((resolve, reject) => { late = { resolve, reject }; }));
+    });
+    const settle = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
+
+    it.each([["", false], [" after an abort", true]])("a late success is saved and told once%s", async (_name, abort) => {
+        expired(abort);
+        const event = { reply: jest.fn() };
+        await guardListener(event as any, params());
+        const told = abort ? sentTo("ERROR") : event.reply.mock.calls.map(([, text]) => text);
+        expect(told).toEqual([expect.stringMatching(/no answer.*may already be enabled on fake.*R-TEST.*saved in \/data\/fake\.json/)]);
+        expect(steamAccountImport).not.toHaveBeenCalled();
+        sendToMain.mockClear();
+        late.resolve(file());
+        await settle();
+        expect(steamAccountImport).toHaveBeenCalledTimes(1);
+        expect(sentTo("ERROR")).toEqual([expect.stringMatching(/answered late.*connected to fake.*R-TEST/)]);
+        // Мастер закончен: его шаги и итог не попадают в следующий
+        expect(sentTo(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP)).toEqual([]);
+        expect(sentTo(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT)).toEqual([]);
+        expect(steamAccountManager.sendAccountsToFront).toHaveBeenCalled();
+    });
+    it("a late success that cannot be saved is told as such", async () => {
+        expired(false);
+        await guardListener({ reply: jest.fn() } as any, params());
+        (steamAccountImport as jest.Mock).mockImplementationOnce(() => { throw new Error("disk full"); });
+        late.resolve(file());
+        await settle();
+        expect(sentTo("ERROR")).toEqual([expect.stringMatching(/connected to fake, but.*disk full.*R-TEST/)]);
+    });
+    it("a late refusal adds nothing", async () => {
+        expired(false);
+        await guardListener({ reply: jest.fn() } as any, params());
+        late.reject(new Error("Error 88"));
+        await settle();
+        expect(steamAccountImport).not.toHaveBeenCalled();
+        expect(sentTo("ERROR")).toEqual([]);
+    });
+});

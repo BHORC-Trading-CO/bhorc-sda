@@ -84,7 +84,10 @@ it("F1 failed atomic write leaves neither a stored nor a live direct account", (
     expect(steamAccountManager.objects).toEqual([]);
 });
 it("F1 Guard recovery result precedes local import failure", async () => {
-    (setupGuard as jest.Mock).mockResolvedValueOnce(file());
+    (setupGuard as jest.Mock).mockImplementationOnce(async (_params, _proxy, onRecovery) => {
+        onRecovery("R-TEST", "76561198000000001", null);
+        return file();
+    });
     jest.spyOn(SteamAccountStorage, "SaveWithProxyLink").mockImplementationOnce(() => {
         expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT,
             expect.objectContaining({ revocationCode: "R-TEST" }));

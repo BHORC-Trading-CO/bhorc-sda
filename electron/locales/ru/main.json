@@ -125,7 +125,11 @@
       "notSaved": "Steam Guard подключён к {{login}}, но сохранить аккаунт здесь не удалось: {{error}}.",
       "revocationCode": "Код отзыва (revocation code): {{code}}. Запишите его: Steam выдаёт его один раз.",
       "backupSaved": "Секреты сохранены в {{file}}",
-      "backupNotSaved": "Сохранить секреты на диск не удалось."
+      "backupNotSaved": "Сохранить секреты на диск не удалось.",
+      "noAnswer": "Steam слишком долго не отвечает",
+      "lateSuccess": "Steam ответил с опозданием: Steam Guard подключён к {{login}}, аккаунт добавлен.",
+      "unresolved": "Подключение Steam Guard к {{login}} ещё не завершено: Steam не ответил на прошлый запрос. Дождитесь ответа или перезапустите приложение и проверьте Steam Guard в настройках аккаунта Steam.",
+      "incomplete": "Steam прислал неполный набор секретов; Steam Guard не включён"
     },
     "guardSecretMissing": "В maFile нет shared_secret: войти с ним нельзя"
   }

@@ -58,6 +58,42 @@ it.each([
     expect(isUnknownOutcome(await finalize().catch(err => err))).toBe(true);
 });
 
+// V62b-4: успех — только true; спорный или кривой ответ — неизвестный исход
+it.each([
+    ["success as a string", 200, { success: "false", status: 2 }],
+    ["success as a number", 200, { success: 1, status: 2 }],
+    ["want_more as a string", 200, { success: true, want_more: "no" }],
+    ["a status that is not a number", 200, { success: false, status: "88" }],
+    ["a success with the wrong-code status", 200, { success: true, status: 89 }],
+    ["a server time that is not a number", 200, { success: true, server_time: "soon" }],
+    ["an empty server time", 200, { success: true, server_time: "" }],
+    ["a 503 that claims success", 503, { success: true, status: 2 }],
+    ["a 500 with a status", 500, { success: false, status: 88 }],
+    ["a 401 that claims success", 401, { success: true, status: 2 }],
+    ["a redirect", 302, { success: false, status: 88 }],
+])("%s is an unknown outcome and is not retried", async (_name, http, response) => {
+    reply(() => [http as number, { response }], () => [200, DONE]);
+    const err = await finalize().catch(err => err);
+    expect(isUnknownOutcome(err)).toBe(true);
+    expect(posts).toBe(1);
+});
+
+it.each([["1700000000"], [1700000000]])("server_time %j from Steam is used for the next code", async server_time => {
+    const times: string[] = [];
+    for (const response of [{ ...WANT_MORE.response, server_time }, DONE.response]) {
+        nock(HOST).post(PATH, (body: any) => { times.push(body.authenticator_time); return true; }).reply(200, { response } as any);
+    }
+    await finalize();
+    expect(Math.abs(Number(times[times.length - 1]) - 1700000030)).toBeLessThan(5);
+});
+
+it.each([NaN, 0, Infinity])("without a server time (%s) the local clock is used, not 1970", async serverTime => {
+    let time = 0;
+    nock(HOST).post(PATH, (body: any) => { time = Number(body.authenticator_time); return true; }).reply(200, DONE);
+    await finalizeAddAuthenticator({ accessToken: "fake", steamID64: "76561198000000001", sharedSecret: "c2VjcmV0", activationCode: "12345", serverTime, proxyUrl: null });
+    expect(Math.abs(time - Date.now() / 1000)).toBeLessThan(5);
+});
+
 it("a dropped connection is an unknown outcome", async () => {
     nock(HOST).post(PATH).replyWithError({ message: "socket hang up", code: "ECONNRESET" });
     const err = await finalize().catch(err => err);
