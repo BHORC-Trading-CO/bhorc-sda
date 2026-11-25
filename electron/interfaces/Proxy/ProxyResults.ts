@@ -22,9 +22,12 @@ export interface ProxyEditReply {
     error?: string;
 }
 
+/** Почему строка не добавлена: не прочитана (parseProxyString) или не сохранена. */
+export type ProxyBulkReason = "format" | "scheme" | "ambiguous" | "address" | "storage";
+
 /** Итог импорта списка: числа после сохранения, rejected — строки, которые не добавлены. */
 export interface ProxyBulkResult {
     added: number;
     duplicates: number;
-    rejected: string[];
+    rejected: { line: string, reason: ProxyBulkReason }[];
 }

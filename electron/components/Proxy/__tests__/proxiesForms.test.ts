@@ -12,6 +12,7 @@ jest.mock("../../../../src/globalComponents/Button/Button", () => ({ __esModule:
 
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { BulkRejected } from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxiesBulkForm/ProxiesBulkForm";
 import ProxiesFooter from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxiesFooter";
 import ProxiesEditingForm from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxiesEditingForm/ProxiesEditingForm";
 
@@ -38,7 +39,21 @@ it("an incomplete proxy is reported in the form instead of a silent no-op", () =
     renderEditing({}, { ...content, port: "" });
     mockUi.buttons["common.buttons.save"].onClick();
     expect(mockStore.proxiesTable.saveEditing).not.toHaveBeenCalled();
-    expect(mockStore.proxiesTable.setEditError).toHaveBeenCalledWith("proxies.creation.incomplete");
+    expect(mockStore.proxiesTable.setEditError).toHaveBeenCalledWith("proxies.reject.address");
+});
+
+it("a proxy without a login can be saved; the field shows a string that reads back as the same proxy", () => {
+    expect(renderEditing({}, { ...content, username: "", password: "" })).toContain('value="host.test:80"');
+    mockUi.buttons["common.buttons.save"].onClick();
+    expect(mockStore.proxiesTable.saveEditing).toHaveBeenCalledWith(expect.objectContaining({ host: "host.test", username: "", password: "" }), expect.any(Object));
+    expect(renderEditing({}, { ...content, username: "my.login", password: "1234:x" })).toContain('value="http://my.login:1234%3Ax@host.test:80"');
+});
+
+it("the list import says why lines were rejected", () => {
+    const html = renderToStaticMarkup(React.createElement(BulkRejected, { reasons: ["scheme", "address", "scheme"] }));
+    expect(html).toContain('proxies.bulk.rejected|{&quot;count&quot;:3}');
+    expect(html).toContain("<li>proxies.reject.scheme: 2</li><li>proxies.reject.address: 1</li>");
+    expect(renderToStaticMarkup(React.createElement(BulkRejected, { reasons: [] }))).toBe("");
 });
 
 it("shows the refusal and the saving state", () => {

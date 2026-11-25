@@ -58,6 +58,7 @@
   line-height: 18px;
   overflow-wrap: anywhere;
 }
+.proxies-form .proxy-form-error__list { margin: 4px 0 0; padding-left: 18px; }
 
 .proxies-form .proxy-table__container {
   padding: 0 20px;

@@ -7,6 +7,7 @@ import Button from "../../../../../../globalComponents/Button/Button";
 import "../ProxiesCreationForm/ProxiesCreationForm.css";
 import "./ProxiesBulkForm.css";
 import { useTranslation } from "react-i18next";
+import { ProxyBulkReason } from "../../../../../../../electron/interfaces/Proxy/ProxyResults";
 
 const ProxiesBulkForm: FC = observer(() => {
   const { t } = useTranslation();
@@ -27,7 +28,7 @@ const ProxiesBulkForm: FC = observer(() => {
 
 const BulkFormContent: FC = () => {
   const [rawText, setRawText] = useState("");
-  const [rejectedCount, setRejectedCount] = useState(0);
+  const [rejectedReasons, setRejectedReasons] = useState<ProxyBulkReason[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const isMounted = useRef(true);
   useEffect(() => () => { isMounted.current = false; }, []);
@@ -47,8 +48,8 @@ const BulkFormContent: FC = () => {
     if (!isMounted.current) return;
     if (rejected.length === 0) return store.proxiesTable.closeBulkForm();
     // Отклонённые строки остаются в поле: их можно исправить и сохранить ещё раз (SDA-64).
-    setRawText(rejected.join("\n"));
-    setRejectedCount(rejected.length);
+    setRawText(rejected.map(({ line }) => line).join("\n"));
+    setRejectedReasons(rejected.map(({ reason }) => reason));
     setIsSaving(false);
   };
 
@@ -69,7 +70,7 @@ const BulkFormContent: FC = () => {
             setRawText(e.target.value);
           }}
         ></textarea>
-        {rejectedCount > 0 && <p className="proxy-form-error" role="alert">{t("proxies.bulk.rejected", { count: rejectedCount })}</p>}
+        <BulkRejected reasons={rejectedReasons} />
         <Delimeter marginTop="26px" marginBottom="15px"></Delimeter>
       </div>
       <div className="proxy-button__container">
@@ -89,6 +90,22 @@ const BulkFormContent: FC = () => {
           onClick={save}
         ></Button>
       </div>
+    </div>
+  );
+};
+
+// Сколько строк не добавлено и почему: по строке на причину.
+export const BulkRejected: FC<{ reasons: ProxyBulkReason[] }> = ({ reasons }) => {
+  const { t } = useTranslation();
+  if (reasons.length === 0) return <></>;
+  return (
+    <div className="proxy-form-error" role="alert">
+      {t("proxies.bulk.rejected", { count: reasons.length })}
+      <ul className="proxy-form-error__list">
+        {Array.from(new Set(reasons)).map((reason) => (
+          <li key={reason}>{t(`proxies.reject.${reason}`)}: {reasons.filter((other) => other === reason).length}</li>
+        ))}
+      </ul>
     </div>
   );
 };

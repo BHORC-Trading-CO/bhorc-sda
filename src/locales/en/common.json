@@ -459,11 +459,18 @@
       "title": "Add proxies in bulk",
       "example": "One proxy per line. Example: Login:Password@1.1.1.1:7777",
       "empty": "The field is empty!",
-      "rejected_one": "{{count}} line was not added: check the format, host and port. It is left in the field so you can fix it.",
-      "rejected_other": "{{count}} lines were not added: check the format, host and port. They are left in the field so you can fix them.",
+      "rejected_one": "{{count}} line was not added. It is left in the field so you can fix it.",
+      "rejected_other": "{{count}} lines were not added. They are left in the field so you can fix them.",
       "result": "Added: {{added}}, invalid skipped: {{invalid}}, duplicates: {{duplicates}}",
       "label": "Proxy list",
       "placeholder": "Login:Password@1.1.1.1:7777\nLogin:Password@2.2.2.2:7777"
+    },
+    "reject": {
+      "format": "Not a proxy line. Use login:password@host:port, host:port:login:password, host:port or http://login:password@host:port",
+      "scheme": "Only HTTP proxies are supported (http:// or https://)",
+      "ambiguous": "The line can be read in two ways. Write it as http://login:password@host:port",
+      "address": "Invalid host or port",
+      "storage": "Could not be saved"
     },
     "creation": {
       "title": "New proxies",

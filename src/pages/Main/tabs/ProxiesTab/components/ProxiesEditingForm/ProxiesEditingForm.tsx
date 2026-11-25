@@ -8,7 +8,7 @@ import ProxyItem from "../ProxyItem/ProxyItem";
 import Button from "../../../../../../globalComponents/Button/Button";
 import { observer } from 'mobx-react';
 import ProxySetupInterface from "../../../../../../../electron/interfaces/Proxy/ProxySetupInterface";
-import parseProxyString from "../Funcs/parseProxyString";
+import parseProxyString, { formatProxyString, parseProxy } from "../Funcs/parseProxyString";
 import { useTranslation } from "react-i18next";
 
 const ProxiesEditingForm: FC = observer(() => {
@@ -43,6 +43,7 @@ const EditingFormContent: FC = observer(() => {
     port: proxy.port
   });
 
+  const [value, setValue] = useState(() => formatProxyString(proxyData));
   const [originalSteamAccountIds] = useState(() => [...proxy.steamAccountIds]);
   const [links, setLinks] = useState<{ steamAccountIds: string[] }>({
     steamAccountIds: proxy.steamAccountIds
@@ -51,6 +52,7 @@ const EditingFormContent: FC = observer(() => {
   const parseAddProxyArea = (value: string) => {
     const proxySetup: ProxySetupInterface = parseProxyString(value);
 
+    setValue(value);
     store.proxiesTable.resetEditingTestDisplay();
     store.proxiesTable.setEditError(null);
     setProxyData(proxySetup);
@@ -65,15 +67,7 @@ const EditingFormContent: FC = observer(() => {
           aria-describedby="proxy-edit-format"
           className="proxy-create-input text-grey-medium"
           placeholder={t("common.startTyping")}
-          defaultValue={
-            proxyData.username +
-            ":" +
-            proxyData.password +
-            "@" +
-            proxyData.host +
-            ":" +
-            proxyData.port
-          }
+          value={value}
           onChange={(e) => parseAddProxyArea(e.target.value)}
         ></input>
         <div id="proxy-edit-format" className="proxy-data-example text-grey-medium">
@@ -113,10 +107,10 @@ const EditingFormContent: FC = observer(() => {
           }}
         ></Button>
         <Button size="medium" text={t("common.buttons.save")} isLoad={store.proxiesTable.isSavingEdit} onClick={() => {
-          if (proxyData.host && proxyData.port && proxyData.password) {
+          if (proxyData.host && proxyData.port) {
             store.proxiesTable.saveEditing(proxyData, { ...links, originalSteamAccountIds });
           } else {
-            store.proxiesTable.setEditError(t("proxies.creation.incomplete"));
+            store.proxiesTable.setEditError(t(value.trim() ? `proxies.reject.${parseProxy(value).reason}` : "proxies.creation.incomplete"));
           }
         }}></Button>
       </div>

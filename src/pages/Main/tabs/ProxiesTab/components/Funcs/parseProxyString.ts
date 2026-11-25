@@ -1,2 +1,2 @@
 // Один разбор с main (SDA-64)
-export { default } from "../../../../../../../electron/components/Functions/parseProxyString";
+export { default, parseProxy, formatProxyString } from "../../../../../../../electron/components/Functions/parseProxyString";

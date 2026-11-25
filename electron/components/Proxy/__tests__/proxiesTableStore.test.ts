@@ -39,8 +39,9 @@ describe("bulk import", () => {
         expect(text).toBe("a:b@1.1.1.1:1\na:b@2.2.2.2:port");
         receive("onBulkResult", { requestId: "other", added: 5, duplicates: 0, rejected: [] });
         expect(toasts).toEqual([]);
-        receive("onBulkResult", { requestId, added: 1, duplicates: 0, rejected: ["a:b@2.2.2.2:port"] });
-        await expect(result).resolves.toEqual({ added: 1, duplicates: 0, rejected: ["a:b@2.2.2.2:port"] });
+        const rejected = [{ line: "a:b@2.2.2.2:port", reason: "address" }];
+        receive("onBulkResult", { requestId, added: 1, duplicates: 0, rejected });
+        await expect(result).resolves.toEqual({ added: 1, duplicates: 0, rejected });
         expect(toasts).toEqual([{ type: "error", text: 'proxies.bulk.result|{"added":1,"invalid":1,"duplicates":0}' }]);
     });
 });
