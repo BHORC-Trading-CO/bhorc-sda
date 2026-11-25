@@ -144,9 +144,9 @@ export class BackgroundMode {
         return revealWindow(this.mainWindow, this.platform, app);
     }
 
-    /** Another launch of SDA ('second-instance'): show the window unless that launch asked for --hidden. */
+    /** Another launch of SDA ('second-instance'): show the window unless it asked for --hidden or is Squirrel's own (update). */
     onSecondLaunch(argv: readonly string[] = []) {
-        if (revealOnSecondLaunch(argv)) this.revealMainWindow();
+        if (revealOnSecondLaunch(argv) && squirrelMaintenanceEvent(this.platform, argv) === null) this.revealMainWindow();
     }
 
     /**

@@ -255,6 +255,17 @@ describe("second launch while running in the tray", () => {
         expect(win.isVisible()).toBe(true);
     });
 
+    // SDA-64: an update runs the new version with these while the old one sits in the tray.
+    it.each(["--squirrel-install", "--squirrel-updated", "--squirrel-obsolete"])("a Squirrel launch (%s) leaves the window hidden", (flag) => {
+        const mode = makeMode("win32", { closeToTray: true });
+        const { win } = start(mode);
+        win.close();
+        mode.onSecondLaunch(["trademanager.exe", flag, "1.0.6"]);
+        expect(win.isVisible()).toBe(false);
+        mode.onSecondLaunch(["trademanager.exe", "--squirrel-firstrun"]);
+        expect(win.isVisible()).toBe(true);
+    });
+
     it("before the window exists or after it was closed: no exception", () => {
         const mode = makeMode("win32");
         expect(mode.revealMainWindow()).toBe(false);
