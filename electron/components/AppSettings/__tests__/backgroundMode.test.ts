@@ -129,6 +129,86 @@ describe("closing the main window", () => {
     });
 });
 
+// SDA-64: closing the main window must not leave SDA running without a way back to it.
+describe("closing the main window while other windows are open", () => {
+    let opened: BrowserWindow[];
+    beforeEach(() => {
+        for (const win of BrowserWindow.getAllWindows()) (win as any).destroyed = true;
+        opened = [];
+    });
+    function startReopenable(platform: NodeJS.Platform, stored: Partial<AppSettingsInterface> = {}) {
+        AppSettingsStorage.Save({ ...ALL_OFF, ...stored });
+        const mode = new BackgroundMode(platform);
+        modes.push(mode);
+        const open = () => {
+            const win = new BrowserWindow({});
+            opened.push(win);
+            mode.attachMainWindow(win);
+        };
+        mode.install(["sda"], open);
+        // Dock 'activate' of the very first launch comes before the first window: it must not open one.
+        mode.revealMainWindow();
+        expect(opened).toHaveLength(0);
+        mode.prepareStartup(["sda"]);
+        open();
+        return { mode, win: opened[0] };
+    }
+
+    it.each(["win32", "linux"] as const)("%s: closing means exit, so SDA quits and the other windows go too", (platform) => {
+        const { win } = startReopenable(platform);
+        new BrowserWindow({});
+        win.close();
+        expect(quit).toHaveBeenCalledTimes(1);
+    });
+
+    it("Windows: with no other window the exit stays with 'window-all-closed'", () => {
+        startReopenable("win32").win.close();
+        expect(quit).not.toHaveBeenCalled();
+    });
+
+    it("Windows: hiding to the tray quits nothing, and the same window comes back", () => {
+        const { mode, win } = startReopenable("win32", { closeToTray: true });
+        new BrowserWindow({});
+        win.close();
+        expect(quit).not.toHaveBeenCalled();
+        mode.onSecondLaunch(["trademanager.exe"]);
+        expect([win.isVisible(), opened.length]).toEqual([true, 1]);
+    });
+
+    it("a real quit does not start another one, and a late launch does not open a window", () => {
+        const { mode, win } = startReopenable("win32");
+        new BrowserWindow({});
+        mockApp.emit("before-quit", { preventDefault: jest.fn() });
+        win.close();
+        expect(quit).not.toHaveBeenCalled();
+        mode.onSecondLaunch(["trademanager.exe"]);
+        expect(opened).toHaveLength(1);
+    });
+
+    it.each(["Dock click", "second launch"])("macOS: SDA stays in the Dock; a %s opens one new main window", (way) => {
+        const { mode, win } = startReopenable("darwin");
+        const confirmations = new BrowserWindow({});
+        win.close();
+        expect(quit).not.toHaveBeenCalled();
+        expect(confirmations.isDestroyed()).toBe(false);
+        const reveal = () => way === "Dock click" ? mockApp.emit("activate") : mode.onSecondLaunch(["bhorc-sda"]);
+        reveal();
+        reveal();
+        expect(opened).toHaveLength(2);
+        expect([opened[1].isVisible(), opened[1].isDestroyed()]).toEqual([true, false]);
+        opened[1].close();
+        reveal();
+        expect(opened).toHaveLength(3);
+    });
+
+    it("macOS: a launch with --hidden does not open a closed window", () => {
+        const { mode, win } = startReopenable("darwin");
+        win.close();
+        mode.onSecondLaunch(["bhorc-sda", "--hidden"]);
+        expect(opened).toHaveLength(1);
+    });
+});
+
 describe("tray menu", () => {
     it("Show window brings the hidden window back; Quit quits the app", () => {
         const mode = makeMode("win32", { closeToTray: true });

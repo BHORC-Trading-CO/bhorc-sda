@@ -31,6 +31,9 @@ export class BackgroundMode {
     /** System login item: read once at startup, then set by our own writes; null = not read. */
     private loginItemOn: boolean | null = null;
     private mainWindow: BrowserWindow | null = null;
+    /** Opens a new main window and attaches it (application.ts); used only after the first one was closed. */
+    private openMainWindow: (() => void) | null = null;
+    private hadMainWindow = false;
     /** macOS: the window waits for the end of the full-screen exit to hide; a reveal cancels that. */
     private hideAfterFullScreen = false;
     readonly tray: AppTray;
@@ -55,9 +58,10 @@ export class BackgroundMode {
     /**
      * App-level hooks, once, before 'ready'. before-quit comes first for every real quit (tray
      * Quit, Cmd+Q, app menu Quit, app.quit()): from then on the main window closes for real.
-     * macOS: a click on the Dock icon ('activate') brings a hidden main window back.
+     * macOS: a click on the Dock icon ('activate') brings a hidden or closed main window back.
      */
-    install(argv: readonly string[] = process.argv) {
+    install(argv: readonly string[] = process.argv, openMainWindow: (() => void) | null = null) {
+        this.openMainWindow = openMainWindow;
         this.maintenance = squirrelMaintenanceEvent(this.platform, argv) !== null;
         app.on("before-quit", () => {
             this.quitting = true;
@@ -91,6 +95,7 @@ export class BackgroundMode {
 
     attachMainWindow(win: BrowserWindow) {
         this.mainWindow = win;
+        this.hadMainWindow = true;
         win.on("close", (event) => {
             if (this.maintenance) return;
             const action = mainWindowCloseAction({
@@ -119,16 +124,23 @@ export class BackgroundMode {
         win.on("session-end", () => {
             this.quitting = true;
         });
-        // No window left to show: the tray goes too (on Windows/Linux the app is quitting anyway,
-        // and on macOS a "Show window" item would do nothing).
+        // No window left to show: the tray goes too. Windows/Linux: closing the main window exits SDA;
+        // with other windows open (confirmations, code requests) 'window-all-closed' does not come, and
+        // the app would live on with neither a main window nor a tray icon (SDA-64). macOS keeps
+        // running in the Dock, as before.
         win.on("closed", () => {
             if (this.mainWindow === win) this.mainWindow = null;
             this.tray.destroy();
+            if (this.platform === "darwin" || this.quitting) return;
+            if (BrowserWindow.getAllWindows().some((other) => other !== win && !other.isDestroyed())) app.quit();
         });
     }
 
+    /** A tray click, "Show window", a second launch or a Dock click ends with a visible main window. */
     revealMainWindow(): boolean {
         this.hideAfterFullScreen = false;
+        // Closed for good while the app lives on (macOS): open it again (SDA-64).
+        if (!this.mainWindow && this.hadMainWindow && !this.quitting) this.openMainWindow?.();
         return revealWindow(this.mainWindow, this.platform, app);
     }
 
