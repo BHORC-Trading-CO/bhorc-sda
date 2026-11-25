@@ -32,7 +32,11 @@
     "errorTitle": "Error 😒",
     "unknownStep": "Unknown step: {{step}}",
     "canCloseWindow": "You can close the window",
-    "inDevelopment": "In development"
+    "inDevelopment": "In development",
+    "crash": {
+      "text": "This window could not be displayed.",
+      "reload": "Reload the window"
+    }
   },
   "prompt": {
     "cancel": "Cancel",
@@ -241,7 +245,8 @@
     "errors": {
       "loadData": "Failed to load account data: {{error}}",
       "refreshSession": "Could not refresh the session of account #{{number}}: {{error}}",
-      "editNotFound": "Could not change account data: #{{id}} - no such account"
+      "editNotFound": "Could not change account data: #{{id}} - no such account",
+      "export": "Could not export the account: {{error}}"
     },
     "form": {
       "accountSection": "Steam account",

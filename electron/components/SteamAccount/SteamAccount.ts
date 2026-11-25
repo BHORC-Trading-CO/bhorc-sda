@@ -407,7 +407,11 @@ class SteamAccount {
             password: this.params.password,
             maFile: this.params.maFile,
             familyViewPin: this.params.familyViewPin,
-            useSteamCookies: this.params.useSteamCookies
+            useSteamCookies: this.params.useSteamCookies,
+            // Без этих полей копия теряла почту и имя профиля, хотя импорт их принимает (SDA-62)
+            profileName: this.params.profileName,
+            mail: this.params.mail,
+            mailPassword: this.params.mailPassword
         }
         return stripLegacyMarketData(smaFile);
     }

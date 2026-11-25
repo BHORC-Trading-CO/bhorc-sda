@@ -26,6 +26,7 @@ import { AppSettingsError, AppSettingsPatch, AppSettingsView } from '../interfac
 import { exposeLanguageApi } from './languageBridge';
 import ImageChannels from '../interfaces/IpcChannels/ImageChannels';
 import { requestImage } from './imageBridge';
+import type { ExportedFile } from '../components/SteamAccount/Listeners/steamAccountExportListener';
 
 const SteamTotp = require('steam-totp');
 
@@ -92,6 +93,10 @@ const steamAccounts = {
   },
   import: (accounts: { smaFile: SmaFileInterface, links: { proxyId: null | string } }[]) => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_IMPORT, accounts);
+  },
+  /** Файл экспорта собирает main из живого аккаунта; ответ приходит этим же вызовом */
+  exportFile: (id: string, kind: 'maFile' | 'smaFile'): Promise<ExportedFile> => {
+    return ipcRenderer.invoke(SteamAccountChannels.STEAM_ACCOUNT_EXPORT, { id, kind });
   },
   delete: (id: string) => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_DELETE, id);

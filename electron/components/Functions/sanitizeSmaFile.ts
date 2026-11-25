@@ -168,5 +168,9 @@ export default function sanitizeSmaFile(value: unknown): SmaFileInterface {
     const emptyProxy = typeof proxy === "object" && proxy !== null && !Array.isArray(proxy) &&
         ["host", "port", "username", "password"].every((key) => !own(proxy as Data, key));
     if (proxy !== undefined && !emptyProxy) result.proxy = sanitizeProxySetup(proxy);
+    // Прокси аккаунта пропал до экспорта (SDA-62). Любое значение, кроме false, — маршрут не решён:
+    // ошибка в поле не должна пустить аккаунт напрямую.
+    const proxyMissing = own(source, "proxyMissing");
+    if (!result.proxy && proxyMissing !== undefined && proxyMissing !== false) result.proxyMissing = true;
     return result;
 }
