@@ -86,6 +86,8 @@ export class SteamAccountManager {
             for (const old of this.objects) {
                 if (next.includes(old)) continue;
                 old.invalidateOperations();
+                // Подготовка браузера (cookie, гео) могла ещё идти: запуск без строки в таблице не остановить
+                old.chrome.launchesBlocked = true;
                 // Removed records must not leave an untracked live browser either.
                 old.chrome.stop().catch(err => application.sendToMain("ERROR", String(err)));
             }

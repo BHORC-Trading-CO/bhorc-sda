@@ -30,6 +30,13 @@ export function isProxyPort(port: string): boolean {
     return /^[0-9]{1,5}$/.test(port) && Number(port) >= 1 && Number(port) <= 65535;
 }
 
+/** Один и тот же прокси: адрес в каноническом виде, логин и пароль. Логин на общем шлюзе выбирает
+ *  выходной IP, поэтому другие логин или пароль — другой прокси. Старые записи могут быть без полей. */
+export function proxyIdentity({ host, port, username, password }: { host?: string, port?: string | number, username?: string, password?: string }): string {
+    const name = host ?? "";
+    return JSON.stringify([(canonicalProxyHost(name) ?? name).toLowerCase(), String(port ?? ""), username || "", password || ""]);
+}
+
 /** Host в том виде, в котором он хранится и уходит в клиенты (IDN — в punycode), или null. */
 export function canonicalProxyHost(host: string): string | null {
     if (/^[\x00-\x7f]*$/.test(host)) return isProxyHost(host) ? host : null;

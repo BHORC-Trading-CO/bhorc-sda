@@ -8,7 +8,7 @@ export default async (event: Electron.IpcMainEvent, id: string) => {
         if (!account) {
             throw new Error(t('errors.steamAccountNotFound', { id: id }));
         }
-        event.reply(SteamAccountChannels.GET_BROWSER_STARTUS, { status: account.chrome.workStatus, id});
+        event.reply(SteamAccountChannels.GET_BROWSER_STARTUS, { status: account.browserPreparing ? "load" : account.chrome.workStatus, id });
     } catch (err) {
         event.reply('ERROR', err);
     }

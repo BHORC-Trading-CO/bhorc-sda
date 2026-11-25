@@ -9,6 +9,8 @@ export default async (event: Electron.IpcMainEvent, data: { id: string, steamAcc
         console.log(`edit steam account ${data.id}`);
         const steamAccount = steamAccountManager.getById(data.id);
         if (!steamAccount) throw new Error(t('errors.steamAccountNotFound', { id: data.id }));
+        // Удаление ждёт, пока закроется браузер: правка или восстановление в это время пропали бы вместе с ним
+        if (steamAccount.chrome.launchesBlocked) throw new Error(t('errors.accountBeingDeleted'));
         const wasArchived = steamAccount.params.deleted === true;
         const relink = data.links && data.links.proxyId !== Manager.GetSteamAccountLinkedData(data.id).proxyId;
         // До записи: отказ по прокси не должен оставить аккаунт восстановленным наполовину
@@ -21,6 +23,8 @@ export default async (event: Electron.IpcMainEvent, data: { id: string, steamAcc
                 .filter(other => other !== steamAccount && !other.params.deleted).map(other => other.params.number);
             if (numbers.includes(steamAccount.params.number)) changes.number = Math.max(...numbers) + 1;
         }
+        const identityChanged = (changes.accountName !== undefined && changes.accountName !== steamAccount.params.accountName)
+            || (changes.maFile !== undefined && JSON.stringify(changes.maFile) !== JSON.stringify(steamAccount.params.maFile));
         steamAccount.editParams(changes);
         // Прокси — раньше входа: вход после восстановления должен идти уже новым маршрутом
         if (relink) Manager.LinkProxyToSteamAccount(steamAccount.params.id, data.links!.proxyId);
@@ -30,6 +34,7 @@ export default async (event: Electron.IpcMainEvent, data: { id: string, steamAcc
             if (changes.number !== undefined) proxyManager.sendProxiesToFront();
             steamAccount.startSessionInBackground();
         }
+        if (identityChanged) steamAccount.resetIdentity();
     } catch (err) {
         event.reply('ERROR', String(err));
     }

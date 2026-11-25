@@ -49,6 +49,7 @@
     "secretKeyTooShort": "Invalid key. It must be at least 8 characters long",
     "totpNotAccepted": "Steam did not accept any TOTP code in 30 attempts",
     "profileUnrecognized": "Steam returned a profile page without the account name; profile data was not updated",
+    "accountBeingDeleted": "the account is being deleted",
     "sessionMissing": "there is no saved session. Use “Refresh session (log in again)”",
     "sessionExpired": "the session has expired. Use “Refresh session (log in again)”",
     "loginTimedOut": "the sign-in did not finish in time (check the proxy)",

@@ -36,6 +36,7 @@ import SteamAccountChannels from "../../interfaces/IpcChannels/SteamAccountChann
 import notifyBrowserRouteChanged from "./Chrome/notifyBrowserRouteChanged";
 import { isDeadTokenError, isRefreshTokenExpired } from "./Functions/sessionExpiry";
 import { errorText, isStaleOperation, SessionExpiredError, StaleOperationError } from "./Functions/accountErrors";
+import isGuardSecret from "../Functions/guardSecret";
 import TaskQueue from "../Functions/taskQueue";
 import withDeadline from "../Functions/withDeadline";
 const SteamTotp = require('steam-totp');
@@ -92,6 +93,8 @@ class SteamAccount {
     // параллельно со входом со старыми cookie. Об ошибке сообщает тот, кто вход запустил.
     private login: LoginAttempt | null = null;
     sessionError: unknown = null;
+    // Браузер готовится (cookie, гео прокси), а Chrome.start ещё не вызван
+    browserPreparing = false;
     private sessionFailedAt = 0;
     // Номер маршрута: клиенты прежнего маршрута запросов больше не шлют
     private route = 0;
@@ -203,6 +206,18 @@ class SteamAccount {
         this.route++;
         this.invalidateOperations();
         this.setSessionError(null);
+    }
+    /**
+     * Логин или maFile аккаунта заменили: клиенты и cookie прежнего Steam-аккаунта больше не годятся,
+     * а начатый вход не должен записать его токены в новые данные.
+     */
+    resetIdentity() {
+        this.startNewRoute();
+        if (this.proxyState !== "missing") {
+            this.session = this.buildSession();
+            this.community = this.buildCommunity();
+        }
+        this.startSessionInBackground();
     }
     /** Всё начатое больше не нужно: сменился маршрут, аккаунт ушёл в архив или удалён. */
     invalidateOperations() {
@@ -470,6 +485,8 @@ class SteamAccount {
                             SteamID: steamID.toString(),
                             SessionID: ""
                         }
+                        // Аккаунту за это время могли заменить логин или maFile: чужие токены в него не пишем
+                        if (!isLive()) throw new StaleOperationError();
                         // Без await человек видел успех, а на диске оставался старый токен
                         await this.saveSession(newSession);
                         resolve();
@@ -478,10 +495,12 @@ class SteamAccount {
                     }
                 });
 
+                const secret = this.params.maFile.shared_secret;
                 const result = await session.startWithCredentials({
                     accountName: this.params.accountName,
                     password: this.params.password,
-                    steamGuardCode: SteamTotp.generateAuthCode(this.params.maFile.shared_secret)
+                    // Без пригодного секрета кода нет: пусть Steam сам скажет, чего ждёт (код из письма)
+                    steamGuardCode: isGuardSecret(secret) ? SteamTotp.generateAuthCode(secret) : undefined
                 });
 
                 if (result.actionRequired && result.validActions) {
@@ -614,15 +633,17 @@ class SteamAccount {
         promise.then(forget, forget);
         return promise;
     }
-    setPin(pin: number): Promise<void> {
+    setPin(pin: number | string): Promise<void> {
         return new Promise((resolve, reject) => {
             this.proxyUrl();
-            this.community.parentalUnlock(pin, (err) => {
+            this.community.parentalUnlock(pin as number, (err) => {
                 if (err) return reject('pin incorrect');
 
                 try {
                     //console.log(`successful set pin: ${pin} (#${this.params.number})`);
-                    this.editParams({ familyViewPin: Number(pin) });
+                    // Строкой: у PIN бывает ноль в начале
+                    this.editParams({ familyViewPin: String(pin) });
+                    resolve();
                 } catch (err) {
                     reject(err);
                 }

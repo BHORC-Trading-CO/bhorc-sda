@@ -1,3 +1,4 @@
+import { proxyIdentity } from "../Functions/proxyAddress";
 import ProxyStorage from "../newStorage/ProxyStorage";
 import Proxy from "./Proxy";
 import ProxyInterface from "../../interfaces/Proxy/ProxyInterface";
@@ -131,13 +132,8 @@ export class ProxyManager {
     /** Находит активный (не удалённый) прокси с теми же адресом, логином и паролем или создаёт новый.
      *  На общем шлюзе логин выбирает выходной IP, поэтому другие логин или пароль — другой прокси (SDA-62). */
     getOrCreateBySetup(setup: ProxySetupInterface) {
-        const existing = this.objects.find(p =>
-            !p.params.deleted &&
-            p.params.host === setup.host &&
-            String(p.params.port) === String(setup.port) &&
-            (p.params.username || "") === (setup.username || "") &&
-            (p.params.password || "") === (setup.password || "")
-        );
+        const wanted = proxyIdentity(setup);
+        const existing = this.objects.find(p => !p.params.deleted && proxyIdentity(p.params) === wanted);
         if (existing) return existing;
 
         const proxyData = Proxy.Generate(setup);

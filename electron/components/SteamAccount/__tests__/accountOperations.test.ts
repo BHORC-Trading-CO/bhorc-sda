@@ -29,6 +29,8 @@ import SteamAccount, { ACCOUNT_LIMITS, SESSION_TIMING } from "../SteamAccount";
 import steamAccountManager from "../steamAccountManager";
 import editListener from "../Listeners/steamAccountEditListener";
 import getBalanceListener from "../Listeners/steamAccountGetChangableSecondaryListener";
+import startBrowser from "../Listeners/steamAccountStartBrowser";
+import getBrowserStatus from "../Listeners/GetBrowserStatus";
 import refreshStorageListener from "../Listeners/steamAccountRefreshStorageListener";
 import refreshSessionListener from "../Listeners/steamAccountRefreshSessionListener";
 import application from "../../application/application";
@@ -765,5 +767,128 @@ describe("перечитывание по кнопке", () => {
         jest.spyOn(SteamAccountStorage, "GetAll").mockImplementation(() => { throw new Error("EACCES"); });
         await refreshStorageListener(e, 8);
         expect(e.reply.mock.calls).toEqual([[SteamAccountChannels.STEAM_ACCOUNT_REFRESH_STORAGE, { requestId: 8, err: expect.stringContaining("EACCES") }]]);
+    });
+});
+
+describe("стыки правок", () => {
+    it("замена maFile посреди входа: cookie и токены прежнего аккаунта в новые данные не попадают", async () => {
+        const account = add("a1");
+        const cookies = deferred<string[]>();
+        mockCookies.mockReturnValueOnce(cookies.promise).mockReturnValue(new Promise(() => undefined));
+        jest.spyOn(account.session, "refreshAccessToken").mockResolvedValue(undefined as never);
+        const before = account.community;
+        account.startSessionInBackground();
+        await flush();
+        const other = { shared_secret: "b3RoZXJzZWNyZXRvdGhlcnNlY3I=", identity_secret: "x", Session: { ...session(), SteamID: "76561190000000099" } };
+        await editListener(event(), { id: "a1", steamAccountParams: { accountName: "other", maFile: other as any } });
+        expect(account.community).not.toBe(before);
+        cookies.resolve(["steamLoginSecure=76561190000000000%7C%7Cold"]);
+        await flush();
+        expect(account.community.steamID).toBeFalsy();
+    });
+
+    it("вход по паролю, начатый до замены maFile, не пишет токены в новый", async () => {
+        const account = add("a1");
+        const fake: any = Object.assign(new EventEmitter(), {
+            accessToken: "access", refreshToken: "refresh", cancelLoginAttempt: jest.fn(),
+            steamID: { getSteamID64: () => "76561190000000000", toString: () => "76561190000000000" },
+            startWithCredentials: jest.fn().mockResolvedValue({ actionRequired: false }),
+        });
+        jest.spyOn(account as any, "buildSession").mockReturnValue(fake);
+        mockCookies.mockResolvedValue(["steamLoginSecure=76561190000000000%7C%7Ct"]);
+        const login = account.loginByPassword();
+        login.catch(() => undefined);
+        await flush();
+        jest.spyOn(account, "initSession").mockResolvedValue(undefined);
+        await editListener(event(), { id: "a1", steamAccountParams: { maFile: { shared_secret: "bmV3", Session: { SteamID: "76561190000000099" } } as any } });
+        fake.emit("authenticated");
+        await expect(login).rejects.toMatchObject({ code: "STALE_OPERATION" });
+        await flush();
+        expect(stored("a1").maFile.Session).toEqual({ SteamID: "76561190000000099" });
+    });
+
+    it("правка без смены логина и maFile вход не сбрасывает", async () => {
+        const account = add("a1");
+        const { community } = account;
+        await editListener(event(), { id: "a1", steamAccountParams: { profileName: "x", accountName: "fixture", maFile: { ...account.params.maFile } } });
+        expect(account.community).toBe(community);
+    });
+
+    it("восстановление во время удаления отклоняется", async () => {
+        const account = add("a1", null, { deleted: true });
+        account.chrome.launchesBlocked = true;
+        const e = event();
+        await editListener(e, { id: "a1", steamAccountParams: { deleted: false } });
+        expect(e.reply).toHaveBeenCalledWith("ERROR", expect.stringContaining("being deleted"));
+        expect(stored("a1").deleted).toBe(true);
+    });
+
+    it("аккаунт исчез при перечитывании, пока готовился браузер: браузер не запускается", async () => {
+        const account = add("a1");
+        account.params.useSteamCookies = true;
+        const cookies = deferred<string[]>();
+        jest.spyOn(account, "getBrowserCookies").mockReturnValue(cookies.promise);
+        const start = jest.spyOn(account.chrome, "start").mockResolvedValue(undefined);
+        const preparing = startBrowser(event() as any, "a1");
+        await flush();
+        SteamAccountStorage.Delete("a1");
+        await steamAccountManager.load();
+        cookies.resolve(["steamLoginSecure=x"]);
+        await preparing;
+        expect(start).not.toHaveBeenCalled();
+        expect(account.chrome.launchesBlocked).toBe(true);
+    });
+
+    it("браузер готовится: список не возвращает кнопку, второе нажатие ничего не начинает", async () => {
+        const account = add("a1");
+        account.params.useSteamCookies = true;
+        const cookies = deferred<string[]>();
+        const get = jest.spyOn(account, "getBrowserCookies").mockReturnValue(cookies.promise);
+        jest.spyOn(account.chrome, "start").mockResolvedValue(undefined);
+        const preparing = startBrowser(event() as any, "a1");
+        await flush();
+        const status = event();
+        await getBrowserStatus(status, "a1");
+        expect(status.reply.mock.calls[0][1]).toEqual({ id: "a1", status: "load" });
+        await startBrowser(event() as any, "a1");
+        expect(get).toHaveBeenCalledTimes(1);
+        cookies.resolve([]);
+        await preparing;
+        expect(account.browserPreparing).toBe(false);
+    });
+
+    it("без секрета Guard вход по паролю всё равно пробуется", async () => {
+        const account = add("a1", null, { maFile: { Session: session() } });
+        const fake: any = Object.assign(new EventEmitter(), { startWithCredentials: jest.fn().mockResolvedValue({ actionRequired: false }), cancelLoginAttempt: jest.fn() });
+        jest.spyOn(account as any, "buildSession").mockReturnValue(fake);
+        account.loginByPassword().catch(() => undefined);
+        await flush();
+        expect(fake.startWithCredentials).toHaveBeenCalledWith(expect.objectContaining({ steamGuardCode: undefined }));
+    });
+
+    it("PIN семейного просмотра сохраняется с нулём в начале, и ожидание завершается", async () => {
+        const account = add("a1");
+        (account.community as any).parentalUnlock = (_pin: string, cb: (err: Error | null) => void) => cb(null);
+        await account.setPin("0123");
+        expect(stored("a1").familyViewPin).toBe("0123");
+    });
+});
+
+describe("старые записи прокси", () => {
+    it("правка, добавившая логин старой записи без него, меняет и живой маршрут", () => {
+        const Proxy = jest.requireActual("../../Proxy/Proxy").default;
+        const ProxyStorage = require("../../newStorage/ProxyStorage").default;
+        const params: any = { id: "old", number: 1, host: "one.test", port: "80", deleted: false };
+        ProxyStorage.Save("old", params);
+        const proxy = new Proxy(params);
+        proxy.editParams({ username: "u", password: "p" });
+        expect(proxy.params).toMatchObject({ username: "u", password: "p" });
+    });
+
+    it("запись без host не роняет импорт; один и тот же прокси узнаётся в любом написании", () => {
+        const { proxyIdentity } = require("../../Functions/proxyAddress");
+        expect(() => proxyIdentity({})).not.toThrow();
+        expect(proxyIdentity({ host: "проксі.example", port: 80 })).toBe(proxyIdentity({ host: require("url").domainToASCII("проксі.example"), port: "80", username: "", password: "" }));
+        expect(proxyIdentity({ host: "a.test", port: 80, username: "u" })).not.toBe(proxyIdentity({ host: "a.test", port: 80, username: "v" }));
     });
 });
