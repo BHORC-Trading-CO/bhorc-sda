@@ -1,4 +1,5 @@
 const mockOrder: string[] = [];
+let mockLoginEvent: [string, unknown?] = ["authenticated"];
 const mockRaw = { status: 1, revocation_code: "R-TEST", shared_secret: "test", server_time: "1" };
 jest.mock("steam-session", () => {
     const { EventEmitter } = require("events");
@@ -9,7 +10,7 @@ jest.mock("steam-session", () => {
             refreshToken = "fake-refresh";
             steamID = { getSteamID64: () => "76561198000000001", toString: () => "76561198000000001" };
             async startWithCredentials() {
-                queueMicrotask(() => this.emit("authenticated"));
+                queueMicrotask(() => this.emit(...mockLoginEvent));
                 return { actionRequired: false };
             }
         }
@@ -39,7 +40,7 @@ import setupGuard from "../setupGuard";
 import savePendingAuthenticator from "../../Functions/savePendingAuthenticator";
 import askSmsCode from "../../../application/askInfo/askSmsCode";
 
-beforeEach(() => { mockOrder.length = 0; nock.disableNetConnect(); });
+beforeEach(() => { mockOrder.length = 0; mockLoginEvent = ["authenticated"]; nock.disableNetConnect(); });
 afterEach(() => { jest.restoreAllMocks(); nock.enableNetConnect(); });
 it("R2 N4 Guard writes the pending backup before publishing recovery or asking for activation", async () => {
     const connect = jest.spyOn(net.Socket.prototype, "connect").mockImplementation(() => { throw new Error("unexpected socket"); });
@@ -56,4 +57,10 @@ it("R2 N4 recovery remains published when activation fails after the backup", as
     await expect(setupGuard({ accountName: "fake", password: "fake" }, null, recovery)).rejects.toThrow("activation failed");
     expect(mockOrder).toEqual(["backup", "recovery"]);
     expect(recovery).toHaveBeenCalledWith("R-TEST", "76561198000000001");
+});
+
+it.each([["error", new Error("proxy down"), "proxy down"], ["timeout", undefined, "timed out"]])("SDA-60: login %s ends Guard setup with an error instead of waiting forever", async (event, payload, message) => {
+    mockLoginEvent = [event, payload];
+    await expect(setupGuard({ accountName: "fake", password: "fake" }, null, jest.fn())).rejects.toThrow(message);
+    expect(mockOrder).toEqual([]);
 });

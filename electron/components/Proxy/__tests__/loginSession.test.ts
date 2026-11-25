@@ -39,18 +39,26 @@ it("сбой всех transfer — ошибка, а не вечное ожида
     await expect(session.getWebCookies()).rejects.toBeTruthy();
 });
 
+it("transfer с другим путём: сбой не теряется", async () => {
+    const { session } = sessionWith((url) => {
+        if (/finalizelogin/.test(url)) return transfers("http://steam.tv/login/transfer", "https://steam.tv/login/transfer");
+        throw new Error("ECONNRESET");
+    });
+    await expect(session.getWebCookies()).rejects.toBeTruthy();
+});
+
 it("пустой список transfer завершается по сроку", async () => {
     LOGIN_DEADLINES.cookiesMs = 20;
     const { session } = sessionWith(() => transfers());
     await expect(session.getWebCookies()).rejects.toThrow("timed out");
 });
 
-it("запрос без ответа завершается по сроку, запрос по http отклоняется", async () => {
+it("запрос без ответа завершается по сроку, запрос по http не отправляется", async () => {
     LOGIN_DEADLINES.requestMs = 20;
     const { session } = sessionWith(() => new Promise(() => undefined));
     await expect(session.refreshAccessToken()).rejects.toThrow("timed out");
     const client = (session as unknown as { _webClient: { request(options: { url: string }): Promise<unknown> } })._webClient;
-    await expect(client.request({ url: "http://api.steampowered.com/" })).rejects.toThrow("Only HTTPS");
+    await expect(client.request({ url: "http://api.steampowered.com/" })).resolves.toEqual({ statusCode: 400, headers: {} });
 });
 
 it("контроль: без обёртки LoginSession открывает http-адрес напрямую, мимо прокси", async () => {

@@ -90,6 +90,14 @@ describe("boundedRequest: прокси молчит на CONNECT", () => {
         const slow = await call(boundedRequest({}, { wholeRequest: false }), { url: `http://127.0.0.1:${port}/` });
         expect([slow.err, slow.body]).toEqual([null, "ab"]);
     });
+
+    it("idle: false снимает срок молчания после отправки (завершение привязки Guard)", () => {
+        const spy = jest.spyOn(request, "Request" as never).mockImplementation((() => ({ on: jest.fn() })) as never);
+        boundedRequest({}, { wholeRequest: false, idle: false }).post({ url: "https://api.steampowered.com/" }, () => undefined);
+        boundedRequest({}, { wholeRequest: false }).post({ url: "https://api.steampowered.com/" }, () => undefined);
+        expect(spy.mock.calls.map(([options]: any[]) => options.timeout)).toEqual([undefined, 50_000]);
+        spy.mockRestore();
+    });
 });
 
 describe("boundedRequest: запрос целиком", () => {

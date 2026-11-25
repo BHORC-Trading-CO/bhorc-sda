@@ -20,6 +20,9 @@ import { t } from "../../../i18n";
 
 const MAX_ATTEMPTS = 30;
 
+// Steam мог уже включить Guard: обрыв ожидания выглядел бы ошибкой. Срок — только на CONNECT (SDA-60).
+const NO_RESPONSE_DEADLINE = { wholeRequest: false, idle: false };
+
 export default function finalizeAddAuthenticator(params: {
     accessToken: string;
     steamID64: string;
@@ -40,8 +43,8 @@ export default function finalizeAddAuthenticator(params: {
         },
     };
     const req = proxyUrl
-        ? boundedRequest({ proxy: proxyUrl, ...defaults }, { wholeRequest: false })
-        : boundedRequest(defaults, { wholeRequest: false });
+        ? boundedRequest({ proxy: proxyUrl, ...defaults }, NO_RESPONSE_DEADLINE)
+        : boundedRequest(defaults, NO_RESPONSE_DEADLINE);
 
     const now = () => Math.floor(Date.now() / 1000);
     let offset = Number(serverTime) - now();

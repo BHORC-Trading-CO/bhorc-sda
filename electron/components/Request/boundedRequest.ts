@@ -12,17 +12,18 @@ import request, { CoreOptions } from "request";
  *  - CONNECT: сколько ждать, пока прокси построит туннель. Запрос в Steam ещё не отправлен,
  *    поэтому обрыв безопасен и для привязки Guard.
  *  - запрос целиком: ответ, который капает по байту, тоже когда-нибудь закончится. Для запросов,
- *    ответ которых нельзя потерять (секреты Guard), его отключают: wholeRequest: false.
+ *    ответ которых нельзя потерять (секреты Guard), его отключают: wholeRequest: false. idle: false
+ *    снимает и срок молчания после отправки.
  */
 export const REQUEST_DEADLINES = { connectMs: 20_000, totalMs: 90_000 };
 
 export type BoundedRequest = ReturnType<typeof request.defaults>;
 
-export default function boundedRequest(options: CoreOptions = {}, { wholeRequest = true } = {}): BoundedRequest {
+export default function boundedRequest(options: CoreOptions = {}, { wholeRequest = true, idle = true } = {}): BoundedRequest {
     // Второй аргумент defaults — requester: через него проходит каждый вызов, включая get/post
     // и defaults() поверх (так делает steamcommunity).
     const bounded = request.defaults(
-        { timeout: 50_000, ...options },
+        { ...(idle ? { timeout: 50_000 } : {}), ...options },
         ((target: any, callback?: request.RequestCallback) => send(target, callback, wholeRequest)) as never,
     );
     // defaults() пропускает через requester и этот помощник, а он ничего не отправляет

@@ -21,12 +21,12 @@ export default function createLoginSession(proxyUrl: string | null | undefined):
     if (client) {
         const send = client.request.bind(client);
         client.request = async (options) => {
-            // Ответ без cookie: transfer отклонится как обычный неудачный
+            // Ответ без cookie: transfer отклонится как обычный неудачный. Transfer — всё, что не вход
+            // и не API: исключение из него steam-session теряет и ждёт вечно.
             const refused = { statusCode: 400, headers: {} };
-            const isTransfer = /\/login\/settoken/i.test(options.url);
+            const isTransfer = !/^https:\/\/(api|login)\.steampowered\.com\//i.test(options.url) || /\/login\/settoken/i.test(options.url);
             if (!/^https:\/\//i.test(options.url)) {
-                if (isTransfer) return refused;
-                throw new Error("Only HTTPS is allowed for Steam sign-in");
+                return refused;
             }
             const response = withDeadline(send(options), LOGIN_DEADLINES.requestMs, () => new Error("Steam sign-in request timed out"));
             return isTransfer ? response.catch(() => refused) : response;

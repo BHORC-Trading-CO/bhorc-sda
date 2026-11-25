@@ -63,6 +63,10 @@ export default async function setupGuard(
     ): Promise<MaFileInterface> => {
       return new Promise<MaFileInterface>((resolve, reject) => {
         nextStep("loginByPassword");
+        // Сбой или срок опроса входа приходит событием, а не ошибкой startWithCredentials:
+        // без слушателей мастер крутился бы вечно (SDA-60)
+        session.once("error", reject);
+        session.once("timeout", () => reject(new Error("Login attempt timed out")));
         session
           .startWithCredentials({
             accountName,
