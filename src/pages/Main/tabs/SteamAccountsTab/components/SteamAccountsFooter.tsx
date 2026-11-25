@@ -8,11 +8,11 @@ import { Trans, useTranslation } from 'react-i18next';
 
 const SteamAccountsFooter: FC = observer(() => {
     const { t } = useTranslation();
-    const steamAccounts = store.steamAccountsTable.getSteamAccounts();
+    const table = store.steamAccountsTable;
     const steamAccountsByPage = store.steamAccountsTable.getSteamAccountsByPages();
     // Всего — как раньше: все аккаунты, кроме архивных (с архивными, если они показаны); без фильтров группы и поиска
-    const visibleSteamAccounts = Object.values(steamAccounts).filter(p => !p.deleted || store.steamAccountsTable.showDeleted);
-    const selectedSteamAccounts = visibleSteamAccounts.filter(p => p.isSelected);
+    const visibleSteamAccounts = Object.values(table.steamAccounts).filter(p => !p.deleted || table.showDeleted);
+    const selectedSteamAccounts = table.selectedAccounts;
     // Ничего не выбрано: кнопки выглядят неактивными, но клики работают как раньше (напр. тост «не выбрано»)
     const nothingSelected = selectedSteamAccounts.length === 0;
     const inactiveHint = nothingSelected ? t("accounts.footer.selectFirst") : undefined;
@@ -46,8 +46,7 @@ const SteamAccountsFooter: FC = observer(() => {
                         iconMotion="spin"
                         text={t("accounts.footer.refreshSession")}
                         onClick={() => {
-                            const selected = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected && !p.deleted);
-                            if (selected.length === 0) return;
+                            if (nothingSelected) return;
                             store.steamAccountsTable.refreshSessionSelected();
                         }}
                     />
@@ -64,8 +63,7 @@ const SteamAccountsFooter: FC = observer(() => {
                         icon="folder"
                         text={t("accounts.footer.toGroup")}
                         onClick={() => {
-                            const selected = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected && !p.deleted);
-                            if (selected.length === 0) {
+                            if (nothingSelected) {
                                 return store.windows.openMiniNotification({ type: 'error', text: t('common.noAccountsSelected') });
                             }
                             store.groups.openAssignForm();
@@ -84,8 +82,8 @@ const SteamAccountsFooter: FC = observer(() => {
                         icon="trash"
                         text={t("common.buttons.delete")}
                         onClick={() => {
-                            const selectedSteamAccounts = Object.values(store.steamAccountsTable.getSteamAccounts()).filter(p => p.isSelected);
-                            if (selectedSteamAccounts.length === 0) return;
+                            if (nothingSelected) return;
+                            // Список фиксируем на момент вопроса: подтверждают именно эти номера
 
                             store.windows.prompt({
                                 type: 'question',

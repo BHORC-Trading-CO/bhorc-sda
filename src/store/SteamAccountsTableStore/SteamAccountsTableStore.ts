@@ -1,5 +1,5 @@
 import store, { Store } from "../store";
-import { makeAutoObservable, runInAction, toJS } from "mobx";
+import { makeAutoObservable, observable, reaction, runInAction, toJS } from "mobx";
 import AvalibleTypes from "../../../electron/interfaces/TableFields/AvalibleFieldTypes";
 import Field from "../../../electron/interfaces/TableFields/Field";
 import TableSteamAccountInterface from "../../../electron/interfaces/SteamAccount/TableSteamAccountInterface";
@@ -34,6 +34,7 @@ export const ERROR_SUMMARY_DELAY_MS = 1500;
 export const BACKGROUND_SUMMARY_QUIET_MS = 8 * 1000;
 export const BACKGROUND_SUMMARY_MAX_MS = 60 * 1000;
 const ERROR_SUMMARY_NAMES = 5;
+const AUTH_CODE_PERIOD_MS = 30 * 1000;
 
 type AccountErrorKind = "data" | "session";
 
@@ -44,7 +45,6 @@ class SteamAccountsTableStore {
   fields: Field[];
   initialSteamAccounts: CompiledSteamAccountInterface[];
   steamAccounts: { [id: string]: TableSteamAccountInterface };
-  isAllSelected: boolean;
   showDeleted: boolean;
   activeIds: string[]; //массив айдишников аккаунтов, у которых установлены все Listeners
 
@@ -99,11 +99,13 @@ class SteamAccountsTableStore {
   accountErrorsAt: number;
   // Восстановлены из архива, ждут нового списка: после него обновляем их данные
   restoredIds: Set<string>;
+  // Порядок, выбранный щелчком по заголовку: переживает новый список (SDA-65)
+  sortFunc: ((a: TableSteamAccountInterface, b: TableSteamAccountInterface) => number) | null;
+  authCodeTimer: ReturnType<typeof setTimeout> | null;
 
   constructor(root: Store) {
     this.root = root;
     this.fields = [];
-    this.isAllSelected = false;
     this.showDeleted = false;
     this.activeIds = [];
     this.initialSteamAccounts = [];
@@ -138,13 +140,25 @@ class SteamAccountsTableStore {
     this.accountErrorsSince = 0;
     this.accountErrorsAt = 0;
     this.restoredIds = new Set();
+    this.sortFunc = null;
+    this.authCodeTimer = null;
 
     makeAutoObservable(this, {
+      initialSteamAccounts: observable.ref, sortFunc: false, authCodeTimer: false,
       balanceRetryTimers: false, routeReloadTimers: false,
       fullRefreshPending: false, fullRefreshQueue: false, fullRefreshInFlight: false,
       requestSeq: false, fullRefreshId: false, fullRequests: false, balanceRequests: false,
       accountErrors: false, accountErrorsTimer: false, accountErrorsSince: false, accountErrorsAt: false, restoredIds: false,
     });
+
+    // Состав видимых строк меняется и сам: ответ сменил ник под поиском, группа, архив. Страница не должна
+    // остаться пустой, а выбранное — вернуться выбранным, когда фильтр снимут (SDA-65).
+    reaction(
+      () => this.visibleAccounts.map((sa) => sa.id).join(),
+      () => this.setActivePage(this.activePage)
+    );
+    // Таймеры окна в трее браузер придерживает: вернулись — коды на сейчас
+    window.addEventListener?.("focus", () => this.updateAuthCodes());
 
     window.Main.steamAccounts.getTableFields();
     window.Main.steamAccounts.get();
@@ -245,10 +259,10 @@ class SteamAccountsTableStore {
       this.finishFullRefresh();
       this.root.windows.openMiniNotification({ type: "error", text: i18n.t("accounts.errors.reloadList", { error: err }) });
     });
-    window.Main.steamAccounts.onGet((event, steamAccounts) => {
-      runInAction(() => {
-        this.initialSteamAccounts = steamAccounts;
-      });
+    // Одним действием: реакция на состав строк (см. конструктор) должна увидеть уже запущенную очередь,
+    // иначе она запросила бы балансы страницы отдельно
+    window.Main.steamAccounts.onGet((event, steamAccounts) => runInAction(() => {
+      this.initialSteamAccounts = steamAccounts;
 
       setTimeout(() => {
         for (var i of steamAccounts) {
@@ -276,7 +290,7 @@ class SteamAccountsTableStore {
         delete this.fullRequests[id];
         this.finishFullRefreshItem(id);
       }
-    });
+    }));
     window.Main.steamAccounts.onGetTableOptions((event, options) => {
       this.setPageSize(options.pageSize, false);
       this.setActivePage(options.activePage, false);
@@ -311,14 +325,21 @@ class SteamAccountsTableStore {
       b: TableSteamAccountInterface
     ) => number
   ) {
-    const steamAccountsArray = Object.values(toJS(this.steamAccounts));
-    steamAccountsArray.sort(func);
-    const result: { [id: string]: TableSteamAccountInterface } = {};
-    for (var sa of steamAccountsArray) {
-      result[sa.id] = sa;
-    }
-    this.steamAccounts = result;
+    // Равные строки — по номеру: сравнения колонок для равных значений возвращают не ноль, и строки
+    // прыгали бы на каждом новом списке
+    this.sortFunc = (a, b) => {
+      const order = func(a, b);
+      if (order === 0 || Math.sign(order) === Math.sign(func(b, a))) return a.number - b.number;
+      return order;
+    };
+    this.applySort();
     this.setActivePage(this.activePage);
+  }
+  applySort() {
+    if (!this.sortFunc) return;
+    const result: { [id: string]: TableSteamAccountInterface } = {};
+    for (const sa of Object.values(this.steamAccounts).sort(this.sortFunc)) result[sa.id] = sa;
+    this.steamAccounts = result;
   }
   // Кнопка «Перезагрузить все данные»: main перечитывает аккаунты и входит заново (архивные
   // пропускает), а когда придёт новый список — обновляем данные всех активных аккаунтов очередью.
@@ -434,10 +455,7 @@ class SteamAccountsTableStore {
     window.Main.steamAccounts.refreshSession(id);
   }
   refreshSessionSelected() {
-    const selected = Object.values(this.steamAccounts).filter(
-      (sa) => sa.isSelected && !sa.deleted
-    );
-    for (var sa of selected) {
+    for (const sa of this.selectedAccounts) {
       this.refreshSession(sa.id);
     }
   }
@@ -544,15 +562,13 @@ class SteamAccountsTableStore {
     try {
       const previous = this.steamAccounts;
       this.steamAccounts = {};
-      // Список пришёл заново в порядке хранилища: прежняя сортировка больше не действует
-      this.sortedField = null;
       const tableSteamAccounts: TableSteamAccountInterface[] = [];
       const deletedTableSteamAccounts: TableSteamAccountInterface[] = [];
 
       for (var steamAccount of steamAccounts) {
         const tableSteamAccount: TableSteamAccountInterface = {
           ...steamAccount,
-          isSelected: false,
+          isSelected: !steamAccount.deleted && (previous[steamAccount.id]?.isSelected ?? false),
           authCode: "not loaded",
           getChangableSecondaryError: null,
           // Список приходит и посреди работы (вкладка, группа, импорт): индикаторы идущих запросов
@@ -569,7 +585,7 @@ class SteamAccountsTableStore {
         }
       }
       for (var i of tableSteamAccounts) {
-        this.steamAccounts[i.id] = i;
+        this.steamAccounts[i.id] = asRow(i);
       }
       for (let sa of tableSteamAccounts) {
         // Ошибка этого запуска показана в ячейке; в списке лежит старый сохранённый баланс
@@ -584,16 +600,12 @@ class SteamAccountsTableStore {
         };
       }
       for (var i of deletedTableSteamAccounts) {
-        this.steamAccounts[i.id] = i;
+        this.steamAccounts[i.id] = asRow(i);
       }
-      for (let sa of tableSteamAccounts) {
-        this.updateAuthCode(sa.id);
-        if (this.activeIds.includes(sa.id)) continue;
-        this.activeIds.push(sa.id);
-      }
-      for (let sa of tableSteamAccounts) {
-        this.getGuardAuthCodeInterval(sa);
-      }
+      // Список приходит в порядке хранилища
+      this.applySort();
+      this.updateAuthCodes();
+      this.startAuthCodeTimer();
       for (let sa of tableSteamAccounts) {
         window.Main.steamAccounts.getBrowserStatus(sa.id);
       }
@@ -605,15 +617,16 @@ class SteamAccountsTableStore {
             this.loadChangableSecondaries(sa.id);
         }*/
   }
-  getGuardAuthCodeInterval(steamAccount: TableSteamAccountInterface) {
-    this.updateAuthCode(steamAccount.id);
-    const timeToUpdate = 30 - ((Number(new Date()) / 1000) % 30);
-    setTimeout(() => {
-      setInterval(() => {
-        this.updateAuthCode(steamAccount.id);
-      }, 30000);
-      this.updateAuthCode(steamAccount.id);
-    }, Number((timeToUpdate * 1000).toFixed(0)));
+  // Один таймер на всё приложение (SDA-65). Раньше каждый новый список заводил по таймеру на каждый
+  // аккаунт и не убирал прежние. Срок считаем каждый раз заново: после сна компьютера setInterval
+  // обновлял бы код посреди тридцатисекундного окна, и показанный код был бы уже недействителен.
+  startAuthCodeTimer() {
+    if (this.authCodeTimer !== null) return;
+    this.authCodeTimer = setTimeout(() => {
+      this.authCodeTimer = null;
+      this.updateAuthCodes();
+      this.startAuthCodeTimer();
+    }, AUTH_CODE_PERIOD_MS - (Date.now() % AUTH_CODE_PERIOD_MS) + 50);
   }
   changeFieldDirection(fieldType: AvalibleTypes, direction: "UP" | "DOWN") {
     this.sortedField = fieldType;
@@ -627,7 +640,9 @@ class SteamAccountsTableStore {
     const balanceShown = (list: Field[]) =>
       list.some((f) => f.type === AvalibleTypes.steamAccountBalance && f.isVisible);
     const wasShown = balanceShown(this.fields);
-    this.fields = fields;
+    // Настройки колонок перечитываются при возврате на вкладку: направление сортировки — наше
+    const directions = new Map(this.fields.map((f) => [f.type, f.sortDirection]));
+    this.fields = fields.map((f) => ({ ...f, sortDirection: directions.get(f.type) ?? f.sortDirection }));
     // Колонку баланса показали. Пока она скрыта, баланс не грузится (в том числе после смены
     // маршрута): без этой загрузки ячейки крутили бы спиннер до перехода на другую страницу.
     // На старте поля приходят раньше аккаунтов — тогда грузить ещё нечего.
@@ -684,39 +699,48 @@ class SteamAccountsTableStore {
   getSteamAccounts() {
     return toJS(this.steamAccounts);
   }
-  getSteamAccountsInActualPage() {
-    const steamAccountsByPages = this.getSteamAccountsByPages();
-    for (var i = this.activePage; i > 0; i--) {
-      if (steamAccountsByPages[i] && steamAccountsByPages[i].length > 0) {
-        this.setActivePage(i);
-        return steamAccountsByPages[i];
-      }
+  // Строки, которые сейчас можно увидеть: архив, группа, поиск. Вычисляемые значения MobX: пересчёт,
+  // только когда изменилось то, от чего они зависят (SDA-65).
+  get visibleAccounts(): TableSteamAccountInterface[] {
+    const activeGroupId = this.root.groups?.activeGroupId;
+    return Object.values(this.steamAccounts).filter((sa) =>
+      (!sa.deleted || this.showDeleted) &&
+      // Фильтр по активной группе (в навигации выбран пункт группы)
+      (!activeGroupId || (!!sa.group && sa.group.id === activeGroupId)) &&
+      matchesSteamAccountSearch(sa, this.searchString));
+  }
+  get pages(): TableSteamAccountInterface[][] {
+    const pages: TableSteamAccountInterface[][] = [];
+    for (let i = 0; i < this.visibleAccounts.length; i += this.pageSize) {
+      pages.push(this.visibleAccounts.slice(i, i + this.pageSize));
     }
-    this.setActivePage(0);
-    return [];
+    return pages;
+  }
+  get pageAccounts(): TableSteamAccountInterface[] {
+    return this.pages[this.activePage - 1] || [];
+  }
+  // Единственный источник для массовых действий: только строки, которые человек видит (SDA-65)
+  get selectedAccounts(): TableSteamAccountInterface[] {
+    return this.pageAccounts.filter((sa) => sa.isSelected && !sa.deleted);
+  }
+  get isAllSelected(): boolean {
+    const selectable = this.pageAccounts.filter((sa) => !sa.deleted);
+    return selectable.length > 0 && selectable.every((sa) => sa.isSelected);
   }
   getSteamAccountsByPages() {
-    const sa: TableSteamAccountInterface[][] = [];
-    let count = 0;
-    let bufAccounts: TableSteamAccountInterface[] = [];
-    const activeGroupId = this.root.groups.activeGroupId;
-    for (var i of Object.values(this.getSteamAccounts()).filter(sa => matchesSteamAccountSearch(sa, this.searchString))) {
-      if (i.deleted && !this.showDeleted) continue;
-      // Фильтр по активной группе (в навигации выбран пункт группы)
-      if (activeGroupId && (!i.group || i.group.id !== activeGroupId)) continue;
-
-      if (count === this.pageSize) {
-        sa.push(bufAccounts);
-        bufAccounts = [];
-        count = 0;
-      }
-      bufAccounts.push(toJS(i));
-      count += 1;
+    return this.pages;
+  }
+  // Баланс, который показан в ячейке: ответ этого запуска, а пока его нет — сохранённый. Неизвестный — null.
+  balanceOf(id: string): number | null {
+    const steam = (this.changableSecondaries[id]?.content ?? this.steamAccounts[id]?.changableSecondary)?.steam;
+    return !steam || steam.error || typeof steam.balance !== "number" ? null : steam.balance;
+  }
+  // Выбранное не должно пережить своё исчезновение с экрана (поиск, группа, страница, архив)
+  dropHiddenSelection() {
+    const shown = new Set(this.pageAccounts.map((sa) => sa.id));
+    for (const sa of Object.values(this.steamAccounts)) {
+      if (sa.isSelected && !shown.has(sa.id)) sa.isSelected = false;
     }
-    if (bufAccounts.length > 0) {
-      sa.push(toJS(bufAccounts));
-    }
-    return sa;
   }
   changeShowStatus(status?: boolean) {
     if (status) {
@@ -724,45 +748,34 @@ class SteamAccountsTableStore {
     } else {
       this.showDeleted = !this.showDeleted;
     }
+    // Страниц могло стать меньше, а выбранные архивные строки — исчезнуть
+    this.setActivePage(this.activePage);
   }
   selectSteamAccount(id: string, isSelected: boolean = true) {
     const steamAccount = this.steamAccounts[id];
     if (steamAccount) steamAccount.isSelected = isSelected;
-    const steamAccountsInPage =
-      this.getSteamAccountsByPages()[this.activePage - 1];
-    if (
-      steamAccountsInPage.filter((p) => p.isSelected).length ===
-      steamAccountsInPage.filter((p) => !p.deleted).length &&
-      steamAccountsInPage.filter((p) => !p.deleted).length !== 0
-    ) {
-      this.isAllSelected = true;
-    } else {
-      this.isAllSelected = false;
-    }
   }
   selectAllSteamAccounts(isSelected: boolean = true) {
-    this.isAllSelected = isSelected;
-    const steamAccountsInPage =
-      this.getSteamAccountsByPages()[this.activePage - 1];
-    for (var steamAccount of steamAccountsInPage) {
-      if (steamAccount.deleted) continue;
-      this.editSteamAccount(steamAccount.id, { isSelected: isSelected });
+    for (const steamAccount of this.pageAccounts) {
+      if (!steamAccount.deleted) steamAccount.isSelected = isSelected;
     }
   }
+  updateAuthCodes() {
+    for (const sa of Object.values(this.steamAccounts)) {
+      if (!sa.deleted) this.updateAuthCode(sa.id);
+    }
+  }
+  freshAuthCode(id: string): string {
+    this.updateAuthCode(id);
+    return this.authCodes[id];
+  }
   updateAuthCode(id: string) {
-    const time1 = Number(new Date());
-    for (var i in this.steamAccounts) {
-      if (this.steamAccounts[i].id === id) {
-        const code = String(
-          window.Main.guardConnection.getAuthCode(
-            this.steamAccounts[i].maFile.shared_secret
-          )
-        );
-        //this.steamAccounts[i].authCode = code;
-        this.authCodes[id] = code;
-        const time2 = Number(new Date());
-        return;
-      }
+    try {
+      this.authCodes[id] = String(window.Main.guardConnection.getAuthCode(this.steamAccounts[id].maFile.shared_secret));
+    } catch (err) {
+      // Один аккаунт без секрета не должен оставить без кодов остальных
+      this.authCodes[id] = "";
+      console.log(`no Guard code for steam account #${id}: ${err}`);
     }
   }
   editSteamAccount(
@@ -771,16 +784,12 @@ class SteamAccountsTableStore {
       [K in keyof TableSteamAccountInterface]?: TableSteamAccountInterface[K];
     }
   ) {
-    for (var i in this.steamAccounts) {
-      if (this.steamAccounts[i].id === id) {
-        this.steamAccounts[i] = {
-          ...this.steamAccounts[i],
-          ...newSteamAccount,
-        };
-        return this.steamAccounts[i];
-      }
-    }
-    throw new Error(i18n.t("accounts.errors.editNotFound", { id }));
+    const steamAccount = this.steamAccounts[id];
+    if (!steamAccount) throw new Error(i18n.t("accounts.errors.editNotFound", { id }));
+    Object.assign(steamAccount, newSteamAccount);
+    // Строка могла уйти с экрана вместе со всей страницей (архивирована последняя на ней)
+    if ("deleted" in newSteamAccount) this.setActivePage(this.activePage);
+    return steamAccount;
   }
   // Балансы аккаунтов страницы: ещё не загруженные и неудачные
   loadPageBalances(n: number) {
@@ -804,21 +813,8 @@ class SteamAccountsTableStore {
   }
   setActivePage(n: number, save: boolean = false) {
     try {
-      for (var i = n; i >= 1; i--) {
-        const steamAccountsInThisPage = this.getSteamAccountsByPages()[i - 1];
-        if (steamAccountsInThisPage) {
-          n = i;
-          break;
-        }
-      }
-      // Страницы по старому activePage может уже не быть (напр. фильтр по группе
-      // сократил число страниц) — иначе for-of по undefined кидает и activePage
-      // не обновляется, а таблица показывает несуществующую пустую страницу.
-      const steamAccountsInPage =
-        this.getSteamAccountsByPages()[this.activePage - 1] || [];
-      for (var sa of steamAccountsInPage) {
-        this.selectSteamAccount(sa.id, false);
-      }
+      // Списка ещё нет — сохранённую страницу не теряем; иначе не дальше последней
+      if (this.pages.length) n = Math.max(1, Math.min(n, this.pages.length));
       if (save) {
         window.Main.steamAccounts.setTableOptions({
           activePage: n,
@@ -829,12 +825,16 @@ class SteamAccountsTableStore {
 
       this.loadPageBalances(n);
       this.activePage = n;
+      // Выбор живёт в пределах страницы; повторная установка той же страницы его не сбрасывает
+      this.dropHiddenSelection();
     } catch (err) {
       console.log(`Ошибка при установке страницы ${n}`);
       console.log(err);
     }
   }
   setPageSize(n: number, save: boolean = false) {
+    // Сохранённое в файле не проверяется: размер 0 разбивал бы список на страницы бесконечно
+    if (!Number.isInteger(n) || n < 1) n = 10;
     if (save)
       window.Main.steamAccounts.setTableOptions({
         activePage: 1,
@@ -842,6 +842,7 @@ class SteamAccountsTableStore {
       });
     this.activePage = 1;
     this.pageSize = n;
+    this.dropHiddenSelection();
   }
   // Увеличивает размер страницы так, чтобы totalCount элементов было видно без
   // пагинации (напр. после импорта). Только увеличивает, никогда не уменьшает.
@@ -853,6 +854,20 @@ class SteamAccountsTableStore {
       avaliblePageSizes[avaliblePageSizes.length - 1];
     this.setPageSize(fitted, true);
   }
+}
+
+// Неизвестный баланс всегда в конце
+export function compareBalances(a: number | null, b: number | null, direction: "UP" | "DOWN"): number {
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return direction === "UP" ? b - a : a - b;
+}
+
+// Строка таблицы. Наблюдаются только её поля, а maFile, smaFile, прокси и прочее — обычные объекты по
+// ссылке: глубокое наблюдение и копирование 136 аккаунтов на каждый символ поиска стоили 0,2 с (SDA-65).
+function asRow(account: TableSteamAccountInterface): TableSteamAccountInterface {
+  return observable.object(account, {}, { deep: false });
 }
 
 // Ответ на последний запрос аккаунта. Ответ без номера принимаем: сравнивать не с чем.

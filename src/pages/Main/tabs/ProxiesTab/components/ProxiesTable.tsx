@@ -71,7 +71,7 @@ const ProxiesEmptyState: FC = observer(() => {
 });
 
 const generateLine = (fields: Field[], proxy: TableProxyInterface): Line => {
-    const line: Line = { cells: [], deleted: proxy.deleted };
+    const line: Line = { id: proxy.id, cells: [], deleted: proxy.deleted };
 
     for (var index in fields) {
         line.cells.push({ type: fields[index].type, jsx: <CellJSX type={fields[index].type} proxy={proxy} /> })

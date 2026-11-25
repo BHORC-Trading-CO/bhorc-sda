@@ -25,8 +25,9 @@ class Manager {
         }
         return { proxy, proxyState: "missing", proxyId };
     }
-    static GetSteamAccountLinkedData(steamAccountId: string) {
-        return Manager.ResolveProxy(LinksStorage.Get().steamAccounts[steamAccountId]);
+    // links передают, когда аккаунтов много: каждый LinksStorage.Get() читает и разбирает весь config.json
+    static GetSteamAccountLinkedData(steamAccountId: string, links = LinksStorage.Get()) {
+        return Manager.ResolveProxy(links.steamAccounts[steamAccountId]);
     }
     /** For form selections: an unresolved selection is never an implicit opt-out. */
     static RequireProxy(proxyId?: string | null) {
@@ -132,8 +133,7 @@ class Manager {
     // --- Группы аккаунтов (одна группа на аккаунт, хранится в links.groups) ---
 
     // Группа аккаунта или null. Аналог GetSteamAccountLinkedData для прокси.
-    static GetSteamAccountGroup(steamAccountId: string) {
-        const links = LinksStorage.Get();
+    static GetSteamAccountGroup(steamAccountId: string, links = LinksStorage.Get()) {
         const groupId = links.groups[steamAccountId];
         if (!groupId) return null;
         const group = groupManager.getById(groupId);
@@ -145,7 +145,8 @@ class Manager {
         const links = LinksStorage.Get();
         const ids: string[] = [];
         for (var saId of Object.keys(links.groups)) {
-            if (links.groups[saId] === groupId) ids.push(saId);
+            // Связь удалённого навсегда аккаунта остаётся в файле: в счётчике группы его быть не должно
+            if (links.groups[saId] === groupId && steamAccountManager.getById(saId)) ids.push(saId);
         }
         return ids;
     }

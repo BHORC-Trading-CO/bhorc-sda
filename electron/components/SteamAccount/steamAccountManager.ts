@@ -2,6 +2,7 @@ import SteamAccountInterface from "../../interfaces/SteamAccount/SteamAccountInt
 import SteamAccount from "./SteamAccount";
 import CompiledSteamAccountInterface from "../../interfaces/SteamAccount/CompiledSteamAccountInterface";
 import SteamAccountStorage from "../newStorage/SteamAccountStorage";
+import LinksStorage from "../newStorage/LinksStorage";
 import Manager from "../Manager/Manager";
 import application from "../application/application";
 import SteamAccountChannels from "../../interfaces/IpcChannels/SteamAccountChannels";
@@ -90,8 +91,10 @@ export class SteamAccountManager {
     getCompiledObjects() {
         const startTime = new Date();
         const compiledObjects: CompiledSteamAccountInterface[] = [];
+        // Один снимок связей на весь список (SDA-65): раньше файл читался дважды на каждый аккаунт
+        const links = LinksStorage.Get();
         for (var obj of this.objects) {
-            const compiledObject = SteamAccountManager.CompileObject(obj);
+            const compiledObject = SteamAccountManager.CompileObject(obj, links);
             compiledObjects.push(compiledObject);
         }
         const endTime = new Date();
@@ -109,15 +112,15 @@ export class SteamAccountManager {
         if (objects.length === 0) return null;
         return objects[0];
     }
-    static CompileObject(object: SteamAccount) {
-        const linkedData = Manager.GetSteamAccountLinkedData(object.params.id);
+    static CompileObject(object: SteamAccount, links = LinksStorage.Get()) {
+        const linkedData = Manager.GetSteamAccountLinkedData(object.params.id, links);
 
         const compiledObject: CompiledSteamAccountInterface = {
             ...object.params,
             smaFile: object.getSmaFile(),
             ...linkedData,
             ...(object.proxyState === "missing" ? { proxy: null, proxyState: "missing" as const } : {}),
-            group: Manager.GetSteamAccountGroup(object.params.id),
+            group: Manager.GetSteamAccountGroup(object.params.id, links),
             sessionError: object.sessionErrorText()
         }
        

@@ -29,7 +29,8 @@ const GuardRing: FC = () => {
 // Кольцо — одна CSS-анимация на строку (GuardCode.css), без таймеров и без перерисовки React
 // каждую секунду. Фаза считается, когда приходит новый код.
 // Клик (или Enter/пробел) копирует код, значок на 1,5 с меняется на галочку.
-const GuardCode: FC<{ code?: string }> = ({ code }) => {
+// getCode — код на эту секунду: после сна компьютера, смены часов или долгого трея показанный мог устареть.
+const GuardCode: FC<{ code?: string, getCode?: () => string }> = ({ code, getCode }) => {
   const { t } = useTranslation();
   const [isCopied, setIsCopied] = useState(false);
 
@@ -40,9 +41,10 @@ const GuardCode: FC<{ code?: string }> = ({ code }) => {
   }, [isCopied]);
 
   const copy = () => {
-    if (!code) return;
+    const current = getCode ? getCode() : code;
+    if (!current) return;
     setIsCopied(true);
-    navigator.clipboard.writeText(code);
+    navigator.clipboard.writeText(current);
   };
 
   return (
