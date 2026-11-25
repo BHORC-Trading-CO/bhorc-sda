@@ -26,6 +26,10 @@ export class SteamAccountManager {
         try {
             const index = this.objects.findIndex(obj => obj.params.id === id);
             if (index === -1) throw new Error(`#${id} - steam account is not exist`);
+            // Вместе со строкой исчезнет и кнопка «Стоп» (SDA-64): отменяем идущий запуск и закрываем
+            // браузер. Ошибка закрытия удалению не мешает: процесс при ней уже убит (closeBrowser).
+            const browserStopped = this.objects[index].chrome.stop()
+                .catch(err => console.log(`account ${id}: browser did not close cleanly: ${err}`));
             this.objects.splice(index, 1);
             SteamAccountStorage.Delete(id);
             try {
@@ -36,7 +40,7 @@ export class SteamAccountManager {
             const cleanup = application.images?.removeAccount(id);
             // Удалённая запись исчезает из UI даже при ошибке очистки кеша.
             try { this.sendAccountsToFront(); }
-            finally { await cleanup; }
+            finally { await Promise.all([cleanup, browserStopped]); }
         } catch (err) {
             throw new Error(`Cant delete steam account: ${err}`);
         }
