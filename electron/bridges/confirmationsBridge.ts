@@ -6,6 +6,9 @@ import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import { exposeLanguageApi } from './languageBridge';
 import ImageChannels from '../interfaces/IpcChannels/ImageChannels';
 import { requestImage } from './imageBridge';
+import replayLast from './replayLast';
+
+const onGetParams = replayLast<{ id: string, steamAccountName: string }>(WindowsChannels.GET_CONFIRMATIONS_WINDOW_PARMAS);
 
 /** Методы для работы с беком приложения */
 const api = {
@@ -14,8 +17,7 @@ const api = {
   },
   getParams(id: string) { ipcRenderer.send(WindowsChannels.GET_CONFIRMATIONS_WINDOW_PARMAS, id); },
   onGetParams(listener: (event: IpcRendererEvent, params: { id: string, steamAccountName: string }) => void) {
-    ipcRenderer.on(WindowsChannels.GET_CONFIRMATIONS_WINDOW_PARMAS, listener);
-    return () => ipcRenderer.removeListener(WindowsChannels.GET_CONFIRMATIONS_WINDOW_PARMAS, listener);
+    return onGetParams(listener);
   },
   getConfirmations(id: string) {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_CONFIRMATIONS, id);
