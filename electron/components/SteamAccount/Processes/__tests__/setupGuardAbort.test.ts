@@ -141,7 +141,7 @@ describe("abort after the enrollment request", () => {
 });
 
 describe("login polling (R2-14)", () => {
-    it.each([["timeout", /in time/], ["error", /proxy failed/]])("%s ends the wizard", async (event, message) => {
+    it.each([["timeout", /timed out/], ["error", /proxy failed/]])("%s ends the wizard", async (event, message) => {
         mockSteam.start = jest.fn(async () => ({ actionRequired: false }));
         const setup = start();
         await tick();

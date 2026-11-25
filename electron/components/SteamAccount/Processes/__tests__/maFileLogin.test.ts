@@ -141,7 +141,7 @@ describe("login challenges (R2-11)", () => {
         await expect(maFileLogin(passwordOnly())).resolves.toMatchObject({ accountName: "account_a" });
         expect(mockSteam.sessions[1].submitSteamGuardCode).toHaveBeenCalledWith("ABCDE");
     });
-    it.each([["timeout", /in time/], ["error", /poll failed/]])("a polling %s rejects", async (event, message) => {
+    it.each([["timeout", /timed out/], ["error", /poll failed/]])("a polling %s rejects", async (event, message) => {
         mockSteam.passwordResult = { actionRequired: true, validActions: [{ type: 5 }] };
         const login = maFileLogin(passwordOnly());
         await new Promise(setImmediate);
