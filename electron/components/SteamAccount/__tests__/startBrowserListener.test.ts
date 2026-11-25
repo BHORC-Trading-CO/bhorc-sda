@@ -49,3 +49,16 @@ it("прокси сменился, пока получали cookie: брауз�
     expect(value.chrome.start).not.toHaveBeenCalled();
     expect(calls[calls.length - 1]).toEqual(["ERROR", "Error: route changed"]);
 });
+
+it("запуск отклонён (аккаунт удаляется): кнопка не остаётся в «загрузке», ошибки нет", async () => {
+    const { BrowserStartCancelledError } = require("../Chrome/Chrome");
+    const value = account({ chrome: { workStatus: "notworking", start: jest.fn().mockRejectedValue(new BrowserStartCancelledError("stopped")) } });
+    (steamAccountManager.getById as jest.Mock).mockReturnValue(value);
+    const reply = jest.fn();
+    await startBrowser({ reply } as any, "a1");
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(reply.mock.calls).toEqual([
+        [SteamAccountChannels.GET_BROWSER_STARTUS, { status: "load", id: "a1" }],
+        [SteamAccountChannels.GET_BROWSER_STARTUS, { status: "notworking", id: "a1" }],
+    ]);
+});

@@ -104,10 +104,9 @@ const ProxiesPanel = observer(() => {
                         altText={archivedLabel}
                         onClick={() => {
                             if (store.proxiesTable.showDeleted)
-                                for (var i = store.proxiesTable.activePage; i >= 1; i--) {
+                                for (var i = store.proxiesTable.currentPage; i >= 1; i--) {
                                     const proxiesInPage = store.proxiesTable.getProxiesByPages()[i - 1];
-                                    console.log(i, proxiesInPage);
-                                    if (proxiesInPage.length != 0 && (proxiesInPage.filter(p => p.deleted).length != proxiesInPage.length)) {
+                                    if (proxiesInPage && proxiesInPage.length != 0 && (proxiesInPage.filter(p => p.deleted).length != proxiesInPage.length)) {
                                         store.proxiesTable.setActivePage(i, true);
                                         break;
                                     }

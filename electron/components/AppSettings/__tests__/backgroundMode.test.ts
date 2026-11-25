@@ -129,6 +129,86 @@ describe("closing the main window", () => {
     });
 });
 
+// SDA-64: closing the main window must not leave SDA running without a way back to it.
+describe("closing the main window while other windows are open", () => {
+    let opened: BrowserWindow[];
+    beforeEach(() => {
+        for (const win of BrowserWindow.getAllWindows()) (win as any).destroyed = true;
+        opened = [];
+    });
+    function startReopenable(platform: NodeJS.Platform, stored: Partial<AppSettingsInterface> = {}) {
+        AppSettingsStorage.Save({ ...ALL_OFF, ...stored });
+        const mode = new BackgroundMode(platform);
+        modes.push(mode);
+        const open = () => {
+            const win = new BrowserWindow({});
+            opened.push(win);
+            mode.attachMainWindow(win);
+        };
+        mode.install(["sda"], open);
+        // Dock 'activate' of the very first launch comes before the first window: it must not open one.
+        mode.revealMainWindow();
+        expect(opened).toHaveLength(0);
+        mode.prepareStartup(["sda"]);
+        open();
+        return { mode, win: opened[0] };
+    }
+
+    it.each(["win32", "linux"] as const)("%s: closing means exit, so SDA quits and the other windows go too", (platform) => {
+        const { win } = startReopenable(platform);
+        new BrowserWindow({});
+        win.close();
+        expect(quit).toHaveBeenCalledTimes(1);
+    });
+
+    it("Windows: with no other window the exit stays with 'window-all-closed'", () => {
+        startReopenable("win32").win.close();
+        expect(quit).not.toHaveBeenCalled();
+    });
+
+    it("Windows: hiding to the tray quits nothing, and the same window comes back", () => {
+        const { mode, win } = startReopenable("win32", { closeToTray: true });
+        new BrowserWindow({});
+        win.close();
+        expect(quit).not.toHaveBeenCalled();
+        mode.onSecondLaunch(["trademanager.exe"]);
+        expect([win.isVisible(), opened.length]).toEqual([true, 1]);
+    });
+
+    it("a real quit does not start another one, and a late launch does not open a window", () => {
+        const { mode, win } = startReopenable("win32");
+        new BrowserWindow({});
+        mockApp.emit("before-quit", { preventDefault: jest.fn() });
+        win.close();
+        expect(quit).not.toHaveBeenCalled();
+        mode.onSecondLaunch(["trademanager.exe"]);
+        expect(opened).toHaveLength(1);
+    });
+
+    it.each(["Dock click", "second launch"])("macOS: SDA stays in the Dock; a %s opens one new main window", (way) => {
+        const { mode, win } = startReopenable("darwin");
+        const confirmations = new BrowserWindow({});
+        win.close();
+        expect(quit).not.toHaveBeenCalled();
+        expect(confirmations.isDestroyed()).toBe(false);
+        const reveal = () => way === "Dock click" ? mockApp.emit("activate") : mode.onSecondLaunch(["bhorc-sda"]);
+        reveal();
+        reveal();
+        expect(opened).toHaveLength(2);
+        expect([opened[1].isVisible(), opened[1].isDestroyed()]).toEqual([true, false]);
+        opened[1].close();
+        reveal();
+        expect(opened).toHaveLength(3);
+    });
+
+    it("macOS: a launch with --hidden does not open a closed window", () => {
+        const { mode, win } = startReopenable("darwin");
+        win.close();
+        mode.onSecondLaunch(["bhorc-sda", "--hidden"]);
+        expect(opened).toHaveLength(1);
+    });
+});
+
 describe("tray menu", () => {
     it("Show window brings the hidden window back; Quit quits the app", () => {
         const mode = makeMode("win32", { closeToTray: true });
@@ -172,6 +252,17 @@ describe("second launch while running in the tray", () => {
         mode.onSecondLaunch(["trademanager.exe", "--hidden"]);
         expect(win.isVisible()).toBe(false);
         mode.onSecondLaunch(["trademanager.exe"]);
+        expect(win.isVisible()).toBe(true);
+    });
+
+    // SDA-64: an update runs the new version with these while the old one sits in the tray.
+    it.each(["--squirrel-install", "--squirrel-updated", "--squirrel-obsolete"])("a Squirrel launch (%s) leaves the window hidden", (flag) => {
+        const mode = makeMode("win32", { closeToTray: true });
+        const { win } = start(mode);
+        win.close();
+        mode.onSecondLaunch(["trademanager.exe", flag, "1.0.6"]);
+        expect(win.isVisible()).toBe(false);
+        mode.onSecondLaunch(["trademanager.exe", "--squirrel-firstrun"]);
         expect(win.isVisible()).toBe(true);
     });
 
@@ -375,6 +466,43 @@ describe("login item at startup: read to show the switch, never written", () => 
         start(mode);
         expect(mode.view().settings.launchAtLogin).toBe(shown);
         expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
+    });
+
+    // SDA-64: the Settings page is opened after weeks in the tray.
+    it("Windows: disabled in Startup Apps while SDA runs -> off when the page is served, on again when re-enabled, zero writes", () => {
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [ourEntry()] });
+        const mode = makeMode("win32", { launchAtLogin: true });
+        start(mode);
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [ourEntry({ enabled: false })] });
+        mode.refreshLoginItem();
+        expect(mode.view().settings.launchAtLogin).toBe(false);
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [ourEntry()] });
+        mode.refreshLoginItem();
+        expect(mode.view().settings.launchAtLogin).toBe(true);
+        expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
+    });
+
+    it("macOS: removed from login items while SDA runs -> off when the page is served", () => {
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: true, wasOpenedAtLogin: false, wasOpenedAsHidden: false });
+        const mode = makeMode("darwin", { launchAtLogin: true });
+        start(mode);
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, wasOpenedAtLogin: false, wasOpenedAsHidden: false });
+        mode.refreshLoginItem();
+        expect(mode.view().settings.launchAtLogin).toBe(false);
+    });
+
+    it("a failed reread keeps what was known; a Squirrel maintenance launch reads nothing", () => {
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [] });
+        const log = jest.spyOn(console, "log").mockImplementation(() => {});
+        const mode = makeMode("win32", { launchAtLogin: true });
+        start(mode);
+        mockApp.getLoginItemSettings.mockImplementationOnce(() => { throw new Error("registry"); });
+        mode.refreshLoginItem();
+        expect(mode.view().settings.launchAtLogin).toBe(false);
+        mockApp.getLoginItemSettings.mockClear();
+        makeMode("win32", { launchAtLogin: true }, ["trademanager.exe", "--squirrel-updated", "1.0.6"]).refreshLoginItem();
+        expect(mockApp.getLoginItemSettings).not.toHaveBeenCalled();
+        log.mockRestore();
     });
 
     it("Windows: reading the stored settings throws -> the app still starts, with its window", () => {

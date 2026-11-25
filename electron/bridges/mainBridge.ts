@@ -11,6 +11,7 @@ import SmaFileInterface from '../interfaces/SteamAccount/SmaFileInterface';
 import CreationStepType from '../interfaces/SteamAccount/CreationStepType';
 import GuardSetupResultInterface from '../interfaces/SteamAccount/GuardSetupResultInterface';
 import ProxySetupInterface from '../interfaces/Proxy/ProxySetupInterface';
+import { ProxyBulkResult, ProxyEditReply, ProxyTestReply } from '../interfaces/Proxy/ProxyResults';
 import ChangableSecondaryInterface from '../interfaces/SteamAccount/ChangableSecondaryInterface';
 import SecondaryInterface from '../interfaces/SteamAccount/SecondaryInterface';
 import SteamAccountChannels from '../interfaces/IpcChannels/SteamAccountChannels';
@@ -164,12 +165,19 @@ const proxies = {
   new: (proxy: ProxySetupInterface, links: { steamAccountIds: string[] }) => {
     ipcRenderer.send('NEW_PROXY', { proxy, links });
   },
-  /** Массовое добавление прокси (bulk) */
-  bulkNew: (proxies: ProxySetupInterface[]) => {
-    ipcRenderer.send('NEW_PROXIES', proxies);
+  /** Массовое добавление прокси (bulk): строки разбирает main, итог приходит в onBulkResult */
+  bulkNew: (text: string, requestId: string) => {
+    ipcRenderer.send('NEW_PROXIES', { requestId, text });
   },
-  edit: (id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], originalSteamAccountIds?: string[] }) => {
-    ipcRenderer.send('EDIT_PROXY', { id, proxy, links });
+  onBulkResult: (listener: (event: IpcRendererEvent, result: ProxyBulkResult & { requestId: string }) => void) => {
+    ipcRenderer.on(ProxyChannels.PROXY_BULK_RESULT, listener);
+  },
+  edit: (id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], originalSteamAccountIds?: string[] }, requestId?: string) => {
+    ipcRenderer.send('EDIT_PROXY', { id, proxy, links, requestId });
+  },
+  /** Итог правки, отправленной с requestId (окно правки) */
+  onEditResult: (listener: (event: IpcRendererEvent, result: ProxyEditReply) => void) => {
+    ipcRenderer.on(ProxyChannels.PROXY_EDIT_RESULT, listener);
   },
   delete: (id: string) => {
     ipcRenderer.send('DELETE_PROXY', id);
@@ -196,13 +204,14 @@ const proxies = {
   saveTableFields(fields: Field[]) {
     ipcRenderer.send('SAVE_PROXIES_TABLE_FIELDS', fields);
   },
-  test(id: string) {
-    ipcRenderer.send('TEST_PROXY', id);
+  test(id: string, requestId: string) {
+    ipcRenderer.send('TEST_PROXY', { requestId, id });
   },
-  testByParams(proxy: ProxySetupInterface) {
-    ipcRenderer.send('TEST_PROXY_BY_PARAMS', proxy);
+  testByParams(proxy: ProxySetupInterface, requestId: string) {
+    ipcRenderer.send('TEST_PROXY_BY_PARAMS', { requestId, proxy });
   },
-  onTest(listener: (event: IpcRendererEvent, params: { id: string, testResult: boolean }) => void) {
+  /** Итог проверки: один на каждый test / testByParams, со своим requestId */
+  onTest(listener: (event: IpcRendererEvent, reply: ProxyTestReply) => void) {
     ipcRenderer.on('TEST_PROXY', listener);
   },
   getTableOptions() {

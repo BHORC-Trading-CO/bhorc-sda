@@ -1,4 +1,4 @@
-import react, { FC, useState } from "react";
+import react, { FC, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import MiniWindow from "../../../../components/MiniWindow/MiniWindow";
 import store from "../../../../../../store/store";
@@ -7,6 +7,7 @@ import Button from "../../../../../../globalComponents/Button/Button";
 import "../ProxiesCreationForm/ProxiesCreationForm.css";
 import "./ProxiesBulkForm.css";
 import { useTranslation } from "react-i18next";
+import { ProxyBulkReason } from "../../../../../../../electron/interfaces/Proxy/ProxyResults";
 
 const ProxiesBulkForm: FC = observer(() => {
   const { t } = useTranslation();
@@ -27,7 +28,30 @@ const ProxiesBulkForm: FC = observer(() => {
 
 const BulkFormContent: FC = () => {
   const [rawText, setRawText] = useState("");
+  const [rejectedReasons, setRejectedReasons] = useState<ProxyBulkReason[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const isMounted = useRef(true);
+  useEffect(() => () => { isMounted.current = false; }, []);
   const { t } = useTranslation();
+
+  const save = async () => {
+    if (isSaving) return;
+    if (rawText.trim().length === 0) {
+      store.windows.openMiniNotification({
+        type: "error",
+        text: t("proxies.bulk.empty"),
+      });
+      return;
+    }
+    setIsSaving(true);
+    const { rejected } = await store.proxiesTable.createBulk(rawText);
+    if (!isMounted.current) return;
+    if (rejected.length === 0) return store.proxiesTable.closeBulkForm();
+    // Отклонённые строки остаются в поле: их можно исправить и сохранить ещё раз (SDA-64).
+    setRawText(rejected.map(({ line }) => line).join("\n"));
+    setRejectedReasons(rejected.map(({ reason }) => reason));
+    setIsSaving(false);
+  };
 
   return (
     <div className="proxies-form proxy__container">
@@ -46,6 +70,7 @@ const BulkFormContent: FC = () => {
             setRawText(e.target.value);
           }}
         ></textarea>
+        <BulkRejected reasons={rejectedReasons} />
         <Delimeter marginTop="26px" marginBottom="15px"></Delimeter>
       </div>
       <div className="proxy-button__container">
@@ -61,19 +86,26 @@ const BulkFormContent: FC = () => {
         <Button
           size="medium"
           text={t("common.buttons.save")}
-          onClick={() => {
-            if (rawText.trim().length === 0) {
-              store.windows.openMiniNotification({
-                type: "error",
-                text: t("proxies.bulk.empty"),
-              });
-              return;
-            }
-            store.proxiesTable.createBulk(rawText);
-            store.proxiesTable.closeBulkForm();
-          }}
+          isLoad={isSaving}
+          onClick={save}
         ></Button>
       </div>
+    </div>
+  );
+};
+
+// Сколько строк не добавлено и почему: по строке на причину.
+export const BulkRejected: FC<{ reasons: ProxyBulkReason[] }> = ({ reasons }) => {
+  const { t } = useTranslation();
+  if (reasons.length === 0) return <></>;
+  return (
+    <div className="proxy-form-error" role="alert">
+      {t("proxies.bulk.rejected", { count: reasons.length })}
+      <ul className="proxy-form-error__list">
+        {Array.from(new Set(reasons)).map((reason) => (
+          <li key={reason}>{t(`proxies.reject.${reason}`)}: {reasons.filter((other) => other === reason).length}</li>
+        ))}
+      </ul>
     </div>
   );
 };

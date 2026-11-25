@@ -20,7 +20,11 @@ export default async (event: IpcMainEvent, id: string) => {
         // Cookie получены прежним прокси: в браузер с новым прокси они попасть не должны
         assertRoute();
         steamAccount.chrome.start(cookies, geo).catch((err) => {
-            if (err instanceof BrowserStartCancelledError) return;
+            if (err instanceof BrowserStartCancelledError) {
+                // Запуск могли отклонить до Chrome.start (аккаунт удаляется): вернуть кнопке настоящее состояние
+                event.reply(SteamAccountChannels.GET_BROWSER_STARTUS, { status: steamAccount.chrome.workStatus, id });
+                return;
+            }
             console.log(`#${id} - ошибка запуска браузера: ${err}`);
             event.reply('ERROR', String(err));
         });

@@ -1,6 +1,7 @@
 import createStore from "./createStore";
 import assertStorageId from "./assertStorageId";
 import ProxyInterface from '../../interfaces/Proxy/ProxyInterface';
+import LinksInterface from '../../interfaces/Links/LinksInterface';
 import cryptoUserData from './cryptoUserData';
 import { t } from "../../i18n";
 const store = createStore();
@@ -21,11 +22,13 @@ class ProxyStorage {
         if (!proxy) throw new Error(`proxy ${id} is not exist`);
         return decryptedProxy;
     }
-    static EditData(id: string, newObject: { [K in keyof ProxyInterface]?: ProxyInterface[K] }) {
+    /** links — привязки, которые меняются вместе с прокси: одна запись файла, не бывает половины правки (SDA-64). */
+    static EditData(id: string, newObject: { [K in keyof ProxyInterface]?: ProxyInterface[K] }, links?: LinksInterface) {
         const proxy = ProxyStorage.GetById(id);
         if (proxy.id != id) throw new Error(`${id} doesnt match with ${proxy.id}`);
         const newProxy = { ...proxy, ...newObject };
-        ProxyStorage.Save(id, newProxy);
+        if (links) store.set({ [`proxies.${id}`]: cryptoUserData.encryptObject(newProxy), links });
+        else ProxyStorage.Save(id, newProxy);
     }
     static Save(id: string, proxy: ProxyInterface) {
         assertStorageId(id);

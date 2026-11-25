@@ -16,9 +16,9 @@ const ProxiesTable: FC = observer(() => {
     const proxiesByPage = store.proxiesTable.getProxiesByPages();
     const lines: Line[] = [];
 
-    if (proxiesByPage[store.proxiesTable.activePage - 1])
-        for (var proxy of proxiesByPage[store.proxiesTable.activePage - 1]) {
-            if (proxy.deleted && !store.proxiesTable.showDeleted) continue;
+    const page = proxiesByPage[store.proxiesTable.currentPage - 1];
+    if (page)
+        for (var proxy of page) {
             lines.push(generateLine(fields, proxy));
         }
     const empty = proxiesByPage.length === 0 ? <ProxiesEmptyState /> : null;
@@ -33,11 +33,11 @@ const ProxiesTable: FC = observer(() => {
             onSort={(fieldType, direction) => {
                 store.proxiesTable.changeFieldDirection(fieldType, direction);
                 switch (fieldType) {
-                    case AvalibleTypes.number: return store.proxiesTable.proxies.sort((a, b) => direction === 'UP' ? (a.number < b.number ? 1 : -1) : (a.number > b.number ? 1 : -1));
-                    case AvalibleTypes.proxyHost: return store.proxiesTable.proxies.sort((a, b) => direction === 'UP' ? (a.host < b.host ? 1 : -1) : (a.host > b.host ? 1 : -1));
-                    case AvalibleTypes.proxyPort: return store.proxiesTable.proxies.sort((a, b) => direction === 'UP' ? (a.port < b.port ? 1 : -1) : (a.port > b.port ? 1 : -1));
-                    case AvalibleTypes.proxyUsername: return store.proxiesTable.proxies.sort((a, b) => direction === 'UP' ? (a.username < b.username ? 1 : -1) : (a.username > b.username ? 1 : -1));
-                    case AvalibleTypes.proxyPassword: return store.proxiesTable.proxies.sort((a, b) => direction === 'UP' ? (a.password < b.password ? 1 : -1) : (a.password > b.password ? 1 : -1));
+                    case AvalibleTypes.number: return store.proxiesTable.sortProxies((a, b) => direction === 'UP' ? (a.number < b.number ? 1 : -1) : (a.number > b.number ? 1 : -1));
+                    case AvalibleTypes.proxyHost: return store.proxiesTable.sortProxies((a, b) => direction === 'UP' ? (a.host < b.host ? 1 : -1) : (a.host > b.host ? 1 : -1));
+                    case AvalibleTypes.proxyPort: return store.proxiesTable.sortProxies((a, b) => direction === 'UP' ? (a.port < b.port ? 1 : -1) : (a.port > b.port ? 1 : -1));
+                    case AvalibleTypes.proxyUsername: return store.proxiesTable.sortProxies((a, b) => direction === 'UP' ? (a.username < b.username ? 1 : -1) : (a.username > b.username ? 1 : -1));
+                    case AvalibleTypes.proxyPassword: return store.proxiesTable.sortProxies((a, b) => direction === 'UP' ? (a.password < b.password ? 1 : -1) : (a.password > b.password ? 1 : -1));
                 }
             }}
         ></Table>
@@ -102,7 +102,7 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
             return <Password password={proxy.password} />;
         case AvalibleTypes.testProxyButton:
             return (
-                <ProxyTestButton isWorking={proxy.isWorking} isTesting={proxy.isTesting} onClick={() => {
+                <ProxyTestButton isWorking={proxy.isWorking} failure={proxy.testFailure} isTesting={proxy.isTesting} onClick={() => {
                     store.proxiesTable.testProxy(proxy.id);
                 }} />
             );

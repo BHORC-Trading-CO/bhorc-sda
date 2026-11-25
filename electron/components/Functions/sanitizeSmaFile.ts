@@ -5,6 +5,7 @@ import ProxySetupInterface from "../../interfaces/Proxy/ProxySetupInterface";
 import sanitizeAvatarUrl from "./sanitizeAvatarUrl";
 import { getSteamID64 } from "./steamAccountSearch";
 import { isRegistrationDate } from "./registrationDate";
+import { canonicalProxyHost, isProxyPort } from "./proxyAddress";
 import { t } from "../../i18n";
 
 type Data = Record<string, unknown>;
@@ -107,21 +108,10 @@ function sanitizeMaFile(value: unknown): MaFileInterface {
 export function sanitizeProxySetup(value: unknown): ProxySetupInterface {
     const source = object(value);
     // Пробелы по краям встречаются в файлах, отредактированных вручную, — обрезаем.
-    const host = string(source, "host").trim();
+    const host = canonicalProxyHost(string(source, "host").trim());
     const rawPort = own(source, "port");
     const port = typeof rawPort === "number" ? String(rawPort) : string(source, "port").trim();
-    // host/port встраиваются в URL прокси; разделители URL и unix-сокеты здесь недопустимы.
-    if (!host || /[\s/\\?#@%]/.test(host) ||
-        !/^[0-9]{1,5}$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
-        throw new Error(t("errors.smaFile.invalidProxyAddress"));
-    }
-    // URL проверяет также IPv6, IDN и абсолютные DNS-имена с точкой на конце.
-    try {
-        const address = new URL(`http://${host}:${port}`);
-        if (!address.hostname || address.username || address.password || address.pathname !== "/") throw new Error();
-    } catch {
-        throw new Error(t("errors.smaFile.invalidProxyAddress"));
-    }
+    if (!host || !isProxyPort(port)) throw new Error(t("errors.smaFile.invalidProxyAddress"));
     return { host, port, username: string(source, "username"), password: string(source, "password") };
 }
 

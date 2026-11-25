@@ -1,23 +1,41 @@
-import store, { Store } from "../store";
-import { makeAutoObservable, toJS, runInAction } from "mobx";
+import { Store } from "../store";
+import { makeAutoObservable, toJS } from "mobx";
 import AvalibleTypes from "../../../electron/interfaces/TableFields/AvalibleFieldTypes";
 import Field from "../../../electron/interfaces/TableFields/Field";
 import TableProxyInterface from "../../../electron/interfaces/Proxy/TableProxyInterface";
+import CompiledProxyInterface from "../../../electron/interfaces/Proxy/CompiledProxyInterface";
 import defaultProxiesTableFields from "../../../electron/interfaces/TableFields/defaults/proxiesTableFields";
 import ProxySetupInterface from "../../../electron/interfaces/Proxy/ProxySetupInterface";
 import testingResultJsx from "./testingResultJsx";
-import parseProxyString from "../../pages/Main/tabs/ProxiesTab/components/Funcs/parseProxyString";
+import { ProxyBulkResult, ProxyEditReply, ProxyTestReply } from "../../../electron/interfaces/Proxy/ProxyResults";
 import i18n from "../../i18n/i18n";
+
+/** Массовая проверка: одно общее уведомление, когда придут ответы по всем прокси (SDA-64). */
+interface TestBatch {
+  left: number;
+  working: number;
+  /** Прокси работает, но Steam ответил не 200 */
+  refused: string[];
+  failed: string[];
+  /** Уже проверялись, изменились или удалены, пока шла проверка */
+  skipped: number;
+}
+
+const setupOf = ({ host, port, username, password }: ProxySetupInterface): ProxySetupInterface => ({ host, port, username, password });
+const isSameSetup = (a: ProxySetupInterface, b: ProxySetupInterface) =>
+  a.host === b.host && String(a.port) === String(b.port) && a.username === b.username && a.password === b.password;
 
 class ProxiesTableStore {
   root: Store;
   fields: Field[];
   defaultFields: Field[];
   proxies: TableProxyInterface[];
-  isAllSelected: boolean;
   showDeleted: boolean;
   isEditingFormOpen: boolean;
   editingFormContent: TableProxyInterface;
+  isSavingEdit: boolean = false;
+  editError: string | null = null;
+  private editRequestId: string | null = null;
   isSettingsFormOpen: boolean;
   isCreationFormOpen: boolean;
   isBulkFormOpen: boolean;
@@ -25,18 +43,18 @@ class ProxiesTableStore {
   activePage: number;
   isTestingEditingProxy: boolean;
   editingTestResult: boolean | undefined;
+  editingTestFailure: TableProxyInterface["testFailure"];
   testedEditingProxy: ProxySetupInterface | undefined;
-  private editingTestRequestSeq: number;
-  private editingTestReplySeq: number | undefined;
-  private pendingEditingTestCount: number;
-  hidenProxyId: string[];
+  private editingTestRequestId: string | null = null;
   searchString: string;
+  private requestSeq: number = 0;
+  private pendingTests = new Map<string, { id: string; setup: ProxySetupInterface; batch?: TestBatch }>();
+  private pendingBulk = new Map<string, (result: ProxyBulkResult) => void>();
 
   constructor(root: Store) {
     this.root = root;
     this.fields = [];
     this.defaultFields = defaultProxiesTableFields;
-    this.isAllSelected = false;
     this.showDeleted = false;
     this.isEditingFormOpen = false;
     this.editingFormContent = {} as TableProxyInterface;
@@ -44,20 +62,18 @@ class ProxiesTableStore {
     this.isCreationFormOpen = false;
     this.isBulkFormOpen = false;
     this.proxies = [];
-    this.hidenProxyId = [];
     this.searchString = "";
 
     this.isTestingEditingProxy = false;
     this.editingTestResult = undefined;
+    this.editingTestFailure = undefined;
     this.testedEditingProxy = undefined;
-    this.editingTestRequestSeq = 0;
-    this.editingTestReplySeq = undefined;
-    this.pendingEditingTestCount = 0;
 
     this.pageSize = 20;
     this.activePage = 1;
 
-    makeAutoObservable(this);
+    // Служебные очереди запросов: mobx копировал бы в них объекты, а batch у всех записей один.
+    makeAutoObservable<this, "pendingTests" | "pendingBulk">(this, { pendingTests: false, pendingBulk: false });
 
     window.Main.proxies.getTableFields();
     window.Main.proxies.get();
@@ -67,64 +83,55 @@ class ProxiesTableStore {
       this.setPageSize(options.pageSize, false);
       this.setActivePage(options.activePage, false);
     });
-    window.Main.proxies.onTest((event, data) => {
-      if (data.id === "editing_proxy") {
-        if (this.pendingEditingTestCount === 0) return;
-        const isCurrentReply = this.pendingEditingTestCount === 1
-          && this.editingTestReplySeq === this.editingTestRequestSeq;
-        this.pendingEditingTestCount -= 1;
-        this.isTestingEditingProxy = this.pendingEditingTestCount > 0 && this.testedEditingProxy !== undefined;
-        if (this.pendingEditingTestCount === 0) this.editingTestReplySeq = undefined;
-        if (!isCurrentReply) return;
-        this.editingTestResult = data.testResult;
-        store.windows.openMiniNotification({
-          text: i18n.t(data.testResult ? "proxies.test.editingWorking" : "proxies.test.editingNotWorking"),
-          type: data.testResult ? "success" : "error",
-        });
-        return;
-      }
-      const proxy = this.proxies.filter((p) => p.id === data.id);
-      if (!proxy[0]) throw new Error(i18n.t("proxies.errors.notFound", { id: data.id }));
-      proxy[0].isTesting = false;
-      store.windows.openMiniNotification({
-        type: data.testResult ? "success" : "error",
-        text: i18n.t(data.testResult ? "proxies.test.working" : "proxies.test.notWorking", {
-          number: proxy[0].number,
-          host: proxy[0].host,
-          port: proxy[0].port,
-        }),
-      });
-      runInAction(() => {
-        proxy[0].isWorking = data.testResult;
-      });
-    });
+    window.Main.proxies.onTest((event, data) => this.onTestReply(data));
+    window.Main.proxies.onEditResult((event, data) => this.onEditResult(data));
+    window.Main.proxies.onBulkResult((event, data) => this.onBulkResult(data));
     window.Main.proxies.onGetTableFields((event, fields) => {
       this.setFields(fields);
     });
-    window.Main.proxies.onGet((event, proxies) => {
-      const tableProxies: TableProxyInterface[] = [];
-      const deletedTableProxies: TableProxyInterface[] = [];
-
-      for (var proxy of proxies) {
-        if (!proxy.deleted) {
-          tableProxies.push({ ...proxy, isSelected: false, isTesting: false });
-        } else {
-          deletedTableProxies.push({
-            ...proxy,
-            isSelected: false,
-            isTesting: false,
-          });
-        }
-      }
-      this.proxies = [...tableProxies, ...deletedTableProxies];
-    });
+    window.Main.proxies.onGet((event, proxies) => this.setProxies(proxies));
   }
 
+  // Список из main. Действие mobx: подписка IPC сама по себе действием не является (SDA-64).
+  private setProxies(proxies: CompiledProxyInterface[]) {
+    const rows = proxies.map((proxy) => ({ ...proxy, isSelected: false, isTesting: this.isTestPending(proxy) }));
+    this.proxies = [...rows.filter((p) => !p.deleted), ...rows.filter((p) => p.deleted)];
+  }
+  sortProxies(compare: (a: TableProxyInterface, b: TableProxyInterface) => number) {
+    this.proxies = this.proxies.slice().sort(compare);
+  }
+  // Время в id: ответ на запрос, отправленный до перезагрузки окна, не совпадёт с новым.
+  private nextRequestId(): string {
+    this.requestSeq += 1;
+    return `${Date.now()}-${this.requestSeq}`;
+  }
   search(newSearchString: string) {
     this.searchString = newSearchString;
-    this.hidenProxyId = this.proxies
-      .filter((p) => !p.host.includes(newSearchString))
-      .map((p) => p.id);
+    this.activePage = 1;
+  }
+  // Строки таблицы: под текущим поиском, архив — если показан. Считаются по живым данным (SDA-64):
+  // список скрытых id, снятый в момент поиска, устаревал после добавления и правки.
+  getVisibleProxies(): TableProxyInterface[] {
+    return this.proxies.filter(
+      (p) => p.host.includes(this.searchString) && (this.showDeleted || !p.deleted)
+    );
+  }
+  // Что выделяет галочка в шапке. То, что скрыто поиском, в массовые действия не попадает (SDA-64):
+  // раньше при поиске одного хоста галочка выделяла — и отправляла в архив — все прокси.
+  private getSelectableProxies(): TableProxyInterface[] {
+    return this.getVisibleProxies().filter((p) => !p.deleted);
+  }
+  // Единственный список для счётчика, вопроса и самих массовых действий.
+  getSelectedProxies(): TableProxyInterface[] {
+    return this.getSelectableProxies().filter((p) => p.isSelected);
+  }
+  get isAllSelected(): boolean {
+    const proxies = this.getSelectableProxies();
+    return proxies.length !== 0 && proxies.every((p) => p.isSelected);
+  }
+  // Страница на экране. Строк могло стать меньше (поиск, архив, удаление): пустой страницы не бывает.
+  get currentPage(): number {
+    return Math.max(1, Math.min(this.activePage, Math.ceil(this.getVisibleProxies().length / this.pageSize)));
   }
   changeShowStatus(status?: boolean) {
     if (status) {
@@ -147,36 +154,106 @@ class ProxiesTableStore {
     }
   }
   testEditingProxy(proxy: ProxySetupInterface) {
+    // Предыдущая проверка, если ещё идёт, больше не нужна: её ответ придёт с другим id.
+    this.editingTestRequestId = this.nextRequestId();
     this.isTestingEditingProxy = true;
-    this.editingTestRequestSeq += 1;
-    // Replies carry only editing_proxy, without params or a request ID. Once
-    // requests overlap, none can be attributed safely, even if replies reorder.
-    this.editingTestReplySeq = this.pendingEditingTestCount === 0 ? this.editingTestRequestSeq : undefined;
-    this.pendingEditingTestCount += 1;
     // Display-only snapshot: do not show a previous result for changed credentials.
-    this.testedEditingProxy = { ...proxy };
+    this.testedEditingProxy = setupOf(proxy);
     this.editingTestResult = undefined;
-    window.Main.proxies.testByParams(proxy);
+    this.editingTestFailure = undefined;
+    window.Main.proxies.testByParams(setupOf(proxy), this.editingTestRequestId);
   }
   resetEditingTestDisplay() {
-    this.editingTestRequestSeq += 1;
-    this.editingTestReplySeq = undefined;
+    this.editingTestRequestId = null;
     this.testedEditingProxy = undefined;
     this.editingTestResult = undefined;
+    this.editingTestFailure = undefined;
     this.isTestingEditingProxy = false;
-    // Keep the in-flight count so replies from a closed/changed form can drain.
   }
-  testProxy(id: string) {
-    const proxy = this.proxies.filter((p) => p.id === id);
-    if (!proxy[0]) throw new Error(i18n.t("proxies.errors.notFound", { id }));
-    proxy[0].isTesting = true;
-    window.Main.proxies.test(id);
+  /** false — этот прокси уже проверяется. */
+  testProxy(id: string, batch?: TestBatch): boolean {
+    const proxy = this.proxies.find((p) => p.id === id);
+    if (!proxy) throw new Error(i18n.t("proxies.errors.notFound", { id }));
+    if (proxy.isTesting) return false;
+    const requestId = this.nextRequestId();
+    this.pendingTests.set(requestId, { id, setup: setupOf(proxy), batch });
+    if (batch) batch.left += 1;
+    proxy.isTesting = true;
+    window.Main.proxies.test(id, requestId);
+    return true;
   }
   testSelected() {
-    const selected = this.proxies.filter((p) => p.isSelected && !p.deleted);
+    const selected = this.getSelectedProxies();
+    if (selected.length === 0) return;
+    const batch: TestBatch = { left: 0, working: 0, refused: [], failed: [], skipped: 0 };
     for (var proxy of selected) {
-      this.testProxy(proxy.id);
+      if (!this.testProxy(proxy.id, batch)) batch.skipped += 1;
     }
+    // Все выбранные уже проверяются: ответов не будет, но итог нужен и здесь.
+    if (batch.left === 0) this.showBatchSummary(batch);
+  }
+  // Идёт ли проверка именно этих данных прокси: правка прокси её результат отменяет (SDA-64).
+  private isTestPending(proxy: ProxySetupInterface & { id: string }): boolean {
+    return Array.from(this.pendingTests.values()).some((test) => test.id === proxy.id && isSameSetup(test.setup, proxy));
+  }
+  private onTestReply(data: ProxyTestReply) {
+    const failure = data.ok ? undefined : { statusCode: data.statusCode, error: data.error };
+    // Код Steam (403, 429) получен через прокси: прокси работает, отказал Steam.
+    const isWorking = data.ok || data.statusCode !== undefined;
+    if (data.requestId === this.editingTestRequestId) {
+      this.editingTestRequestId = null;
+      this.isTestingEditingProxy = false;
+      this.editingTestResult = isWorking;
+      this.editingTestFailure = failure;
+      this.showTestResult(failure, this.testedEditingProxy);
+      return;
+    }
+    const test = this.pendingTests.get(data.requestId);
+    if (!test) return;
+    this.pendingTests.delete(data.requestId);
+    // Прокси могли удалить или изменить: результат относится только к тем данным, которые проверены.
+    const proxy = this.proxies.find((p) => p.id === test.id);
+    if (proxy) proxy.isTesting = this.isTestPending(proxy);
+    const applies = proxy !== undefined && isSameSetup(proxy, data.tested ?? test.setup);
+    if (proxy && applies) {
+      proxy.isWorking = isWorking;
+      proxy.testFailure = failure;
+    }
+    if (test.batch) return this.onBatchReply(test.batch, applies ? proxy : undefined, data);
+    if (proxy && applies) this.showTestResult(failure, proxy, proxy.number);
+  }
+  private onBatchReply(batch: TestBatch, proxy: TableProxyInterface | undefined, data: ProxyTestReply) {
+    batch.left -= 1;
+    if (!proxy) batch.skipped += 1;
+    else if (data.ok) batch.working += 1;
+    else if (data.statusCode !== undefined) batch.refused.push(`#${proxy.number} (${data.statusCode})`);
+    else batch.failed.push(`#${proxy.number}`);
+    if (batch.left === 0) this.showBatchSummary(batch);
+  }
+  private showBatchSummary({ working, refused, failed, skipped }: TestBatch) {
+    // Полный список — в строках таблицы; уведомление не должно закрывать её целиком.
+    const list = (numbers: string[]) => numbers.slice(0, 30).join(", ") + (numbers.length > 30 ? "…" : "");
+    const parts = [
+      working ? i18n.t("proxies.test.summary.working", { number: working }) : "",
+      refused.length ? i18n.t("proxies.test.summary.refused", { number: refused.length, list: list(refused) }) : "",
+      failed.length ? i18n.t("proxies.test.summary.failed", { number: failed.length, list: list(failed) }) : "",
+      skipped ? i18n.t("proxies.test.summary.skipped", { number: skipped }) : "",
+    ];
+    this.root.windows.openMiniNotification({
+      type: failed.length ? "error" : refused.length || skipped ? "info" : "success",
+      text: `${i18n.t("proxies.test.summary.title")}: ${parts.filter(Boolean).join("; ")}`,
+    });
+  }
+  // В тексте — адрес, который проверяли: в окне за это время могли выбрать другой прокси.
+  private showTestResult(failure: TableProxyInterface["testFailure"], proxy?: ProxySetupInterface, number?: number) {
+    const address = proxy?.host ? `${proxy.host}:${proxy.port}` : "—";
+    const name = number === undefined ? address : `#${number} ${address}`;
+    if (!failure) return this.root.windows.openMiniNotification({ type: "success", text: i18n.t("proxies.test.working", { name }) });
+    if (failure.statusCode) {
+      return this.root.windows.openMiniNotification({ type: "info", text: i18n.t("proxies.test.steamStatus", { name, code: failure.statusCode }) });
+    }
+    const text = i18n.t("proxies.test.notWorking", { name });
+    this.root.windows.openMiniNotification({ type: "error", text: failure.error ? `${text}: ${failure.error}` : text });
   }
   setFields(fields: Field[]) {
     this.fields = fields;
@@ -224,11 +301,7 @@ class ProxiesTableStore {
 
     let count = 0;
     let bufProxies: TableProxyInterface[] = [];
-    for (var i of toJS(this.proxies).filter(
-      (p) => !this.hidenProxyId.includes(p.id)
-    )) {
-      if (i.deleted && !this.showDeleted) continue;
-
+    for (var i of this.getVisibleProxies().map((p) => toJS(p))) {
       if (count === this.pageSize) {
         proxies.push(bufProxies);
         bufProxies = [];
@@ -245,22 +318,9 @@ class ProxiesTableStore {
   selectProxy(id: string, isSelected: boolean = true) {
     const proxy = this.proxies.find((p) => p.id === id);
     if (proxy) proxy.isSelected = isSelected;
-    if (
-      this.proxies.filter((p) => p.isSelected).length ===
-        this.proxies.filter((p) => !p.deleted).length &&
-      this.proxies.length !== 0
-    ) {
-      this.isAllSelected = true;
-    } else {
-      this.isAllSelected = false;
-    }
   }
   selectAllProxies(isSelected: boolean = true) {
-    this.isAllSelected = isSelected;
-    for (var proxy of this.proxies) {
-      if (proxy.deleted) continue;
-      proxy.isSelected = isSelected;
-    }
+    for (var proxy of this.getSelectableProxies()) proxy.isSelected = isSelected;
   }
   editProxyInStorage(
     id: string,
@@ -285,14 +345,45 @@ class ProxiesTableStore {
   }
   openEditingForm(proxy: TableProxyInterface) {
     this.resetEditingTestDisplay();
+    this.resetEditSave();
     this.isEditingFormOpen = true;
     this.editingFormContent = proxy;
   }
   getEditingFormContent() {
     return toJS(this.editingFormContent);
   }
+  // Сохранение из окна правки: окно закрывается после ответа main, отказ остаётся в форме (SDA-64).
+  saveEditing(
+    proxy: ProxySetupInterface,
+    links: { steamAccountIds: string[]; originalSteamAccountIds?: string[] }
+  ) {
+    if (this.isSavingEdit) return;
+    this.isSavingEdit = true;
+    this.editError = null;
+    this.editRequestId = this.nextRequestId();
+    window.Main.proxies.edit(this.editingFormContent.id, proxy, links, this.editRequestId);
+  }
+  setEditError(error: string | null) {
+    this.editError = error;
+  }
+  private onEditResult(data: ProxyEditReply) {
+    if (data.requestId !== this.editRequestId) {
+      // Окно уже закрыли или открыли заново: отказ показать больше негде
+      if (data.error) this.root.windows.openMiniNotification({ type: "error", text: data.error });
+      return;
+    }
+    if (!data.error) return this.closeEditingForm();
+    this.resetEditSave();
+    this.editError = data.error;
+  }
+  private resetEditSave() {
+    this.editRequestId = null;
+    this.isSavingEdit = false;
+    this.editError = null;
+  }
   closeEditingForm() {
     this.resetEditingTestDisplay();
+    this.resetEditSave();
     this.isEditingFormOpen = false;
   }
   openCreationForm() {
@@ -309,55 +400,28 @@ class ProxiesTableStore {
   closeBulkForm() {
     this.isBulkFormOpen = false;
   }
-  createBulk(rawText: string) {
-    const lines = rawText
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-
-    // Дедуп только против активных прокси: удалённые (архивные, deleted: true)
-    // не должны блокировать повторное добавление.
-    const existingKeys = new Set(
-      this.proxies
-        .filter((p) => !p.deleted)
-        .map((p) => `${p.host}:${p.port}`.toLowerCase())
-    );
-    const batchKeys = new Set<string>();
-
-    const validProxies: ProxySetupInterface[] = [];
-    let invalidCount = 0;
-    let duplicateCount = 0;
-
-    for (var line of lines) {
-      const proxy = parseProxyString(line);
-      if (!proxy.host || !proxy.port || !proxy.username || !proxy.password) {
-        invalidCount += 1;
-        continue;
-      }
-      const key = `${proxy.host}:${proxy.port}`.toLowerCase();
-      if (existingKeys.has(key) || batchKeys.has(key)) {
-        duplicateCount += 1;
-        continue;
-      }
-      batchKeys.add(key);
-      validProxies.push(proxy);
-    }
-
-    if (validProxies.length > 0) {
-      window.Main.proxies.bulkNew(validProxies);
-      // Показываем все добавленные прокси сразу, не пряча их за пагинацией
-      const activeProxiesCount = this.proxies.filter((p) => !p.deleted).length;
-      this.ensurePageSizeFits(activeProxiesCount + validProxies.length);
-    }
-
-    this.root.windows.openMiniNotification({
-      type: validProxies.length > 0 ? "success" : "error",
-      text: i18n.t("proxies.bulk.result", {
-        added: validProxies.length,
-        invalid: invalidCount,
-        duplicates: duplicateCount,
-      }),
+  // Числа и отклонённые строки приходят из main после сохранения (SDA-64).
+  createBulk(rawText: string): Promise<ProxyBulkResult> {
+    const requestId = this.nextRequestId();
+    return new Promise((resolve) => {
+      this.pendingBulk.set(requestId, resolve);
+      window.Main.proxies.bulkNew(rawText, requestId);
     });
+  }
+  private onBulkResult(data: ProxyBulkResult & { requestId: string }) {
+    const resolve = this.pendingBulk.get(data.requestId);
+    if (!resolve) return;
+    this.pendingBulk.delete(data.requestId);
+    const { added, duplicates, rejected } = data;
+    if (added > 0) {
+      // Показываем все добавленные прокси сразу, не пряча их за пагинацией
+      this.ensurePageSizeFits(this.proxies.filter((p) => !p.deleted).length);
+    }
+    this.root.windows.openMiniNotification({
+      type: added > 0 && rejected.length === 0 ? "success" : "error",
+      text: i18n.t("proxies.bulk.result", { added, invalid: rejected.length, duplicates }),
+    });
+    resolve({ added, duplicates, rejected });
   }
   setActivePage(n: number, save: boolean = false) {
     for (var i = n; i >= 1; i--) {

@@ -465,9 +465,18 @@
       "title": "Add proxies in bulk",
       "example": "One proxy per line. Example: Login:Password@1.1.1.1:7777",
       "empty": "The field is empty!",
+      "rejected_one": "{{count}} line was not added. It is left in the field so you can fix it.",
+      "rejected_other": "{{count}} lines were not added. They are left in the field so you can fix them.",
       "result": "Added: {{added}}, invalid skipped: {{invalid}}, duplicates: {{duplicates}}",
       "label": "Proxy list",
       "placeholder": "Login:Password@1.1.1.1:7777\nLogin:Password@2.2.2.2:7777"
+    },
+    "reject": {
+      "format": "Not a proxy line. Use login:password@host:port, host:port:login:password, host:port or http://login:password@host:port",
+      "scheme": "Only HTTP proxies are supported (http:// or https://)",
+      "ambiguous": "The line can be read in two ways. Write it as http://login:password@host:port",
+      "address": "Invalid host or port",
+      "storage": "Could not be saved"
     },
     "creation": {
       "title": "New proxies",
@@ -477,17 +486,25 @@
       "title": "Edit proxy (#{{number}}) {{host}}:{{port}}"
     },
     "test": {
-      "editingWorking": "Proxy works",
-      "editingNotWorking": "Proxy does NOT work",
-      "working": "Proxy #{{number}} {{host}}:{{port}} works",
-      "notWorking": "Proxy #{{number}} {{host}}:{{port}} does NOT work",
+      "working": "Proxy {{name}} works",
+      "notWorking": "Proxy {{name}} does NOT work",
+      "steamStatus": "Proxy {{name}} works, but Steam answered {{code}}",
       "workingRich": "Proxy #{{number}} {{host}}:{{port}} <b>works</b>",
       "notWorkingRich": "Proxy #{{number}} {{host}}:{{port}} <b>DOES NOT WORK</b>",
       "column": "Test",
       "pending": "Testing…",
       "untested": "Untested",
       "ok": "Works",
-      "failed": "Failed"
+      "failed": "Failed",
+      "steamCode": "Steam: {{code}}",
+      "steamHint": "The proxy works, but Steam answered {{code}}",
+      "summary": {
+        "title": "Proxies tested",
+        "working": "working: {{number}}",
+        "refused": "working, but Steam refused: {{number}} ({{list}})",
+        "failed": "failed: {{number}} ({{list}})",
+        "skipped": "no result: {{number}} (already being tested, changed or deleted)"
+      }
     },
     "errors": {
       "notFound": "Proxy #{{id}} does not exist",

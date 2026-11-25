@@ -481,9 +481,20 @@
       "title": "Массовое добавление прокси",
       "example": "Один прокси на строку. Пример: Login:Password@1.1.1.1:7777",
       "empty": "Поле пустое!",
+      "rejected_one": "{{count}} строка не добавлена. Она осталась в поле, её можно исправить.",
+      "rejected_few": "{{count}} строки не добавлены. Они остались в поле, их можно исправить.",
+      "rejected_many": "{{count}} строк не добавлено. Они остались в поле, их можно исправить.",
+      "rejected_other": "{{count}} строки не добавлено. Они остались в поле, их можно исправить.",
       "result": "Добавлено: {{added}}, пропущено невалидных: {{invalid}}, дубликатов: {{duplicates}}",
       "label": "Список прокси",
       "placeholder": "Login:Password@1.1.1.1:7777\nLogin:Password@2.2.2.2:7777"
+    },
+    "reject": {
+      "format": "Это не строка прокси. Форматы: login:password@host:port, host:port:login:password, host:port или http://login:password@host:port",
+      "scheme": "Поддерживаются только HTTP-прокси (http:// или https://)",
+      "ambiguous": "Строку можно прочитать двояко. Запишите её как http://login:password@host:port",
+      "address": "Неправильный хост или порт",
+      "storage": "Не удалось сохранить"
     },
     "creation": {
       "title": "Создание новых прокси",
@@ -493,17 +504,25 @@
       "title": "Изменить прокси (#{{number}}) {{host}}:{{port}}"
     },
     "test": {
-      "editingWorking": "Прокси работает",
-      "editingNotWorking": "Прокси НЕ работает",
-      "working": "Прокси #{{number}} {{host}}:{{port}} работает",
-      "notWorking": "Прокси #{{number}} {{host}}:{{port}} НЕ работает",
+      "working": "Прокси {{name}} работает",
+      "notWorking": "Прокси {{name}} НЕ работает",
+      "steamStatus": "Прокси {{name}} работает, но Steam ответил {{code}}",
       "workingRich": "Прокси #{{number}} {{host}}:{{port}} <b>работает</b>",
       "notWorkingRich": "Прокси #{{number}} {{host}}:{{port}} <b>НЕ РАБОТАЕТ</b>",
       "column": "Проверка",
       "pending": "Тест…",
       "untested": "Без теста",
       "ok": "Работает",
-      "failed": "Сбой"
+      "failed": "Сбой",
+      "steamCode": "Steam: {{code}}",
+      "steamHint": "Прокси работает, но Steam ответил {{code}}",
+      "summary": {
+        "title": "Прокси проверены",
+        "working": "работают: {{number}}",
+        "refused": "работают, но Steam отказал: {{number}} ({{list}})",
+        "failed": "не работают: {{number}} ({{list}})",
+        "skipped": "без результата: {{number}} (уже проверяются, изменены или удалены)"
+      }
     },
     "errors": {
       "notFound": "Прокси #{{id}} не существует",

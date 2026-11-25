@@ -12,6 +12,7 @@ function replyError(event: IpcMainEvent, err: unknown) {
 
 export function appSettingsGetListener(event: IpcMainEvent) {
     try {
+        backgroundMode.refreshLoginItem();
         replyView(event);
     } catch (err) {
         replyError(event, err);

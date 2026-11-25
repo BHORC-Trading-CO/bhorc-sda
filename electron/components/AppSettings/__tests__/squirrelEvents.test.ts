@@ -38,7 +38,7 @@ describe("startup order", () => {
         const uninstallAt = stage.indexOf('squirrelMaintenanceEvent(process.platform, process.argv) === "uninstall"');
         const cleanupAt = stage.indexOf("backgroundMode.removeLoginItemForUninstall();");
         const lockAt = stage.indexOf("ensureSingleInstance(");
-        const installAt = stage.indexOf("backgroundMode.install(process.argv);");
+        const installAt = stage.indexOf("backgroundMode.install(process.argv");
         const readyAt = stage.indexOf('app.on("ready"');
         expect(uninstallAt).toBeGreaterThan(-1);
         expect(cleanupAt).toBeGreaterThan(uninstallAt);
