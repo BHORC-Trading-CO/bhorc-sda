@@ -777,11 +777,15 @@ describe("стыки правок", () => {
         mockCookies.mockReturnValueOnce(cookies.promise).mockReturnValue(new Promise(() => undefined));
         jest.spyOn(account.session, "refreshAccessToken").mockResolvedValue(undefined as never);
         const before = account.community;
+        (account.chrome as any).workStatus = "working";
+        (account.chrome as any).browser = {};
+        const stopBrowser = jest.spyOn(account.chrome, "stop").mockResolvedValue(undefined as never);
         account.startSessionInBackground();
         await flush();
         const other = { shared_secret: "b3RoZXJzZWNyZXRvdGhlcnNlY3I=", identity_secret: "x", Session: { ...session(), SteamID: "76561190000000099" } };
         await editListener(event(), { id: "a1", steamAccountParams: { accountName: "other", maFile: other as any } });
         expect(account.community).not.toBe(before);
+        expect(stopBrowser).toHaveBeenCalledWith("routeChanged");
         cookies.resolve(["steamLoginSecure=76561190000000000%7C%7Cold"]);
         await flush();
         expect(account.community.steamID).toBeFalsy();
@@ -821,6 +825,27 @@ describe("стыки правок", () => {
         await editListener(e, { id: "a1", steamAccountParams: { deleted: false } });
         expect(e.reply).toHaveBeenCalledWith("ERROR", expect.stringContaining("being deleted"));
         expect(stored("a1").deleted).toBe(true);
+    });
+
+    it("восстановление с другим maFile входит один раз", async () => {
+        const account = add("a1", null, { deleted: true });
+        const init = jest.spyOn(account, "initSession").mockResolvedValue(undefined);
+        await editListener(event(), { id: "a1", steamAccountParams: { deleted: false, maFile: { shared_secret: "bmV3", Session: session() } as any } });
+        await flush();
+        expect(init).toHaveBeenCalledTimes(1);
+    });
+
+    it("список перечитали, пока удаление ждало браузер: запись нового объекта не стирается", async () => {
+        const account = add("a1");
+        const closed = deferred<void>();
+        jest.spyOn(account.chrome, "shutdown").mockReturnValue(closed.promise);
+        const deletion = steamAccountManager.delete("a1");
+        deletion.catch(() => undefined);
+        await flush();
+        steamAccountManager.objects = [new SteamAccount(params("a1"))];
+        closed.resolve();
+        await expect(deletion).rejects.toThrow("reloaded");
+        expect(stored("a1")).toBeTruthy();
     });
 
     it("аккаунт исчез при перечитывании, пока готовился браузер: браузер не запускается", async () => {
@@ -883,11 +908,15 @@ describe("старые записи прокси", () => {
         const proxy = new Proxy(params);
         proxy.editParams({ username: "u", password: "p" });
         expect(proxy.params).toMatchObject({ username: "u", password: "p" });
+        proxy.editParams({ password: undefined, host: "two.test" });
+        expect(proxy.params).toMatchObject({ host: "two.test", password: "p" });
+        expect(ProxyStorage.GetById("old")).toMatchObject({ host: "two.test", password: "p" });
     });
 
     it("запись без host не роняет импорт; один и тот же прокси узнаётся в любом написании", () => {
         const { proxyIdentity } = require("../../Functions/proxyAddress");
         expect(() => proxyIdentity({})).not.toThrow();
+        expect(proxyIdentity({ host: 127 as any, port: 1 })).toBe(proxyIdentity({ host: " 127 ", port: "1" }));
         expect(proxyIdentity({ host: "проксі.example", port: 80 })).toBe(proxyIdentity({ host: require("url").domainToASCII("проксі.example"), port: "80", username: "", password: "" }));
         expect(proxyIdentity({ host: "a.test", port: 80, username: "u" })).not.toBe(proxyIdentity({ host: "a.test", port: 80, username: "v" }));
     });

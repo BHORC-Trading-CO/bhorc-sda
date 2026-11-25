@@ -32,8 +32,9 @@ export default async (event: Electron.IpcMainEvent, data: { id: string, steamAcc
         if (restored) {
             // На вкладке прокси показан номер связанного аккаунта
             if (changes.number !== undefined) proxyManager.sendProxiesToFront();
-            steamAccount.startSessionInBackground();
+            if (!identityChanged) steamAccount.startSessionInBackground();
         }
+        // Входит заново сама
         if (identityChanged) steamAccount.resetIdentity();
     } catch (err) {
         event.reply('ERROR', String(err));

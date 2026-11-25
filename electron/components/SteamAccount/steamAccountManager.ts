@@ -36,6 +36,8 @@ export class SteamAccountManager {
             removed.chrome.launchesBlocked = true;
             try {
                 await removed.chrome.shutdown();
+                // Пока ждали, список могли перечитать, и под этим id уже другой объект
+                if (this.getById(id) !== removed) throw new Error(`#${id} - steam account has been reloaded`);
                 SteamAccountStorage.Delete(id);
             } catch (err) {
                 removed.chrome.launchesBlocked = false;

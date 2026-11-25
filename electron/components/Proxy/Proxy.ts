@@ -17,12 +17,15 @@ class Proxy {
 
     /** Сначала диск: не сохранённая правка не должна менять маршрут в памяти (SDA-64). */
     editParams(newParams: { [K in keyof ProxyInterface]?: ProxyInterface[K] }, links?: LinksInterface) {
-        ProxyStorage.EditData(this.params.id, newParams, links);
+        // Один и тот же набор и на диск, и в память: undefined ни там, ни там не применяется
+        const patch: typeof newParams = {};
+        for (const key of Object.keys(newParams) as (keyof ProxyInterface)[]) {
+            if (typeof newParams[key] !== 'undefined') (patch as any)[key] = newParams[key];
+        }
+        ProxyStorage.EditData(this.params.id, patch, links);
         // Каждое поле со значением, в том числе то, которого у старой записи не было (логин и пароль):
         // иначе на диске они есть, а живой клиент остаётся с прежним маршрутом
-        for (const key of Object.keys(newParams) as (keyof ProxyInterface)[]) {
-            if (typeof newParams[key] !== 'undefined') (this.params as any)[key] = newParams[key];
-        }
+        Object.assign(this.params, patch);
     }
     test(): Promise<ProxyTestResult> {
         return Proxy.Test(this.params);

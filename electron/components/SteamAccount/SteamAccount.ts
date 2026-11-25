@@ -212,6 +212,8 @@ class SteamAccount {
      * а начатый вход не должен записать его токены в новые данные.
      */
     resetIdentity() {
+        // Открытый браузер вошёл под прежним аккаунтом
+        this.stopBrowserForRouteChange();
         this.startNewRoute();
         if (this.proxyState !== "missing") {
             this.session = this.buildSession();

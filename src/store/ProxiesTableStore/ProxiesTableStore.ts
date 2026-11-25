@@ -114,7 +114,7 @@ class ProxiesTableStore {
   // список скрытых id, снятый в момент поиска, устаревал после добавления и правки.
   getVisibleProxies(): TableProxyInterface[] {
     return this.proxies.filter(
-      (p) => (p.host ?? "").includes(this.searchString) && (this.showDeleted || !p.deleted)
+      (p) => String(p.host ?? "").includes(this.searchString) && (this.showDeleted || !p.deleted)
     );
   }
   // Что выделяет галочка в шапке. То, что скрыто поиском, в массовые действия не попадает (SDA-64):
