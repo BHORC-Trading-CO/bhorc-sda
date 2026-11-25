@@ -5,6 +5,7 @@ import Field from '../../../interfaces/TableFields/Field';
 import TableProxyInterface from '../../../interfaces/Proxy/TableProxyInterface';
 import ProxySetupInterface from '../../../interfaces/Proxy/ProxySetupInterface';
 import Proxy from '../../Proxy/Proxy';
+import importProxies from '../../Proxy/importProxies';
 import ProxyStorage from '../../newStorage/ProxyStorage';
 import Manager from '../../Manager/Manager';
 import SuperMethods from '../../SuperMethods/SuperMethods';
@@ -72,26 +73,14 @@ export default () => {
             event.reply('ERROR', String(err));
         }
     });
-    onTrusted('NEW_PROXIES', (event, proxies: ProxySetupInterface[]) => {
-        // Каждую строку отдельно: неправильная не должна обрывать импорт на середине,
-        // когда часть прокси уже сохранена, а таблица ещё не обновлена.
-        const rejected: string[] = [];
-        for (var proxy of proxies) {
-            try {
-                const proxyData = Proxy.Generate(proxy);
-                const proxyObject = new Proxy(proxyData);
-                proxyManager.addNew(proxyObject);
-                ProxyStorage.Save(proxyData.id, proxyData);
-            } catch (err) {
-                rejected.push(`${proxy && proxy.host}:${proxy && proxy.port} — ${err instanceof Error ? err.message : err}`);
-            }
-        }
+    onTrusted('NEW_PROXIES', (event, params: { requestId: string, text: string }) => {
+        const result = importProxies(String(params.text));
         try {
             proxyManager.sendProxiesToFront();
         } catch (err) {
             event.reply('ERROR', String(err));
         }
-        if (rejected.length) event.reply('ERROR', t("errors.proxiesRejected", { total: rejected.length, details: rejected.join("; ") }));
+        event.reply(ProxyChannels.PROXY_BULK_RESULT, { requestId: params.requestId, ...result });
     });
     onTrusted('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds?: string[], originalSteamAccountIds?: string[] } }) => {
         try {

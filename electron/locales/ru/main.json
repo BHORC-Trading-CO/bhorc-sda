@@ -35,7 +35,6 @@
     "guardSetup": "Ошибка при подключении Guard: {{error}}",
     "importAccount": "Ошибка в функции импорта стим аккаунта: {{error}}",
     "importRejected": "Не импортировано аккаунтов: {{total}}. {{details}}",
-    "proxiesRejected": "Не добавлено прокси: {{total}}. {{details}}",
     "saveSession": "Не удалось сохранить сессию: {{error}}",
     "openDataFolder": "Не удалось открыть папку данных {{path}}: {{error}}",
     "wrongPin": "Неправильный пин",

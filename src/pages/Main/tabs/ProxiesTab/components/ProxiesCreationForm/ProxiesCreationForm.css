@@ -51,6 +51,14 @@
   overflow-wrap: anywhere;
 }
 
+.proxies-form .proxy-form-error {
+  margin: 10px 0 0;
+  color: var(--sda-danger);
+  font-size: 13px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
 .proxies-form .proxy-table__container {
   padding: 0 20px;
   width: 100%;

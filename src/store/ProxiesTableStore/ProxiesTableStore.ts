@@ -6,7 +6,7 @@ import TableProxyInterface from "../../../electron/interfaces/Proxy/TableProxyIn
 import defaultProxiesTableFields from "../../../electron/interfaces/TableFields/defaults/proxiesTableFields";
 import ProxySetupInterface from "../../../electron/interfaces/Proxy/ProxySetupInterface";
 import testingResultJsx from "./testingResultJsx";
-import parseProxyString from "../../pages/Main/tabs/ProxiesTab/components/Funcs/parseProxyString";
+import { ProxyBulkResult } from "../../../electron/interfaces/Proxy/ProxyResults";
 import i18n from "../../i18n/i18n";
 
 class ProxiesTableStore {
@@ -31,6 +31,8 @@ class ProxiesTableStore {
   private pendingEditingTestCount: number;
   hidenProxyId: string[];
   searchString: string;
+  private requestSeq: number = 0;
+  private pendingBulk = new Map<string, (result: ProxyBulkResult) => void>();
 
   constructor(root: Store) {
     this.root = root;
@@ -98,6 +100,7 @@ class ProxiesTableStore {
         proxy[0].isWorking = data.testResult;
       });
     });
+    window.Main.proxies.onBulkResult((event, data) => this.onBulkResult(data));
     window.Main.proxies.onGetTableFields((event, fields) => {
       this.setFields(fields);
     });
@@ -120,6 +123,11 @@ class ProxiesTableStore {
     });
   }
 
+  // Время в id: ответ на запрос, отправленный до перезагрузки окна, не совпадёт с новым.
+  private nextRequestId(): string {
+    this.requestSeq += 1;
+    return `${Date.now()}-${this.requestSeq}`;
+  }
   search(newSearchString: string) {
     this.searchString = newSearchString;
     this.hidenProxyId = this.proxies
@@ -309,55 +317,28 @@ class ProxiesTableStore {
   closeBulkForm() {
     this.isBulkFormOpen = false;
   }
-  createBulk(rawText: string) {
-    const lines = rawText
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-
-    // Дедуп только против активных прокси: удалённые (архивные, deleted: true)
-    // не должны блокировать повторное добавление.
-    const existingKeys = new Set(
-      this.proxies
-        .filter((p) => !p.deleted)
-        .map((p) => `${p.host}:${p.port}`.toLowerCase())
-    );
-    const batchKeys = new Set<string>();
-
-    const validProxies: ProxySetupInterface[] = [];
-    let invalidCount = 0;
-    let duplicateCount = 0;
-
-    for (var line of lines) {
-      const proxy = parseProxyString(line);
-      if (!proxy.host || !proxy.port || !proxy.username || !proxy.password) {
-        invalidCount += 1;
-        continue;
-      }
-      const key = `${proxy.host}:${proxy.port}`.toLowerCase();
-      if (existingKeys.has(key) || batchKeys.has(key)) {
-        duplicateCount += 1;
-        continue;
-      }
-      batchKeys.add(key);
-      validProxies.push(proxy);
-    }
-
-    if (validProxies.length > 0) {
-      window.Main.proxies.bulkNew(validProxies);
-      // Показываем все добавленные прокси сразу, не пряча их за пагинацией
-      const activeProxiesCount = this.proxies.filter((p) => !p.deleted).length;
-      this.ensurePageSizeFits(activeProxiesCount + validProxies.length);
-    }
-
-    this.root.windows.openMiniNotification({
-      type: validProxies.length > 0 ? "success" : "error",
-      text: i18n.t("proxies.bulk.result", {
-        added: validProxies.length,
-        invalid: invalidCount,
-        duplicates: duplicateCount,
-      }),
+  // Числа и отклонённые строки приходят из main после сохранения (SDA-64).
+  createBulk(rawText: string): Promise<ProxyBulkResult> {
+    const requestId = this.nextRequestId();
+    return new Promise((resolve) => {
+      this.pendingBulk.set(requestId, resolve);
+      window.Main.proxies.bulkNew(rawText, requestId);
     });
+  }
+  private onBulkResult(data: ProxyBulkResult & { requestId: string }) {
+    const resolve = this.pendingBulk.get(data.requestId);
+    if (!resolve) return;
+    this.pendingBulk.delete(data.requestId);
+    const { added, duplicates, rejected } = data;
+    if (added > 0) {
+      // Показываем все добавленные прокси сразу, не пряча их за пагинацией
+      this.ensurePageSizeFits(this.proxies.filter((p) => !p.deleted).length);
+    }
+    this.root.windows.openMiniNotification({
+      type: added > 0 && rejected.length === 0 ? "success" : "error",
+      text: i18n.t("proxies.bulk.result", { added, invalid: rejected.length, duplicates }),
+    });
+    resolve({ added, duplicates, rejected });
   }
   setActivePage(n: number, save: boolean = false) {
     for (var i = n; i >= 1; i--) {

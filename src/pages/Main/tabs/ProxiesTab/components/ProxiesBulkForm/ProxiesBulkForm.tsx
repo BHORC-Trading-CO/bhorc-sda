@@ -1,4 +1,4 @@
-import react, { FC, useState } from "react";
+import react, { FC, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import MiniWindow from "../../../../components/MiniWindow/MiniWindow";
 import store from "../../../../../../store/store";
@@ -27,7 +27,30 @@ const ProxiesBulkForm: FC = observer(() => {
 
 const BulkFormContent: FC = () => {
   const [rawText, setRawText] = useState("");
+  const [rejectedCount, setRejectedCount] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const isMounted = useRef(true);
+  useEffect(() => () => { isMounted.current = false; }, []);
   const { t } = useTranslation();
+
+  const save = async () => {
+    if (isSaving) return;
+    if (rawText.trim().length === 0) {
+      store.windows.openMiniNotification({
+        type: "error",
+        text: t("proxies.bulk.empty"),
+      });
+      return;
+    }
+    setIsSaving(true);
+    const { rejected } = await store.proxiesTable.createBulk(rawText);
+    if (!isMounted.current) return;
+    if (rejected.length === 0) return store.proxiesTable.closeBulkForm();
+    // Отклонённые строки остаются в поле: их можно исправить и сохранить ещё раз (SDA-64).
+    setRawText(rejected.join("\n"));
+    setRejectedCount(rejected.length);
+    setIsSaving(false);
+  };
 
   return (
     <div className="proxies-form proxy__container">
@@ -46,6 +69,7 @@ const BulkFormContent: FC = () => {
             setRawText(e.target.value);
           }}
         ></textarea>
+        {rejectedCount > 0 && <p className="proxy-form-error" role="alert">{t("proxies.bulk.rejected", { count: rejectedCount })}</p>}
         <Delimeter marginTop="26px" marginBottom="15px"></Delimeter>
       </div>
       <div className="proxy-button__container">
@@ -61,17 +85,8 @@ const BulkFormContent: FC = () => {
         <Button
           size="medium"
           text={t("common.buttons.save")}
-          onClick={() => {
-            if (rawText.trim().length === 0) {
-              store.windows.openMiniNotification({
-                type: "error",
-                text: t("proxies.bulk.empty"),
-              });
-              return;
-            }
-            store.proxiesTable.createBulk(rawText);
-            store.proxiesTable.closeBulkForm();
-          }}
+          isLoad={isSaving}
+          onClick={save}
         ></Button>
       </div>
     </div>

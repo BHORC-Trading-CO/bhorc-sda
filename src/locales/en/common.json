@@ -459,6 +459,8 @@
       "title": "Add proxies in bulk",
       "example": "One proxy per line. Example: Login:Password@1.1.1.1:7777",
       "empty": "The field is empty!",
+      "rejected_one": "{{count}} line was not added: check the format, host and port. It is left in the field so you can fix it.",
+      "rejected_other": "{{count}} lines were not added: check the format, host and port. They are left in the field so you can fix them.",
       "result": "Added: {{added}}, invalid skipped: {{invalid}}, duplicates: {{duplicates}}",
       "label": "Proxy list",
       "placeholder": "Login:Password@1.1.1.1:7777\nLogin:Password@2.2.2.2:7777"

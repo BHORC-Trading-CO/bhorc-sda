@@ -35,7 +35,6 @@
     "guardSetup": "Failed to set up Steam Guard: {{error}}",
     "importAccount": "Steam account import failed: {{error}}",
     "importRejected": "Accounts not imported: {{total}}. {{details}}",
-    "proxiesRejected": "Proxies not added: {{total}}. {{details}}",
     "saveSession": "Failed to save the session: {{error}}",
     "openDataFolder": "Failed to open the data folder {{path}}: {{error}}",
     "wrongPin": "Wrong PIN",
