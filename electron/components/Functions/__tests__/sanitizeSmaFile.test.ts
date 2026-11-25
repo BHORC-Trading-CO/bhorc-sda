@@ -94,6 +94,10 @@ describe("sanitizeSmaFile", () => {
         expect(result).not.toHaveProperty("mail");
     });
 
+    it.each(["", "  "])("пустой shared_secret (%j) — его отсутствие: из него получался бы неверный код (SDA-62)", secret => {
+        expect(sanitizeSmaFile({ ...account(), maFile: { ...account().maFile, shared_secret: secret } }).maFile).not.toHaveProperty("shared_secret");
+    });
+
     it("пустой прокси в файле — без прокси, а не ошибка", () => {
         expect(sanitizeSmaFile({ ...account(), proxy: {} })).not.toHaveProperty("proxy");
         expect(sanitizeSmaFile({ ...account(), proxy: { host: "", port: "" } })).not.toHaveProperty("proxy");

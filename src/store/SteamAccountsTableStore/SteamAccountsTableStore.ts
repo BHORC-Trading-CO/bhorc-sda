@@ -574,11 +574,8 @@ class SteamAccountsTableStore {
         // останавливала список на нём: у остальных не было ни кода, ни статуса браузера (SDA-62).
         let code = "";
         try {
-          code = String(
-            window.Main.guardConnection.getAuthCode(
-              this.steamAccounts[i].maFile.shared_secret
-            )
-          );
+          const secret = this.steamAccounts[i].maFile.shared_secret;
+          if (secret) code = String(window.Main.guardConnection.getAuthCode(secret));
         } catch (err) {
           console.log(`guard code of ${id}: ${err}`);
         }

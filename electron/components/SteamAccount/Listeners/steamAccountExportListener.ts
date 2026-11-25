@@ -2,6 +2,7 @@ import steamAccountManager from "../steamAccountManager";
 import Manager from "../../Manager/Manager";
 import SmaFileInterface from "../../../interfaces/SteamAccount/SmaFileInterface";
 import convertMaFileToStr from "../../Functions/converMaFileToStr";
+import portableFileName from "../../Functions/portableFileName";
 import { getSteamID64 } from "../../Functions/steamAccountSearch";
 import { t } from "../../../i18n";
 
@@ -18,7 +19,8 @@ export default (_event: unknown, { id, kind }: { id: string, kind: "maFile" | "s
         if (!steamAccount) throw new Error(t("errors.steamAccountNotFound", { id }));
         const { accountName, maFile } = steamAccount.params;
         if (kind === "maFile") {
-            return { fileName: `${getSteamID64(maFile) || accountName}.maFile`, content: convertMaFileToStr(maFile) };
+            const steamId = getSteamID64(maFile);
+            return { fileName: `${/^\d{17}$/.test(steamId) ? steamId : portableFileName(accountName)}.maFile`, content: convertMaFileToStr(maFile) };
         }
         // round-trip: вкладываем привязанный прокси (только setup-поля, без локальных id/number/deleted).
         // Привязка к пропавшему прокси — не «без прокси»: помечаем, чтобы импорт спросил маршрут.
@@ -26,7 +28,7 @@ export default (_event: unknown, { id, kind }: { id: string, kind: "maFile" | "s
         const route: Partial<SmaFileInterface> = proxyState === "missing" || steamAccount.proxyState === "missing"
             ? { proxyMissing: true }
             : proxy ? { proxy: { host: proxy.host, port: proxy.port, username: proxy.username, password: proxy.password } } : {};
-        return { fileName: `${accountName}.smaFile`, content: JSON.stringify({ ...steamAccount.getSmaFile(), ...route }) };
+        return { fileName: `${portableFileName(accountName)}.smaFile`, content: JSON.stringify({ ...steamAccount.getSmaFile(), ...route }) };
     } catch (err) {
         return { error: err instanceof Error ? err.message : String(err) };
     }

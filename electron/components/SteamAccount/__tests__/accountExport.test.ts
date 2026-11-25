@@ -103,6 +103,22 @@ it("only Session.SteamID becomes a number, whatever else the maFile holds (R2-9)
     expect(maFile.Session.SteamID).toEqual({ s: 1, e: 16, c: [765, 61198000000001] });
 });
 
+it.each([
+    ["../../etc/passwd", ".._.._etc_passwd"],
+    ["a/b\\c:d*?", "a_b_c_d__"],
+    ["CON", "_CON"],
+    ["nul.txt", "_nul.txt"],
+    ["ок\u202e", "___"],
+    ["...", "account"],
+    ["", "account"],
+    ["normal_login-1", "normal_login-1"],
+])("a download name is a portable base name: %j (V62-14)", (login, name) => {
+    add({ accountName: login, maFile: { shared_secret: "x", Session: { SteamID: "../7656" } } });
+    const expected = name.replace(/^\.+/, "");
+    expect(exported("smaFile").fileName).toBe(`${expected}.smaFile`);
+    expect(exported("maFile").fileName).toBe(`${expected}.maFile`);
+});
+
 it("an unknown account answers with an error instead of a file", () => {
     expect(exportListener({}, { id: "gone", kind: "smaFile" })).toEqual({ error: expect.stringContaining("gone") });
 });
@@ -139,12 +155,20 @@ describe("renderer", () => {
     });
 
     it("a render error shows a message and a reload button instead of an empty window", () => {
-        const boundary = new ErrorBoundary({});
-        boundary.state = ErrorBoundary.getDerivedStateFromError(new TypeError("broken row")) as any;
+        const boundary = new ErrorBoundary({ children: React.createElement("i", null, "child") } as any);
+        expect(renderToStaticMarkup(boundary.render())).toContain("child");
+        // Значение ошибки не важно: пустое тоже не должно рисовать упавшее содержимое снова
+        boundary.state = ErrorBoundary.getDerivedStateFromError();
+        const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+        boundary.componentDidCatch(new TypeError("secret in the message"));
+        expect(log).toHaveBeenCalled();
+        log.mockRestore();
         const html = renderToStaticMarkup(boundary.render());
         expect(html).toContain("common.crash.text");
-        expect(html).toContain("broken row");
         expect(html).toContain("common.crash.reload");
+        expect(html).not.toContain("child");
+        // Текст ошибки может нести данные аккаунта: на экран он не выходит
+        expect(html).not.toContain("secret in the message");
         const index = fs.readFileSync(path.join(__dirname, "../../../../src/index.tsx"), "utf8");
         expect(index).toContain("<ErrorBoundary><Router /></ErrorBoundary>");
     });

@@ -15,7 +15,7 @@ it("codes and browser statuses of healthy accounts load next to an incomplete on
     (globalThis as any).window = { Main: { steamAccounts: api, guardConnection: api } };
     const table = new SteamAccountsTableStore({ windows: { openMiniNotification: jest.fn() } } as any);
     const account = (id: string, maFile: unknown) => ({ id, number: 1, accountName: id, deleted: false, maFile, secondary: {}, changableSecondary: { steam: {} } }) as any;
-    table.setSteamAccounts([account("broken", { Session: {} }), account("no-mafile", undefined), account("healthy", { shared_secret: "c2VjcmV0" })]);
-    expect(table.authCodes).toMatchObject({ broken: "", "no-mafile": "", healthy: expect.stringMatching(/^[A-Z0-9]{5}$/) });
-    expect(methods.getBrowserStatus.mock.calls.flat()).toEqual(["broken", "no-mafile", "healthy"]);
+    table.setSteamAccounts([account("broken", { Session: {} }), account("no-mafile", undefined), account("empty", { shared_secret: "" }), account("healthy", { shared_secret: "c2VjcmV0" })]);
+    expect(table.authCodes).toMatchObject({ broken: "", "no-mafile": "", empty: "", healthy: expect.stringMatching(/^[A-Z0-9]{5}$/) });
+    expect(methods.getBrowserStatus.mock.calls.flat()).toEqual(["broken", "no-mafile", "empty", "healthy"]);
 });
