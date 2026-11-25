@@ -12,6 +12,16 @@ it.each([{ host: "" }, { host: "  " }, { port: "" }, { port: " " }, { port: 0 },
         expect(err).toMatchObject({ code: "PROXY_UNAVAILABLE" });
     }
 });
+// SDA-64: сохранённая раньше (или правленная вручную) запись с синтаксисом правил Chromium не работает.
+it.each(["http=proxy.test", "proxy.test;direct", "proxy.test,direct", "проксі.example", "proxy.test/x", "u@proxy.test", "1.2.3"])("refuses a stored host %s", host => {
+    expect(() => proxyUrl({ ...proxy, host })).toThrow(ProxyUnavailableError);
+});
+it.each(["80;https=direct", "0x50", "8e1", "-1", "65536"])("refuses a stored port %s", port => {
+    expect(() => proxyUrl({ ...proxy, port })).toThrow(ProxyUnavailableError);
+});
+it("tolerates spaces around a stored address", () => {
+    expect(proxyUrl({ ...proxy, host: " proxy.test", port: "8080 " })).toBe("http://u%40x:p%3Ax@proxy.test:8080");
+});
 it("encodes credentials for the resolved route", () => {
     expect(proxyUrl(proxy)).toBe("http://u%40x:p%3Ax@proxy.test:8080");
 });

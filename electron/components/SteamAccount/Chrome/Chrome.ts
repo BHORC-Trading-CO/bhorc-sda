@@ -17,7 +17,7 @@ puppeteer.use(stealth);
 import { app } from "electron";
 import SteamAccountInterface from "../../../interfaces/SteamAccount/SteamAccountInterface";
 import Manager from "../../Manager/Manager";
-import buildProxyUrl from "../../Proxy/proxyUrl";
+import buildProxyUrl, { proxyEndpoint } from "../../Proxy/proxyUrl";
 import ProxyUnavailableError from "../../Proxy/ProxyUnavailableError";
 import { t } from "../../../i18n";
 import application from "../../application/application";
@@ -466,9 +466,12 @@ export default class Chrome {
         }
         // Присваиваем всегда, в т.ч. undefined: иначе после отвязки прокси в объекте
         // остался бы прошлый и браузер стартовал бы через уже не привязанный прокси.
-        this.proxy = links.proxy
+        this.proxy = undefined;
+        // Адрес проверяется и здесь: неправильный host Chromium прочитал бы как правило прокси (SDA-64).
+        const endpoint = links.proxy ? proxyEndpoint(links.proxy) : null;
+        this.proxy = links.proxy && endpoint
           ? {
-            server: `${links.proxy.host}:${links.proxy.port}`,
+            server: `${endpoint.host}:${endpoint.port}`,
             username: links.proxy.username,
             password: links.proxy.password,
           }

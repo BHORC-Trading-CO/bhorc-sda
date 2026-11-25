@@ -119,8 +119,18 @@ describe("sanitizeProxySetup", () => {
         expect(sanitizeProxySetup({ host: " 1.2.3.4", port: "8080 " })).toEqual({ host: "1.2.3.4", port: "8080", username: "", password: "" });
         expect(sanitizeProxySetup({ host: "proxy.test\n", port: "80\n" })).toEqual({ host: "proxy.test", port: "80", username: "", password: "" });
     });
-    it.each(["proxy.example.", "[::ffff:192.0.2.1]", "[2001:db8::1]", "проксі.example"])("сохраняет допустимый host %s", host => {
+    it.each(["proxy.example.", "[::ffff:192.0.2.1]", "[2001:db8::1]", "gate_1.example", "localhost"])("сохраняет допустимый host %s", host => {
         expect(sanitizeProxySetup({ host, port: "8080" })).toEqual({ host, port: "8080", username: "", password: "" });
+    });
+    // SDA-64: значение --proxy-server должно быть ASCII — храним punycode.
+    it("IDN сохраняет в ASCII", () => {
+        expect(sanitizeProxySetup({ host: "проксі.example", port: "8080" }).host).toBe("xn--j1ahceh0k.example");
+    });
+    // SDA-64: синтаксис правил --proxy-server ("http=…" — прокси только для HTTP, HTTPS идёт напрямую).
+    it.each(["http=proxy.test", "https=a;http=b", "proxy.test;direct", "proxy.test,direct", "a=b", "*", "<local>", "http＝proxy.test", "proxy.test；x",
+        "a b", "(x)", "a+b", "$x", "{x}", "~x", "-a.test", "a-.test", "a..b", ".a", "1.2.3", "999.1.1.1", "1.2.3.4.", "0x7f.1", "foo.1", "[1.2.3.4]", "[fe80::1%eth0]", "::1",
+        `${"a".repeat(64)}.test`])("отклоняет host %s, которого нет ни в DNS, ни среди IP", host => {
+        expect(() => sanitizeProxySetup({ host, port: "8080" })).toThrow();
     });
     it("сохраняет адрес и credentials, числовой порт приводит к строке", () => {
         expect(sanitizeProxySetup({ host: "127.0.0.1", port: 8080, username: "u@x", password: "p:/x", countryCode: "XX" }))
