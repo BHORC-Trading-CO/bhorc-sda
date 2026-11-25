@@ -327,7 +327,7 @@ class SteamAccount {
     // Полное обновление аккаунта: профиль, статусы и баланс за одну загрузку /market/ (SDA-38).
     getSecondary(): Promise<AccountData> {
         return new Promise((resolve, reject) => {
-            getAccountData(this.community)
+            getAccountData(this.community, this.params.secondary?.registeredAt)
                 .then((data) => {
                     try {
                         this.editParams({ secondary: data.secondary, changableSecondary: data.changableSecondary });

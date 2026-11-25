@@ -9,4 +9,8 @@ export default interface SecondaryInterface {
     ktState: boolean | null;
     tpState: boolean | string | null;
     tradeState: boolean | null;
+    // Дата регистрации аккаунта Steam, "YYYY-MM-DD" (memberSince из XML профиля).
+    // null или нет поля (config.json прежних версий) — неизвестна, в таблице прочерк.
+    // Не меняется, поэтому загружается только пока неизвестна.
+    registeredAt?: string | null;
 }

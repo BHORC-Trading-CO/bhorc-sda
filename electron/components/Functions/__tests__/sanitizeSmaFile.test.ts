@@ -26,7 +26,7 @@ describe("sanitizeSmaFile", () => {
         const source = account();
         const result = sanitizeSmaFile(source);
         expect(Object.keys(result).sort()).toEqual(["accountName", "password", "familyViewPin", "useSteamCookies", "profileName", "mail", "mailPassword", "secondary", "maFile", "proxy"].sort());
-        expect(result.secondary).toEqual({ nickname: "Name", avatarUrl: DEFAULT_AVATAR_URL, level: 12, ktState: true, tpState: "limited", tradeState: false });
+        expect(result.secondary).toEqual({ nickname: "Name", avatarUrl: DEFAULT_AVATAR_URL, level: 12, ktState: true, tpState: "limited", tradeState: false, registeredAt: null });
         expect(result.proxy).toEqual({ host: "proxy.example", port: "8080", username: "user", password: "pass" });
         const { nested, array, "a.b": dotted, Session, ...maFields } = source.maFile;
         const { extra, "a.b": sessionDotted, ...sessionFields } = Session;

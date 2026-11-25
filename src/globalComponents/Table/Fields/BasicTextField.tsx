@@ -78,6 +78,7 @@ const HINT_TYPES: AvalibleFieldTypes[] = [
     AvalibleFieldTypes.number,
     AvalibleFieldTypes.steamAccountNickname,
     AvalibleFieldTypes.steamId,
+    AvalibleFieldTypes.registrationDate,
     AvalibleFieldTypes.proxyHost,
     AvalibleFieldTypes.proxyPort,
     AvalibleFieldTypes.proxyUsername,

@@ -14,6 +14,7 @@ import { observer, useLocalObservable } from "mobx-react";
 import TableSteamAccountInterface from "../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface";
 import convertMaFileToStr from "../../../../../../electron/components/Functions/converMaFileToStr";
 import { getSteamID64 } from "../../../../../../electron/components/Functions/steamAccountSearch";
+import { formatRegistrationDate, isRegistrationDate } from "../../../../../../electron/components/Functions/registrationDate";
 import { useTranslation } from "react-i18next";
 import EmptyState, { TableWithEmptyState } from "../../../../../globalComponents/EmptyState/EmptyState";
 import GuardCode from "./GuardCode/GuardCode";
@@ -127,6 +128,23 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
                   ? 1
                   : -1
                 : aLevel > bLevel
+                ? 1
+                : -1;
+            });
+          case AvalibleTypes.registrationDate:
+            return store.steamAccountsTable.sortSteamAccounts((a, b) => {
+              // Неизвестная дата всегда в конце. "YYYY-MM-DD" сравнивается как строка.
+              // UP — сначала новые аккаунты, DOWN — сначала старые.
+              const aDate = isRegistrationDate(a.secondary?.registeredAt) ? a.secondary.registeredAt! : "";
+              const bDate = isRegistrationDate(b.secondary?.registeredAt) ? b.secondary.registeredAt! : "";
+              if (aDate === bDate) return 0;
+              if (!aDate) return 1;
+              if (!bDate) return -1;
+              return direction === "UP"
+                ? aDate < bDate
+                  ? 1
+                  : -1
+                : aDate > bDate
                 ? 1
                 : -1;
             });
@@ -301,7 +319,7 @@ const CellJSX: FC<{
   steamAccount: TableSteamAccountInterface;
 }> = observer((props) => {
   const { type, steamAccount } = props;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const changableSecondaries =
     store.steamAccountsTable.changableSecondaries[steamAccount.id];
   const browserStatus =
@@ -476,6 +494,13 @@ const CellJSX: FC<{
       ) : (
         <span className="cell-muted">—</span>
       );
+    case AvalibleTypes.registrationDate: {
+      // Дата не меняется: загруженную показываем и во время обновления, прочерк — неизвестна (SDA-58)
+      const registeredAt = formatRegistrationDate(steamAccount.secondary?.registeredAt, i18n.language);
+      if (registeredAt) return <>{registeredAt}</>;
+      if (steamAccount.isLoadSecondary) return <Loading />;
+      return <span className="cell-muted" title={t("accounts.table.registrationDateUnknown")}>—</span>;
+    }
     case AvalibleTypes.steamAccountAvatar:
       return <AccountAvatar steamAccount={steamAccount} />;
     case AvalibleTypes.linkedProxies:

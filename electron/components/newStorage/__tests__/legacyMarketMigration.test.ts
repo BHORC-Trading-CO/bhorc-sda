@@ -231,6 +231,7 @@ describe("Импорт и экспорт старых файлов", () => {
                 avatarUrl: expect.stringMatching(/^https:\/\/avatars\.akamai\.steamstatic\.com\//),
                 level: null,
                 tradeState: null,
+                registeredAt: null,
             },
             accountName: legacy.accountName,
             password: legacy.password,

@@ -105,6 +105,13 @@ const steamAccountsTableFields: Field[] = [
         showTtitleInTable: true
     },
     {
+        type: AvalibleFieldTypes.registrationDate,
+        title: "Registration date",
+        isSortable: true,
+        isVisible: true,
+        showTtitleInTable: true
+    },
+    {
         type: AvalibleFieldTypes.mail,
         title: "Email",
         isSortable: true,
