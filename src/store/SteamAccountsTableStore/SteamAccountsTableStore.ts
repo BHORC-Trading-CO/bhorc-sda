@@ -19,6 +19,10 @@ const BALANCE_RETRY_DELAYS_MS = [60 * 1000, 5 * 60 * 1000, 15 * 60 * 1000];
 // смену прокси сразу после того, как пересоздал клиент и запустил вход (initSession) без ожидания,
 // и мгновенный запрос почти наверняка увидел бы «не вошёл». Переход на страницу грузит и раньше.
 const ROUTE_CHANGE_BALANCE_DELAY_MS = 10 * 1000;
+// «Перезагрузить все данные» (SDA-59): обновление аккаунта — это четыре запроса к Steam, залпом
+// по всем аккаунтам Steam быстро отвечает 429 (см. SDA-38). Поэтому очередь: не больше трёх
+// аккаунтов одновременно, следующий — когда пришёл ответ (удачный или с ошибкой) по предыдущему.
+export const FULL_REFRESH_CONCURRENCY = 3;
 
 type BalanceLoad = { state: "loading" | "done" | "failed"; at: number; failures: number };
 
@@ -63,6 +67,11 @@ class SteamAccountsTableStore {
   searchString: string;
   // Только для отображения: по какой колонке сейчас отсортированы строки (стрелка в заголовке)
   sortedField: AvalibleTypes | null;
+  // Очередь «Перезагрузить все данные» (SDA-59); не observable — состояние строк и так
+  // показывает isLoadSecondary
+  fullRefreshPending: boolean;
+  fullRefreshQueue: string[];
+  fullRefreshInFlight: Set<string>;
 
   constructor(root: Store) {
     this.root = root;
@@ -89,14 +98,22 @@ class SteamAccountsTableStore {
 
     this.searchString = "";
     this.sortedField = null;
+    this.fullRefreshPending = false;
+    this.fullRefreshQueue = [];
+    this.fullRefreshInFlight = new Set();
 
-    makeAutoObservable(this, { balanceRetryTimers: false, routeReloadTimers: false });
+    makeAutoObservable(this, {
+      balanceRetryTimers: false, routeReloadTimers: false,
+      fullRefreshPending: false, fullRefreshQueue: false, fullRefreshInFlight: false,
+    });
 
     window.Main.steamAccounts.getTableFields();
     window.Main.steamAccounts.get();
     window.Main.steamAccounts.getTableOptions();
 
     window.Main.steamAccounts.onGetSecondary((event, data) => {
+      // Первым делом: если аккаунта уже нет в таблице, код ниже бросит, а очередь не должна встать
+      this.finishFullRefreshItem(data.id);
       runInAction(() => {
         this.steamAccounts[data.id].getSecondaryError = null;
         this.steamAccounts[data.id].isLoadSecondary = false;
@@ -104,6 +121,8 @@ class SteamAccountsTableStore {
       });
     });
     window.Main.steamAccounts.onGetSecondaryError((event, data) => {
+      // Ошибка одного аккаунта не останавливает очередь остальных
+      this.finishFullRefreshItem(data.id);
       store.windows.openMiniNotification({
         type: "error",
         text: i18n.t("accounts.errors.loadData", { error: data.err }),
@@ -166,6 +185,12 @@ class SteamAccountsTableStore {
         }
       }, 3000);
       this.setSteamAccounts(steamAccounts);
+      // Очередь — до setActivePage: тот сразу запрашивает баланс аккаунтов страницы, а при полном
+      // обновлении баланс придёт с очередью
+      if (this.fullRefreshPending) {
+        this.fullRefreshPending = false;
+        this.startFullRefresh();
+      }
       this.setActivePage(this.activePage);
     });
     window.Main.steamAccounts.onGetTableOptions((event, options) => {
@@ -210,6 +235,36 @@ class SteamAccountsTableStore {
     }
     this.steamAccounts = result;
     this.setActivePage(this.activePage);
+  }
+  // Кнопка «Перезагрузить все данные»: main перечитывает аккаунты и входит заново (архивные
+  // пропускает), а когда придёт новый список — обновляем данные всех активных аккаунтов очередью.
+  reloadAll() {
+    this.fullRefreshPending = true;
+    window.Main.steamAccounts.refresh();
+  }
+  // Сначала аккаунты текущей страницы, потом остальные активные. Архивные не обновляются.
+  startFullRefresh() {
+    const page = (this.getSteamAccountsByPages()[this.activePage - 1] || []).map((sa) => sa.id);
+    const rest = Object.keys(this.steamAccounts).filter((id) => !page.includes(id));
+    this.fullRefreshQueue = [...page, ...rest].filter((id) => this.steamAccounts[id] && !this.steamAccounts[id].deleted);
+    // Баланс придёт с полным обновлением. Без пометки стартовый таймер onGet (через 3 с) запросил бы
+    // /market/ всех ещё не загруженных аккаунтов разом, поверх очереди, и Steam отвечал 429.
+    for (const id of this.fullRefreshQueue) this.startBalanceLoad(id);
+    this.fullRefreshInFlight = new Set();
+    this.pumpFullRefresh();
+  }
+  pumpFullRefresh() {
+    while (this.fullRefreshInFlight.size < FULL_REFRESH_CONCURRENCY && this.fullRefreshQueue.length > 0) {
+      const id = this.fullRefreshQueue.shift()!;
+      const account = this.steamAccounts[id];
+      if (!account || account.deleted) continue;
+      this.fullRefreshInFlight.add(id);
+      this.loadSecondaries(id);
+    }
+  }
+  finishFullRefreshItem(id: string) {
+    if (!this.fullRefreshInFlight.delete(id)) return;
+    this.pumpFullRefresh();
   }
   refreshSession(id: string) {
     this.steamAccounts[id].isLogining = true;

@@ -52,7 +52,7 @@ export async function getAccountData(community: SteamCommunity, knownRegisteredA
     let registeredAt: string | null = isRegistrationDate(knownRegisteredAt) ? knownRegisteredAt : null;
     if (!registeredAt) {
         try {
-            registeredAt = parseMemberSince(await getProfileXml(community));
+            registeredAt = parseMemberSince(await getProfileXmlRetrying(community));
             if (!registeredAt) console.log("getAccountData: в XML профиля нет memberSince, дата регистрации неизвестна");
         } catch (err) {
             console.log(`getAccountData: XML профиля не загружен (${err}), дата регистрации неизвестна`);
@@ -138,6 +138,30 @@ export function parseMiniprofile(body: unknown): Identity | null {
 // Тянет HTML профиля один раз; запасной путь для ника/уровня/аватара.
 function getProfilePage(community: SteamCommunity): Promise<string> {
     return httpGetBody(community, `https://steamcommunity.com/profiles/${community.steamID}/`);
+}
+
+// Паузы перед повторами XML профиля после 429 (SDA-59). Дата грузится только пока неизвестна, и
+// раньше один 429 (стартовая загрузка балансов всех аккаунтов совпала с «Перезагрузить все данные»)
+// оставлял её неизвестной до следующего ручного обновления. Через несколько секунд Steam отвечает.
+// Объект, а не константа: тесты подменяют паузы.
+export const PROFILE_XML_RETRY = { delaysMs: [3000, 10000] };
+
+async function getProfileXmlRetrying(community: SteamCommunity): Promise<string> {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            return await getProfileXml(community);
+        } catch (err) {
+            const delay = PROFILE_XML_RETRY.delaysMs[attempt];
+            if (!isTooManyRequests(err) || delay === undefined) throw err;
+            console.log(`getAccountData: XML профиля — 429, повтор через ${delay} мс`);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+    }
+}
+
+// steamcommunity: Error("HTTP error 429") с code = 429
+function isTooManyRequests(err: unknown): boolean {
+    return (err as { code?: unknown } | null)?.code === 429 || /\b429\b/.test(String(err));
 }
 
 // XML профиля: тот же профиль, но с <memberSince>. Владельцу Steam отдаёт его и для закрытого профиля.

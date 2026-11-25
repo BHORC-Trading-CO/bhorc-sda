@@ -78,7 +78,7 @@ const SteamAccountsPanel = observer(() => {
                     label={t("common.reloadAll")}
                     testId="refresh-all"
                     onClick={() => {
-                        window.Main.steamAccounts.refresh();
+                        table.reloadAll();
                     }}
                 />
                 <ToolbarIconButton
