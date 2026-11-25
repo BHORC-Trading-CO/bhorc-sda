@@ -2,11 +2,14 @@ import "../components/Functions/installConsoleRedaction";
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import WindowsChannels from '../interfaces/IpcChannels/WindowsChannels';
 import { exposeLanguageApi } from './languageBridge';
+import replayLast from './replayLast';
+
+const onGetParams = replayLast<{ id: string, title: string, text: string }>(WindowsChannels.GET_ERROR_WINDOW_PARAMS);
 
 const windowApi = {
     close: (id: string) => { ipcRenderer.send(WindowsChannels.CLOSE_ERROR_WINDOW, id); },
     onGetParams: (listener: (event: IpcRendererEvent, data: { id: string, title: string, text: string }) => void) => {
-        ipcRenderer.on(WindowsChannels.GET_ERROR_WINDOW_PARAMS, listener);
+        return onGetParams(listener);
     }
 }
 

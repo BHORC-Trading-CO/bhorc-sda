@@ -4,11 +4,14 @@ import InfoType from "../components/application/askInfo/InfoType";
 import WindowsChannels from "../interfaces/IpcChannels/WindowsChannels";
 import AskSomethingChannels from "../interfaces/IpcChannels/AskSomethigChannels";
 import { exposeLanguageApi } from './languageBridge';
+import replayLast from './replayLast';
+
+const onGetParams = replayLast<{ id: string, steamAccountName: string, infoType: InfoType }>(WindowsChannels.GET_ASK_WINDOW_PARAMS);
 
 /** Методы для работы с беком приложения */
 const askFamilyPinApi = {
     onGetParams(func: (event: any, data: { id: string, steamAccountName: string, infoType: InfoType }) => void) {
-        ipcRenderer.on(WindowsChannels.GET_ASK_WINDOW_PARAMS, func);
+        return onGetParams(func);
     },
     sendData(id: string, data: string) {
         ipcRenderer.send(AskSomethingChannels.ASK_WINDOW_SEND_DATA, { id, data });
