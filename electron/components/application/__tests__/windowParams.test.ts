@@ -11,7 +11,7 @@ import ask from '../../../bridges/askFamilyPinBridge';
 import error from '../../../bridges/errorWindowBridge';
 import WindowsChannels from '../../../interfaces/IpcChannels/WindowsChannels';
 
-const emit = (channel: string, data: unknown) => (ipcRenderer as any).emit(channel, {}, data);
+const emit = (channel: string, data: unknown) => (ipcRenderer as any).emit(channel, { sender: ipcRenderer }, data);
 
 // SDA-66: main шлёт параметры один раз; страница, подписавшаяся позже, раньше оставалась пустой
 it.each([
@@ -23,6 +23,8 @@ it.each([
     const listener = jest.fn();
     subscribe(listener);
     expect(listener.mock.calls.map(([, data]) => data)).toEqual([{ id: 'early' }]);
+    // Событие с ipcRenderer внутри странице не повторяется
+    expect(listener.mock.calls[0][0]).toEqual({});
     emit(channel, { id: 'next' });
     expect(listener.mock.calls.map(([, data]) => data)).toEqual([{ id: 'early' }, { id: 'next' }]);
 });

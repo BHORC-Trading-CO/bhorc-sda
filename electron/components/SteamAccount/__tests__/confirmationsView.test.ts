@@ -176,6 +176,9 @@ it('the mounted window subscribes to results/errors, refreshes the list, ignores
     renderToStaticMarkup(React.createElement(Confirmations));
     const cleanup = effects[0]();
     handlers.onGetParams({}, { id: 'account', steamAccountName: 'fake' });
+    // SDA-66: the same parameters may come twice; the list and the selection are not reset
+    handlers.onGetParams({}, { id: 'account', steamAccountName: 'fake' });
+    expect(api.getConfirmations).toHaveBeenCalledTimes(1);
     handlers.onRespondConfirmationsError({}, { id: 'account', err: 'Offline' });
     expect(dispatch).toHaveBeenLastCalledWith({ type: 'responseError', error: 'Offline' });
     const count = dispatch.mock.calls.length;

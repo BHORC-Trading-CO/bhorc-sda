@@ -25,6 +25,8 @@ const Confirmations: FC = () => {
         const api = window.Confirmations.api;
         const subscriptions = [
             api.onGetParams((_event, params) => {
+                // Параметры того же аккаунта могли прийти дважды: выбранное и список не сбрасываем
+                if (accountId.current === params.id) return;
                 accountId.current = params.id;
                 setId(params.id);
                 setName(params.steamAccountName);

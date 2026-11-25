@@ -9,14 +9,15 @@ import { ipcRenderer, IpcRendererEvent } from 'electron';
 export default function replayLast<T>(channel: string) {
   type Listener = (event: IpcRendererEvent, data: T) => void;
   const listeners = new Set<Listener>();
-  let last: { event: IpcRendererEvent, data: T } | null = null;
+  // Храним только данные: событие (с ссылкой на ipcRenderer) странице не нужно
+  let last: { data: T } | null = null;
   ipcRenderer.on(channel, (event, data: T) => {
-    last = { event, data };
+    last = { data };
     listeners.forEach((listener) => listener(event, data));
   });
   return (listener: Listener) => {
     listeners.add(listener);
-    if (last) listener(last.event, last.data);
+    if (last) listener({} as IpcRendererEvent, last.data);
     return () => { listeners.delete(listener); };
   };
 }

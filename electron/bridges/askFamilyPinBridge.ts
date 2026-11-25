@@ -11,7 +11,7 @@ const onGetParams = replayLast<{ id: string, steamAccountName: string, infoType:
 /** Методы для работы с беком приложения */
 const askFamilyPinApi = {
     onGetParams(func: (event: any, data: { id: string, steamAccountName: string, infoType: InfoType }) => void) {
-        onGetParams(func);
+        return onGetParams(func);
     },
     sendData(id: string, data: string) {
         ipcRenderer.send(AskSomethingChannels.ASK_WINDOW_SEND_DATA, { id, data });

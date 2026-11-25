@@ -9,7 +9,7 @@ const onGetParams = replayLast<{ id: string, title: string, text: string }>(Wind
 const windowApi = {
     close: (id: string) => { ipcRenderer.send(WindowsChannels.CLOSE_ERROR_WINDOW, id); },
     onGetParams: (listener: (event: IpcRendererEvent, data: { id: string, title: string, text: string }) => void) => {
-        onGetParams(listener);
+        return onGetParams(listener);
     }
 }
 

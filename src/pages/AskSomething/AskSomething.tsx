@@ -12,8 +12,7 @@ const AskSomething: FC = () => {
   const [infoType, setInfoType] = useState<InfoType>("none");
 
   useEffect(() => {
-    window.AskFamilyPin.askFamilyPinApi
-    window.AskFamilyPin.askFamilyPinApi.onGetParams(
+    return window.AskFamilyPin.askFamilyPinApi.onGetParams(
       (event, { steamAccountName, id, infoType }) => {
         console.log(id);
         setSteamAccountName(steamAccountName);
