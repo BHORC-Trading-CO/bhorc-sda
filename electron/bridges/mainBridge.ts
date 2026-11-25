@@ -91,7 +91,7 @@ const steamAccounts = {
   edit: (id: string, steamAccountParams: { [K in keyof TableSteamAccountInterface]?: TableSteamAccountInterface[K] }, links?: { proxyId: null | string }) => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_EDIT, { id, steamAccountParams, links });
   },
-  import: (accounts: { smaFile: SmaFileInterface, links: { proxyId: null | string } }[]) => {
+  import: (accounts: { smaFile: SmaFileInterface, links: { proxyId: null | string, noProxy?: boolean } }[]) => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_IMPORT, accounts);
   },
   /** Файл экспорта собирает main из живого аккаунта; ответ приходит этим же вызовом */

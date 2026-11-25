@@ -17,7 +17,8 @@ type CreationFormContent = {
     },
     useSteamCookies: boolean,
     maFile: MaFileInterface | null,
-    importedAccounts: { smaFile: SmaFileInterface, proxyId: string | null, tempId: string }[],
+    // proxyId и noProxy — явный выбор в превью; пока выбора нет, действует прокси из файла
+    importedAccounts: { smaFile: SmaFileInterface, proxyId: string | null, noProxy?: boolean, tempId: string }[],
     profileName: string,
     mail: string,
     mailPassword: string,

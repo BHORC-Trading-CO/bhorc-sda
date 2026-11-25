@@ -23,7 +23,7 @@ const file = () => ({
 
 it("main очищает обе копии данных независимо от проверки renderer", () => {
     const event = { reply: jest.fn() };
-    importListener(event as any, [{ smaFile: file(), links: { proxyId: "chosen-proxy" } }] as any);
+    importListener(event as any, [{ smaFile: file(), links: { proxyId: null } }] as any);
     expect(event.reply).not.toHaveBeenCalled();
     const imported = (steamAccountImport as jest.Mock).mock.calls[0][0];
     expect(imported).not.toHaveProperty("id");
@@ -82,4 +82,33 @@ it("совпадающие логин (без учёта регистра) и St
     importListener(event as any, [{ account_name: "ACCOUNT", Session }, { Session }].map(maFile => ({ smaFile: { ...smaFile, maFile }, links: { proxyId: null } })) as any);
     expect(event.reply).not.toHaveBeenCalled();
     expect(steamAccountImport).toHaveBeenCalledTimes(2);
+});
+
+// SDA-62: превью показывало выбранный прокси, а аккаунт получал прокси из файла.
+it.each([
+    ["сохранённый прокси", { proxyId: "chosen-proxy" }, "chosen-proxy"],
+    ["без прокси", { proxyId: null, noProxy: true }, null],
+])("явный выбор в превью главнее прокси из файла: %s", (_name, links, expected) => {
+    const event = { reply: jest.fn() };
+    importListener(event as any, [{ smaFile: file(), links }] as any);
+    expect(event.reply).not.toHaveBeenCalled();
+    expect(steamAccountImport).toHaveBeenCalledWith(expect.any(Object), expected);
+    expect(proxyManager.getOrCreateBySetup).not.toHaveBeenCalled();
+});
+
+it("файл с пропавшим прокси без явного выбора не импортируется напрямую", () => {
+    const event = { reply: jest.fn() };
+    const { proxy, ...smaFile } = file();
+    importListener(event as any, [{ smaFile: { ...smaFile, proxyMissing: true }, links: { proxyId: null } }] as any);
+    expect(steamAccountImport).not.toHaveBeenCalled();
+    expect(event.reply).toHaveBeenCalledWith("ERROR", expect.stringContaining("прокси аккаунта больше не существует"));
+});
+
+it.each([
+    [{ proxyId: "chosen-proxy" }, "chosen-proxy"],
+    [{ proxyId: null, noProxy: true }, null],
+])("файл с пропавшим прокси импортируется с выбором %j, метка в запись не попадает", (links, expected) => {
+    const { proxy, ...smaFile } = file();
+    importListener({ reply: jest.fn() } as any, [{ smaFile: { ...smaFile, proxyMissing: true }, links }] as any);
+    expect(steamAccountImport).toHaveBeenCalledWith(expect.not.objectContaining({ proxyMissing: true }), expected);
 });

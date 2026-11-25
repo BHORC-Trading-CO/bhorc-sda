@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import TableProxyInterface from "../../../../../../../../../electron/interfaces/Proxy/TableProxyInterface";
 import SmaFileInterface from "../../../../../../../../../electron/interfaces/SteamAccount/SmaFileInterface";
 import MaFile from "../../../../../../../../globalComponents/MaFile/MaFile";
 import "./ImportAccountItem.css";
@@ -14,17 +13,25 @@ const ImportAccountItem = observer(
   (props: {
     smaFile: SmaFileInterface;
     proxyId: string | null;
+    noProxy?: boolean;
     tempId: string;
   }) => {
     const content = store.steamAccountsTable.creationForm.getContent();
-    const { smaFile, proxyId, tempId } = props;
+    const { smaFile, proxyId, noProxy, tempId } = props;
     const [isMaFileOpen, setIsMaFileOpen] = useState(false);
     const [isProxyOpen, setIsProxyOpen] = useState(false);
-    const [activeProxy, setActiveProxy] = useState<TableProxyInterface | null>(
-      null
-    );
     const [isSessionOpen, setIsSessionOpen] = useState(false);
     const { t } = useTranslation();
+    // Показываем ровно то, что уйдёт в main: отдельная копия выбора сбрасывалась и расходилась с ним
+    const activeProxy = proxyId ? store.proxiesTable.getProxies().find((proxy) => proxy.id === proxyId) : null;
+    const choose = (choice: { proxyId: string | null; noProxy: boolean }) => {
+      store.steamAccountsTable.creationForm.editContent({
+        importedAccounts: content.importedAccounts.map((account) =>
+          account.tempId === tempId ? { ...account, ...choice } : account
+        ),
+      });
+      setIsProxyOpen(false);
+    };
 
     return (
       <div className="imported-steam-account-item__container">
@@ -50,7 +57,6 @@ const ImportAccountItem = observer(
               title={t("accounts.import.pickProxy")}
               onClick={() => {
                 setIsProxyOpen((isOpen) => !isOpen);
-                setActiveProxy(null);
                 setIsMaFileOpen(false);
               }}
             >
@@ -59,8 +65,10 @@ const ImportAccountItem = observer(
             <span className="imported-steam-account-cell__text">
               {activeProxy
                 ? `#${proxyId} ${activeProxy.host} : ${activeProxy.port}`
-                : smaFile.proxy
+                : smaFile.proxy && !noProxy
                 ? `${smaFile.proxy.host} : ${smaFile.proxy.port}`
+                : smaFile.proxyMissing && !noProxy
+                ? <span style={{ color: "var(--sda-danger)" }}>{t("accounts.table.proxyMissing")}</span>
                 : <span className="imported-steam-account-cell__muted">{t("proxyBlock.noProxy")}</span>}
             </span>
           </div>
@@ -101,19 +109,16 @@ const ImportAccountItem = observer(
         </div>
         {isMaFileOpen ? <MaFile maFile={smaFile.maFile}></MaFile> : <></>}
         {isProxyOpen ? (
-          <ProxyItem
-            onSelect={(newProxy) => {
-              for (var i in content.importedAccounts) {
-                if (content.importedAccounts[i].tempId === tempId)
-                  content.importedAccounts[i].proxyId = newProxy.id;
-              }
-              store.steamAccountsTable.creationForm.editContent({
-                importedAccounts: [...content.importedAccounts],
-              });
-              setActiveProxy(newProxy);
-              setIsProxyOpen(false);
-            }}
-          />
+          <>
+            <Button
+              size="small"
+              text={t("proxyBlock.noProxy")}
+              color="grey"
+              hoverColor="light-grey"
+              onClick={() => choose({ proxyId: null, noProxy: true })}
+            />
+            <ProxyItem onSelect={(newProxy) => choose({ proxyId: newProxy.id, noProxy: false })} />
+          </>
         ) : (
           <></>
         )}

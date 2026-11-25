@@ -113,6 +113,7 @@
     "identity": {
       "login": "The maFile belongs to another account: login {{login}}, maFile {{maFile}}",
       "steamId": "The maFile or its session belongs to another account than {{login}}: different SteamIDs {{ids}}"
-    }
+    },
+    "importRouteRequired": "the account had a proxy that no longer exists; choose a proxy or “No proxy”"
   }
 }

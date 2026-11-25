@@ -113,6 +113,7 @@
     "identity": {
       "login": "maFile належить іншому акаунту: логін {{login}}, maFile {{maFile}}",
       "steamId": "maFile або його сесія належить не акаунту {{login}}: різні SteamID {{ids}}"
-    }
+    },
+    "importRouteRequired": "проксі акаунта більше не існує; виберіть проксі або «Без проксі»"
   }
 }

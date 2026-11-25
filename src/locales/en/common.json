@@ -326,7 +326,8 @@
       "skippedFiles": "Files skipped: {{count}}. {{details}}",
       "view": "View",
       "pickProxy": "Pick a proxy",
-      "remove": "Remove from the list"
+      "remove": "Remove from the list",
+      "routeRequired": "Choose a proxy or “No proxy” for: {{names}}. These accounts had a proxy that no longer exists"
     }
   },
   "maFile": {
