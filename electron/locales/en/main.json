@@ -118,8 +118,15 @@
     "importRouteRequired": "the account had a proxy that no longer exists; choose a proxy or “No proxy”",
     "guardCodeRejected": "Steam rejected the Guard code: the maFile does not match this account, or the computer clock is wrong",
     "steamLoginTimeout": "Steam sign-in timed out",
-    "guardAbortTooLate": "Too late to abort: Steam Guard is already connected to {{login}}, and the account has been added. Revocation code: {{code}}. Write it down: Steam issues it once.",
-    "guardAbortedWithSecrets": "Connecting Steam Guard to {{login}} was aborted after Steam had issued its secrets. Revocation code: {{code}}. Write it down: Steam issues it once. The secrets are backed up in the pending_authenticators folder of the data folder; check that the file is there. Reason: {{error}}",
+    "guard": {
+      "tooLate": "Too late to abort: Steam Guard is already connected to {{login}}, and the account has been added.",
+      "aborted": "Connecting Steam Guard to {{login}} was aborted after Steam had issued its secrets ({{error}}).",
+      "outcomeUnknown": "Steam's answer was lost ({{error}}). Steam Guard may already be enabled on {{login}}: check it in the Steam settings of the account before trying again.",
+      "notSaved": "Steam Guard is connected to {{login}}, but the account could not be saved here: {{error}}.",
+      "revocationCode": "Revocation code: {{code}}. Write it down: Steam issues it once.",
+      "backupSaved": "The secrets are saved in {{file}}",
+      "backupNotSaved": "The secrets could not be saved to disk."
+    },
     "guardSecretMissing": "The maFile has no shared_secret: it cannot sign in"
   }
 }

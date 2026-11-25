@@ -9,7 +9,7 @@ jest.mock("../../SuperMethods/SuperMethods", () => ({ __esModule: true, default:
 jest.mock("../Processes/maFileLogin", () => ({ __esModule: true, default: jest.fn() }));
 jest.mock("../Processes/setupGuard", () => ({ __esModule: true, default: jest.fn() }));
 jest.mock("../Processes/steamAccountImport", () => ({ __esModule: true, default: jest.fn() }));
-jest.mock("../steamAccountManager", () => ({ __esModule: true, default: { objects: [], sendAccountsToFront: jest.fn() } }));
+jest.mock("../steamAccountManager", () => ({ __esModule: true, default: { objects: [], sendAccountsToFront: jest.fn(), getById: jest.fn() } }));
 
 import { ipcMain, ipcRenderer } from "electron";
 import mainBridge from "../../../bridges/mainBridge";
@@ -20,6 +20,8 @@ import guardListener from "../Listeners/guardSetupProcessListener";
 import maFileLogin from "../Processes/maFileLogin";
 import setupGuard from "../Processes/setupGuard";
 import steamAccountImport from "../Processes/steamAccountImport";
+import steamAccountManager from "../steamAccountManager";
+import { unknownOutcome } from "../Functions/guardOutcome";
 import proxyManager from "../../Proxy/proxyManager";
 import ProxyStorage from "../../newStorage/ProxyStorage";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
@@ -47,6 +49,7 @@ beforeAll(() => { (global as any).MAIN_WINDOW_WEBPACK_ENTRY = entry; setMainLang
 afterAll(() => { delete (global as any).MAIN_WINDOW_WEBPACK_ENTRY; });
 beforeEach(() => {
     for (const fn of [maFileLogin, setupGuard, steamAccountImport]) (fn as jest.Mock).mockReset();
+    (steamAccountImport as jest.Mock).mockReturnValue({ id: "new-account" });
     proxyManager.objects = [];
 });
 afterEach(() => expect(listeners()).toBe(0));
@@ -104,14 +107,14 @@ it("Guard wizard: an abort after Steam issued the secrets still shows the revoca
     (setupGuard as jest.Mock).mockImplementationOnce(async (_params, _proxy, onRecovery, signal) => {
         abortSetup();
         expect(signal.aborted).toBe(true);
-        onRecovery("R-TEST", "76561198000000001");
+        onRecovery("R-TEST", "76561198000000001", "/data/pending_authenticators/fake.json");
         throw new Error("prompt closed");
     });
     const event = { reply: jest.fn() };
     await guardListener(event as any, params());
     expect(steamAccountImport).not.toHaveBeenCalled();
     expect(event.reply).not.toHaveBeenCalled();
-    expect(sentTo("ERROR")).toEqual([expect.stringMatching(/fake.*R-TEST.*pending_authenticators.*prompt closed/)]);
+    expect(sentTo("ERROR")).toEqual([expect.stringMatching(/aborted.*prompt closed.*R-TEST.*saved in \/data\/pending_authenticators\/fake\.json/)]);
     // Мастер отменённого запуска закрыт: его итог не должен попасть в следующий
     expect(sentTo(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT)).toEqual([]);
 });
@@ -133,4 +136,53 @@ it("Guard wizard: an abort before any secrets is silent", async () => {
     await guardListener(event as any, params());
     expect(event.reply).not.toHaveBeenCalled();
     expect(sentTo("ERROR")).toEqual([]);
+});
+
+// V62-5: потерянный ответ Steam — не «ошибка подключения» и не тишина после отмены
+describe("Guard wizard: a lost answer", () => {
+    const lost = () => unknownOutcome(new Error("socket hang up"));
+    it("after an abort, before any secrets: the operator is told that Guard may be enabled", async () => {
+        (setupGuard as jest.Mock).mockImplementationOnce(async () => { abortSetup(); throw lost(); });
+        await guardListener({ reply: jest.fn() } as any, params());
+        expect(sentTo("ERROR")).toEqual([expect.stringMatching(/socket hang up.*may already be enabled on fake/)]);
+        expect(sentTo("ERROR")[0]).not.toMatch(/Revocation code|saved/);
+    });
+    it.each([
+        ["/data/fake.json", /R-TEST.*saved in \/data\/fake\.json/],
+        [null, /R-TEST.*could not be saved to disk/],
+    ])("after the secrets (backup %s): the code and the real state of the backup", async (backupFile, expected) => {
+        (setupGuard as jest.Mock).mockImplementation(async (_params, _proxy, onRecovery) => {
+            onRecovery("R-TEST", "76561198000000001", backupFile);
+            throw lost();
+        });
+        const event = { reply: jest.fn() };
+        await guardListener(event as any, params());
+        expect(event.reply).toHaveBeenCalledWith(SteamAccountChannels.GUARD_SETUP_PROCESS_ERROR, expect.stringMatching(/may already be enabled/));
+        expect(event.reply).toHaveBeenCalledWith(SteamAccountChannels.GUARD_SETUP_PROCESS_ERROR, expect.stringMatching(expected));
+        if (!backupFile) expect(event.reply.mock.calls[0][1]).not.toMatch(/saved in/);
+    });
+});
+
+it.each([["told in the wizard", false], ["told after an abort", true]])("Guard wizard: a connected account that could not be saved is not called aborted: %s", async (_name, abort) => {
+    (setupGuard as jest.Mock).mockImplementationOnce(async (_params, _proxy, onRecovery) => {
+        onRecovery("R-TEST", "76561198000000001", "/data/fake.json");
+        if (abort) abortSetup();
+        return file();
+    });
+    (steamAccountImport as jest.Mock).mockImplementationOnce(() => { throw new Error("disk full"); });
+    const event = { reply: jest.fn() };
+    await guardListener(event as any, params());
+    const [text] = abort ? sentTo("ERROR") : event.reply.mock.calls.map(([, content]) => content);
+    expect(text).toMatch(/connected to fake, but the account could not be saved here.*disk full.*R-TEST.*saved in \/data\/fake\.json/);
+});
+
+it("Guard wizard: the profile is loaded after the save, and the list is sent again", async () => {
+    (setupGuard as jest.Mock).mockResolvedValueOnce(file());
+    const getSecondary = jest.fn().mockResolvedValue({});
+    (steamAccountManager.getById as jest.Mock).mockReturnValueOnce({ getSecondary });
+    await guardListener({ reply: jest.fn() } as any, params());
+    await Promise.resolve();
+    expect(steamAccountManager.getById).toHaveBeenCalledWith("new-account");
+    expect(getSecondary).toHaveBeenCalledTimes(1);
+    expect(steamAccountManager.sendAccountsToFront).toHaveBeenCalledTimes(2);
 });

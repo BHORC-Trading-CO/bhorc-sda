@@ -1,6 +1,7 @@
 import boundedRequest from "../../Request/boundedRequest";
 import SteamTotp from "steam-totp";
 import { STEAM_MOBILE_USER_AGENT, STEAM_ACCEPT_ENCODING } from "./steamUserAgent";
+import { isLostResponse, unknownOutcome } from "./guardOutcome";
 import { t } from "../../../i18n";
 
 /**
@@ -32,8 +33,10 @@ export default function finalizeAddAuthenticator(params: {
     /** server_time из ответа AddAuthenticator — база для сдвига часов. */
     serverTime: number;
     proxyUrl?: string | null;
+    /** Отмена мастера: новый запрос не отправляется, ответ на отправленный дожидаемся (SDA-63). */
+    signal?: AbortSignal;
 }): Promise<void> {
-    const { accessToken, steamID64, sharedSecret, activationCode, serverTime, proxyUrl } = params;
+    const { accessToken, steamID64, sharedSecret, activationCode, serverTime, proxyUrl, signal } = params;
 
     const defaults = {
         gzip: true,
@@ -53,6 +56,7 @@ export default function finalizeAddAuthenticator(params: {
         let attemptsLeft = MAX_ATTEMPTS;
 
         const attempt = () => {
+            if (signal?.aborted) return reject("abort");
             const steamTime = now() + offset;
             req.post(
                 {
@@ -66,11 +70,17 @@ export default function finalizeAddAuthenticator(params: {
                     },
                     json: true,
                 },
-                (err: any, _resp: any, body: any) => {
-                    if (err) return reject(err);
+                (err: any, resp: any, body: any) => {
+                    if (err) return reject(isLostResponse(err) ? unknownOutcome(err) : err);
 
                     const response = body && body.response;
-                    if (!response) return reject(new Error("Malformed response"));
+                    // Ни успеха, ни кода отказа: чем кончился запрос, Steam не сказал
+                    if (!response || (!response.success && !response.want_more && response.status === undefined)) {
+                        const failed = resp?.statusCode >= 400
+                            ? Object.assign(new Error(`HTTP error ${resp.statusCode}`), { code: resp.statusCode })
+                            : new Error("Malformed response");
+                        return reject(isLostResponse(failed) ? unknownOutcome(failed) : failed);
+                    }
 
                     if (response.server_time) {
                         offset = Number(response.server_time) - now();

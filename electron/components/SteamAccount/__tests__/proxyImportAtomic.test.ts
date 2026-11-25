@@ -39,12 +39,15 @@ const file = () => ({ accountName: "fake", password: "fake", maFile: { revocatio
 const proxy = { id: "p1", host: "proxy.test", port: "8080", username: "", password: "" } as any;
 const params = () => ({ steamAccount: {}, accountName: "fake", password: "fake", links: { proxyMode: "savedProxy", proxyId: "p1", newProxy: null } } as any);
 let connect: jest.SpyInstance;
+let profile: jest.SpyInstance;
 beforeEach(() => {
     new Store().clear();
     proxyManager.objects = [new Proxy({ ...proxy })];
     ProxyStorage.Save("p1", proxy);
     steamAccountManager.objects = [];
     nock.disableNetConnect();
+    // Мастер Guard догружает профиль после сохранения
+    profile = jest.spyOn(SteamAccount.prototype, "getSecondary").mockResolvedValue({} as any);
     connect = jest.spyOn(net.Socket.prototype, "connect").mockImplementation(() => { throw new Error("Unexpected socket"); });
 });
 afterEach(() => { expect(connect).not.toHaveBeenCalled(); jest.restoreAllMocks(); nock.enableNetConnect(); });
@@ -152,4 +155,19 @@ it("SDA-62 a new account signs in once right after the import; a failure goes to
     await Promise.resolve();
     expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR,
         { id: failed.id, err: "Error: sign-in failed" });
+});
+it("SDA-63 a connected Guard account is saved before its profile is loaded, and a failed load loses nothing", async () => {
+    (setupGuard as jest.Mock).mockResolvedValueOnce({ ...file(), secondary: { nickname: "", avatarUrl: "", level: null, ktState: null, tpState: null, tradeState: null } });
+    profile.mockImplementationOnce(() => {
+        expect(Object.keys(SteamAccountStorage.GetAll())).toHaveLength(1);
+        return Promise.reject(new Error("proxy dropped"));
+    });
+    const event = { reply: jest.fn() };
+    await guardListener(event as any, params());
+    expect(event.reply).not.toHaveBeenCalled();
+    expect(profile).toHaveBeenCalledTimes(1);
+    const [saved] = Object.values(SteamAccountStorage.GetAll());
+    expect(saved).toMatchObject({ maFile: { revocation_code: "R-TEST" }, secondary: { nickname: "", level: null, ktState: null, tpState: null, tradeState: null } });
+    expect(LinksStorage.Get().steamAccounts[saved.id]).toBe("p1");
+    expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, "end");
 });

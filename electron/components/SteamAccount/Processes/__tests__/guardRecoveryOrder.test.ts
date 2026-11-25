@@ -33,7 +33,6 @@ jest.mock("../../../application/askInfo/askSmsCode", () => ({
 jest.mock("../../Functions/finalizeAddAuthenticator", () => ({
     __esModule: true, default: jest.fn(async () => { mockOrder.push("finalize"); })
 }));
-jest.mock("../loadSteamAccountData", () => ({ getSecondaries: jest.fn().mockResolvedValue({}) }));
 import nock from "nock";
 import net from "net";
 import setupGuard from "../setupGuard";
@@ -47,7 +46,7 @@ it("R2 N4 Guard writes the pending backup before publishing recovery or asking f
     const recovery = jest.fn(() => { mockOrder.push("recovery"); });
     await setupGuard({ accountName: "fake", password: "fake" }, null, recovery);
     expect(savePendingAuthenticator).toHaveBeenCalledWith("fake", mockRaw, "76561198000000001");
-    expect(recovery).toHaveBeenCalledWith("R-TEST", "76561198000000001");
+    expect(recovery).toHaveBeenCalledWith("R-TEST", "76561198000000001", "/fake/backup.json");
     expect(mockOrder).toEqual(["backup", "recovery", "prompt", "finalize"]);
     expect(connect).not.toHaveBeenCalled();
 });
@@ -56,7 +55,7 @@ it("R2 N4 recovery remains published when activation fails after the backup", as
     const recovery = jest.fn(() => { mockOrder.push("recovery"); });
     await expect(setupGuard({ accountName: "fake", password: "fake" }, null, recovery)).rejects.toThrow("activation failed");
     expect(mockOrder).toEqual(["backup", "recovery"]);
-    expect(recovery).toHaveBeenCalledWith("R-TEST", "76561198000000001");
+    expect(recovery).toHaveBeenCalledWith("R-TEST", "76561198000000001", "/fake/backup.json");
 });
 
 it.each([["error", new Error("proxy down"), "proxy down"], ["timeout", undefined, "timed out"]])("SDA-60: login %s ends Guard setup with an error instead of waiting forever", async (event, payload, message) => {

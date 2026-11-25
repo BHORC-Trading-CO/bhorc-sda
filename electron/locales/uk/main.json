@@ -118,8 +118,15 @@
     "importRouteRequired": "проксі акаунта більше не існує; виберіть проксі або «Без проксі»",
     "guardCodeRejected": "Steam відхилив код Guard: maFile не підходить до цього акаунта або годинник комп'ютера неточний",
     "steamLoginTimeout": "Steam не завершив вхід вчасно",
-    "guardAbortTooLate": "Скасовувати пізно: Steam Guard уже підключено до {{login}}, акаунт додано. Код відкликання (revocation code): {{code}}. Запишіть його: Steam видає його один раз.",
-    "guardAbortedWithSecrets": "Підключення Steam Guard до {{login}} перервано після того, як Steam видав секрети. Код відкликання (revocation code): {{code}}. Запишіть його: Steam видає його один раз. Резервна копія секретів — у папці pending_authenticators у папці даних; перевірте, що файл там є. Причина: {{error}}",
+    "guard": {
+      "tooLate": "Скасовувати пізно: Steam Guard уже підключено до {{login}}, акаунт додано.",
+      "aborted": "Підключення Steam Guard до {{login}} перервано після того, як Steam видав секрети ({{error}}).",
+      "outcomeUnknown": "Відповідь Steam втрачено ({{error}}). Steam Guard на {{login}} міг уже увімкнутися: перевірте його в налаштуваннях акаунта Steam, перш ніж пробувати знову.",
+      "notSaved": "Steam Guard підключено до {{login}}, але зберегти акаунт тут не вдалося: {{error}}.",
+      "revocationCode": "Код відкликання (revocation code): {{code}}. Запишіть його: Steam видає його один раз.",
+      "backupSaved": "Секрети збережено у {{file}}",
+      "backupNotSaved": "Зберегти секрети на диск не вдалося."
+    },
     "guardSecretMissing": "У maFile немає shared_secret: увійти з ним не можна"
   }
 }
