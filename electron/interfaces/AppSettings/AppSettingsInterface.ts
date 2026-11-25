@@ -29,8 +29,8 @@ export type LoginItemSupport = "supported" | "unsupportedPlatform" | "notPackage
 
 /**
  * What the Settings page shows. settings.launchAtLogin is what the system does: on only if it is
- * stored on AND the system's login item is there and enabled (read at startup, then kept by our
- * own writes). An entry removed or disabled in Windows / macOS shows as off.
+ * stored on AND the system's login item is there and enabled (read at startup and whenever the
+ * page asks, then kept by our own writes). An entry removed or disabled in Windows / macOS shows as off.
  */
 export interface AppSettingsView {
     settings: AppSettingsInterface;

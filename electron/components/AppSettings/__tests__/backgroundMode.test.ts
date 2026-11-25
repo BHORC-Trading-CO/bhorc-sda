@@ -457,6 +457,43 @@ describe("login item at startup: read to show the switch, never written", () => 
         expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
     });
 
+    // SDA-64: the Settings page is opened after weeks in the tray.
+    it("Windows: disabled in Startup Apps while SDA runs -> off when the page is served, on again when re-enabled, zero writes", () => {
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [ourEntry()] });
+        const mode = makeMode("win32", { launchAtLogin: true });
+        start(mode);
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [ourEntry({ enabled: false })] });
+        mode.refreshLoginItem();
+        expect(mode.view().settings.launchAtLogin).toBe(false);
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [ourEntry()] });
+        mode.refreshLoginItem();
+        expect(mode.view().settings.launchAtLogin).toBe(true);
+        expect(mockApp.setLoginItemSettings).not.toHaveBeenCalled();
+    });
+
+    it("macOS: removed from login items while SDA runs -> off when the page is served", () => {
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: true, wasOpenedAtLogin: false, wasOpenedAsHidden: false });
+        const mode = makeMode("darwin", { launchAtLogin: true });
+        start(mode);
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, wasOpenedAtLogin: false, wasOpenedAsHidden: false });
+        mode.refreshLoginItem();
+        expect(mode.view().settings.launchAtLogin).toBe(false);
+    });
+
+    it("a failed reread keeps what was known; a Squirrel maintenance launch reads nothing", () => {
+        mockApp.getLoginItemSettings.mockReturnValue({ openAtLogin: false, launchItems: [] });
+        const log = jest.spyOn(console, "log").mockImplementation(() => {});
+        const mode = makeMode("win32", { launchAtLogin: true });
+        start(mode);
+        mockApp.getLoginItemSettings.mockImplementationOnce(() => { throw new Error("registry"); });
+        mode.refreshLoginItem();
+        expect(mode.view().settings.launchAtLogin).toBe(false);
+        mockApp.getLoginItemSettings.mockClear();
+        makeMode("win32", { launchAtLogin: true }, ["trademanager.exe", "--squirrel-updated", "1.0.6"]).refreshLoginItem();
+        expect(mockApp.getLoginItemSettings).not.toHaveBeenCalled();
+        log.mockRestore();
+    });
+
     it("Windows: reading the stored settings throws -> the app still starts, with its window", () => {
         const mode = makeMode("win32", { launchAtLogin: true });
         const get = jest.spyOn(AppSettingsStorage, "Get").mockImplementation(() => { throw new Error("config.json"); });

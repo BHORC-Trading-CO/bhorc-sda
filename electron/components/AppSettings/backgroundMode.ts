@@ -28,7 +28,7 @@ export class BackgroundMode {
     /** Squirrel install/update/obsolete launch: no tray, no close interception, no login-item writes. */
     private maintenance = false;
     private settings: AppSettingsInterface | null = null;
-    /** System login item: read once at startup, then set by our own writes; null = not read. */
+    /** System login item: read at startup and for the Settings page, set by our own writes; null = not read. */
     private loginItemOn: boolean | null = null;
     private mainWindow: BrowserWindow | null = null;
     /** Opens a new main window and attaches it (application.ts); used only after the first one was closed. */
@@ -80,7 +80,7 @@ export class BackgroundMode {
         try {
             if (this.maintenance) return { startHidden: false };
             const settings = this.getSettings();
-            const login = this.platform === "darwin" && this.loginItemSupport() === "supported" ? this.readMacLoginItem() : null;
+            const login = this.readMacLoginItem();
             this.loginItemOn = this.readLoginItemOn(login);
             const requested = hiddenStartRequested({ argv, platform: this.platform, login, settings });
             if (wantsTray(settings, requested)) this.tray.create();
@@ -149,6 +149,17 @@ export class BackgroundMode {
         if (revealOnSecondLaunch(argv)) this.revealMainWindow();
     }
 
+    /**
+     * Before the Settings page is served: the entry may have been disabled or removed in the system
+     * since startup, and SDA can stay in the tray for weeks (SDA-64). Read-only; a failed read keeps
+     * what was known.
+     */
+    refreshLoginItem() {
+        if (this.maintenance) return;
+        const on = this.readLoginItemOn(this.readMacLoginItem());
+        if (on !== null) this.loginItemOn = on;
+    }
+
     view(): AppSettingsView {
         const settings = this.getSettings();
         const loginItem = this.loginItemSupport();
@@ -214,6 +225,7 @@ export class BackgroundMode {
     }
 
     private readMacLoginItem(): LoginItemSettings | null {
+        if (this.platform !== "darwin" || this.loginItemSupport() !== "supported") return null;
         try {
             return app.getLoginItemSettings();
         } catch (err) {
