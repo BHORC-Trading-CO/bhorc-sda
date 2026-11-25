@@ -261,7 +261,8 @@
       "showPassword": "Show password",
       "hidePassword": "Hide password",
       "useSteamCookies": "Use Steam cookies in the browser (auto login)",
-      "maFileNameMismatch": "The Steam account name in the maFile does not match the one entered above!"
+      "maFileNameMismatch": "The Steam account name in the maFile does not match the one entered above!",
+      "pinInvalid": "The PIN must be exactly 4 digits"
     },
     "editing": {
       "title": "Edit Steam account #{{number}} {{name}}"

@@ -269,7 +269,8 @@
       "showPassword": "Показати пароль",
       "hidePassword": "Сховати пароль",
       "useSteamCookies": "Використовувати cookie Steam у браузері (автовхід)",
-      "maFileNameMismatch": "Ім’я акаунта Steam у maFile не збігається з указаним вище!"
+      "maFileNameMismatch": "Ім’я акаунта Steam у maFile не збігається з указаним вище!",
+      "pinInvalid": "PIN-код — рівно 4 цифри"
     },
     "editing": {
       "title": "Редагування акаунта Steam #{{number}} {{name}}"
