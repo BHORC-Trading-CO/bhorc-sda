@@ -14,9 +14,10 @@ import CreationStepType from '../../../interfaces/SteamAccount/CreationStepType'
 import ProxySetupInterface from "../../../interfaces/Proxy/ProxySetupInterface";
 import buildProxyUrl from "../../Proxy/proxyUrl";
 import applyCommunityCookies from "../Functions/applyCommunityCookies";
-import request from "request";
+import boundedRequest from "../../Request/boundedRequest";
 import askFamilyPin from "../../application/askInfo/askFamilyPin";
-import { EAuthSessionGuardType, EAuthTokenPlatformType, LoginSession } from "steam-session";
+import { EAuthSessionGuardType } from "steam-session";
+import createLoginSession from "../../Proxy/loginSession";
 import askMailCode from "../../application/askInfo/askMailCode";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
 import { t } from "../../../i18n";
@@ -29,11 +30,9 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
     return new Promise<SmaFileInterface>(async (resolve, reject) => {
         // Прокси опционален: если передан — весь трафик идёт через него, если нет —
         // напрямую с реального IP (осознанный выбор пользователя).
-        const session = new LoginSession(EAuthTokenPlatformType.MobileApp, {
-            httpProxy: proxyUrl ? proxyUrl : undefined
-        });
+        const session = createLoginSession(proxyUrl);
         const community = new SteamCommunity({
-            request: proxyUrl ? request.defaults({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS }) : request.defaults({ headers: STEAM_WEB_HEADERS }),
+            request: proxyUrl ? boundedRequest({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS }) : boundedRequest({ headers: STEAM_WEB_HEADERS }),
             userAgent: STEAM_MOBILE_USER_AGENT
         });
 

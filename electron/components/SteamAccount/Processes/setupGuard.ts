@@ -15,14 +15,11 @@ import buildProxyUrl from "../../Proxy/proxyUrl";
 import applyCommunityCookies from "../Functions/applyCommunityCookies";
 import finalizeAddAuthenticator from "../Functions/finalizeAddAuthenticator";
 import savePendingAuthenticator from "../Functions/savePendingAuthenticator";
-import request from "request";
+import boundedRequest from "../../Request/boundedRequest";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import SteamAccountSetupInterface from "../../../interfaces/SteamAccount/SteamAccountSetupInterface";
-import {
-  LoginSession,
-  EAuthTokenPlatformType,
-  EAuthSessionGuardType,
-} from "steam-session";
+import { EAuthSessionGuardType } from "steam-session";
+import createLoginSession from "../../Proxy/loginSession";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
 import { writeUnredacted } from "../../Functions/redactSecrets";
 
@@ -45,10 +42,10 @@ export default async function setupGuard(
   return new Promise(async (resolve, reject) => {
     // Прокси опционален: если передан — весь трафик идёт через него, если нет —
     // напрямую с реального IP (осознанный выбор пользователя).
-    const session = new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxyUrl ? proxyUrl : undefined });
+    const session = createLoginSession(proxyUrl);
     const communityRequest = proxyUrl
-      ? request.defaults({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS })
-      : request.defaults({ headers: STEAM_WEB_HEADERS });
+      ? boundedRequest({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS }, { wholeRequest: false })
+      : boundedRequest({ headers: STEAM_WEB_HEADERS }, { wholeRequest: false });
     const community = new SteamCommunity({ request: communityRequest, userAgent: STEAM_MOBILE_USER_AGENT });
     const EResult = SteamCommunity.EResult;
 
@@ -66,6 +63,10 @@ export default async function setupGuard(
     ): Promise<MaFileInterface> => {
       return new Promise<MaFileInterface>((resolve, reject) => {
         nextStep("loginByPassword");
+        // Сбой или срок опроса входа приходит событием, а не ошибкой startWithCredentials:
+        // без слушателей мастер крутился бы вечно (SDA-60)
+        session.once("error", reject);
+        session.once("timeout", () => reject(new Error("Login attempt timed out")));
         session
           .startWithCredentials({
             accountName,

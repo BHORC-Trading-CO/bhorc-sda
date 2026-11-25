@@ -17,10 +17,12 @@ import ProxyUnavailableError from "../Proxy/ProxyUnavailableError";
 import { blockedAgent, blockedSession } from "../Proxy/blockedTransport";
 import { ProxyState } from "../../interfaces/Proxy/ProxyState";
 import request from "request";
+import boundedRequest from "../Request/boundedRequest";
 import Manager from "../Manager/Manager";
 import askFamilyPin from "../application/askInfo/askFamilyPin";
 import Chrome from './Chrome/Chrome';
-import { EAuthSessionGuardType, EAuthTokenPlatformType, LoginSession } from "steam-session";
+import { EAuthSessionGuardType, LoginSession } from "steam-session";
+import createLoginSession from "../Proxy/loginSession";
 import maFileLogin from "./Processes/maFileLogin";
 import getCommunityWebCookies from "./Functions/getCommunityWebCookies";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "./Functions/steamUserAgent";
@@ -167,11 +169,7 @@ class SteamAccount {
     // перед каждым логином нужен свежий объект — с текущим прокси, если он привязан.
     private buildSession(): LoginSession {
         if (this.proxyState === "missing") return blockedSession(this.proxyId);
-        const proxyUrl = this.proxyUrl();
-        if (proxyUrl) {
-            return new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxyUrl });
-        }
-        return new LoginSession(EAuthTokenPlatformType.MobileApp);
+        return createLoginSession(this.proxyUrl());
     }
     private buildCommunity(): SteamCommunity {
         if (this.proxyState === "missing") {
@@ -190,8 +188,8 @@ class SteamAccount {
         }
         const proxyUrl = this.proxyUrl();
         const req = proxyUrl
-            ? request.defaults({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS })
-            : request.defaults({ headers: STEAM_WEB_HEADERS });
+            ? boundedRequest({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS })
+            : boundedRequest({ headers: STEAM_WEB_HEADERS });
         return new SteamCommunity({ request: req, userAgent: STEAM_MOBILE_USER_AGENT });
     }
     reloadParams(params: SteamAccountInterface) {

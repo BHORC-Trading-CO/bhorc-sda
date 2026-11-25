@@ -1,4 +1,5 @@
 import request, { RequestAPI, Request, CoreOptions, RequiredUriUrl, Options, Response, UriOptions, UrlOptions } from 'request';
+import boundedRequest from './boundedRequest';
 import ProxySetupInterface from '../../interfaces/Proxy/ProxySetupInterface';
 import buildProxyUrl from '../Proxy/proxyUrl';
 import { STEAM_MOBILE_USER_AGENT, STEAM_ACCEPT_ENCODING } from '../SteamAccount/Functions/steamUserAgent';
@@ -16,9 +17,9 @@ class RequestPromise {
         const commonDefaults = { gzip: true, headers: { 'user-agent': STEAM_MOBILE_USER_AGENT, 'accept-encoding': STEAM_ACCEPT_ENCODING } };
         const proxyUrl = buildProxyUrl(proxy);
         if (proxyUrl) {
-            this.object = request.defaults({ proxy: proxyUrl, timeout: 3000, ...commonDefaults });
+            this.object = boundedRequest({ proxy: proxyUrl, timeout: 3000, ...commonDefaults });
         } else if (allowDirect) {
-            this.object = request.defaults(commonDefaults);
+            this.object = boundedRequest(commonDefaults);
         } else {
             throw new Error(t('errors.directRequestForbidden'));
         }

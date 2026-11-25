@@ -1,4 +1,4 @@
-import request from "request";
+import boundedRequest from "../../Request/boundedRequest";
 import SteamTotp from "steam-totp";
 import { STEAM_MOBILE_USER_AGENT, STEAM_ACCEPT_ENCODING } from "./steamUserAgent";
 import { t } from "../../../i18n";
@@ -20,6 +20,9 @@ import { t } from "../../../i18n";
 
 const MAX_ATTEMPTS = 30;
 
+// Steam мог уже включить Guard: обрыв ожидания выглядел бы ошибкой. Срок — только на CONNECT (SDA-60).
+const NO_RESPONSE_DEADLINE = { wholeRequest: false, idle: false };
+
 export default function finalizeAddAuthenticator(params: {
     accessToken: string;
     steamID64: string;
@@ -40,8 +43,8 @@ export default function finalizeAddAuthenticator(params: {
         },
     };
     const req = proxyUrl
-        ? request.defaults({ proxy: proxyUrl, ...defaults })
-        : request.defaults(defaults);
+        ? boundedRequest({ proxy: proxyUrl, ...defaults }, NO_RESPONSE_DEADLINE)
+        : boundedRequest(defaults, NO_RESPONSE_DEADLINE);
 
     const now = () => Math.floor(Date.now() / 1000);
     let offset = Number(serverTime) - now();
