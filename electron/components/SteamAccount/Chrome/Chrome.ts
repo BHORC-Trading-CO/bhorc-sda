@@ -51,6 +51,9 @@ export const AVATAR_TIMEOUT_MS = 10000;
  */
 export const RESTORE_WAIT_MS = 5000;
 export const RESTORE_POLL_MS = 200;
+/** Focus (SDA-64): сколько раз и с какой паузой искать видимую вкладку. */
+export const FOCUS_ATTEMPTS = 5;
+export const FOCUS_RETRY_MS = 200;
 /**
  * SDA-33: попытки убрать папку сеанса (переименованием, см. forgetPreviousTabs). Закрывающийся
  * Chromium (на Windows — и антивирус) может держать файлы: пробуем несколько раз с короткой паузой.
@@ -712,17 +715,49 @@ export default class Chrome {
     }
     return args;
   }
-  async focus() {
+  /**
+   * SDA-64: выводит вперёд то, что уже открыто, и ничего не создаёт: раньше каждое нажатие добавляло
+   * пустую вкладку и показывало её вместо страницы, с которой работали. Ошибку получает вызывающий.
+   */
+  async focus(): Promise<void> {
+    if (!this.browser) return;
+    const tabs = await this.browser.pages();
+    // На macOS Chromium живёт и без окон.
+    if (!tabs.length) throw new Error(t("errors.browserNoWindow"));
+    const anchor = tabs.find((tab) => tab === this.page) || tabs[0];
+    await this.raiseWindow(anchor).catch((err) => {
+      console.log(`${this.params.id} - не удалось поднять окно браузера: ${err}`);
+    });
+    await ((await this.findVisibleTab(tabs)) || anchor).bringToFront();
+  }
+  /** Свернуть и вернуть окно: так оно встаёт поверх SDA и там, где фокус чужому окну просто не дают. */
+  private async raiseWindow(tab: Page): Promise<void> {
+    const session = await tab.target().createCDPSession();
     try {
-      // Локальная пустая страница: трюк для фокуса окна не должен делать
-      // сетевой запрос на сторонний домен (раньше открывался сайт автора оригинала).
-      const newPage = await this.browser?.newPage();
-      await newPage?.goto("about:blank");
-      await (newPage as any).minimize();
-      await (newPage as any).maximize();
-    } catch (err) {
-      console.log(err);
+      const { windowId } = await session.send("Browser.getWindowForTarget");
+      await session.send("Browser.setWindowBounds", { windowId, bounds: { windowState: "minimized" } });
+      await session.send("Browser.setWindowBounds", { windowId, bounds: { windowState: "normal" } });
+    } finally {
+      await session.detach();
     }
+  }
+  /**
+   * Вкладка, которую человек видит: bringToFront другой переключил бы его с открытой страницы.
+   * Окно после возврата становится видимым не сразу, поэтому несколько попыток; вкладка, которая не
+   * отвечает (зависла, открыт alert), ждать не заставляет.
+   */
+  private async findVisibleTab(tabs: Page[]): Promise<Page | undefined> {
+    for (let attempt = 0; attempt < FOCUS_ATTEMPTS; attempt++) {
+      const pause = new Promise<false>((resolve) => setTimeout(() => resolve(false), FOCUS_RETRY_MS));
+      const visible = await Promise.all(tabs.map((tab) => Promise.race([
+        tab.evaluate(() => document.visibilityState === "visible").catch(() => false),
+        pause,
+      ])));
+      const index = visible.indexOf(true);
+      if (index !== -1) return tabs[index];
+      await pause;
+    }
+    return undefined;
   }
   private async closeBrowser(browser: Browser) {
     let timeout: ReturnType<typeof setTimeout> | undefined;
