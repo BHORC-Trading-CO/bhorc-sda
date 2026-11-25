@@ -467,7 +467,7 @@
     },
     "reject": {
       "format": "Not a proxy line. Use login:password@host:port, host:port:login:password, host:port or http://login:password@host:port",
-      "scheme": "Only HTTP proxies are supported (http:// or https://)",
+      "scheme": "Only HTTP proxies are supported (http://)",
       "ambiguous": "The line can be read in two ways. Write it as http://login:password@host:port",
       "address": "Invalid host or port",
       "storage": "Could not be saved"

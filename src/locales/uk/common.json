@@ -485,7 +485,7 @@
     },
     "reject": {
       "format": "Це не рядок проксі. Формати: login:password@host:port, host:port:login:password, host:port або http://login:password@host:port",
-      "scheme": "Підтримуються лише HTTP-проксі (http:// або https://)",
+      "scheme": "Підтримуються лише HTTP-проксі (http://)",
       "ambiguous": "Рядок можна прочитати двояко. Запишіть його як http://login:password@host:port",
       "address": "Неправильний хост або порт",
       "storage": "Не вдалося зберегти"

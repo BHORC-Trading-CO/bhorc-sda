@@ -5,7 +5,8 @@ import { canonicalProxyHost, isIpAddress, isProxyPort } from "./proxyAddress";
 // чтобы в окне и в хранилище был один и тот же прокси (SDA-64). Форматы:
 //   логин:пароль@host:port   (в пароле могут быть ":" и "@")
 //   host:port:логин:пароль   и   host:port
-//   http://логин:пароль@host:port   (https:// тоже: так пишут HTTP-прокси; логин и пароль %-кодированы)
+//   http://логин:пароль@host:port   (логин и пароль %-кодированы)
+// https:// не принимаем: клиенты говорят с прокси по HTTP, и логин с паролем ушли бы открыто.
 // IPv6 — в скобках. Строку, которую можно прочитать двояко, не угадываем: сохранился бы чужой пароль.
 
 export type ProxyRejectReason = "format" | "scheme" | "ambiguous" | "address";
@@ -14,7 +15,7 @@ export type ProxyParseResult = { proxy: ProxySetupInterface, reason?: undefined 
 export function parseProxy(value: string): ProxyParseResult {
     const text = value.trim();
     const url = /^([a-z][a-z0-9+.-]*):\/\/(.*)$/i.exec(text);
-    if (url) return /^https?$/i.test(url[1]) ? parseUrl(url[2].replace(/\/$/, "")) : { reason: "scheme" };
+    if (url) return /^http$/i.test(url[1]) ? parseAuthority(url[2]) : { reason: "scheme" };
 
     const login = loginFirst(text);
     const host = hostFirst(text);
@@ -38,7 +39,9 @@ export function formatProxyString({ host, port, username, password }: ProxySetup
     return `http://${credentials}${host}:${port}`;
 }
 
-function parseUrl(text: string): ProxyParseResult {
+// "@" ищем только до пути: в "http://a:b@host:80/x@other:90" логин и пароль — для host, а не для other.
+function parseAuthority(text: string): ProxyParseResult {
+    if (/[/\\?#]/.test(text)) return { reason: "format" };
     const at = text.lastIndexOf("@");
     const address = parseAddress(text.slice(at + 1));
     if (!address) return { reason: "address" };

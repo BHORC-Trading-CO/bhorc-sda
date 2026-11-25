@@ -485,7 +485,7 @@
     },
     "reject": {
       "format": "Это не строка прокси. Форматы: login:password@host:port, host:port:login:password, host:port или http://login:password@host:port",
-      "scheme": "Поддерживаются только HTTP-прокси (http:// или https://)",
+      "scheme": "Поддерживаются только HTTP-прокси (http://)",
       "ambiguous": "Строку можно прочитать двояко. Запишите её как http://login:password@host:port",
       "address": "Неправильный хост или порт",
       "storage": "Не удалось сохранить"
