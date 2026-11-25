@@ -1,7 +1,7 @@
 import nock from "nock";
 import request from "request";
 import SteamCommunity from "steamcommunity";
-import { getAccountData, parseMemberSince, parseMiniprofile } from "../loadSteamAccountData";
+import { getAccountData, parseMemberSince, parseMiniprofile, PROFILE_XML_RETRY } from "../loadSteamAccountData";
 import { DEFAULT_AVATAR_URL } from "../../../Functions/sanitizeAvatarUrl";
 import { setMainLanguage } from "../../../../i18n";
 
@@ -177,6 +177,36 @@ describe("one account refresh", () => {
         const data = await getAccountData(community().c);
         expect(data.secondary).toEqual({ nickname: "Fixture Name", level: 16, avatarUrl: OWN_AVATAR, ktState: false, tpState: true, tradeState: true, registeredAt: null });
         expect(data.changableSecondary.steam.balance).toBe(50.99);
+    });
+
+    // SDA-59: один 429 больше не оставляет дату неизвестной до следующего ручного обновления
+    describe("profile XML answered 429", () => {
+        const saved = PROFILE_XML_RETRY.delaysMs;
+        beforeEach(() => { PROFILE_XML_RETRY.delaysMs = [1, 1]; });
+        afterEach(() => { PROFILE_XML_RETRY.delaysMs = saved; });
+
+        it("is retried after a pause and the date arrives", async () => {
+            const scope = steam({ xml: [429, ""] });
+            scope.get(`/profiles/${STEAM_ID}/`).query({ xml: "1" }).reply(200, profileXml());
+            const { c, uris } = community();
+            expect((await getAccountData(c)).secondary.registeredAt).toBe("2012-03-04");
+            expect(uris.filter((uri) => uri === PROFILE_XML)).toHaveLength(2);
+            expect(scope.isDone()).toBe(true);
+        });
+
+        it("gives up after the last retry; other errors are not retried", async () => {
+            const scope = steam({ xml: [429, ""] });
+            scope.get(`/profiles/${STEAM_ID}/`).query({ xml: "1" }).times(2).reply(429, "");
+            const first = community();
+            expect((await getAccountData(first.c)).secondary.registeredAt).toBeNull();
+            expect(first.uris.filter((uri) => uri === PROFILE_XML)).toHaveLength(3);
+            expect(scope.isDone()).toBe(true);
+
+            steam({ xml: [500, ""] });
+            const second = community();
+            expect((await getAccountData(second.c)).secondary.registeredAt).toBeNull();
+            expect(second.uris.filter((uri) => uri === PROFILE_XML)).toHaveLength(1);
+        });
     });
 
     it("parseMemberSince reads the English formats Steam uses and nothing else", () => {

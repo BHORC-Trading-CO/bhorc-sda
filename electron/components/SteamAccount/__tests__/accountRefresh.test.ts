@@ -315,4 +315,79 @@ describe("renderer: table store", () => {
         jest.advanceTimersByTime(60 * 1000);
         expect(balanceCalls()).toEqual(["a", "a"]);
     });
+    // SDA-59: «Перезагрузить все данные» only re-read the list; profile data was not refreshed at all,
+    // and the hidden archived accounts logged in too. Now: the list, then a queue over active accounts.
+    describe("reload all", () => {
+        const secondaryCalls = () => (methods.getSecondary ? methods.getSecondary.mock.calls.map((call) => call[0]) : []);
+        const answer = (id: string) => listener("onGetSecondary")({}, { id, secondary: { nickname: id } });
+        const fail = (id: string) => listener("onGetSecondaryError")({}, { id, err: "Error: session has expired" });
+        const list = () => [
+            ...accounts(["a", "b", "c", "d", "e"]),
+            ...accounts(["x"], { deleted: true }),
+        ];
+
+        it("asks main to reload and refreshes nothing until the new list arrives", () => {
+            const table = startedStore(["a"]);
+            table.reloadAll();
+            expect(methods.refresh).toHaveBeenCalledTimes(1);
+            expect(secondaryCalls()).toEqual([]);
+        });
+
+        it("refreshes active accounts three at a time; an error does not stop the rest; archived are skipped", () => {
+            const table = startedStore(["a"]);
+            table.reloadAll();
+            listener("onGet")({}, list());
+            expect(secondaryCalls()).toEqual(["a", "b", "c"]);
+            expect(table.steamAccounts.a.isLoadSecondary).toBe(true);
+            fail("b");
+            expect(secondaryCalls()).toEqual(["a", "b", "c", "d"]);
+            answer("a");
+            answer("c");
+            expect(secondaryCalls()).toEqual(["a", "b", "c", "d", "e"]);
+            answer("d");
+            answer("e");
+            expect(secondaryCalls()).not.toContain("x");
+            expect(table.steamAccounts.e.secondary).toEqual({ nickname: "e" });
+        });
+
+        // Стартовый таймер балансов не должен бить /market/ поверх очереди: Steam отвечал 429
+        it("queued accounts get no separate balance request: the balance comes with the queue", () => {
+            const table = startedStore(["a"]);
+            const before = balanceCalls().length;
+            table.reloadAll();
+            listener("onGet")({}, list());
+            jest.advanceTimersByTime(3000);
+            expect(balanceCalls().length).toBe(before);
+            expect(secondaryCalls()).toEqual(["a", "b", "c"]);
+        });
+
+        it("the current page goes first", () => {
+            const table = startedStore(["a"]);
+            listener("onGetTableOptions")({}, { pageSize: 2, activePage: 1 });
+            listener("onGet")({}, list());
+            table.setActivePage(2);
+            table.reloadAll();
+            listener("onGet")({}, list());
+            expect(secondaryCalls()).toEqual(["c", "d", "a"]);
+        });
+
+        it("answers to a row refresh do not start extra queue items, and a later list alone starts nothing", () => {
+            const table = startedStore(["a"]);
+            table.reloadAll();
+            listener("onGet")({}, list());
+            answer("x"); // archived row answered its own refresh button
+            expect(secondaryCalls()).toEqual(["a", "b", "c"]);
+            listener("onGet")({}, list());
+            expect(secondaryCalls()).toEqual(["a", "b", "c"]);
+        });
+
+        it("an answer for an account gone from the table does not stall the queue", () => {
+            const table = startedStore(["a"]);
+            table.reloadAll();
+            listener("onGet")({}, list());
+            runInAction(() => { delete table.steamAccounts.a; });
+            expect(() => answer("a")).toThrow();
+            expect(secondaryCalls()).toEqual(["a", "b", "c", "d"]);
+        });
+    });
 });

@@ -63,7 +63,8 @@ export class SteamAccountManager {
                 // Keep the Chrome owner, including a launch still in progress.
                 const routeChanged = existing ? steamAccount.reloadParams(object) : false;
                 if (routeChanged || previousProxyId !== steamAccount.proxyId) application.images?.invalidateRoute(object.id);
-                if (!routeChanged) steamAccount.initSession().catch(err => {
+                // Архивные аккаунты startSession пропускает (SDA-59)
+                if (!routeChanged) steamAccount.startSession().catch(err => {
                     application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id: steamAccount.params.id, err: String(err) });
                 });
                 next.push(steamAccount);

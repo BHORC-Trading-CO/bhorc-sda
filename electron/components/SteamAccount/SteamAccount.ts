@@ -32,6 +32,7 @@ import { t } from "../../i18n";
 import application from "../application/application";
 import SteamAccountChannels from "../../interfaces/IpcChannels/SteamAccountChannels";
 import notifyBrowserRouteChanged from "./Chrome/notifyBrowserRouteChanged";
+import { isDeadTokenError, isRefreshTokenExpired } from "./Functions/sessionExpiry";
 const SteamTotp = require('steam-totp');
 
 class SteamAccount {
@@ -45,6 +46,10 @@ class SteamAccount {
     proxyState: ProxyState;
     proxyId: string | null;
     private routeKey: string;
+    // Последний запущенный вход по сохранённым токенам (SDA-59). Обновление данных ждёт его,
+    // иначе запросы шли бы параллельно со входом со старыми cookie. Ошибку входа здесь не храним:
+    // о ней уже сообщил тот, кто вход запустил.
+    sessionReady: Promise<void> = Promise.resolve();
 
     constructor(params: SteamAccountInterface) {
         params = stripLegacyMarketData(params);
@@ -71,12 +76,33 @@ class SteamAccount {
     }
 
 
+    /**
+     * Вход по сохранённым токенам для загрузки списка, смены прокси и восстановления из архива.
+     * Архивный аккаунт в Steam не ходит (SDA-59): раньше «Перезагрузить все данные» входила во все
+     * архивные аккаунты, и просроченные токены давали «AccessDenied» про скрытые аккаунты.
+     */
+    startSession(): Promise<void> {
+        if (this.params.deleted) return Promise.resolve();
+        const started = this.initSession();
+        this.sessionReady = started.catch(() => undefined);
+        return started;
+    }
+
     async initSession() {
         this.proxyUrl();
         if (this.params.maFile.Session?.AccessToken && this.params.maFile.Session.RefreshToken) {
+            const refreshToken = this.params.maFile.Session.RefreshToken;
+            // Просроченный по exp токен Steam всё равно отвергнет: не отправляем его вовсе
+            if (isRefreshTokenExpired(refreshToken)) throw new Error(t("errors.sessionExpired"));
             this.session.accessToken = this.params.maFile.Session.AccessToken;
-            this.session.refreshToken = this.params.maFile.Session.RefreshToken;
-            await this.session.refreshAccessToken();
+            this.session.refreshToken = refreshToken;
+            try {
+                await this.session.refreshAccessToken();
+            } catch (err) {
+                // Отозванный токен (смена пароля, выход на всех устройствах) — та же история
+                if (isDeadTokenError(err)) throw new Error(t("errors.sessionExpired"));
+                throw err;
+            }
             await this.setCommunityCookies(
                 this.session.refreshToken,
                 this.session.steamID ? this.session.steamID.getSteamID64() : null
@@ -200,7 +226,7 @@ class SteamAccount {
             throw err;
         }
         if (this.proxyState !== "missing") {
-            this.initSession().catch(err => application.sendToMain(
+            this.startSession().catch(err => application.sendToMain(
                 SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id: this.params.id, err: String(err) }
             ));
         }
@@ -327,7 +353,8 @@ class SteamAccount {
     // Полное обновление аккаунта: профиль, статусы и баланс за одну загрузку /market/ (SDA-38).
     getSecondary(): Promise<AccountData> {
         return new Promise((resolve, reject) => {
-            getAccountData(this.community, this.params.secondary?.registeredAt)
+            this.sessionReady
+                .then(() => getAccountData(this.community, this.params.secondary?.registeredAt))
                 .then((data) => {
                     try {
                         this.editParams({ secondary: data.secondary, changableSecondary: data.changableSecondary });
@@ -343,7 +370,8 @@ class SteamAccount {
     }
     getChangableSecondary(): Promise<ChangableSecondaryInterface> {
         return new Promise((resolve, reject) => {
-            getChangableSecondaries(this.community)
+            this.sessionReady
+                .then(() => getChangableSecondaries(this.community))
                 .then(data => {
                     try {
                         // console.log(`#${this.params.number} successful get changable secondary!`);

@@ -48,6 +48,7 @@
     "secretKeyTooShort": "Invalid key. It must be at least 8 characters long",
     "totpNotAccepted": "Steam did not accept any TOTP code in 30 attempts",
     "profileUnrecognized": "Steam returned a profile page without the account name; profile data was not updated",
+    "sessionExpired": "the session has expired. Use “Refresh session (log in again)”",
     "balance": {
       "unexpectedPage": "Steam returned a page that is not the Community Market (an error or maintenance page?); the balance was not read",
       "walletMissing": "The Market page has no wallet data for this account",
