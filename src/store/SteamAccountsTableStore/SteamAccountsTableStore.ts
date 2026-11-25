@@ -570,11 +570,18 @@ class SteamAccountsTableStore {
     const time1 = Number(new Date());
     for (var i in this.steamAccounts) {
       if (this.steamAccounts[i].id === id) {
-        const code = String(
-          window.Main.guardConnection.getAuthCode(
-            this.steamAccounts[i].maFile.shared_secret
-          )
-        );
+        // Аккаунт без shared_secret (импорт неполного файла) кодов не даёт; ошибка одного
+        // останавливала список на нём: у остальных не было ни кода, ни статуса браузера (SDA-62).
+        let code = "";
+        try {
+          code = String(
+            window.Main.guardConnection.getAuthCode(
+              this.steamAccounts[i].maFile.shared_secret
+            )
+          );
+        } catch (err) {
+          console.log(`guard code of ${id}: ${err}`);
+        }
         //this.steamAccounts[i].authCode = code;
         this.authCodes[id] = code;
         const time2 = Number(new Date());
