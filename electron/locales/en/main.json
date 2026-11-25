@@ -114,6 +114,8 @@
       "login": "The maFile belongs to another account: login {{login}}, maFile {{maFile}}",
       "steamId": "The maFile or its session belongs to another account than {{login}}: different SteamIDs {{ids}}"
     },
-    "importRouteRequired": "the account had a proxy that no longer exists; choose a proxy or “No proxy”"
+    "importRouteRequired": "the account had a proxy that no longer exists; choose a proxy or “No proxy”",
+    "guardCodeRejected": "Steam rejected the Guard code: the maFile does not match this account, or the computer clock is wrong",
+    "steamLoginTimeout": "Steam did not complete the sign-in in time"
   }
 }

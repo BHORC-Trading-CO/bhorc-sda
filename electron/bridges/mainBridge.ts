@@ -142,7 +142,7 @@ const steamAccounts = {
     ipcRenderer.send('ENTER_FAMILY_PIN', pin);
   },
   abortCreation() {
-    ipcRenderer.send('ABORT_LOGIN_BY_MAFILE');
+    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT);
   },
   getTableOptions() {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_TABLE_OPTIONS);

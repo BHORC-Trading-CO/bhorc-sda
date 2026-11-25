@@ -114,6 +114,8 @@
       "login": "maFile належить іншому акаунту: логін {{login}}, maFile {{maFile}}",
       "steamId": "maFile або його сесія належить не акаунту {{login}}: різні SteamID {{ids}}"
     },
-    "importRouteRequired": "проксі акаунта більше не існує; виберіть проксі або «Без проксі»"
+    "importRouteRequired": "проксі акаунта більше не існує; виберіть проксі або «Без проксі»",
+    "guardCodeRejected": "Steam відхилив код Guard: maFile не підходить до цього акаунта або годинник комп'ютера неточний",
+    "steamLoginTimeout": "Steam не завершив вхід вчасно"
   }
 }

@@ -30,7 +30,6 @@ jest.mock("steamcommunity", () => jest.fn(() => ({
     parentalUnlock: (pin: string, cb: Function) => mockSteam.parentalUnlock(pin, cb),
 })));
 jest.mock("../../../application/application", () => ({ __esModule: true, default: { sendToMain: jest.fn() } }));
-jest.mock("../../../application/trustedIpc", () => ({ onTrusted: jest.fn(() => () => undefined) }));
 jest.mock("../../Functions/applyCommunityCookies", () => ({ __esModule: true, default: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../../../application/askInfo/askMailCode", () => ({ __esModule: true, default: jest.fn() }));
 jest.mock("../../../application/askInfo/askFamilyPin", () => ({ __esModule: true, default: jest.fn() }));
@@ -38,6 +37,11 @@ jest.mock("../loadSteamAccountData", () => ({ getSecondaries: jest.fn().mockReso
 
 import nock from "nock";
 import maFileLogin from "../maFileLogin";
+import application from "../../../application/application";
+import askMailCode from "../../../application/askInfo/askMailCode";
+import askFamilyPin from "../../../application/askInfo/askFamilyPin";
+import { getSecondaries } from "../loadSteamAccountData";
+import SteamAccountChannels from "../../../../interfaces/IpcChannels/SteamAccountChannels";
 import { setMainLanguage } from "../../../../i18n";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -117,5 +121,93 @@ describe("dead refresh token", () => {
         arrange();
         await expect(maFileLogin(params())).rejects.toThrow();
         expect(mockSteam.passwordLogins).toHaveLength(1);
+    });
+});
+
+// SDA-63
+describe("login challenges (R2-11)", () => {
+    const passwordOnly = () => params({ Session: undefined });
+    it.each([
+        ["DeviceCode", [{ type: 3 }]],
+        ["DeviceCode with an app confirmation", [{ type: 3 }, { type: 4 }]],
+    ])("a rejected Guard code ends the login instead of waiting forever: %s", async (_name, validActions) => {
+        mockSteam.passwordResult = { actionRequired: true, validActions };
+        await expect(maFileLogin(passwordOnly())).rejects.toThrow(/rejected the Guard code/);
+        expect(mockSteam.sessions[1].cancelLoginAttempt).toHaveBeenCalled();
+    });
+    it("an email code is asked for and submitted", async () => {
+        mockSteam.passwordResult = { actionRequired: true, validActions: [{ type: 2 }] };
+        (askMailCode as jest.Mock).mockResolvedValueOnce("ABCDE");
+        await expect(maFileLogin(passwordOnly())).resolves.toMatchObject({ accountName: "account_a" });
+        expect(mockSteam.sessions[1].submitSteamGuardCode).toHaveBeenCalledWith("ABCDE");
+    });
+    it.each([["timeout", /in time/], ["error", /poll failed/]])("a polling %s rejects", async (event, message) => {
+        mockSteam.passwordResult = { actionRequired: true, validActions: [{ type: 5 }] };
+        const login = maFileLogin(passwordOnly());
+        await new Promise(setImmediate);
+        mockSteam.sessions[1].emit(event, new Error("poll failed"));
+        await expect(login).rejects.toThrow(message);
+    });
+});
+
+describe("Family View PIN (R2-15)", () => {
+    beforeEach(() => {
+        mockSteam.loggedIn = jest.fn((cb: Function) => cb(null, true, true));
+        mockSteam.parentalUnlock = jest.fn();
+    });
+    it("a wrong PIN (the library answers with a string) is asked again; the right one is kept as typed", async () => {
+        (askFamilyPin as jest.Mock).mockResolvedValueOnce("1111").mockResolvedValueOnce("0123");
+        mockSteam.parentalUnlock.mockImplementationOnce((_pin: string, cb: Function) => cb("Incorrect PIN")).mockImplementationOnce((_pin: string, cb: Function) => cb());
+        await expect(maFileLogin(params())).resolves.toMatchObject({ familyViewPin: "0123" });
+        expect(application.sendToMain).toHaveBeenCalledWith("ERROR", "Wrong PIN");
+        expect(mockSteam.parentalUnlock).toHaveBeenCalledTimes(2);
+    });
+    it("any other answer ends the login", async () => {
+        (askFamilyPin as jest.Mock).mockResolvedValueOnce("1111");
+        mockSteam.parentalUnlock.mockImplementationOnce((_pin: string, cb: Function) => cb("Too many invalid PIN attempts"));
+        await expect(maFileLogin(params())).rejects.toBe("Too many invalid PIN attempts");
+    });
+    it.each([["with a reason", new Error("cancelled")], ["without one", undefined]])("a closed prompt ends the login: %s", async (_name, reason) => {
+        (askFamilyPin as jest.Mock).mockRejectedValueOnce(reason);
+        await expect(maFileLogin(params())).rejects.toBe(reason);
+    });
+});
+
+describe("abort (R2-12)", () => {
+    const tick = () => new Promise(setImmediate);
+    it("an aborted run logs in nowhere, asks nothing and reports no steps", async () => {
+        const run = new AbortController();
+        let finishRefresh!: () => void;
+        mockSteam.refresh = jest.fn(() => new Promise<void>((_resolve, reject) => { finishRefresh = () => reject(new Error("AccessDenied")); }));
+        const login = maFileLogin(params(), { signal: run.signal, stepChannel: SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP });
+        run.abort();
+        await expect(login).rejects.toBe("abort");
+        (application.sendToMain as jest.Mock).mockClear();
+        finishRefresh();
+        await tick();
+        expect(mockSteam.passwordLogins).toEqual([]);
+        expect(application.sendToMain).not.toHaveBeenCalled();
+    });
+    it("an abort before Steam answers the password stops the polling the library starts anyway", async () => {
+        const run = new AbortController();
+        mockSteam.passwordResult = { actionRequired: true, validActions: [{ type: 2 }] };
+        const login = maFileLogin(params({ Session: undefined }), { signal: run.signal });
+        await Promise.resolve();
+        const cancelled = () => mockSteam.sessions[1].cancelLoginAttempt.mock.calls.length;
+        while (!mockSteam.sessions[1]) await Promise.resolve();
+        run.abort();
+        const before = cancelled();
+        await expect(login).rejects.toBe("abort");
+        await tick();
+        expect(cancelled()).toBeGreaterThan(before);
+        expect(askMailCode).not.toHaveBeenCalled();
+        expect(getSecondaries).not.toHaveBeenCalled();
+    });
+    it("the prompts get the run's signal", async () => {
+        const run = new AbortController();
+        mockSteam.passwordResult = { actionRequired: true, validActions: [{ type: 2 }] };
+        (askMailCode as jest.Mock).mockResolvedValueOnce("ABCDE");
+        await maFileLogin(params({ Session: undefined }), { signal: run.signal });
+        expect(askMailCode).toHaveBeenCalledWith(expect.any(String), "account_a", run.signal);
     });
 });
