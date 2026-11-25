@@ -1,7 +1,7 @@
 import nock from "nock";
 import request from "request";
 import SteamCommunity from "steamcommunity";
-import { getAccountData, parseMiniprofile } from "../loadSteamAccountData";
+import { getAccountData, parseMemberSince, parseMiniprofile } from "../loadSteamAccountData";
 import { DEFAULT_AVATAR_URL } from "../../../Functions/sanitizeAvatarUrl";
 import { setMainLanguage } from "../../../../i18n";
 
@@ -13,6 +13,7 @@ const MINIPROFILE = `https://steamcommunity.com/miniprofile/${ACCOUNT_ID}/json`;
 const MARKET = "https://steamcommunity.com/market/";
 const ELIGIBILITY = "https://steamcommunity.com/market/eligibilitycheck/?goto=%2F";
 const PROFILE = `https://steamcommunity.com/profiles/${STEAM_ID}/`;
+const PROFILE_XML = `https://steamcommunity.com/profiles/${STEAM_ID}/?xml=1`;
 
 const OWN_AVATAR = "https://avatars.akamai.steamstatic.com/a1b2c3d4e5f60718293a4b5c6d7e8f9012345678_full.jpg";
 const FRAME = "https://shared.akamai.steamstatic.com/community_assets/images/items/000000/0000000000000000000000000000000000000000.png";
@@ -44,6 +45,12 @@ const profilePage = ({ ownLevel = 8 as number | null } = {}) => `
 </div>
 ${friendLevels}`;
 
+// Profile XML (SDA-58): only <memberSince> matters, the rest is the usual shape.
+const profileXml = (memberSince: string | null = "March 4, 2012") =>
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><profile><steamID64>${STEAM_ID}</steamID64>` +
+    `<steamID><![CDATA[Fixture Name]]></steamID><privacyState>private</privacyState>` +
+    (memberSince === null ? "" : `<memberSince>${memberSince}</memberSince>`) + `</profile>`;
+
 const enc = (o: object) => encodeURIComponent(JSON.stringify(o));
 function eligibility(value: object | null) {
     const headers: Record<string, string | string[]> = { Location: "https://steamcommunity.com/" };
@@ -52,12 +59,14 @@ function eligibility(value: object | null) {
 }
 
 function steam({ mini = [200, miniprofile()] as [number, string], market = [200, marketPage()] as [number, string],
-    trade = { allowed: 1 } as object | null, profile = null as [number, string] | null } = {}) {
+    trade = { allowed: 1 } as object | null, profile = null as [number, string] | null,
+    xml = [200, profileXml()] as [number, string] | null } = {}) {
     const scope = nock("https://steamcommunity.com");
     scope.get(`/miniprofile/${ACCOUNT_ID}/json`).reply(mini[0], mini[1]);
     scope.get("/market/").reply(market[0], market[1]);
     scope.get("/market/eligibilitycheck/").query({ goto: "/" }).reply(...eligibility(trade));
     if (profile) scope.get(`/profiles/${STEAM_ID}/`).reply(profile[0], profile[1]);
+    if (xml) scope.get(`/profiles/${STEAM_ID}/`).query({ xml: "1" }).reply(xml[0], xml[1]);
     return scope;
 }
 
@@ -88,14 +97,14 @@ afterEach(() => nock.cleanAll());
 afterAll(() => nock.enableNetConnect());
 
 describe("one account refresh", () => {
-    it("downloads the miniprofile, /market/ and the eligibility check once each, and never the profile page or the store", async () => {
+    it("downloads the miniprofile, /market/, the eligibility check and the profile XML once each, and never the profile page or the store", async () => {
         const scope = steam();
         const { c, uris } = community();
         const data = await getAccountData(c);
-        expect(uris).toEqual([MINIPROFILE, MARKET, ELIGIBILITY]);
+        expect(uris).toEqual([MINIPROFILE, MARKET, ELIGIBILITY, PROFILE_XML]);
         expect(scope.isDone()).toBe(true);
         expect(data).toEqual({
-            secondary: { nickname: "Fixture Name", level: 16, avatarUrl: OWN_AVATAR, ktState: false, tpState: true, tradeState: true },
+            secondary: { nickname: "Fixture Name", level: 16, avatarUrl: OWN_AVATAR, ktState: false, tpState: true, tradeState: true, registeredAt: "2012-03-04" },
             changableSecondary: { steam: { balance: 50.99, currency: "₴", error: null } },
         });
     });
@@ -114,7 +123,7 @@ describe("one account refresh", () => {
         steam({ mini: mini as [number, string], profile: [200, profilePage()] });
         const { c, uris } = community();
         const data = await getAccountData(c);
-        expect(uris).toEqual([MINIPROFILE, PROFILE, MARKET, ELIGIBILITY]);
+        expect(uris).toEqual([MINIPROFILE, PROFILE, MARKET, ELIGIBILITY, PROFILE_XML]);
         expect(data.secondary).toMatchObject({ nickname: "Page Name", level: 8, avatarUrl: OWN_AVATAR });
     });
 
@@ -140,6 +149,52 @@ describe("one account refresh", () => {
         const { c, uris } = community();
         await expect(getAccountData(c)).rejects.toThrow("HTTP error 503");
         expect(uris).toEqual([MINIPROFILE, PROFILE]);
+    });
+
+    // SDA-58: the registration date never changes, so a known one costs no request
+    it("does not download the profile XML when the registration date is already known", async () => {
+        const scope = steam({ xml: null });
+        const { c, uris } = community();
+        const data = await getAccountData(c, "2015-06-07");
+        expect(uris).toEqual([MINIPROFILE, MARKET, ELIGIBILITY]);
+        expect(scope.isDone()).toBe(true);
+        expect(data.secondary.registeredAt).toBe("2015-06-07");
+    });
+
+    it("downloads the profile XML again when the stored date is not a valid date", async () => {
+        steam();
+        const { c, uris } = community();
+        expect((await getAccountData(c, "garbage")).secondary.registeredAt).toBe("2012-03-04");
+        expect(uris).toContain(PROFILE_XML);
+    });
+
+    it.each([
+        ["an HTTP error", [500, ""]],
+        ["XML without memberSince (profile hidden from the owner)", [200, profileXml(null)]],
+        ["an unrecognised date", [200, profileXml("4. März 2012")]],
+    ])("%s gives an unknown registration date and keeps everything else", async (_name, xml) => {
+        steam({ xml: xml as [number, string] });
+        const data = await getAccountData(community().c);
+        expect(data.secondary).toEqual({ nickname: "Fixture Name", level: 16, avatarUrl: OWN_AVATAR, ktState: false, tpState: true, tradeState: true, registeredAt: null });
+        expect(data.changableSecondary.steam.balance).toBe(50.99);
+    });
+
+    it("parseMemberSince reads the English formats Steam uses and nothing else", () => {
+        const now = new Date(Date.UTC(2026, 10, 25));
+        const xml = (text: string) => `<profile><memberSince>${text}</memberSince></profile>`;
+        expect(parseMemberSince(xml("March 4, 2012"), now)).toBe("2012-03-04");
+        expect(parseMemberSince(xml("September 12th, 2003"), now)).toBe("2003-09-12");
+        expect(parseMemberSince(xml("4 March, 2012"), now)).toBe("2012-03-04");
+        expect(parseMemberSince(xml("Dec 31, 2019"), now)).toBe("2019-12-31");
+        expect(parseMemberSince(xml(" <![CDATA[ March 4, 2012 ]]> "), now)).toBe("2012-03-04");
+        // the current year is left out by Steam
+        expect(parseMemberSince(xml("November 2"), now)).toBe("2026-11-02");
+        // garbage, impossible and future dates are unknown, not a guess
+        for (const text of ["", "0", "Mar 2012", "February 30, 2012", "Smarch 4, 2012", "4. März 2012", "January 1, 2002", "December 30"]) {
+            expect(parseMemberSince(xml(text), now)).toBeNull();
+        }
+        expect(parseMemberSince("<profile></profile>", now)).toBeNull();
+        expect(parseMemberSince(undefined, now)).toBeNull();
     });
 
     it("parseMiniprofile accepts only the expected shape", () => {

@@ -83,6 +83,7 @@
       "tradeState": "Trade status",
       "steamAccountNickname": "Steam nickname",
       "steamId": "Steam ID",
+      "registrationDate": "Registration date",
       "mail": "Email",
       "mailPassword": "Email (password)",
       "linkedProxies": "Linked proxy",
@@ -111,6 +112,7 @@
     "number": "This is the number in the app. It cannot be changed. It is just a number to make work easier",
     "steamAccountNickname": "Steam nicknames (from the profile) are shown here",
     "steamId": "The account's SteamID64 (from the maFile). Search works by it too",
+    "registrationDate": "Steam account registration date (Member since). Loaded once, on the first account refresh",
     "proxyHost": "Proxy hosts are shown here. This is the IP address part. For example: 123.123.123.123",
     "proxyPort": "Proxy ports are shown here. For example: 30013",
     "proxyUsername": "Logins of your proxies are shown here",
@@ -167,6 +169,7 @@
     "table": {
       "proxyMissing": "Proxy not found",
       "proxyMissingHint": "Connections are blocked. Open Edit account to select another proxy or explicitly choose No proxy.",
+      "registrationDateUnknown": "Unknown yet: refresh the account. Steam may not give it for some profiles",
       "balanceError": "Balance not loaded",
       "balanceErrorTip": "Could not load the balance: {{error}}",
       "noAvatar": "No Steam avatar",

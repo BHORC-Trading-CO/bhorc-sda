@@ -12,6 +12,7 @@ enum AvalibleFieldTypes {
     steamAccountNickname = "steamAccountNickname",
     steamId = "steamId",
     steamAccountLevel = "steamAccountLevel",
+    registrationDate = "registrationDate",
     steamAccountBalance = "steamAccountBalance",
     steamAccountName = "steamAccountName",
     steamPassword = "steamPassword",

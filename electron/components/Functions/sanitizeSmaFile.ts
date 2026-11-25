@@ -4,6 +4,7 @@ import SessionInterface from "../../interfaces/SteamAccount/SessionInterface";
 import ProxySetupInterface from "../../interfaces/Proxy/ProxySetupInterface";
 import sanitizeAvatarUrl from "./sanitizeAvatarUrl";
 import { getSteamID64 } from "./steamAccountSearch";
+import { isRegistrationDate } from "./registrationDate";
 import { t } from "../../i18n";
 
 type Data = Record<string, unknown>;
@@ -154,6 +155,7 @@ export default function sanitizeSmaFile(value: unknown): SmaFileInterface {
             tpState: typeof own(secondary, "tpState") === "string" || typeof own(secondary, "tpState") === "boolean"
                 ? secondary.tpState as string | boolean : null,
             tradeState: typeof own(secondary, "tradeState") === "boolean" ? secondary.tradeState as boolean : null,
+            registeredAt: isRegistrationDate(own(secondary, "registeredAt")) ? secondary.registeredAt as string : null,
         },
     };
     for (const key of ["profileName", "mail", "mailPassword"] as const) {

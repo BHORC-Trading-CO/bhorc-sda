@@ -4,6 +4,7 @@ import SecondaryInterface from "../../../interfaces/SteamAccount/SecondaryInterf
 import ChangableSecondaryInterface from "../../../interfaces/SteamAccount/ChangableSecondaryInterface";
 import sanitizeAvatarUrl, { DEFAULT_AVATAR_URL } from "../../Functions/sanitizeAvatarUrl";
 import { t } from "../../../i18n";
+import { isRegistrationDate } from "../../Functions/registrationDate";
 
 // Всё, что даёт одно обновление аккаунта: профиль и статусы (secondary) и баланс (changableSecondary).
 export interface AccountData {
@@ -21,12 +22,14 @@ type Wallet = ChangableSecondaryInterface["steam"];
 //     ожидаемым JSON; при удачном miniprofile она не загружается.
 //  2. /market/ (~1 МБ) — КТ (текст), ТП и баланс кошелька (g_rgWalletInfo) с одной страницы.
 //  3. /market/eligibilitycheck/ — трейды и биты бана/блокировки для КТ.
+//  4. /profiles/<steamid>/?xml=1 (~2 КБ) — дата регистрации (memberSince). Она не меняется,
+//     поэтому запрос идёт, только пока дата неизвестна (knownRegisteredAt пуст).
 // Раньше профиль тянулся трижды, а /market/ дважды — залпом это быстро выбивало 429.
 //
 // Профиль критичен (без него нет ника/аватара): если не пришли ни miniprofile, ни страница
 // профиля, обновление падает целиком. Статусы и баланс — best-effort: неудачная проверка даёт
 // «неизвестно» (null) или строку ошибки баланса, но не роняет уже полученный профиль.
-export async function getAccountData(community: SteamCommunity): Promise<AccountData> {
+export async function getAccountData(community: SteamCommunity, knownRegisteredAt?: string | null): Promise<AccountData> {
     const identity = await getIdentity(community);
 
     let market: MarketPage | null = null;
@@ -46,12 +49,23 @@ export async function getAccountData(community: SteamCommunity): Promise<Account
         console.log(`getAccountData: trade-статус не получен (${err}), статус неизвестен`);
     }
 
+    let registeredAt: string | null = isRegistrationDate(knownRegisteredAt) ? knownRegisteredAt : null;
+    if (!registeredAt) {
+        try {
+            registeredAt = parseMemberSince(await getProfileXml(community));
+            if (!registeredAt) console.log("getAccountData: в XML профиля нет memberSince, дата регистрации неизвестна");
+        } catch (err) {
+            console.log(`getAccountData: XML профиля не загружен (${err}), дата регистрации неизвестна`);
+        }
+    }
+
     return {
         secondary: {
             ...identity,
             ktState: combineKtState(market ? market.ktLocked : null, trade ? trade.ktLocked : null),
             tpState: market ? market.tpState : null,
             tradeState: trade ? trade.tradeState : null,
+            registeredAt,
         },
         changableSecondary: { steam: market ? market.wallet : walletError(marketError) },
     };
@@ -124,6 +138,35 @@ export function parseMiniprofile(body: unknown): Identity | null {
 // Тянет HTML профиля один раз; запасной путь для ника/уровня/аватара.
 function getProfilePage(community: SteamCommunity): Promise<string> {
     return httpGetBody(community, `https://steamcommunity.com/profiles/${community.steamID}/`);
+}
+
+// XML профиля: тот же профиль, но с <memberSince>. Владельцу Steam отдаёт его и для закрытого профиля.
+function getProfileXml(community: SteamCommunity): Promise<string> {
+    return httpGetBody(community, `https://steamcommunity.com/profiles/${community.steamID}/?xml=1`);
+}
+
+const MONTHS = ["january", "february", "march", "april", "may", "june",
+    "july", "august", "september", "october", "november", "december"];
+
+// <memberSince>March 4, 2012</memberSince> -> "2012-03-04". Язык ответа английский: steamcommunity
+// ставит cookie Steam_Language=english. Встречается и "4 March, 2012", а для текущего года Steam
+// год не пишет ("March 4"). Всё остальное — null (неизвестно), а не случайная дата.
+export function parseMemberSince(xml: unknown, now: Date = new Date()): string | null {
+    if (typeof xml !== "string") return null;
+    const tag = /<memberSince>\s*(?:<!\[CDATA\[)?([^<\]]*)(?:\]\]>)?\s*<\/memberSince>/i.exec(xml);
+    if (!tag) return null;
+    const text = tag[1].trim().replace(/\s+/g, " ");
+    const monthFirst = /^([A-Za-z]+)\.? (\d{1,2})(?:st|nd|rd|th)?(?:,? (\d{4}))?$/.exec(text);
+    const dayFirst = /^(\d{1,2})(?:st|nd|rd|th)? ([A-Za-z]+)\.?(?:,? (\d{4}))?$/.exec(text);
+    const [monthName, day, year] = monthFirst ? [monthFirst[1], monthFirst[2], monthFirst[3]]
+        : dayFirst ? [dayFirst[2], dayFirst[1], dayFirst[3]]
+        : [null, null, null];
+    if (!monthName || !day) return null;
+    const lower = monthName.toLowerCase();
+    const month = MONTHS.findIndex((name) => name === lower || (lower.length >= 3 && name.startsWith(lower)));
+    if (month < 0) return null;
+    const value = `${year ?? now.getFullYear()}-${String(month + 1).padStart(2, "0")}-${day.padStart(2, "0")}`;
+    return isRegistrationDate(value, now.getTime()) ? value : null;
 }
 
 // Тянет HTML раздела маркета один раз; из него kt/tp статусы и баланс.
