@@ -493,15 +493,20 @@
     "test": {
       "editingWorking": "Проксі працює",
       "editingNotWorking": "Проксі НЕ працює",
+      "editingSteamStatus": "Проксі працює, але Steam відповів {{code}}",
       "working": "Проксі #{{number}} {{host}}:{{port}} працює",
       "notWorking": "Проксі #{{number}} {{host}}:{{port}} НЕ працює",
+      "steamStatus": "Проксі #{{number}} {{host}}:{{port}} працює, але Steam відповів {{code}}",
       "workingRich": "Проксі #{{number}} {{host}}:{{port}} <b>працює</b>",
       "notWorkingRich": "Проксі #{{number}} {{host}}:{{port}} <b>НЕ ПРАЦЮЄ</b>",
       "column": "Перевірка",
       "pending": "Тест…",
       "untested": "Без тесту",
       "ok": "Працює",
-      "failed": "Збій"
+      "failed": "Збій",
+      "steamCode": "Steam: {{code}}",
+      "summaryWorking": "Проксі перевірено, усі працюють: {{working}}",
+      "summaryFailed": "Проксі перевірено. Працюють: {{working}}, не пройшли: {{failed}} ({{numbers}})"
     },
     "errors": {
       "notFound": "Проксі #{{id}} не існує",

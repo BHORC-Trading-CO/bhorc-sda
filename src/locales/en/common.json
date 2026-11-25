@@ -475,15 +475,20 @@
     "test": {
       "editingWorking": "Proxy works",
       "editingNotWorking": "Proxy does NOT work",
+      "editingSteamStatus": "The proxy works, but Steam answered {{code}}",
       "working": "Proxy #{{number}} {{host}}:{{port}} works",
       "notWorking": "Proxy #{{number}} {{host}}:{{port}} does NOT work",
+      "steamStatus": "Proxy #{{number}} {{host}}:{{port}} works, but Steam answered {{code}}",
       "workingRich": "Proxy #{{number}} {{host}}:{{port}} <b>works</b>",
       "notWorkingRich": "Proxy #{{number}} {{host}}:{{port}} <b>DOES NOT WORK</b>",
       "column": "Test",
       "pending": "Testing…",
       "untested": "Untested",
       "ok": "Works",
-      "failed": "Failed"
+      "failed": "Failed",
+      "steamCode": "Steam: {{code}}",
+      "summaryWorking": "Proxies tested, all work: {{working}}",
+      "summaryFailed": "Proxies tested. Working: {{working}}, failed: {{failed}} ({{numbers}})"
     },
     "errors": {
       "notFound": "Proxy #{{id}} does not exist",

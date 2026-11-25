@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import Icon, { IconName } from '../../../../../globalComponents/Icon/Icon';
+import { ProxyTestResult } from '../../../../../../electron/interfaces/Proxy/ProxyResults';
 import './ProxyActions.css';
 
 type Action = 'test' | 'edit' | 'delete' | 'restore';
@@ -22,16 +23,20 @@ export const ProxyActionButton = ({ icon, label, busy = false, className = '', .
     </button>
 );
 
-export const ProxyTestButton = ({ isTesting, isWorking, onClick }: { isTesting: boolean, isWorking?: boolean, onClick: () => void }) => {
+export const ProxyTestButton = ({ isTesting, isWorking, failure, onClick }: { isTesting: boolean, isWorking?: boolean, failure?: Pick<ProxyTestResult, 'statusCode' | 'error'>, onClick: () => void }) => {
     const { t } = useTranslation();
     const state = isTesting ? 'pending' : isWorking === undefined ? 'idle' : isWorking ? 'success' : 'danger';
-    const status = t(isTesting ? 'proxies.test.pending' : isWorking === undefined ? 'proxies.test.untested' : isWorking ? 'proxies.test.ok' : 'proxies.test.failed');
+    // Код ответа Steam (403, 429): прокси работает, отказал Steam — отдельная подпись (SDA-64).
+    const steamCode = state === 'danger' ? failure?.statusCode : undefined;
+    const reason = state !== 'danger' ? undefined : steamCode ? t('proxies.test.editingSteamStatus', { code: steamCode }) : failure?.error;
+    const status = steamCode ? t('proxies.test.steamCode', { code: steamCode })
+        : t(isTesting ? 'proxies.test.pending' : isWorking === undefined ? 'proxies.test.untested' : isWorking ? 'proxies.test.ok' : 'proxies.test.failed');
 
     return (
         <div className={`proxy-test-control proxy-test-control--${state}`}>
             <ProxyActionButton icon="test" label={`${t('proxies.actions.test')}: ${status}`} aria-busy={isTesting} busy={isTesting} onClick={onClick} />
             {/* Результат — бейдж состояния: работает — зелёный, сбой — красный, иначе нейтральный. */}
-            <span className="proxy-test-state" role="status">{status}</span>
+            <span className="proxy-test-state" role="status" title={reason}>{status}</span>
         </div>
     );
 };

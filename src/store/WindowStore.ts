@@ -13,6 +13,7 @@ class WindowsStore {
     isMiniNotificationOpen: boolean;
     miniNotificationContent: MiniNotificationInterface;
     miniNotificationTimeout: NodeJS.Timeout | null;
+    private miniNotificationRequest: number = 0;
 
     constructor(root: Store) {
         this.root = root;
@@ -45,16 +46,20 @@ class WindowsStore {
         this.promptContent = {} as PromptInterface;
     }
     async openMiniNotification(props: MiniNotificationInterface) {
+        // Таймер принадлежит одному уведомлению (SDA-64): вызовы, пришедшие подряд, ставили каждый
+        // свой, и таймер прежнего закрывал новое раньше срока.
+        const request = ++this.miniNotificationRequest;
         if (this.miniNotificationTimeout) {
             this.closeMiniNotification();
-            console.log(this.miniNotificationTimeout)
             clearTimeout(this.miniNotificationTimeout);
+            this.miniNotificationTimeout = null;
         }
         await sleep(200);
-        console.log(this.isMiniNotificationOpen);
+        if (request !== this.miniNotificationRequest) return;
         this.isMiniNotificationOpen = true;
         this.miniNotificationContent = props;
         this.miniNotificationTimeout = setTimeout(() => {
+            this.miniNotificationTimeout = null;
             this.closeMiniNotification();
         }, 5000);
     }

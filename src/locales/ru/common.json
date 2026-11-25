@@ -493,15 +493,20 @@
     "test": {
       "editingWorking": "Прокси работает",
       "editingNotWorking": "Прокси НЕ работает",
+      "editingSteamStatus": "Прокси работает, но Steam ответил {{code}}",
       "working": "Прокси #{{number}} {{host}}:{{port}} работает",
       "notWorking": "Прокси #{{number}} {{host}}:{{port}} НЕ работает",
+      "steamStatus": "Прокси #{{number}} {{host}}:{{port}} работает, но Steam ответил {{code}}",
       "workingRich": "Прокси #{{number}} {{host}}:{{port}} <b>работает</b>",
       "notWorkingRich": "Прокси #{{number}} {{host}}:{{port}} <b>НЕ РАБОТАЕТ</b>",
       "column": "Проверка",
       "pending": "Тест…",
       "untested": "Без теста",
       "ok": "Работает",
-      "failed": "Сбой"
+      "failed": "Сбой",
+      "steamCode": "Steam: {{code}}",
+      "summaryWorking": "Прокси проверены, все работают: {{working}}",
+      "summaryFailed": "Прокси проверены. Работают: {{working}}, не прошли: {{failed}} ({{numbers}})"
     },
     "errors": {
       "notFound": "Прокси #{{id}} не существует",

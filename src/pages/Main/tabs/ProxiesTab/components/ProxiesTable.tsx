@@ -102,7 +102,7 @@ const CellJSX: FC<{ type: AvalibleTypes, proxy: TableProxyInterface }> = observe
             return <Password password={proxy.password} />;
         case AvalibleTypes.testProxyButton:
             return (
-                <ProxyTestButton isWorking={proxy.isWorking} isTesting={proxy.isTesting} onClick={() => {
+                <ProxyTestButton isWorking={proxy.isWorking} failure={proxy.testFailure} isTesting={proxy.isTesting} onClick={() => {
                     store.proxiesTable.testProxy(proxy.id);
                 }} />
             );

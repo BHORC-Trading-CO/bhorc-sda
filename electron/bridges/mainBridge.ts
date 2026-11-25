@@ -11,7 +11,7 @@ import SmaFileInterface from '../interfaces/SteamAccount/SmaFileInterface';
 import CreationStepType from '../interfaces/SteamAccount/CreationStepType';
 import GuardSetupResultInterface from '../interfaces/SteamAccount/GuardSetupResultInterface';
 import ProxySetupInterface from '../interfaces/Proxy/ProxySetupInterface';
-import { ProxyBulkResult, ProxyEditReply } from '../interfaces/Proxy/ProxyResults';
+import { ProxyBulkResult, ProxyEditReply, ProxyTestReply } from '../interfaces/Proxy/ProxyResults';
 import ChangableSecondaryInterface from '../interfaces/SteamAccount/ChangableSecondaryInterface';
 import SecondaryInterface from '../interfaces/SteamAccount/SecondaryInterface';
 import SteamAccountChannels from '../interfaces/IpcChannels/SteamAccountChannels';
@@ -198,13 +198,14 @@ const proxies = {
   saveTableFields(fields: Field[]) {
     ipcRenderer.send('SAVE_PROXIES_TABLE_FIELDS', fields);
   },
-  test(id: string) {
-    ipcRenderer.send('TEST_PROXY', id);
+  test(id: string, requestId: string) {
+    ipcRenderer.send('TEST_PROXY', { requestId, id });
   },
-  testByParams(proxy: ProxySetupInterface) {
-    ipcRenderer.send('TEST_PROXY_BY_PARAMS', proxy);
+  testByParams(proxy: ProxySetupInterface, requestId: string) {
+    ipcRenderer.send('TEST_PROXY_BY_PARAMS', { requestId, proxy });
   },
-  onTest(listener: (event: IpcRendererEvent, params: { id: string, testResult: boolean }) => void) {
+  /** Итог проверки: один на каждый test / testByParams, со своим requestId */
+  onTest(listener: (event: IpcRendererEvent, reply: ProxyTestReply) => void) {
     ipcRenderer.on('TEST_PROXY', listener);
   },
   getTableOptions() {

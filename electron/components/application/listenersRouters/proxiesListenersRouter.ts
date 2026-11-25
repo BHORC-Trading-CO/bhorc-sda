@@ -4,8 +4,10 @@ import TableStorage from '../../newStorage/TableStorage';
 import Field from '../../../interfaces/TableFields/Field';
 import TableProxyInterface from '../../../interfaces/Proxy/TableProxyInterface';
 import ProxySetupInterface from '../../../interfaces/Proxy/ProxySetupInterface';
+import { ProxyTestResult } from '../../../interfaces/Proxy/ProxyResults';
 import Proxy from '../../Proxy/Proxy';
 import importProxies from '../../Proxy/importProxies';
+import { sanitizeProxySetup } from '../../Functions/sanitizeSmaFile';
 import ProxyStorage from '../../newStorage/ProxyStorage';
 import Manager from '../../Manager/Manager';
 import SuperMethods from '../../SuperMethods/SuperMethods';
@@ -15,26 +17,25 @@ import proxySetTableOptionsListener from '../../Proxy/listeners/proxySetTableOpt
 import { t } from "../../../i18n";
 
 export default () => {
-    onTrusted('TEST_PROXY', async (event, id: string) => {
-        try {
-            const proxy = proxyManager.getById(id);
-            if (!proxy) throw new Error(t('errors.proxyNotFound', { id }));
-            //await SuperMethods.Sleep(3000);
-            const testResult = await proxy.test();
-            event.reply('TEST_PROXY', { id, testResult });
-        } catch (err) {
-            event.reply('ERROR', String(err));
-        }
+    // Каждая проверка получает ровно один ответ TEST_PROXY со своим requestId — и при отказе тоже (SDA-64).
+    onTrusted('TEST_PROXY', async (event, params: { requestId: string, id: string }) => {
+        const { requestId, id } = params;
+        const proxy = proxyManager.getById(id);
+        if (!proxy) return event.reply('TEST_PROXY', { requestId, id, ok: false, error: t('errors.proxyNotFound', { id }) });
+        // Снимок до запроса: пока идёт проверка, прокси могут изменить.
+        const { host, port, username, password } = proxy.params;
+        const result = await proxy.test();
+        event.reply('TEST_PROXY', { requestId, id, tested: { host, port, username, password }, ...result });
     });
-    onTrusted('TEST_PROXY_BY_PARAMS', async (event, proxy: ProxySetupInterface) => {
+    onTrusted('TEST_PROXY_BY_PARAMS', async (event, params: { requestId: string, proxy: ProxySetupInterface }) => {
+        let result: ProxyTestResult;
         try {
-            const isWork = await Proxy.Test(proxy);
-            console.log(isWork);
-            event.reply('TEST_PROXY', { id: 'editing_proxy', testResult: isWork });
-        } catch (err){
-            event.reply('ERROR', String(err));
+            result = await Proxy.Test(sanitizeProxySetup(params.proxy));
+        } catch (err) {
+            result = { ok: false, error: err instanceof Error ? err.message : String(err) };
         }
-    }); 
+        event.reply('TEST_PROXY', { requestId: params.requestId, ...result });
+    });
     onTrusted('REFRESH_PROXIES', async (event) => {
         try {
             proxyManager.load();

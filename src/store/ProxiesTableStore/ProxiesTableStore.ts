@@ -1,13 +1,24 @@
-import store, { Store } from "../store";
-import { makeAutoObservable, toJS, runInAction } from "mobx";
+import { Store } from "../store";
+import { makeAutoObservable, toJS } from "mobx";
 import AvalibleTypes from "../../../electron/interfaces/TableFields/AvalibleFieldTypes";
 import Field from "../../../electron/interfaces/TableFields/Field";
 import TableProxyInterface from "../../../electron/interfaces/Proxy/TableProxyInterface";
 import defaultProxiesTableFields from "../../../electron/interfaces/TableFields/defaults/proxiesTableFields";
 import ProxySetupInterface from "../../../electron/interfaces/Proxy/ProxySetupInterface";
 import testingResultJsx from "./testingResultJsx";
-import { ProxyBulkResult, ProxyEditReply } from "../../../electron/interfaces/Proxy/ProxyResults";
+import { ProxyBulkResult, ProxyEditReply, ProxyTestReply, ProxyTestResult } from "../../../electron/interfaces/Proxy/ProxyResults";
 import i18n from "../../i18n/i18n";
+
+/** Массовая проверка: одно общее уведомление, когда придут ответы по всем прокси (SDA-64). */
+interface TestBatch {
+  left: number;
+  working: number;
+  failed: string[];
+}
+
+const setupOf = ({ host, port, username, password }: ProxySetupInterface): ProxySetupInterface => ({ host, port, username, password });
+const isSameSetup = (a: ProxySetupInterface, b: ProxySetupInterface) =>
+  a.host === b.host && String(a.port) === String(b.port) && a.username === b.username && a.password === b.password;
 
 class ProxiesTableStore {
   root: Store;
@@ -28,13 +39,13 @@ class ProxiesTableStore {
   activePage: number;
   isTestingEditingProxy: boolean;
   editingTestResult: boolean | undefined;
+  editingTestFailure: ProxyTestResult | undefined;
   testedEditingProxy: ProxySetupInterface | undefined;
-  private editingTestRequestSeq: number;
-  private editingTestReplySeq: number | undefined;
-  private pendingEditingTestCount: number;
+  private editingTestRequestId: string | null = null;
   hidenProxyId: string[];
   searchString: string;
   private requestSeq: number = 0;
+  private pendingTests = new Map<string, { id: string; setup: ProxySetupInterface; batch?: TestBatch }>();
   private pendingBulk = new Map<string, (result: ProxyBulkResult) => void>();
 
   constructor(root: Store) {
@@ -54,15 +65,14 @@ class ProxiesTableStore {
 
     this.isTestingEditingProxy = false;
     this.editingTestResult = undefined;
+    this.editingTestFailure = undefined;
     this.testedEditingProxy = undefined;
-    this.editingTestRequestSeq = 0;
-    this.editingTestReplySeq = undefined;
-    this.pendingEditingTestCount = 0;
 
     this.pageSize = 20;
     this.activePage = 1;
 
-    makeAutoObservable(this);
+    // Служебные очереди запросов: mobx копировал бы в них объекты, а batch у всех записей один.
+    makeAutoObservable<this, "pendingTests" | "pendingBulk">(this, { pendingTests: false, pendingBulk: false });
 
     window.Main.proxies.getTableFields();
     window.Main.proxies.get();
@@ -72,37 +82,7 @@ class ProxiesTableStore {
       this.setPageSize(options.pageSize, false);
       this.setActivePage(options.activePage, false);
     });
-    window.Main.proxies.onTest((event, data) => {
-      if (data.id === "editing_proxy") {
-        if (this.pendingEditingTestCount === 0) return;
-        const isCurrentReply = this.pendingEditingTestCount === 1
-          && this.editingTestReplySeq === this.editingTestRequestSeq;
-        this.pendingEditingTestCount -= 1;
-        this.isTestingEditingProxy = this.pendingEditingTestCount > 0 && this.testedEditingProxy !== undefined;
-        if (this.pendingEditingTestCount === 0) this.editingTestReplySeq = undefined;
-        if (!isCurrentReply) return;
-        this.editingTestResult = data.testResult;
-        store.windows.openMiniNotification({
-          text: i18n.t(data.testResult ? "proxies.test.editingWorking" : "proxies.test.editingNotWorking"),
-          type: data.testResult ? "success" : "error",
-        });
-        return;
-      }
-      const proxy = this.proxies.filter((p) => p.id === data.id);
-      if (!proxy[0]) throw new Error(i18n.t("proxies.errors.notFound", { id: data.id }));
-      proxy[0].isTesting = false;
-      store.windows.openMiniNotification({
-        type: data.testResult ? "success" : "error",
-        text: i18n.t(data.testResult ? "proxies.test.working" : "proxies.test.notWorking", {
-          number: proxy[0].number,
-          host: proxy[0].host,
-          port: proxy[0].port,
-        }),
-      });
-      runInAction(() => {
-        proxy[0].isWorking = data.testResult;
-      });
-    });
+    window.Main.proxies.onTest((event, data) => this.onTestReply(data));
     window.Main.proxies.onEditResult((event, data) => this.onEditResult(data));
     window.Main.proxies.onBulkResult((event, data) => this.onBulkResult(data));
     window.Main.proxies.onGetTableFields((event, fields) => {
@@ -114,12 +94,12 @@ class ProxiesTableStore {
 
       for (var proxy of proxies) {
         if (!proxy.deleted) {
-          tableProxies.push({ ...proxy, isSelected: false, isTesting: false });
+          tableProxies.push({ ...proxy, isSelected: false, isTesting: this.isTestPending(proxy) });
         } else {
           deletedTableProxies.push({
             ...proxy,
             isSelected: false,
-            isTesting: false,
+            isTesting: this.isTestPending(proxy),
           });
         }
       }
@@ -159,36 +139,98 @@ class ProxiesTableStore {
     }
   }
   testEditingProxy(proxy: ProxySetupInterface) {
+    // Предыдущая проверка, если ещё идёт, больше не нужна: её ответ придёт с другим id.
+    this.editingTestRequestId = this.nextRequestId();
     this.isTestingEditingProxy = true;
-    this.editingTestRequestSeq += 1;
-    // Replies carry only editing_proxy, without params or a request ID. Once
-    // requests overlap, none can be attributed safely, even if replies reorder.
-    this.editingTestReplySeq = this.pendingEditingTestCount === 0 ? this.editingTestRequestSeq : undefined;
-    this.pendingEditingTestCount += 1;
     // Display-only snapshot: do not show a previous result for changed credentials.
-    this.testedEditingProxy = { ...proxy };
+    this.testedEditingProxy = setupOf(proxy);
     this.editingTestResult = undefined;
-    window.Main.proxies.testByParams(proxy);
+    this.editingTestFailure = undefined;
+    window.Main.proxies.testByParams(setupOf(proxy), this.editingTestRequestId);
   }
   resetEditingTestDisplay() {
-    this.editingTestRequestSeq += 1;
-    this.editingTestReplySeq = undefined;
+    this.editingTestRequestId = null;
     this.testedEditingProxy = undefined;
     this.editingTestResult = undefined;
+    this.editingTestFailure = undefined;
     this.isTestingEditingProxy = false;
-    // Keep the in-flight count so replies from a closed/changed form can drain.
   }
-  testProxy(id: string) {
-    const proxy = this.proxies.filter((p) => p.id === id);
-    if (!proxy[0]) throw new Error(i18n.t("proxies.errors.notFound", { id }));
-    proxy[0].isTesting = true;
-    window.Main.proxies.test(id);
+  testProxy(id: string, batch?: TestBatch) {
+    const proxy = this.proxies.find((p) => p.id === id);
+    if (!proxy) throw new Error(i18n.t("proxies.errors.notFound", { id }));
+    if (proxy.isTesting) return;
+    const requestId = this.nextRequestId();
+    this.pendingTests.set(requestId, { id, setup: setupOf(proxy), batch });
+    if (batch) batch.left += 1;
+    proxy.isTesting = true;
+    window.Main.proxies.test(id, requestId);
   }
   testSelected() {
-    const selected = this.proxies.filter((p) => p.isSelected && !p.deleted);
-    for (var proxy of selected) {
-      this.testProxy(proxy.id);
+    const batch: TestBatch = { left: 0, working: 0, failed: [] };
+    for (var proxy of this.proxies.filter((p) => p.isSelected && !p.deleted)) {
+      this.testProxy(proxy.id, batch);
     }
+  }
+  // Идёт ли проверка именно этих данных прокси: правка прокси её результат отменяет (SDA-64).
+  private isTestPending(proxy: ProxySetupInterface & { id: string }): boolean {
+    return Array.from(this.pendingTests.values()).some((test) => test.id === proxy.id && isSameSetup(test.setup, proxy));
+  }
+  private onTestReply(data: ProxyTestReply) {
+    const failure = data.ok ? undefined : { ok: false, statusCode: data.statusCode, error: data.error };
+    if (data.requestId === this.editingTestRequestId) {
+      this.editingTestRequestId = null;
+      this.isTestingEditingProxy = false;
+      this.editingTestResult = data.ok;
+      this.editingTestFailure = failure;
+      this.root.windows.openMiniNotification({
+        text: failure ? this.testFailureText(failure) : i18n.t("proxies.test.editingWorking"),
+        type: data.ok ? "success" : "error",
+      });
+      return;
+    }
+    const test = this.pendingTests.get(data.requestId);
+    if (!test) return;
+    this.pendingTests.delete(data.requestId);
+    // Прокси могли удалить или изменить: результат относится только к тем данным, которые проверены.
+    const proxy = this.proxies.find((p) => p.id === test.id);
+    if (proxy) proxy.isTesting = this.isTestPending(proxy);
+    const applies = proxy !== undefined && isSameSetup(proxy, data.tested ?? test.setup);
+    if (proxy && applies) {
+      proxy.isWorking = data.ok;
+      proxy.testFailure = failure;
+    }
+    if (test.batch) return this.onBatchReply(test.batch, applies ? proxy : undefined, data);
+    if (!proxy || !applies) return;
+    this.root.windows.openMiniNotification({
+      type: data.ok ? "success" : "error",
+      text: failure ? this.testFailureText(failure, proxy) : i18n.t("proxies.test.working", {
+        number: proxy.number,
+        host: proxy.host,
+        port: proxy.port,
+      }),
+    });
+  }
+  private onBatchReply(batch: TestBatch, proxy: TableProxyInterface | undefined, data: ProxyTestReply) {
+    batch.left -= 1;
+    if (proxy && data.ok) batch.working += 1;
+    if (proxy && !data.ok) batch.failed.push(`#${proxy.number}${data.statusCode ? ` (Steam ${data.statusCode})` : ""}`);
+    if (batch.left > 0 || batch.working + batch.failed.length === 0) return;
+    this.root.windows.openMiniNotification({
+      type: batch.failed.length === 0 ? "success" : "error",
+      text: i18n.t(batch.failed.length === 0 ? "proxies.test.summaryWorking" : "proxies.test.summaryFailed", {
+        working: batch.working,
+        failed: batch.failed.length,
+        // Полный список — в строках таблицы; уведомление не должно закрывать её целиком.
+        numbers: batch.failed.slice(0, 30).join(", ") + (batch.failed.length > 30 ? "…" : ""),
+      }),
+    });
+  }
+  // Steam ответил не 200 — прокси при этом работает: отдельный текст с кодом (SDA-64).
+  private testFailureText(failure: ProxyTestResult, proxy?: TableProxyInterface): string {
+    const values = { number: proxy?.number, host: proxy?.host, port: proxy?.port, code: failure.statusCode, error: failure.error };
+    if (failure.statusCode) return i18n.t(proxy ? "proxies.test.steamStatus" : "proxies.test.editingSteamStatus", values);
+    const text = i18n.t(proxy ? "proxies.test.notWorking" : "proxies.test.editingNotWorking", values);
+    return failure.error ? `${text}: ${failure.error}` : text;
   }
   setFields(fields: Field[]) {
     this.fields = fields;

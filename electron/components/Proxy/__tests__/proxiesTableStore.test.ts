@@ -85,3 +85,123 @@ describe("editing form", () => {
         expect(toasts).toEqual([{ type: "error", text: "bad port" }]);
     });
 });
+
+describe("proxy tests", () => {
+    const setup = (n: number) => ({ host: `host${n}.test`, port: "80", username: "u", password: "p" });
+    const row = (n: number) => table.proxies.find(p => p.id === `p${n}`)!;
+    const requestFor = (id: string) => api.test.mock.calls.filter(call => call[0] === id).map(call => call[1] as string);
+    const reply = (n: number, result: object, requestId = requestFor(`p${n}`)[0]) => receive("onTest", { requestId, id: `p${n}`, tested: setup(n), ...result });
+    beforeEach(() => rows(proxy(1), proxy(2), proxy(3)));
+
+    it("each request has its own id and one reply ends it", () => {
+        table.testProxy("p1");
+        table.testProxy("p1");
+        expect(api.test).toHaveBeenCalledTimes(1);
+        expect(row(1).isTesting).toBe(true);
+        reply(1, { ok: true });
+        expect([row(1).isTesting, row(1).isWorking]).toEqual([false, true]);
+        reply(1, { ok: false, error: "late duplicate" });
+        expect(row(1).isWorking).toBe(true);
+        table.testProxy("p1");
+        expect(new Set(requestFor("p1")).size).toBe(2);
+    });
+
+    it("Steam's 429 is not a dead proxy: distinct text with the code", () => {
+        table.testProxy("p1");
+        reply(1, { ok: false, statusCode: 429 });
+        expect(row(1)).toMatchObject({ isTesting: false, isWorking: false, testFailure: { statusCode: 429 } });
+        expect(toasts).toEqual([{ type: "error", text: 'proxies.test.steamStatus|{"number":1,"host":"host1.test","port":"80","code":429}' }]);
+    });
+
+    it("a dead proxy shows the reason", () => {
+        table.testProxy("p1");
+        reply(1, { ok: false, error: "ECONNREFUSED" });
+        expect(toasts[0].text).toBe('proxies.test.notWorking|{"number":1,"host":"host1.test","port":"80","error":"ECONNREFUSED"}: ECONNREFUSED');
+    });
+
+    it.each([{ host: "new.test" }, { port: "81" }, { username: "other" }, { password: "other" }])("a result for replaced data %j is dropped", change => {
+        table.testProxy("p1");
+        rows(proxy(1, change), proxy(2));
+        expect(row(1).isTesting).toBe(false);
+        // Новые данные можно проверить, не дожидаясь старого ответа.
+        table.testProxy("p1");
+        const [first, second] = requestFor("p1");
+        reply(1, { ok: true }, first);
+        expect([row(1).isTesting, row(1).isWorking]).toEqual([true, undefined]);
+        expect(toasts).toEqual([]);
+        receive("onTest", { requestId: second, id: "p1", tested: { ...setup(1), ...change }, ok: false, error: "x" });
+        expect([row(1).isTesting, row(1).isWorking]).toEqual([false, false]);
+    });
+
+    it("main tested other data than the row shows: nothing is applied", () => {
+        table.testProxy("p1");
+        receive("onTest", { requestId: requestFor("p1")[0], id: "p1", tested: { ...setup(1), password: "main-has-another" }, ok: true });
+        expect([row(1).isTesting, row(1).isWorking]).toEqual([false, undefined]);
+        expect(toasts).toEqual([]);
+    });
+
+    it("a list reply with the same data keeps the spinner; a deleted proxy does not throw", () => {
+        table.testProxy("p1");
+        rows(proxy(1), proxy(2));
+        expect(row(1).isTesting).toBe(true);
+        rows(proxy(2));
+        expect(() => reply(1, { ok: true })).not.toThrow();
+        expect(toasts).toEqual([]);
+    });
+
+    it("a bulk test ends with one summary that names the failed proxies", () => {
+        ["p1", "p2", "p3"].forEach(id => table.selectProxy(id));
+        table.testSelected();
+        reply(2, { ok: false, error: "dead" });
+        reply(1, { ok: true });
+        expect(toasts).toEqual([]);
+        reply(3, { ok: false, statusCode: 403 });
+        expect(toasts).toEqual([{ type: "error", text: 'proxies.test.summaryFailed|{"working":1,"failed":2,"numbers":"#2, #3 (Steam 403)"}' }]);
+        expect([row(1).isWorking, row(2).isWorking, row(3).isWorking]).toEqual([true, false, false]);
+    });
+
+    it("a bulk summary counts only results that were applied", () => {
+        ["p1", "p2"].forEach(id => table.selectProxy(id));
+        table.testSelected();
+        rows(proxy(1, { password: "new" }), proxy(2));
+        reply(1, { ok: true });
+        reply(2, { ok: true });
+        expect(toasts).toEqual([{ type: "success", text: 'proxies.test.summaryWorking|{"working":1,"failed":0,"numbers":""}' }]);
+    });
+
+    describe("add and edit windows", () => {
+        const form = (requestIndex: number, result: object) => receive("onTest", { requestId: api.testByParams.mock.calls[requestIndex][1], ...result });
+
+        it("a refused address does not block the next test", () => {
+            table.testEditingProxy({ host: "", port: "", username: "", password: "" });
+            form(0, { ok: false, error: "Invalid proxy address" });
+            expect([table.isTestingEditingProxy, table.editingTestResult]).toEqual([false, false]);
+            expect(toasts[0].text).toBe('proxies.test.editingNotWorking|{"error":"Invalid proxy address"}: Invalid proxy address');
+            table.testEditingProxy(setup(1));
+            expect(table.isTestingEditingProxy).toBe(true);
+            form(1, { ok: true });
+            expect([table.isTestingEditingProxy, table.editingTestResult]).toEqual([false, true]);
+        });
+
+        it("only the last request counts, whatever the order of the replies", () => {
+            table.testEditingProxy(setup(1));
+            table.testEditingProxy(setup(2));
+            form(1, { ok: false, statusCode: 429 });
+            form(0, { ok: true });
+            expect([table.editingTestResult, table.editingTestFailure?.statusCode]).toEqual([false, 429]);
+            expect(toasts.map(toast => toast.text)).toEqual(['proxies.test.editingSteamStatus|{"code":429}']);
+        });
+
+        it("a reply after the window closed or the value changed shows nothing", () => {
+            table.testEditingProxy(setup(1));
+            table.resetEditingTestDisplay();
+            form(0, { ok: true });
+            expect([table.editingTestResult, toasts.length]).toEqual([undefined, 0]);
+        });
+
+        it("only the connection fields go to main", () => {
+            table.testEditingProxy(proxy(1) as any);
+            expect(api.testByParams.mock.calls[0][0]).toEqual(setup(1));
+        });
+    });
+});
