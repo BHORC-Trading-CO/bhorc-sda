@@ -14,7 +14,7 @@ import GuardSetupResultInterface from "../../../interfaces/SteamAccount/GuardSet
 import ProxySelection from "../../../interfaces/Proxy/ProxySelection";
 import { t } from "../../../i18n";
 
-export default async (event: Electron.IpcMainEvent, params: { accountName: string, password: string, links: ProxySelection }) => {
+export default async (event: Electron.IpcMainEvent, params: { accountName: string, password: string, profileName?: string, mail?: string, mailPassword?: string, useSteamCookies?: boolean, links: ProxySelection }) => {
     try {
         const nextStep = (step: CreationStepType) => application.sendToMain(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, step)
         nextStep("start");
@@ -36,7 +36,8 @@ export default async (event: Electron.IpcMainEvent, params: { accountName: strin
             };
             application.sendToMain(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT, result);
         };
-        const smaFile = await setupGuard({ accountName: params.accountName, password: params.password }, proxy, showRecovery);
+        const { accountName, password, profileName, mail, mailPassword, useSteamCookies } = params;
+        const smaFile = await setupGuard({ accountName, password, profileName, mail, mailPassword, useSteamCookies }, proxy, showRecovery);
         showRecovery(smaFile.maFile.revocation_code, String(smaFile.maFile.Session?.SteamID ?? ""));
         nextStep("import");
         steamAccountImport(smaFile, proxy?.id ?? null);

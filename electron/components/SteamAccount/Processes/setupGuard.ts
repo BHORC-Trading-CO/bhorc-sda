@@ -34,6 +34,10 @@ export default async function setupGuard(
   steamAccountParams: {
     accountName: string;
     password: string;
+    profileName?: string;
+    mail?: string;
+    mailPassword?: string;
+    useSteamCookies?: boolean;
   },
   proxy?: ProxySetupInterface | null,
   onRecovery?: (revocationCode: string, steamId: string) => void
@@ -247,7 +251,11 @@ export default async function setupGuard(
               maFile: maFile,
               secondary: secondaries,
               familyViewPin: null,
-              useSteamCookies: true,
+              // Заполненное в форме раньше терялось, а куки включались всегда (SDA-62)
+              useSteamCookies: steamAccountParams.useSteamCookies ?? true,
+              profileName: steamAccountParams.profileName,
+              mail: steamAccountParams.mail,
+              mailPassword: steamAccountParams.mailPassword,
             };
             resolve(sMaFile);
           })

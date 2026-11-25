@@ -64,3 +64,8 @@ it.each([["error", new Error("proxy down"), "proxy down"], ["timeout", undefined
     await expect(setupGuard({ accountName: "fake", password: "fake" }, null, jest.fn())).rejects.toThrow(message);
     expect(mockOrder).toEqual([]);
 });
+it("SDA-62 the form's mail, profile name and cookie choice reach the new account", async () => {
+    const extra = { mail: "m@example.invalid", mailPassword: "mail-password", profileName: "profile", useSteamCookies: false };
+    await expect(setupGuard({ accountName: "fake", password: "fake", ...extra }, null)).resolves.toMatchObject(extra);
+    await expect(setupGuard({ accountName: "fake", password: "fake" }, null)).resolves.toMatchObject({ useSteamCookies: true });
+});

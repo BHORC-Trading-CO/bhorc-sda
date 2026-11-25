@@ -132,3 +132,24 @@ it("R2 N5 new proxy is saved after successful login and before the atomic accoun
     expect(LinksStorage.Get().steamAccounts[account.params.id]).toBe(selected.id);
     expect(account.proxyState).toBe("ok");
 });
+it("SDA-62 the Guard wizard passes the form's fields on", async () => {
+    const extra = { mail: "m@example.invalid", mailPassword: "mail-password", profileName: "profile", useSteamCookies: false };
+    (setupGuard as jest.Mock).mockClear().mockResolvedValueOnce({ ...file(), ...extra });
+    await guardListener({ reply: jest.fn() } as any, { ...params(), ...extra });
+    expect((setupGuard as jest.Mock).mock.calls[0][0]).toEqual({ accountName: "fake", password: "fake", ...extra });
+    expect(steamAccountManager.objects[0].params).toMatchObject(extra);
+});
+it("SDA-62 a new account signs in once right after the import; a failure goes to its row", async () => {
+    const init = jest.spyOn(SteamAccount.prototype, "initSession").mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("sign-in failed"));
+    (application.sendToMain as jest.Mock).mockClear();
+    steamAccountImport(file(), "p1");
+    expect(init).toHaveBeenCalledTimes(1);
+    expect(init.mock.instances[0]).toBe(steamAccountManager.objects[0]);
+    const failed = steamAccountImport(file(), "p1");
+    // Список с новой строкой уходит в окно раньше ошибки: она приходит асинхронно
+    expect(application.sendToMain).not.toHaveBeenCalled();
+    await steamAccountManager.objects[1].sessionReady;
+    await Promise.resolve();
+    expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR,
+        { id: failed.id, err: "Error: sign-in failed" });
+});

@@ -86,6 +86,11 @@ describe("identity (R2-1)", () => {
     });
 });
 
+it("the form's mail, profile name and cookie choice reach the new account (R2-4)", async () => {
+    const extra = { mail: "m@example.invalid", mailPassword: "mail-password", profileName: "profile", useSteamCookies: false };
+    await expect(maFileLogin({ ...params(), ...extra })).resolves.toMatchObject(extra);
+});
+
 describe("dead refresh token", () => {
     it("an expired token is not sent to Steam: login by password", async () => {
         const setup = params({ Session: tokens(A, Date.now() - DAY) });

@@ -304,7 +304,7 @@ const window = {
 }
 
 const guardConnection = {
-  setup(params: { accountName: string, password: string }, links: ProxySelection) {
+  setup(params: { accountName: string, password: string, profileName?: string, mail?: string, mailPassword?: string, useSteamCookies?: boolean }, links: ProxySelection) {
     ipcRenderer.send(SteamAccountChannels.GUARD_SETUP_PROCESS, { ...params, links });
   },
   onSetupError: (listener: (event: IpcRendererEvent, error: string) => void) => {

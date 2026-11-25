@@ -34,7 +34,8 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
     return new Promise<SmaFileInterface>(async (resolve, reject) => {
         // Прокси опционален: если передан — весь трафик идёт через него, если нет —
         // напрямую с реального IP (осознанный выбор пользователя).
-        const session = createLoginSession(proxyUrl);
+        const newLoginSession = () => createLoginSession(proxyUrl);
+        const session = newLoginSession();
         const community = new SteamCommunity({
             request: proxyUrl ? boundedRequest({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS }) : boundedRequest({ headers: STEAM_WEB_HEADERS }),
             userAgent: STEAM_MOBILE_USER_AGENT
@@ -97,7 +98,7 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                     nextStep("loginByPassword");
                     // Свежий LoginSession: в прежнем остались мёртвые токены maFile, и токен другого
                     // аккаунта бросил бы внутри опроса библиотеки, где ошибку никто не ловит.
-                    const session = createLoginSession(proxyUrl);
+                    const session = newLoginSession();
                     const result = await session.startWithCredentials({
                         accountName: accountName,
                         password: password,
@@ -188,7 +189,11 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                                 maFile: steamAccountParams.maFile,
                                 secondary: data,
                                 familyViewPin: steamAccountParams.familyViewPin ? steamAccountParams.familyViewPin : null,
-                                useSteamCookies: steamAccountParams.useSteamCookies
+                                useSteamCookies: steamAccountParams.useSteamCookies,
+                                // Заполненное в форме раньше терялось (SDA-62)
+                                profileName: steamAccountParams.profileName,
+                                mail: steamAccountParams.mail,
+                                mailPassword: steamAccountParams.mailPassword
                             };
                             resolve(sMaFile);
                         })
