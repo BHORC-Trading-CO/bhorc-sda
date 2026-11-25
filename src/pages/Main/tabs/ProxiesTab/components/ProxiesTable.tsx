@@ -16,9 +16,9 @@ const ProxiesTable: FC = observer(() => {
     const proxiesByPage = store.proxiesTable.getProxiesByPages();
     const lines: Line[] = [];
 
-    if (proxiesByPage[store.proxiesTable.activePage - 1])
-        for (var proxy of proxiesByPage[store.proxiesTable.activePage - 1]) {
-            if (proxy.deleted && !store.proxiesTable.showDeleted) continue;
+    const page = proxiesByPage[store.proxiesTable.currentPage - 1];
+    if (page)
+        for (var proxy of page) {
             lines.push(generateLine(fields, proxy));
         }
     const empty = proxiesByPage.length === 0 ? <ProxiesEmptyState /> : null;

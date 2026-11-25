@@ -1,4 +1,4 @@
-// SDA-64: стор страницы Proxies — импорт списка.
+// SDA-64: стор страницы Proxies — импорт списка, правка, проверки, выделение и страницы.
 jest.mock("../../../../src/store/store", () => ({ __esModule: true, default: {} }));
 jest.mock("../../../../src/i18n/i18n", () => ({ __esModule: true, default: { t: (key: string, options?: object) => options ? `${key}|${JSON.stringify(options)}` : key } }));
 
@@ -203,5 +203,80 @@ describe("proxy tests", () => {
             table.testEditingProxy(proxy(1) as any);
             expect(api.testByParams.mock.calls[0][0]).toEqual(setup(1));
         });
+    });
+});
+
+describe("selection scope and pages", () => {
+    const ids = (items: { id: string }[]) => items.map(item => item.id);
+    const pageIds = () => ids(table.getProxiesByPages()[table.currentPage - 1] ?? []);
+    beforeEach(() => {
+        rows(...Array.from({ length: 25 }, (_, i) => proxy(i + 1)), proxy(99, { deleted: true }));
+        table.setPageSize(10, false);
+    });
+
+    it("the header checkbox selects only what the search shows", () => {
+        table.search("host25");
+        table.selectAllProxies(true);
+        expect(table.isAllSelected).toBe(true);
+        expect(ids(table.getSelectedProxies())).toEqual(["p25"]);
+        table.search("");
+        expect(table.isAllSelected).toBe(false);
+        expect(ids(table.getSelectedProxies())).toEqual(["p25"]);
+    });
+
+    it("rows selected before the search and hidden by it take no part in bulk actions", () => {
+        table.selectProxy("p1");
+        table.search("host25");
+        table.selectProxy("p25");
+        expect(ids(table.getSelectedProxies())).toEqual(["p25"]);
+        table.testSelected();
+        expect(api.test.mock.calls.map(call => call[0])).toEqual(["p25"]);
+        table.search("");
+        expect(ids(table.getSelectedProxies())).toEqual(["p1", "p25"]);
+    });
+
+    it("without a search all active proxies are selected, archived ones never", () => {
+        table.changeShowStatus(true);
+        table.selectAllProxies(true);
+        expect(table.getSelectedProxies()).toHaveLength(25);
+        expect(table.isAllSelected).toBe(true);
+        table.selectProxy("p7", false);
+        expect(table.isAllSelected).toBe(false);
+    });
+
+    it("the header checkbox follows the list: a new list clears both", () => {
+        table.selectAllProxies(true);
+        rows(proxy(1), proxy(2));
+        expect([table.isAllSelected, table.getSelectedProxies().length]).toEqual([false, 0]);
+    });
+
+    it("a search from a far page shows its matches", () => {
+        table.setActivePage(3);
+        expect(pageIds()).toEqual(["p21", "p22", "p23", "p24", "p25"]);
+        table.search("host25");
+        expect([table.currentPage, pageIds()]).toEqual([1, ["p25"]]);
+    });
+
+    it("the page is clamped when rows disappear under the search or without it", () => {
+        table.setActivePage(3);
+        rows(...Array.from({ length: 12 }, (_, i) => proxy(i + 1)));
+        expect([table.currentPage, pageIds()]).toEqual([2, ["p11", "p12"]]);
+        rows();
+        expect(table.currentPage).toBe(1);
+    });
+
+    it("the search follows proxies added or edited while it is on", () => {
+        table.search("host25");
+        rows(...Array.from({ length: 25 }, (_, i) => proxy(i + 1)), proxy(26, { host: "host25-new.test" }));
+        expect(pageIds()).toEqual(["p25", "p26"]);
+        rows(...Array.from({ length: 25 }, (_, i) => proxy(i + 1, i === 24 ? { host: "renamed.test" } : {})));
+        expect(pageIds()).toEqual([]);
+    });
+
+    it("table rows are plain copies: they go to IPC and to the edit window", () => {
+        const { isObservable } = require("mobx");
+        rows(proxy(1, { steamAccountIds: ["a1"] }));
+        const [[first]] = table.getProxiesByPages();
+        expect([isObservable(first), isObservable(first.steamAccountIds)]).toEqual([false, false]);
     });
 });

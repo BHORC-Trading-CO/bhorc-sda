@@ -25,7 +25,6 @@ class ProxiesTableStore {
   fields: Field[];
   defaultFields: Field[];
   proxies: TableProxyInterface[];
-  isAllSelected: boolean;
   showDeleted: boolean;
   isEditingFormOpen: boolean;
   editingFormContent: TableProxyInterface;
@@ -42,7 +41,6 @@ class ProxiesTableStore {
   editingTestFailure: ProxyTestResult | undefined;
   testedEditingProxy: ProxySetupInterface | undefined;
   private editingTestRequestId: string | null = null;
-  hidenProxyId: string[];
   searchString: string;
   private requestSeq: number = 0;
   private pendingTests = new Map<string, { id: string; setup: ProxySetupInterface; batch?: TestBatch }>();
@@ -52,7 +50,6 @@ class ProxiesTableStore {
     this.root = root;
     this.fields = [];
     this.defaultFields = defaultProxiesTableFields;
-    this.isAllSelected = false;
     this.showDeleted = false;
     this.isEditingFormOpen = false;
     this.editingFormContent = {} as TableProxyInterface;
@@ -60,7 +57,6 @@ class ProxiesTableStore {
     this.isCreationFormOpen = false;
     this.isBulkFormOpen = false;
     this.proxies = [];
-    this.hidenProxyId = [];
     this.searchString = "";
 
     this.isTestingEditingProxy = false;
@@ -114,9 +110,31 @@ class ProxiesTableStore {
   }
   search(newSearchString: string) {
     this.searchString = newSearchString;
-    this.hidenProxyId = this.proxies
-      .filter((p) => !p.host.includes(newSearchString))
-      .map((p) => p.id);
+    this.activePage = 1;
+  }
+  // Строки таблицы: под текущим поиском, архив — если показан. Считаются по живым данным (SDA-64):
+  // список скрытых id, снятый в момент поиска, устаревал после добавления и правки.
+  getVisibleProxies(): TableProxyInterface[] {
+    return this.proxies.filter(
+      (p) => p.host.includes(this.searchString) && (this.showDeleted || !p.deleted)
+    );
+  }
+  // Что выделяет галочка в шапке. То, что скрыто поиском, в массовые действия не попадает (SDA-64):
+  // раньше при поиске одного хоста галочка выделяла — и отправляла в архив — все прокси.
+  private getSelectableProxies(): TableProxyInterface[] {
+    return this.getVisibleProxies().filter((p) => !p.deleted);
+  }
+  // Единственный список для счётчика, вопроса и самих массовых действий.
+  getSelectedProxies(): TableProxyInterface[] {
+    return this.getSelectableProxies().filter((p) => p.isSelected);
+  }
+  get isAllSelected(): boolean {
+    const proxies = this.getSelectableProxies();
+    return proxies.length !== 0 && proxies.every((p) => p.isSelected);
+  }
+  // Страница на экране. Строк могло стать меньше (поиск, архив, удаление): пустой страницы не бывает.
+  get currentPage(): number {
+    return Math.max(1, Math.min(this.activePage, Math.ceil(this.getVisibleProxies().length / this.pageSize)));
   }
   changeShowStatus(status?: boolean) {
     if (status) {
@@ -167,7 +185,7 @@ class ProxiesTableStore {
   }
   testSelected() {
     const batch: TestBatch = { left: 0, working: 0, failed: [] };
-    for (var proxy of this.proxies.filter((p) => p.isSelected && !p.deleted)) {
+    for (var proxy of this.getSelectedProxies()) {
       this.testProxy(proxy.id, batch);
     }
   }
@@ -278,11 +296,7 @@ class ProxiesTableStore {
 
     let count = 0;
     let bufProxies: TableProxyInterface[] = [];
-    for (var i of toJS(this.proxies).filter(
-      (p) => !this.hidenProxyId.includes(p.id)
-    )) {
-      if (i.deleted && !this.showDeleted) continue;
-
+    for (var i of this.getVisibleProxies().map((p) => toJS(p))) {
       if (count === this.pageSize) {
         proxies.push(bufProxies);
         bufProxies = [];
@@ -299,22 +313,9 @@ class ProxiesTableStore {
   selectProxy(id: string, isSelected: boolean = true) {
     const proxy = this.proxies.find((p) => p.id === id);
     if (proxy) proxy.isSelected = isSelected;
-    if (
-      this.proxies.filter((p) => p.isSelected).length ===
-        this.proxies.filter((p) => !p.deleted).length &&
-      this.proxies.length !== 0
-    ) {
-      this.isAllSelected = true;
-    } else {
-      this.isAllSelected = false;
-    }
   }
   selectAllProxies(isSelected: boolean = true) {
-    this.isAllSelected = isSelected;
-    for (var proxy of this.proxies) {
-      if (proxy.deleted) continue;
-      proxy.isSelected = isSelected;
-    }
+    for (var proxy of this.getSelectableProxies()) proxy.isSelected = isSelected;
   }
   editProxyInStorage(
     id: string,
