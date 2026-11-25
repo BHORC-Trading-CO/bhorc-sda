@@ -5,6 +5,7 @@ import ProxySetupInterface from "../../interfaces/Proxy/ProxySetupInterface";
 import sanitizeAvatarUrl from "./sanitizeAvatarUrl";
 import { getSteamID64 } from "./steamAccountSearch";
 import { isRegistrationDate } from "./registrationDate";
+import isGuardSecret from "./guardSecret";
 import { t } from "../../i18n";
 
 type Data = Record<string, unknown>;
@@ -87,8 +88,8 @@ function sanitizeMaFile(value: unknown): MaFileInterface {
     for (const key of ["shared_secret", "revocation_code", "uri", "account_name", "identity_secret", "secret_1", "device_id"]) {
         if (own(source, key) !== undefined) result[key] = string(source, key);
     }
-    // Пустой секрет — его отсутствие: из него библиотека собирает правдоподобный, но неверный код (SDA-62)
-    if (typeof result.shared_secret === "string" && !result.shared_secret.trim()) delete result.shared_secret;
+    // Негодный секрет — его отсутствие: из него библиотека собирает правдоподобный, но неверный код (SDA-62)
+    if (!isGuardSecret(result.shared_secret)) delete result.shared_secret;
     for (const key of ["serial_number", "token_gid"]) {
         if (own(source, key) !== undefined) result[key] = identifier(source[key]);
     }

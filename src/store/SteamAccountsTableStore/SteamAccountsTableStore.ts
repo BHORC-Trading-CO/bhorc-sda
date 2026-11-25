@@ -8,6 +8,7 @@ import SettingsFormStore from "./SettingsFormStore";
 import CreationFormStore from "./CreationFormStore";
 import EditingFormStore from "./EditingFormStore";
 import ChangableSecondaryInterface from "../../../electron/interfaces/SteamAccount/ChangableSecondaryInterface";
+import isGuardSecret from "../../../electron/components/Functions/guardSecret";
 import { matchesSteamAccountSearch } from "../../../electron/components/Functions/steamAccountSearch";
 import i18n from "../../i18n/i18n";
 
@@ -575,7 +576,7 @@ class SteamAccountsTableStore {
         let code = "";
         try {
           const secret = this.steamAccounts[i].maFile.shared_secret;
-          if (secret) code = String(window.Main.guardConnection.getAuthCode(secret));
+          if (isGuardSecret(secret)) code = String(window.Main.guardConnection.getAuthCode(secret));
         } catch (err) {
           console.log(`guard code of ${id}: ${err}`);
         }

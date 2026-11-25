@@ -24,6 +24,9 @@ import assertSameAccount, { isNameless } from "./accountIdentity";
 import passwordSignIn from "./passwordSignIn";
 import { t } from "../../../i18n";
 
+// EResult.InvalidLoginAuthCode
+const INVALID_MAIL_CODE = 65;
+
 type StepType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP | SteamAccountChannels.GUARD_SETUP_PROCESS_STEP;
 
 export default async function maFileLogin(steamAccountParams: SteamAccountSetupInterface, options?: { signal?: AbortSignal, stepChannel?: StepType, passwordUsed?: boolean }, proxy?: ProxySetupInterface | null): Promise<SmaFileInterface> {
@@ -102,8 +105,16 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
             }, async (validActions, prompts) => {
                 const actions = validActions.map(el => el.type);
                 if (actions.includes(EAuthSessionGuardType.EmailCode)) {
-                    const code = await askMailCode(accountName, accountName, prompts);
-                    if (!prompts.aborted) await session.submitSteamGuardCode(code);
+                    for (;;) {
+                        const code = await askMailCode(accountName, accountName, prompts);
+                        if (prompts.aborted) return;
+                        try {
+                            return await session.submitSteamGuardCode(code);
+                        } catch (err) {
+                            // Опечатку спрашиваем снова, как при подключении Guard (SDA-63)
+                            if (err?.eresult !== INVALID_MAIL_CODE) throw err;
+                        }
+                    }
                 } else if (actions.includes(EAuthSessionGuardType.DeviceCode)) {
                     // Код Guard мы уже отправили, и Steam его отверг: другого взять негде,
                     // а ждать библиотека стала бы вечно (SDA-63).

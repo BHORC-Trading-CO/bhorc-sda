@@ -189,6 +189,20 @@ describe("login challenges (R2-11)", () => {
         await expect(maFileLogin(passwordOnly())).resolves.toMatchObject({ accountName: "account_a" });
         expect(mockSteam.submit.mock.calls).toEqual([["ABCDE"]]);
     });
+    it("a mistyped email code is asked again, any other refusal ends the login (V62b-5)", async () => {
+        mockSteam.passwordResult = { actionRequired: true, validActions: [{ type: 2 }] };
+        const refuse = (eresult: number) => Object.assign(new Error("text from Steam"), { eresult });
+        mockSteam.submit = jest.fn().mockRejectedValueOnce(refuse(65)).mockResolvedValueOnce(undefined);
+        (askMailCode as jest.Mock).mockResolvedValueOnce("WRONG").mockResolvedValueOnce("RIGHT");
+        await expect(maFileLogin(passwordOnly())).resolves.toMatchObject({ accountName: "account_a" });
+        expect(mockSteam.submit.mock.calls).toEqual([["WRONG"], ["RIGHT"]]);
+
+        mockSteam.submit = jest.fn().mockRejectedValueOnce(refuse(84));
+        (askMailCode as jest.Mock).mockClear();
+        (askMailCode as jest.Mock).mockResolvedValueOnce("ABCDE");
+        await expect(maFileLogin(passwordOnly())).rejects.toThrow("text from Steam");
+        expect(askMailCode).toHaveBeenCalledTimes(1);
+    });
     it.each([["timeout", /timed out/], ["error", /poll failed/]])("a polling %s rejects", async (event, message) => {
         mockSteam.passwordResult = { actionRequired: true, validActions: [{ type: 5 }] };
         const login = maFileLogin(passwordOnly());
