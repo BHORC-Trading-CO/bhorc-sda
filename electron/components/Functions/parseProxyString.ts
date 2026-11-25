@@ -15,7 +15,8 @@ export type ProxyParseResult = { proxy: ProxySetupInterface, reason?: undefined 
 export function parseProxy(value: string): ProxyParseResult {
     const text = value.trim();
     const url = /^([a-z][a-z0-9+.-]*):\/\/(.*)$/i.exec(text);
-    if (url) return /^http$/i.test(url[1]) ? parseAuthority(url[2]) : { reason: "scheme" };
+    // Один "/" в конце адреса — не путь: так адрес копируют из кабинетов и браузера
+    if (url) return /^http$/i.test(url[1]) ? parseAuthority(url[2].replace(/\/$/, "")) : { reason: "scheme" };
 
     const login = loginFirst(text);
     const host = hostFirst(text);

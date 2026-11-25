@@ -53,6 +53,7 @@ describe("parseProxyString", () => {
         ["http://user:p%2Fa%3Fs%23s@gateway.test:8080", read("user", "p/a?s#s", "gateway.test", "8080")],
         ["http://user:p%40s%3As@1.1.1.1:80", read("user", "p@s:s", "1.1.1.1", "80")],
         ["http://user:p@s:s@1.1.1.1:80", read("user", "p@s:s", "1.1.1.1", "80")],
+        ["http://user:pass@gateway.test:8080/", read("user", "pass", "gateway.test", "8080")],
         ["http://user:@1.1.1.1:80", read("user", "", "1.1.1.1", "80")],
         ["http://[::1]:80", read("", "", "[::1]", "80")],
     ])("reads %s", (value, expected) => {
@@ -64,7 +65,7 @@ describe("parseProxyString", () => {
         ["https://user:pass@gateway.test:8080", "scheme"], ["HTTPS://1.1.1.1:8080", "scheme"],
         // Путь, запрос, якорь: "@" в них меняла бы, какому host уйдут логин и пароль.
         ["http://u:p@good.test:80/x@evil.test:90", "format"], ["http://u:p@good.test:80?x@evil.test:90", "format"], ["http://u:p@good.test:80#@evil.test:90", "format"],
-        ["http://u:p@good.test:80\\@evil.test:90", "format"], ["http://good.test:80/u:p@evil.test:90", "format"], ["http://1.1.1.1:80/", "format"], ["http://u:p/w@1.1.1.1:80", "format"],
+        ["http://u:p@good.test:80\\@evil.test:90", "format"], ["http://good.test:80/u:p@evil.test:90", "format"], ["http://1.1.1.1:80//", "format"], ["http://u:p/w@1.1.1.1:80", "format"],
         ["socks5://user:pass@1.1.1.1:1080", "scheme"], ["socks4://1.1.1.1:1080", "scheme"], ["ftp://1.1.1.1:21", "scheme"],
         ["", "format"], ["user", "format"], ["user:pass", "format"], ["user:1234", "format"], ["user@1.1.1.1:80", "format"], [":pass@1.1.1.1:80", "format"],
         ["user:@1.1.1.1:80", "format"], ["1.1.1.1:80:user", "format"], ["1.1.1.1", "format"], ["http://user@1.1.1.1:80", "format"], ["http://user:100%@1.1.1.1:80", "format"],
