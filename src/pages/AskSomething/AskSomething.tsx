@@ -12,8 +12,7 @@ const AskSomething: FC = () => {
   const [infoType, setInfoType] = useState<InfoType>("none");
 
   useEffect(() => {
-    window.AskFamilyPin.askFamilyPinApi
-    window.AskFamilyPin.askFamilyPinApi.onGetParams(
+    return window.AskFamilyPin.askFamilyPinApi.onGetParams(
       (event, { steamAccountName, id, infoType }) => {
         console.log(id);
         setSteamAccountName(steamAccountName);
@@ -21,7 +20,8 @@ const AskSomething: FC = () => {
         setInfoType(infoType);
       }
     );
-  });
+    // Один раз: без списка зависимостей подписка добавлялась на каждую отрисовку
+  }, []);
 
   // Длина кода: PIN семейного просмотра — 4 знака, коды с почты и из SMS — 5.
   switch (infoType) {

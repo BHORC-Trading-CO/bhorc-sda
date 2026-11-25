@@ -12,7 +12,7 @@ const Error: FC = () => {
     const [id, setId] = useState("");
 
     useEffect(() => {
-        window.ErrorWindow.windowApi.onGetParams((event, data) => {
+        return window.ErrorWindow.windowApi.onGetParams((event, data) => {
             setTitle(data.title);
             setText(data.text);
             setId(data.id);
