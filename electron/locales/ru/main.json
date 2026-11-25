@@ -109,6 +109,10 @@
     "appSettings": {
       "invalid": "Настройки не сохранены: неожиданные значения.",
       "loginItem": "Не удалось изменить автозапуск: {{error}}"
+    },
+    "identity": {
+      "login": "maFile принадлежит другому аккаунту: логин {{login}}, maFile {{maFile}}",
+      "steamId": "maFile или его сессия принадлежит не аккаунту {{login}}: разные SteamID {{ids}}"
     }
   }
 }

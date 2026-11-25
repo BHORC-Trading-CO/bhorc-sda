@@ -109,6 +109,10 @@
     "appSettings": {
       "invalid": "Settings were not saved: unexpected values.",
       "loginItem": "Could not change system startup: {{error}}"
+    },
+    "identity": {
+      "login": "The maFile belongs to another account: login {{login}}, maFile {{maFile}}",
+      "steamId": "The maFile or its session belongs to another account than {{login}}: different SteamIDs {{ids}}"
     }
   }
 }

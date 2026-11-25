@@ -4,6 +4,7 @@ import steamAccountImport from "../Processes/steamAccountImport";
 import steamAccountManager from "../steamAccountManager";
 import proxyManager from "../../Proxy/proxyManager";
 import sanitizeSmaFile from "../../Functions/sanitizeSmaFile";
+import assertSameAccount from "../Processes/accountIdentity";
 import { t } from "../../../i18n";
 
 export default (event: Electron.IpcMainEvent, accounts: [{ smaFile: SmaFileInterface, links: { proxyId: string | null, profileId: string | null } }]) => {
@@ -12,6 +13,7 @@ export default (event: Electron.IpcMainEvent, accounts: [{ smaFile: SmaFileInter
     for (var account of accounts) {
         try {
             const smaFile = sanitizeSmaFile(account.smaFile);
+            assertSameAccount(smaFile.accountName, smaFile.maFile);
             const proxyId = smaFile.proxy
                 ? proxyManager.getOrCreateBySetup(smaFile.proxy).params.id
                 : account.links.proxyId;

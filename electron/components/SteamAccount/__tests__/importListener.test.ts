@@ -61,3 +61,25 @@ it("один неправильный файл не обрывает импор�
     expect(event.reply).toHaveBeenCalledWith("ERROR", expect.stringMatching(/Не импортировано аккаунтов: 1\. broken/));
     expect(proxyManager.sendProxiesToFront).toHaveBeenCalled();
 });
+
+// SDA-62: логин одного аккаунта с maFile другого — окно подтверждений с именем A действовало бы на B.
+const jwt = (sub: string) => `e30.${Buffer.from(JSON.stringify({ sub })).toString("base64url")}.c2ln`;
+it.each([
+    ["account_name", { account_name: "other" }],
+    ["токен сессии", { account_name: "Account ", Session: { SteamID: "76561198000000001", RefreshToken: jwt("76561198000000002") } }],
+])("файл с maFile другого аккаунта отклоняется: %s", (_name, maFile) => {
+    const event = { reply: jest.fn() };
+    const { proxy, ...smaFile } = file();
+    importListener(event as any, [{ smaFile: { ...smaFile, maFile }, links: { proxyId: null } }] as any);
+    expect(steamAccountImport).not.toHaveBeenCalled();
+    expect(event.reply).toHaveBeenCalledWith("ERROR", expect.stringMatching(/Не импортировано аккаунтов: 1\. account — maFile/));
+});
+
+it("совпадающие логин (без учёта регистра) и SteamID, как и maFile без account_name, импортируются", () => {
+    const event = { reply: jest.fn() };
+    const { proxy, ...smaFile } = file();
+    const Session = { SteamID: "76561198000000001", AccessToken: jwt("76561198000000001"), RefreshToken: jwt("76561198000000001") };
+    importListener(event as any, [{ account_name: "ACCOUNT", Session }, { Session }].map(maFile => ({ smaFile: { ...smaFile, maFile }, links: { proxyId: null } })) as any);
+    expect(event.reply).not.toHaveBeenCalled();
+    expect(steamAccountImport).toHaveBeenCalledTimes(2);
+});

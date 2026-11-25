@@ -20,13 +20,17 @@ import { EAuthSessionGuardType } from "steam-session";
 import createLoginSession from "../../Proxy/loginSession";
 import askMailCode from "../../application/askInfo/askMailCode";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
+import { isDeadTokenError, isRefreshTokenExpired } from "../Functions/sessionExpiry";
+import assertSameAccount from "./accountIdentity";
 import { t } from "../../../i18n";
 
 type AbortChannelType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT | SteamAccountChannels.GUARD_SETUP_PROCESS_ABORT;
 type StepType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP | SteamAccountChannels.GUARD_SETUP_PROCESS_STEP;
 
-export default async function maFileLogin(steamAccountParams: SteamAccountSetupInterface, options?: { abortChannel?: AbortChannelType, stepChannel?: StepType }, proxy?: ProxySetupInterface | null): Promise<SmaFileInterface> {
+export default async function maFileLogin(steamAccountParams: SteamAccountSetupInterface, options?: { abortChannel?: AbortChannelType, stepChannel?: StepType, passwordUsed?: boolean }, proxy?: ProxySetupInterface | null): Promise<SmaFileInterface> {
         const proxyUrl = buildProxyUrl(proxy);
+        // До первого запроса: чужой maFile не должен ни войти, ни сохраниться (SDA-62).
+        assertSameAccount(steamAccountParams.accountName, steamAccountParams.maFile);
     return new Promise<SmaFileInterface>(async (resolve, reject) => {
         // Прокси опционален: если передан — весь трафик идёт через него, если нет —
         // напрямую с реального IP (осознанный выбор пользователя).
@@ -52,9 +56,15 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                         maFile.Session.RefreshToken
                     ) {
                         try {
+                            // Мёртвый refresh-токен — не отказ: пароль введён, входим по нему (SDA-62).
+                            if (isRefreshTokenExpired(maFile.Session.RefreshToken)) return reject(new Error("Invalid session"));
                             session.accessToken = maFile.Session.AccessToken;
                             session.refreshToken = maFile.Session.RefreshToken;
-                            await session.refreshAccessToken();
+                            try {
+                                await session.refreshAccessToken();
+                            } catch (err) {
+                                return reject(isDeadTokenError(err) ? new Error("Invalid session") : err);
+                            }
                             // Cookie именно для steamcommunity.com, иначе loggedIn() ниже = false
                             // на валидной сессии. См. applyCommunityCookies.
                             await applyCommunityCookies(community, session, proxyUrl, accountId);
@@ -85,6 +95,9 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
             return new Promise<SessionInterface>(async (resolve, reject) => {
                 try {
                     nextStep("loginByPassword");
+                    // Свежий LoginSession: в прежнем остались мёртвые токены maFile, и токен другого
+                    // аккаунта бросил бы внутри опроса библиотеки, где ошибку никто не ловит.
+                    const session = createLoginSession(proxyUrl);
                     const result = await session.startWithCredentials({
                         accountName: accountName,
                         password: password,
@@ -184,14 +197,17 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                         });
                 })
                 .catch(async (err) => {
-                    if (err.message == "Invalid session" || err.message == "Not logged in") {
+                    // По паролю входим один раз: если и новая сессия не годится, повтор её не исправит.
+                    if (!options?.passwordUsed && (err.message == "Invalid session" || err.message == "Not logged in")) {
                         console.log("Create session")
                         createSession(steamAccountParams.accountName, steamAccountParams.password, steamAccountParams.maFile.shared_secret)
                             .then(session => {
+                                // Steam вошёл в другой аккаунт, не в тот, чей maFile
+                                assertSameAccount(steamAccountParams.accountName, steamAccountParams.maFile, session.SteamID);
                                 steamAccountParams.maFile.Session = session;
                                 // Прокидываем прокси и в рекурсивный ретрай, чтобы повторный
                                 // логин шёл через тот же прокси (или напрямую, если его нет).
-                                maFileLogin(steamAccountParams, options, proxy)
+                                maFileLogin(steamAccountParams, { ...options, passwordUsed: true }, proxy)
                                     .then(smaFile => {
                                         resolve(smaFile);
                                     })
