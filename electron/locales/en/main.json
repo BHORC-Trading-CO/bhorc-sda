@@ -112,12 +112,14 @@
     },
     "identity": {
       "login": "The maFile belongs to another account: login {{login}}, maFile {{maFile}}",
-      "steamId": "The maFile or its session belongs to another account than {{login}}: different SteamIDs {{ids}}"
+      "steamId": "The maFile or its session belongs to another account than {{login}}: different SteamIDs {{ids}}",
+      "unproven": "The maFile has no account name, and Steam did not confirm that it belongs to {{login}}"
     },
     "importRouteRequired": "the account had a proxy that no longer exists; choose a proxy or “No proxy”",
     "guardCodeRejected": "Steam rejected the Guard code: the maFile does not match this account, or the computer clock is wrong",
     "steamLoginTimeout": "Steam sign-in timed out",
     "guardAbortTooLate": "Too late to abort: Steam Guard is already connected to {{login}}, and the account has been added. Revocation code: {{code}}. Write it down: Steam issues it once.",
-    "guardAbortedWithSecrets": "Connecting Steam Guard to {{login}} was aborted after Steam had issued its secrets. Revocation code: {{code}}. Write it down: Steam issues it once. The secrets are backed up in the pending_authenticators folder of the data folder; check that the file is there. Reason: {{error}}"
+    "guardAbortedWithSecrets": "Connecting Steam Guard to {{login}} was aborted after Steam had issued its secrets. Revocation code: {{code}}. Write it down: Steam issues it once. The secrets are backed up in the pending_authenticators folder of the data folder; check that the file is there. Reason: {{error}}",
+    "guardSecretMissing": "The maFile has no shared_secret: it cannot sign in"
   }
 }

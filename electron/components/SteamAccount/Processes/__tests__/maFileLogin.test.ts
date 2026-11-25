@@ -19,7 +19,9 @@ jest.mock("steam-session", () => {
                 if (this.refreshToken) throw new Error("This access token belongs to a different account from the set refresh token.");
                 const result = mockSteam.passwordResult ?? { actionRequired: false };
                 this.accessToken = "fresh-access"; this.refreshToken = "fresh-refresh";
-                if (!result.actionRequired) setImmediate(() => this.emit(mockSteam.passwordEvent ?? "authenticated"));
+                // Код Guard библиотека отправляет сама; аккаунт без Guard входит без кода
+                if (!result.actionRequired && !mockSteam.noGuard) await this.submitSteamGuardCode(details.steamGuardCode);
+                else if (!result.actionRequired) setImmediate(() => this.emit("authenticated"));
                 return result;
             }
         },
@@ -90,6 +92,51 @@ describe("identity (R2-1)", () => {
     });
 });
 
+// V62-1: живые токены из maFile без имени не говорят, чей он; логин доказывает вход по паролю
+describe("a maFile without account_name proves the login (V62-1)", () => {
+    const nameless = (extra: Record<string, unknown> = {}) => params({ account_name: undefined, ...extra });
+    it("valid tokens of another account are not used, and the password login exposes them", async () => {
+        const setup = nameless({ Session: tokens(B) });
+        await expect(maFileLogin(setup)).rejects.toThrow(/different SteamIDs/);
+        expect(mockSteam.refresh).not.toHaveBeenCalled();
+        expect(mockSteam.passwordLogins).toHaveLength(1);
+        expect(setup.maFile.Session.SteamID).toBe(B);
+    });
+    it("the same account passes: the token path is skipped, the password session is stored", async () => {
+        await expect(maFileLogin(nameless())).resolves.toMatchObject({ maFile: { Session: { SteamID: A, RefreshToken: "fresh-refresh" } } });
+        expect(mockSteam.passwordLogins).toHaveLength(1);
+    });
+    it("without any SteamID in the file an accepted Guard code is the proof", async () => {
+        await expect(maFileLogin(nameless({ Session: undefined }))).resolves.toMatchObject({ maFile: { Session: { SteamID: A } } });
+    });
+    it.each([
+        ["no Guard on the account", () => { mockSteam.noGuard = true; }],
+        ["an email code instead", () => {
+            mockSteam.passwordResult = { actionRequired: true, validActions: [{ type: 2 }] };
+            (askMailCode as jest.Mock).mockResolvedValueOnce("ABCDE");
+        }],
+    ])("without any SteamID nothing else is: %s", async (_name, arrange) => {
+        arrange();
+        await expect(maFileLogin(nameless({ Session: undefined }))).rejects.toThrow(/did not confirm/);
+    });
+    it("a file without the secret cannot prove anything", async () => {
+        await expect(maFileLogin(nameless({ shared_secret: undefined }))).rejects.toThrow(/no shared_secret/);
+        expect(mockSteam.passwordLogins).toEqual([]);
+    });
+    it("a name that is not a string is no name", async () => {
+        await expect(maFileLogin(params({ account_name: 5, Session: tokens(B) }))).rejects.toThrow(/different SteamIDs/);
+    });
+});
+it.each([["76561200000000001"], ["76561202255233023"]])("newer SteamIDs (%s) take part in the comparison", async newer => {
+    await expect(maFileLogin(params({ Session: { ...tokens(newer), SteamID: A } }))).rejects.toThrow(/different SteamIDs/);
+});
+it("the access token Steam issued during the check is the one that is saved (V62-12)", async () => {
+    mockSteam.refresh = jest.fn(async (session: any) => { session.accessToken = "refreshed-access"; });
+    const setup = params();
+    const { maFile } = await maFileLogin(setup);
+    expect(maFile.Session).toEqual({ ...setup.maFile.Session, AccessToken: "refreshed-access" });
+});
+
 it("the form's mail, profile name and cookie choice reach the new account (R2-4)", async () => {
     const extra = { mail: "m@example.invalid", mailPassword: "mail-password", profileName: "profile", useSteamCookies: false };
     await expect(maFileLogin({ ...params(), ...extra })).resolves.toMatchObject(extra);
@@ -137,9 +184,10 @@ describe("login challenges (R2-11)", () => {
     });
     it("an email code is asked for and submitted", async () => {
         mockSteam.passwordResult = { actionRequired: true, validActions: [{ type: 2 }] };
+        mockSteam.submit = jest.fn();
         (askMailCode as jest.Mock).mockResolvedValueOnce("ABCDE");
         await expect(maFileLogin(passwordOnly())).resolves.toMatchObject({ accountName: "account_a" });
-        expect(mockSteam.sessions[1].submitSteamGuardCode).toHaveBeenCalledWith("ABCDE");
+        expect(mockSteam.submit.mock.calls).toEqual([["ABCDE"]]);
     });
     it.each([["timeout", /timed out/], ["error", /poll failed/]])("a polling %s rejects", async (event, message) => {
         mockSteam.passwordResult = { actionRequired: true, validActions: [{ type: 5 }] };
@@ -208,6 +256,9 @@ describe("abort (R2-12)", () => {
         mockSteam.passwordResult = { actionRequired: true, validActions: [{ type: 2 }] };
         (askMailCode as jest.Mock).mockResolvedValueOnce("ABCDE");
         await maFileLogin(params({ Session: undefined }), { signal: run.signal });
-        expect(askMailCode).toHaveBeenCalledWith(expect.any(String), "account_a", run.signal);
+        const prompts = (askMailCode as jest.Mock).mock.calls[0][2];
+        expect(prompts).toBeInstanceOf(AbortSignal);
+        // Вход завершён: его окна закрыты
+        expect(prompts.aborted).toBe(true);
     });
 });

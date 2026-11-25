@@ -20,7 +20,8 @@ import createLoginSession from "../../Proxy/loginSession";
 import askMailCode from "../../application/askInfo/askMailCode";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
 import { isDeadTokenError, isRefreshTokenExpired } from "../Functions/sessionExpiry";
-import assertSameAccount from "./accountIdentity";
+import assertSameAccount, { isNameless } from "./accountIdentity";
+import passwordSignIn from "./passwordSignIn";
 import { t } from "../../../i18n";
 
 type StepType = SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP | SteamAccountChannels.GUARD_SETUP_PROCESS_STEP;
@@ -49,6 +50,9 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
             return new Promise<void>(async (resolve, reject) => {
                 try {
                     nextStep("checkLoginStatus");
+                    // Без имени в maFile его токены ничего не говорят о введённом логине: пароль подтверждает
+                    // его у Steam, а SteamID или код Guard — что maFile от этого же аккаунта (SDA-62).
+                    if (!options?.passwordUsed && isNameless(maFile)) return reject(new Error("Invalid session"));
                     if (
                         maFile.Session &&
                         maFile.Session?.AccessToken &&
@@ -85,65 +89,37 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
             });
         }
 
-        const createSession = (accountName: string, password: string, shared_secret: string): Promise<SessionInterface> => {
-            return new Promise<SessionInterface>(async (resolve, reject) => {
-                // Свежий LoginSession: в прежнем остались мёртвые токены maFile, и токен другого
-                // аккаунта бросил бы внутри опроса библиотеки, где ошибку никто не ловит.
-                const session = newLoginSession();
-                const fail = (err: unknown) => {
-                    session.cancelLoginAttempt();
-                    reject(err);
-                };
-                signal?.addEventListener('abort', () => fail('abort'));
-                session.on("error", fail);
-                session.on("timeout", () => fail(new Error(t('errors.steamLoginTimeout'))));
-                session.on("authenticated", async () => {
-                    if (signal?.aborted) return;
-                    // try/catch обязателен: reject из async-колбэка события иначе
-                    // превращается в необработанный rejection, и логин висит вечно.
-                    try {
-                        const accessToken = session.accessToken;
-                        const refreshToken = session.refreshToken;
-                        const steamID = session.steamID;
-                        await applyCommunityCookies(community, session, proxyUrl, accountName);
-                        const newSession: SessionInterface = {
-                            AccessToken: accessToken,
-                            RefreshToken: refreshToken,
-                            SteamID: steamID.toString(),
-                            SessionID: ""
-                        }
-                        resolve(newSession);
-                    } catch (err) {
-                        reject(err);
-                    }
-                });
-                try {
-                    nextStep("loginByPassword");
-                    const result = await session.startWithCredentials({
-                        accountName: accountName,
-                        password: password,
-                        steamGuardCode: SteamTotp.generateAuthCode(shared_secret)
-                    });
-                    // Библиотека начинает опрос заново, даже если её отменили до ответа Steam
-                    if (signal?.aborted) return fail('abort');
-
-                    if (result.actionRequired) {
-                        const actions = (result.validActions ?? []).map(el => el.type);
-                        if (actions.includes(EAuthSessionGuardType.EmailCode)) {
-                            const code = await askMailCode(accountName, accountName, signal);
-                            await session.submitSteamGuardCode(code);
-                            if (signal?.aborted) fail('abort');
-                        } else if (actions.includes(EAuthSessionGuardType.DeviceCode)) {
-                            // Код Guard мы уже отправили, и Steam его отверг: другого взять негде,
-                            // а ждать библиотека стала бы вечно (SDA-63).
-                            throw new Error(t('errors.guardCodeRejected'));
-                        }
-                        // Подтверждение входа в приложении или по ссылке из письма ждёт сама библиотека (есть timeout)
-                    }
-                } catch (err) {
-                    fail(err);
+        const createSession = async (accountName: string, password: string, shared_secret: string): Promise<SessionInterface> => {
+            if (!shared_secret) throw new Error(t('errors.guardSecretMissing'));
+            nextStep("loginByPassword");
+            // Свежий LoginSession: в прежнем остались мёртвые токены maFile, и токен другого
+            // аккаунта бросил бы внутри опроса библиотеки, где ошибку никто не ловит.
+            const session = newLoginSession();
+            const { guardCodeAccepted } = await passwordSignIn(session, {
+                accountName: accountName,
+                password: password,
+                steamGuardCode: SteamTotp.generateAuthCode(shared_secret)
+            }, async (validActions, prompts) => {
+                const actions = validActions.map(el => el.type);
+                if (actions.includes(EAuthSessionGuardType.EmailCode)) {
+                    const code = await askMailCode(accountName, accountName, prompts);
+                    if (!prompts.aborted) await session.submitSteamGuardCode(code);
+                } else if (actions.includes(EAuthSessionGuardType.DeviceCode)) {
+                    // Код Guard мы уже отправили, и Steam его отверг: другого взять негде,
+                    // а ждать библиотека стала бы вечно (SDA-63).
+                    throw new Error(t('errors.guardCodeRejected'));
                 }
-            });
+                // Подтверждение входа в приложении или по ссылке из письма ждёт сама библиотека (есть timeout)
+            }, signal);
+            const newSession: SessionInterface = {
+                AccessToken: session.accessToken,
+                RefreshToken: session.refreshToken,
+                SteamID: session.steamID.toString(),
+                SessionID: ""
+            }
+            // Steam мог войти в другой аккаунт, не в тот, чей maFile
+            assertSameAccount(accountName, steamAccountParams.maFile, newSession.SteamID, guardCodeAccepted);
+            return newSession;
         }
 
         // Неверный PIN спрашиваем снова: библиотека отдаёт его строкой, и раньше мастер падал (SDA-63)
@@ -182,7 +158,11 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                             const sMaFile: SmaFileInterface = {
                                 accountName: steamAccountParams.accountName,
                                 password: steamAccountParams.password,
-                                maFile: steamAccountParams.maFile,
+                                // С access-токеном, который Steam выдал при проверке: прежний им заменён
+                                maFile: {
+                                    ...steamAccountParams.maFile,
+                                    Session: { ...steamAccountParams.maFile.Session, AccessToken: session.accessToken }
+                                },
                                 secondary: data,
                                 familyViewPin: steamAccountParams.familyViewPin ? steamAccountParams.familyViewPin : null,
                                 useSteamCookies: steamAccountParams.useSteamCookies,
@@ -203,8 +183,6 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
                         console.log("Create session")
                         createSession(steamAccountParams.accountName, steamAccountParams.password, steamAccountParams.maFile.shared_secret)
                             .then(session => {
-                                // Steam вошёл в другой аккаунт, не в тот, чей maFile
-                                assertSameAccount(steamAccountParams.accountName, steamAccountParams.maFile, session.SteamID);
                                 steamAccountParams.maFile.Session = session;
                                 // Прокидываем прокси и в рекурсивный ретрай, чтобы повторный
                                 // логин шёл через тот же прокси (или напрямую, если его нет).
