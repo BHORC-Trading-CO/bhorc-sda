@@ -55,13 +55,16 @@ class WindowsStore {
             this.miniNotificationTimeout = null;
         }
         await sleep(200);
-        if (request !== this.miniNotificationRequest) return;
-        this.isMiniNotificationOpen = true;
-        this.miniNotificationContent = props;
-        this.miniNotificationTimeout = setTimeout(() => {
-            this.miniNotificationTimeout = null;
-            this.closeMiniNotification();
-        }, 5000);
+        // После await и в таймере действие уже кончилось: записи — в runInAction
+        runInAction(() => {
+            if (request !== this.miniNotificationRequest) return;
+            this.isMiniNotificationOpen = true;
+            this.miniNotificationContent = props;
+            this.miniNotificationTimeout = setTimeout(() => runInAction(() => {
+                this.miniNotificationTimeout = null;
+                this.closeMiniNotification();
+            }), 5000);
+        });
     }
     closeMiniNotification() {
         console.log('close');

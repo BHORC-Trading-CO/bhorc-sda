@@ -3,17 +3,22 @@ import { makeAutoObservable, toJS } from "mobx";
 import AvalibleTypes from "../../../electron/interfaces/TableFields/AvalibleFieldTypes";
 import Field from "../../../electron/interfaces/TableFields/Field";
 import TableProxyInterface from "../../../electron/interfaces/Proxy/TableProxyInterface";
+import CompiledProxyInterface from "../../../electron/interfaces/Proxy/CompiledProxyInterface";
 import defaultProxiesTableFields from "../../../electron/interfaces/TableFields/defaults/proxiesTableFields";
 import ProxySetupInterface from "../../../electron/interfaces/Proxy/ProxySetupInterface";
 import testingResultJsx from "./testingResultJsx";
-import { ProxyBulkResult, ProxyEditReply, ProxyTestReply, ProxyTestResult } from "../../../electron/interfaces/Proxy/ProxyResults";
+import { ProxyBulkResult, ProxyEditReply, ProxyTestReply } from "../../../electron/interfaces/Proxy/ProxyResults";
 import i18n from "../../i18n/i18n";
 
 /** Массовая проверка: одно общее уведомление, когда придут ответы по всем прокси (SDA-64). */
 interface TestBatch {
   left: number;
   working: number;
+  /** Прокси работает, но Steam ответил не 200 */
+  refused: string[];
   failed: string[];
+  /** Уже проверялись, изменились или удалены, пока шла проверка */
+  skipped: number;
 }
 
 const setupOf = ({ host, port, username, password }: ProxySetupInterface): ProxySetupInterface => ({ host, port, username, password });
@@ -38,7 +43,7 @@ class ProxiesTableStore {
   activePage: number;
   isTestingEditingProxy: boolean;
   editingTestResult: boolean | undefined;
-  editingTestFailure: ProxyTestResult | undefined;
+  editingTestFailure: TableProxyInterface["testFailure"];
   testedEditingProxy: ProxySetupInterface | undefined;
   private editingTestRequestId: string | null = null;
   searchString: string;
@@ -84,25 +89,17 @@ class ProxiesTableStore {
     window.Main.proxies.onGetTableFields((event, fields) => {
       this.setFields(fields);
     });
-    window.Main.proxies.onGet((event, proxies) => {
-      const tableProxies: TableProxyInterface[] = [];
-      const deletedTableProxies: TableProxyInterface[] = [];
-
-      for (var proxy of proxies) {
-        if (!proxy.deleted) {
-          tableProxies.push({ ...proxy, isSelected: false, isTesting: this.isTestPending(proxy) });
-        } else {
-          deletedTableProxies.push({
-            ...proxy,
-            isSelected: false,
-            isTesting: this.isTestPending(proxy),
-          });
-        }
-      }
-      this.proxies = [...tableProxies, ...deletedTableProxies];
-    });
+    window.Main.proxies.onGet((event, proxies) => this.setProxies(proxies));
   }
 
+  // Список из main. Действие mobx: подписка IPC сама по себе действием не является (SDA-64).
+  private setProxies(proxies: CompiledProxyInterface[]) {
+    const rows = proxies.map((proxy) => ({ ...proxy, isSelected: false, isTesting: this.isTestPending(proxy) }));
+    this.proxies = [...rows.filter((p) => !p.deleted), ...rows.filter((p) => p.deleted)];
+  }
+  sortProxies(compare: (a: TableProxyInterface, b: TableProxyInterface) => number) {
+    this.proxies = this.proxies.slice().sort(compare);
+  }
   // Время в id: ответ на запрос, отправленный до перезагрузки окна, не совпадёт с новым.
   private nextRequestId(): string {
     this.requestSeq += 1;
@@ -173,37 +170,42 @@ class ProxiesTableStore {
     this.editingTestFailure = undefined;
     this.isTestingEditingProxy = false;
   }
-  testProxy(id: string, batch?: TestBatch) {
+  /** false — этот прокси уже проверяется. */
+  testProxy(id: string, batch?: TestBatch): boolean {
     const proxy = this.proxies.find((p) => p.id === id);
     if (!proxy) throw new Error(i18n.t("proxies.errors.notFound", { id }));
-    if (proxy.isTesting) return;
+    if (proxy.isTesting) return false;
     const requestId = this.nextRequestId();
     this.pendingTests.set(requestId, { id, setup: setupOf(proxy), batch });
     if (batch) batch.left += 1;
     proxy.isTesting = true;
     window.Main.proxies.test(id, requestId);
+    return true;
   }
   testSelected() {
-    const batch: TestBatch = { left: 0, working: 0, failed: [] };
-    for (var proxy of this.getSelectedProxies()) {
-      this.testProxy(proxy.id, batch);
+    const selected = this.getSelectedProxies();
+    if (selected.length === 0) return;
+    const batch: TestBatch = { left: 0, working: 0, refused: [], failed: [], skipped: 0 };
+    for (var proxy of selected) {
+      if (!this.testProxy(proxy.id, batch)) batch.skipped += 1;
     }
+    // Все выбранные уже проверяются: ответов не будет, но итог нужен и здесь.
+    if (batch.left === 0) this.showBatchSummary(batch);
   }
   // Идёт ли проверка именно этих данных прокси: правка прокси её результат отменяет (SDA-64).
   private isTestPending(proxy: ProxySetupInterface & { id: string }): boolean {
     return Array.from(this.pendingTests.values()).some((test) => test.id === proxy.id && isSameSetup(test.setup, proxy));
   }
   private onTestReply(data: ProxyTestReply) {
-    const failure = data.ok ? undefined : { ok: false, statusCode: data.statusCode, error: data.error };
+    const failure = data.ok ? undefined : { statusCode: data.statusCode, error: data.error };
+    // Код Steam (403, 429) получен через прокси: прокси работает, отказал Steam.
+    const isWorking = data.ok || data.statusCode !== undefined;
     if (data.requestId === this.editingTestRequestId) {
       this.editingTestRequestId = null;
       this.isTestingEditingProxy = false;
-      this.editingTestResult = data.ok;
+      this.editingTestResult = isWorking;
       this.editingTestFailure = failure;
-      this.root.windows.openMiniNotification({
-        text: failure ? this.testFailureText(failure) : i18n.t("proxies.test.editingWorking"),
-        type: data.ok ? "success" : "error",
-      });
+      this.showTestResult(failure, this.testedEditingProxy);
       return;
     }
     const test = this.pendingTests.get(data.requestId);
@@ -214,41 +216,44 @@ class ProxiesTableStore {
     if (proxy) proxy.isTesting = this.isTestPending(proxy);
     const applies = proxy !== undefined && isSameSetup(proxy, data.tested ?? test.setup);
     if (proxy && applies) {
-      proxy.isWorking = data.ok;
+      proxy.isWorking = isWorking;
       proxy.testFailure = failure;
     }
     if (test.batch) return this.onBatchReply(test.batch, applies ? proxy : undefined, data);
-    if (!proxy || !applies) return;
-    this.root.windows.openMiniNotification({
-      type: data.ok ? "success" : "error",
-      text: failure ? this.testFailureText(failure, proxy) : i18n.t("proxies.test.working", {
-        number: proxy.number,
-        host: proxy.host,
-        port: proxy.port,
-      }),
-    });
+    if (proxy && applies) this.showTestResult(failure, proxy, proxy.number);
   }
   private onBatchReply(batch: TestBatch, proxy: TableProxyInterface | undefined, data: ProxyTestReply) {
     batch.left -= 1;
-    if (proxy && data.ok) batch.working += 1;
-    if (proxy && !data.ok) batch.failed.push(`#${proxy.number}${data.statusCode ? ` (Steam ${data.statusCode})` : ""}`);
-    if (batch.left > 0 || batch.working + batch.failed.length === 0) return;
+    if (!proxy) batch.skipped += 1;
+    else if (data.ok) batch.working += 1;
+    else if (data.statusCode !== undefined) batch.refused.push(`#${proxy.number} (${data.statusCode})`);
+    else batch.failed.push(`#${proxy.number}`);
+    if (batch.left === 0) this.showBatchSummary(batch);
+  }
+  private showBatchSummary({ working, refused, failed, skipped }: TestBatch) {
+    // Полный список — в строках таблицы; уведомление не должно закрывать её целиком.
+    const list = (numbers: string[]) => numbers.slice(0, 30).join(", ") + (numbers.length > 30 ? "…" : "");
+    const parts = [
+      working ? i18n.t("proxies.test.summary.working", { number: working }) : "",
+      refused.length ? i18n.t("proxies.test.summary.refused", { number: refused.length, list: list(refused) }) : "",
+      failed.length ? i18n.t("proxies.test.summary.failed", { number: failed.length, list: list(failed) }) : "",
+      skipped ? i18n.t("proxies.test.summary.skipped", { number: skipped }) : "",
+    ];
     this.root.windows.openMiniNotification({
-      type: batch.failed.length === 0 ? "success" : "error",
-      text: i18n.t(batch.failed.length === 0 ? "proxies.test.summaryWorking" : "proxies.test.summaryFailed", {
-        working: batch.working,
-        failed: batch.failed.length,
-        // Полный список — в строках таблицы; уведомление не должно закрывать её целиком.
-        numbers: batch.failed.slice(0, 30).join(", ") + (batch.failed.length > 30 ? "…" : ""),
-      }),
+      type: failed.length ? "error" : refused.length || skipped ? "info" : "success",
+      text: `${i18n.t("proxies.test.summary.title")}: ${parts.filter(Boolean).join("; ")}`,
     });
   }
-  // Steam ответил не 200 — прокси при этом работает: отдельный текст с кодом (SDA-64).
-  private testFailureText(failure: ProxyTestResult, proxy?: TableProxyInterface): string {
-    const values = { number: proxy?.number, host: proxy?.host, port: proxy?.port, code: failure.statusCode, error: failure.error };
-    if (failure.statusCode) return i18n.t(proxy ? "proxies.test.steamStatus" : "proxies.test.editingSteamStatus", values);
-    const text = i18n.t(proxy ? "proxies.test.notWorking" : "proxies.test.editingNotWorking", values);
-    return failure.error ? `${text}: ${failure.error}` : text;
+  // В тексте — адрес, который проверяли: в окне за это время могли выбрать другой прокси.
+  private showTestResult(failure: TableProxyInterface["testFailure"], proxy?: ProxySetupInterface, number?: number) {
+    const address = proxy?.host ? `${proxy.host}:${proxy.port}` : "—";
+    const name = number === undefined ? address : `#${number} ${address}`;
+    if (!failure) return this.root.windows.openMiniNotification({ type: "success", text: i18n.t("proxies.test.working", { name }) });
+    if (failure.statusCode) {
+      return this.root.windows.openMiniNotification({ type: "info", text: i18n.t("proxies.test.steamStatus", { name, code: failure.statusCode }) });
+    }
+    const text = i18n.t("proxies.test.notWorking", { name });
+    this.root.windows.openMiniNotification({ type: "error", text: failure.error ? `${text}: ${failure.error}` : text });
   }
   setFields(fields: Field[]) {
     this.fields = fields;

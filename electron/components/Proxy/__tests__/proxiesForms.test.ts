@@ -13,6 +13,7 @@ jest.mock("../../../../src/globalComponents/Button/Button", () => ({ __esModule:
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { BulkRejected } from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxiesBulkForm/ProxiesBulkForm";
+import { ProxyTestButton } from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxyActionButton";
 import ProxiesFooter from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxiesFooter";
 import ProxiesEditingForm from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxiesEditingForm/ProxiesEditingForm";
 
@@ -77,4 +78,17 @@ it("the archive prompt and the archive itself use the rows that are selected on 
     expect(prompt.mock.calls[0][0].title).toBe('proxies.archiveSelected.title|{"count":1}');
     prompt.mock.calls[0][0].cb();
     expect(mockStore.proxiesTable.editProxyInStorage.mock.calls).toEqual([["p2", { deleted: true }, { steamAccountIds: [] }]]);
+});
+
+it.each([
+    [{ isTesting: true, isWorking: true }, "pending", "proxies.test.pending", ""],
+    [{ isTesting: false }, "idle", "proxies.test.untested", ""],
+    [{ isTesting: false, isWorking: true }, "success", "proxies.test.ok", ""],
+    [{ isTesting: false, isWorking: true, failure: { statusCode: 429 } }, "warning", 'proxies.test.steamCode|{"code":429}', 'proxies.test.steamHint|{"code":429}'],
+    [{ isTesting: false, isWorking: false, failure: { error: "ECONNREFUSED" } }, "danger", "proxies.test.failed", "ECONNREFUSED"],
+])("test badge %j is %s", (props, state, status, hint) => {
+    const html = renderToStaticMarkup(React.createElement(ProxyTestButton, { ...props, onClick: () => undefined })).replace(/&quot;/g, '"');
+    expect(html).toContain(`proxy-test-control--${state}"`);
+    expect(html).toContain(`>${status}</span>`);
+    expect(html.includes(' title="' + hint + '">' + status)).toBe(hint !== "");
 });

@@ -498,12 +498,9 @@
       "title": "Змінити проксі (#{{number}}) {{host}}:{{port}}"
     },
     "test": {
-      "editingWorking": "Проксі працює",
-      "editingNotWorking": "Проксі НЕ працює",
-      "editingSteamStatus": "Проксі працює, але Steam відповів {{code}}",
-      "working": "Проксі #{{number}} {{host}}:{{port}} працює",
-      "notWorking": "Проксі #{{number}} {{host}}:{{port}} НЕ працює",
-      "steamStatus": "Проксі #{{number}} {{host}}:{{port}} працює, але Steam відповів {{code}}",
+      "working": "Проксі {{name}} працює",
+      "notWorking": "Проксі {{name}} НЕ працює",
+      "steamStatus": "Проксі {{name}} працює, але Steam відповів {{code}}",
       "workingRich": "Проксі #{{number}} {{host}}:{{port}} <b>працює</b>",
       "notWorkingRich": "Проксі #{{number}} {{host}}:{{port}} <b>НЕ ПРАЦЮЄ</b>",
       "column": "Перевірка",
@@ -512,8 +509,14 @@
       "ok": "Працює",
       "failed": "Збій",
       "steamCode": "Steam: {{code}}",
-      "summaryWorking": "Проксі перевірено, усі працюють: {{working}}",
-      "summaryFailed": "Проксі перевірено. Працюють: {{working}}, не пройшли: {{failed}} ({{numbers}})"
+      "steamHint": "Проксі працює, але Steam відповів {{code}}",
+      "summary": {
+        "title": "Проксі перевірено",
+        "working": "працюють: {{number}}",
+        "refused": "працюють, але Steam відмовив: {{number}} ({{list}})",
+        "failed": "не працюють: {{number}} ({{list}})",
+        "skipped": "без результату: {{number}} (вже перевіряються, змінені або видалені)"
+      }
     },
     "errors": {
       "notFound": "Проксі #{{id}} не існує",

@@ -498,12 +498,9 @@
       "title": "Изменить прокси (#{{number}}) {{host}}:{{port}}"
     },
     "test": {
-      "editingWorking": "Прокси работает",
-      "editingNotWorking": "Прокси НЕ работает",
-      "editingSteamStatus": "Прокси работает, но Steam ответил {{code}}",
-      "working": "Прокси #{{number}} {{host}}:{{port}} работает",
-      "notWorking": "Прокси #{{number}} {{host}}:{{port}} НЕ работает",
-      "steamStatus": "Прокси #{{number}} {{host}}:{{port}} работает, но Steam ответил {{code}}",
+      "working": "Прокси {{name}} работает",
+      "notWorking": "Прокси {{name}} НЕ работает",
+      "steamStatus": "Прокси {{name}} работает, но Steam ответил {{code}}",
       "workingRich": "Прокси #{{number}} {{host}}:{{port}} <b>работает</b>",
       "notWorkingRich": "Прокси #{{number}} {{host}}:{{port}} <b>НЕ РАБОТАЕТ</b>",
       "column": "Проверка",
@@ -512,8 +509,14 @@
       "ok": "Работает",
       "failed": "Сбой",
       "steamCode": "Steam: {{code}}",
-      "summaryWorking": "Прокси проверены, все работают: {{working}}",
-      "summaryFailed": "Прокси проверены. Работают: {{working}}, не прошли: {{failed}} ({{numbers}})"
+      "steamHint": "Прокси работает, но Steam ответил {{code}}",
+      "summary": {
+        "title": "Прокси проверены",
+        "working": "работают: {{number}}",
+        "refused": "работают, но Steam отказал: {{number}} ({{list}})",
+        "failed": "не работают: {{number}} ({{list}})",
+        "skipped": "без результата: {{number}} (уже проверяются, изменены или удалены)"
+      }
     },
     "errors": {
       "notFound": "Прокси #{{id}} не существует",

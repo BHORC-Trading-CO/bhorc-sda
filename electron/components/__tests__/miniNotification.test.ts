@@ -45,3 +45,18 @@ it("a replacement is not hidden by the timer of the previous one", async () => {
     expect(windows.isMiniNotificationOpen).toBe(false);
     expect(jest.getTimerCount()).toBe(0);
 });
+
+it("shows and hides inside mobx actions", async () => {
+    const { configure } = require("mobx");
+    configure({ enforceActions: "always" });
+    try {
+        windows.openMiniNotification(toast("text"));
+        await advance(200);
+        expect(windows.isMiniNotificationOpen).toBe(true);
+        await advance(5010);
+        expect(windows.isMiniNotificationOpen).toBe(false);
+        expect((console.warn as jest.Mock).mock.calls.filter(([text]) => String(text).includes("[MobX]"))).toEqual([]);
+    } finally {
+        configure({ enforceActions: "observed" });
+    }
+});

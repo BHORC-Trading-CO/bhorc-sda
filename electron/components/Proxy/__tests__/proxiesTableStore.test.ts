@@ -107,17 +107,21 @@ describe("proxy tests", () => {
         expect(new Set(requestFor("p1")).size).toBe(2);
     });
 
-    it("Steam's 429 is not a dead proxy: distinct text with the code", () => {
+    it("Steam's 429 is a working proxy: its own text with the code, not a failure", () => {
         table.testProxy("p1");
         reply(1, { ok: false, statusCode: 429 });
-        expect(row(1)).toMatchObject({ isTesting: false, isWorking: false, testFailure: { statusCode: 429 } });
-        expect(toasts).toEqual([{ type: "error", text: 'proxies.test.steamStatus|{"number":1,"host":"host1.test","port":"80","code":429}' }]);
+        expect(row(1)).toMatchObject({ isTesting: false, isWorking: true, testFailure: { statusCode: 429 } });
+        expect(toasts).toEqual([{ type: "info", text: 'proxies.test.steamStatus|{"name":"#1 host1.test:80","code":429}' }]);
+        table.testProxy("p1");
+        reply(1, { ok: true }, requestFor("p1")[1]);
+        expect([row(1).isWorking, row(1).testFailure]).toEqual([true, undefined]);
     });
 
     it("a dead proxy shows the reason", () => {
         table.testProxy("p1");
         reply(1, { ok: false, error: "ECONNREFUSED" });
-        expect(toasts[0].text).toBe('proxies.test.notWorking|{"number":1,"host":"host1.test","port":"80","error":"ECONNREFUSED"}: ECONNREFUSED');
+        expect(row(1)).toMatchObject({ isWorking: false, testFailure: { error: "ECONNREFUSED" } });
+        expect(toasts).toEqual([{ type: "error", text: 'proxies.test.notWorking|{"name":"#1 host1.test:80"}: ECONNREFUSED' }]);
     });
 
     it.each([{ host: "new.test" }, { port: "81" }, { username: "other" }, { password: "other" }])("a result for replaced data %j is dropped", change => {
@@ -150,24 +154,61 @@ describe("proxy tests", () => {
         expect(toasts).toEqual([]);
     });
 
-    it("a bulk test ends with one summary that names the failed proxies", () => {
-        ["p1", "p2", "p3"].forEach(id => table.selectProxy(id));
-        table.testSelected();
-        reply(2, { ok: false, error: "dead" });
-        reply(1, { ok: true });
-        expect(toasts).toEqual([]);
-        reply(3, { ok: false, statusCode: 403 });
-        expect(toasts).toEqual([{ type: "error", text: 'proxies.test.summaryFailed|{"working":1,"failed":2,"numbers":"#2, #3 (Steam 403)"}' }]);
-        expect([row(1).isWorking, row(2).isWorking, row(3).isWorking]).toEqual([true, false, false]);
-    });
+    describe("bulk test summary", () => {
+        const title = "proxies.test.summary.title: ";
+        const part = (name: string, values: object) => `proxies.test.summary.${name}|${JSON.stringify(values)}`;
+        beforeEach(() => ["p1", "p2", "p3"].forEach(id => table.selectProxy(id)));
 
-    it("a bulk summary counts only results that were applied", () => {
-        ["p1", "p2"].forEach(id => table.selectProxy(id));
-        table.testSelected();
-        rows(proxy(1, { password: "new" }), proxy(2));
-        reply(1, { ok: true });
-        reply(2, { ok: true });
-        expect(toasts).toEqual([{ type: "success", text: 'proxies.test.summaryWorking|{"working":1,"failed":0,"numbers":""}' }]);
+        it("one summary; a proxy Steam refused is counted apart from the failed ones", () => {
+            table.testSelected();
+            reply(2, { ok: false, error: "dead" });
+            reply(1, { ok: true });
+            expect(toasts).toEqual([]);
+            reply(3, { ok: false, statusCode: 403 });
+            expect(toasts).toEqual([{ type: "error", text: title + [
+                part("working", { number: 1 }), part("refused", { number: 1, list: "#3 (403)" }), part("failed", { number: 1, list: "#2" }),
+            ].join("; ") }]);
+            expect([row(1).isWorking, row(2).isWorking, row(3).isWorking]).toEqual([true, false, true]);
+        });
+
+        it("only Steam refusals: not an error", () => {
+            table.testSelected();
+            [1, 2, 3].forEach(n => reply(n, { ok: false, statusCode: 429 }));
+            expect(toasts).toEqual([{ type: "info", text: title + part("refused", { number: 3, list: "#1 (429), #2 (429), #3 (429)" }) }]);
+        });
+
+        it("all working", () => {
+            table.testSelected();
+            [1, 2, 3].forEach(n => reply(n, { ok: true }));
+            expect(toasts).toEqual([{ type: "success", text: title + part("working", { number: 3 }) }]);
+        });
+
+        it("every row is already being tested: the summary comes at once", () => {
+            ["p1", "p2", "p3"].forEach(id => table.testProxy(id));
+            table.testSelected();
+            expect(api.test).toHaveBeenCalledTimes(3);
+            expect(toasts).toEqual([{ type: "info", text: title + part("skipped", { number: 3 }) }]);
+        });
+
+        it("every row changed or is gone: still a summary", () => {
+            table.testSelected();
+            rows(proxy(1, { password: "new" }), proxy(2, { host: "new.test" }));
+            [1, 2, 3].forEach(n => reply(n, { ok: true }));
+            expect(toasts).toEqual([{ type: "info", text: title + part("skipped", { number: 3 }) }]);
+        });
+
+        it("rows that changed meanwhile are counted apart", () => {
+            table.testSelected();
+            rows(proxy(1, { password: "new" }), proxy(2), proxy(3));
+            [1, 2, 3].forEach(n => reply(n, { ok: true }));
+            expect(toasts).toEqual([{ type: "info", text: title + [part("working", { number: 2 }), part("skipped", { number: 1 })].join("; ") }]);
+        });
+
+        it("nothing selected: nothing happens", () => {
+            table.selectAllProxies(false);
+            table.testSelected();
+            expect([api.test.mock.calls.length, toasts.length]).toEqual([0, 0]);
+        });
     });
 
     describe("add and edit windows", () => {
@@ -177,7 +218,7 @@ describe("proxy tests", () => {
             table.testEditingProxy({ host: "", port: "", username: "", password: "" });
             form(0, { ok: false, error: "Invalid proxy address" });
             expect([table.isTestingEditingProxy, table.editingTestResult]).toEqual([false, false]);
-            expect(toasts[0].text).toBe('proxies.test.editingNotWorking|{"error":"Invalid proxy address"}: Invalid proxy address');
+            expect(toasts[0].text).toBe('proxies.test.notWorking|{"name":"—"}: Invalid proxy address');
             table.testEditingProxy(setup(1));
             expect(table.isTestingEditingProxy).toBe(true);
             form(1, { ok: true });
@@ -189,8 +230,9 @@ describe("proxy tests", () => {
             table.testEditingProxy(setup(2));
             form(1, { ok: false, statusCode: 429 });
             form(0, { ok: true });
-            expect([table.editingTestResult, table.editingTestFailure?.statusCode]).toEqual([false, 429]);
-            expect(toasts.map(toast => toast.text)).toEqual(['proxies.test.editingSteamStatus|{"code":429}']);
+            expect([table.editingTestResult, table.editingTestFailure?.statusCode]).toEqual([true, 429]);
+            // Адрес в тексте: в окне за время проверки могли выбрать другой прокси.
+            expect(toasts).toEqual([{ type: "info", text: 'proxies.test.steamStatus|{"name":"host2.test:80","code":429}' }]);
         });
 
         it("a reply after the window closed or the value changed shows nothing", () => {
@@ -274,10 +316,43 @@ describe("selection scope and pages", () => {
         expect(pageIds()).toEqual([]);
     });
 
+    it("sorting reorders the rows", () => {
+        table.sortProxies((a, b) => b.number - a.number);
+        expect(pageIds().slice(0, 2)).toEqual(["p25", "p24"]);
+    });
+
     it("table rows are plain copies: they go to IPC and to the edit window", () => {
         const { isObservable } = require("mobx");
         rows(proxy(1, { steamAccountIds: ["a1"] }));
         const [[first]] = table.getProxiesByPages();
         expect([isObservable(first), isObservable(first.steamAccountIds)]).toEqual([false, false]);
     });
+});
+
+// Записи вне действий mobx: в строгом режиме каждая даёт предупреждение.
+it("list, test, edit and import replies change the store inside mobx actions", () => {
+    const { configure, autorun, toJS } = require("mobx");
+    configure({ enforceActions: "always" });
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const stop = autorun(() => toJS(table));
+    try {
+        rows(proxy(1), proxy(2));
+        table.testProxy("p1");
+        receive("onTest", { requestId: api.test.mock.calls[0][1], id: "p1", tested: proxy(1), ok: true });
+        table.testEditingProxy(proxy(2) as any);
+        receive("onTest", { requestId: api.testByParams.mock.calls[0][1], ok: true });
+        table.openEditingForm(proxy(1) as any);
+        table.saveEditing(proxy(1) as any, { steamAccountIds: [] });
+        receive("onEditResult", { requestId: api.edit.mock.calls[0][3], error: "bad" });
+        table.createBulk("text");
+        receive("onBulkResult", { requestId: api.bulkNew.mock.calls[0][1], added: 1, duplicates: 0, rejected: [] });
+        receive("onGetTableOptions", { pageSize: 5, activePage: 1 });
+        receive("onGetTableFields", []);
+        table.sortProxies((a, b) => b.number - a.number);
+        expect(warn.mock.calls.filter(([text]) => String(text).includes("[MobX]"))).toEqual([]);
+    } finally {
+        stop();
+        configure({ enforceActions: "observed" });
+        warn.mockRestore();
+    }
 });
