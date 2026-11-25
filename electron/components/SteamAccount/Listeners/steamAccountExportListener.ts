@@ -1,3 +1,4 @@
+import { ExportedFile } from "../../../interfaces/SteamAccount/ExportedFile";
 import steamAccountManager from "../steamAccountManager";
 import Manager from "../../Manager/Manager";
 import SmaFileInterface from "../../../interfaces/SteamAccount/SmaFileInterface";
@@ -6,7 +7,6 @@ import portableFileName from "../../Functions/portableFileName";
 import { getSteamID64 } from "../../Functions/steamAccountSearch";
 import { t } from "../../../i18n";
 
-export type ExportedFile = { fileName: string, content: string } | { error: string };
 
 /**
  * Файл экспорта — из живого аккаунта в момент клика (SDA-62). Раньше окно сохраняло снимок из

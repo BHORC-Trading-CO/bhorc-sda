@@ -27,7 +27,7 @@ import { AppSettingsError, AppSettingsPatch, AppSettingsView } from '../interfac
 import { exposeLanguageApi } from './languageBridge';
 import ImageChannels from '../interfaces/IpcChannels/ImageChannels';
 import { requestImage } from './imageBridge';
-import type { ExportedFile } from '../components/SteamAccount/Listeners/steamAccountExportListener';
+import { ExportedFile } from '../interfaces/SteamAccount/ExportedFile';
 
 const SteamTotp = require('steam-totp');
 
