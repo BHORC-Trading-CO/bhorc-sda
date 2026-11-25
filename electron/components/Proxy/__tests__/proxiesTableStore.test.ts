@@ -34,14 +34,15 @@ afterEach(() => { delete (globalThis as any).window; });
 describe("bulk import", () => {
     it("shows what main saved, not what the field looked like, and returns the rejected lines", async () => {
         const result = table.createBulk("a:b@1.1.1.1:1\na:b@2.2.2.2:port");
-        expect(toasts).toEqual([]);
+        expect([toasts, table.isSavingBulk]).toEqual([[], true]);
         const [[text, requestId]] = api.bulkNew.mock.calls;
         expect(text).toBe("a:b@1.1.1.1:1\na:b@2.2.2.2:port");
         receive("onBulkResult", { requestId: "other", added: 5, duplicates: 0, rejected: [] });
-        expect(toasts).toEqual([]);
+        expect([toasts, table.isSavingBulk]).toEqual([[], true]);
         const rejected = [{ line: "a:b@2.2.2.2:port", reason: "address" }];
         receive("onBulkResult", { requestId, added: 1, duplicates: 0, rejected });
         await expect(result).resolves.toEqual({ added: 1, duplicates: 0, rejected });
+        expect(table.isSavingBulk).toBe(false);
         expect(toasts).toEqual([{ type: "error", text: 'proxies.bulk.result|{"added":1,"invalid":1,"duplicates":0}' }]);
     });
 });

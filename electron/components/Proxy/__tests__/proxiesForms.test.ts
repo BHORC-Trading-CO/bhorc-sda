@@ -12,7 +12,7 @@ jest.mock("../../../../src/globalComponents/Button/Button", () => ({ __esModule:
 
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { BulkRejected } from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxiesBulkForm/ProxiesBulkForm";
+import ProxiesBulkForm, { BulkRejected } from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxiesBulkForm/ProxiesBulkForm";
 import { ProxyTestButton } from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxyActionButton";
 import ProxiesFooter from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxiesFooter";
 import ProxiesEditingForm from "../../../../src/pages/Main/tabs/ProxiesTab/components/ProxiesEditingForm/ProxiesEditingForm";
@@ -91,4 +91,12 @@ it.each([
     expect(html).toContain(`proxy-test-control--${state}"`);
     expect(html).toContain(`>${status}</span>`);
     expect(html.includes(' title="' + hint + '">' + status)).toBe(hint !== "");
+});
+
+it.each([false, true])("the list field is read-only while a save is in flight (%s)", isSavingBulk => {
+    mockStore.proxiesTable = { isBulkFormOpen: true, isSavingBulk, createBulk: jest.fn(), closeBulkForm: jest.fn() };
+    mockStore.windows = { openMiniNotification: jest.fn() };
+    const html = renderToStaticMarkup(React.createElement(ProxiesBulkForm));
+    expect(/<textarea[^>]*\sreadonly(=""|\s|>)/i.test(html)).toBe(isSavingBulk);
+    expect(mockUi.buttons["common.buttons.save"].isLoad).toBe(isSavingBulk);
 });
