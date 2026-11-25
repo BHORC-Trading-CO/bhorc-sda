@@ -11,7 +11,7 @@ import SmaFileInterface from '../interfaces/SteamAccount/SmaFileInterface';
 import CreationStepType from '../interfaces/SteamAccount/CreationStepType';
 import GuardSetupResultInterface from '../interfaces/SteamAccount/GuardSetupResultInterface';
 import ProxySetupInterface from '../interfaces/Proxy/ProxySetupInterface';
-import { ProxyBulkResult } from '../interfaces/Proxy/ProxyResults';
+import { ProxyBulkResult, ProxyEditReply } from '../interfaces/Proxy/ProxyResults';
 import ChangableSecondaryInterface from '../interfaces/SteamAccount/ChangableSecondaryInterface';
 import SecondaryInterface from '../interfaces/SteamAccount/SecondaryInterface';
 import SteamAccountChannels from '../interfaces/IpcChannels/SteamAccountChannels';
@@ -166,8 +166,12 @@ const proxies = {
   onBulkResult: (listener: (event: IpcRendererEvent, result: ProxyBulkResult & { requestId: string }) => void) => {
     ipcRenderer.on(ProxyChannels.PROXY_BULK_RESULT, listener);
   },
-  edit: (id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], originalSteamAccountIds?: string[] }) => {
-    ipcRenderer.send('EDIT_PROXY', { id, proxy, links });
+  edit: (id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], originalSteamAccountIds?: string[] }, requestId?: string) => {
+    ipcRenderer.send('EDIT_PROXY', { id, proxy, links, requestId });
+  },
+  /** Итог правки, отправленной с requestId (окно правки) */
+  onEditResult: (listener: (event: IpcRendererEvent, result: ProxyEditReply) => void) => {
+    ipcRenderer.on(ProxyChannels.PROXY_EDIT_RESULT, listener);
   },
   delete: (id: string) => {
     ipcRenderer.send('DELETE_PROXY', id);

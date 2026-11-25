@@ -6,7 +6,7 @@ import TableProxyInterface from "../../../electron/interfaces/Proxy/TableProxyIn
 import defaultProxiesTableFields from "../../../electron/interfaces/TableFields/defaults/proxiesTableFields";
 import ProxySetupInterface from "../../../electron/interfaces/Proxy/ProxySetupInterface";
 import testingResultJsx from "./testingResultJsx";
-import { ProxyBulkResult } from "../../../electron/interfaces/Proxy/ProxyResults";
+import { ProxyBulkResult, ProxyEditReply } from "../../../electron/interfaces/Proxy/ProxyResults";
 import i18n from "../../i18n/i18n";
 
 class ProxiesTableStore {
@@ -18,6 +18,9 @@ class ProxiesTableStore {
   showDeleted: boolean;
   isEditingFormOpen: boolean;
   editingFormContent: TableProxyInterface;
+  isSavingEdit: boolean = false;
+  editError: string | null = null;
+  private editRequestId: string | null = null;
   isSettingsFormOpen: boolean;
   isCreationFormOpen: boolean;
   isBulkFormOpen: boolean;
@@ -100,6 +103,7 @@ class ProxiesTableStore {
         proxy[0].isWorking = data.testResult;
       });
     });
+    window.Main.proxies.onEditResult((event, data) => this.onEditResult(data));
     window.Main.proxies.onBulkResult((event, data) => this.onBulkResult(data));
     window.Main.proxies.onGetTableFields((event, fields) => {
       this.setFields(fields);
@@ -293,14 +297,45 @@ class ProxiesTableStore {
   }
   openEditingForm(proxy: TableProxyInterface) {
     this.resetEditingTestDisplay();
+    this.resetEditSave();
     this.isEditingFormOpen = true;
     this.editingFormContent = proxy;
   }
   getEditingFormContent() {
     return toJS(this.editingFormContent);
   }
+  // Сохранение из окна правки: окно закрывается после ответа main, отказ остаётся в форме (SDA-64).
+  saveEditing(
+    proxy: ProxySetupInterface,
+    links: { steamAccountIds: string[]; originalSteamAccountIds?: string[] }
+  ) {
+    if (this.isSavingEdit) return;
+    this.isSavingEdit = true;
+    this.editError = null;
+    this.editRequestId = this.nextRequestId();
+    window.Main.proxies.edit(this.editingFormContent.id, proxy, links, this.editRequestId);
+  }
+  setEditError(error: string | null) {
+    this.editError = error;
+  }
+  private onEditResult(data: ProxyEditReply) {
+    if (data.requestId !== this.editRequestId) {
+      // Окно уже закрыли или открыли заново: отказ показать больше негде
+      if (data.error) this.root.windows.openMiniNotification({ type: "error", text: data.error });
+      return;
+    }
+    if (!data.error) return this.closeEditingForm();
+    this.resetEditSave();
+    this.editError = data.error;
+  }
+  private resetEditSave() {
+    this.editRequestId = null;
+    this.isSavingEdit = false;
+    this.editError = null;
+  }
   closeEditingForm() {
     this.resetEditingTestDisplay();
+    this.resetEditSave();
     this.isEditingFormOpen = false;
   }
   openCreationForm() {

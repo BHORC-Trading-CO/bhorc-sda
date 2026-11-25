@@ -44,3 +44,44 @@ describe("bulk import", () => {
         expect(toasts).toEqual([{ type: "error", text: 'proxies.bulk.result|{"added":1,"invalid":1,"duplicates":0}' }]);
     });
 });
+
+describe("editing form", () => {
+    const setup = { host: "new.test", port: "81", username: "u", password: "p:x" };
+    const links = { steamAccountIds: ["a1"], originalSteamAccountIds: [] };
+    const save = () => {
+        table.saveEditing(setup, links);
+        return api.edit.mock.calls[api.edit.mock.calls.length - 1][3] as string;
+    };
+    beforeEach(() => table.openEditingForm(proxy(1) as any));
+
+    it("stays open until main confirms", () => {
+        const requestId = save();
+        expect(api.edit).toHaveBeenCalledWith("p1", setup, links, requestId);
+        expect([table.isEditingFormOpen, table.isSavingEdit]).toEqual([true, true]);
+        table.saveEditing(setup, links);
+        expect(api.edit).toHaveBeenCalledTimes(1);
+        receive("onEditResult", { requestId });
+        expect([table.isEditingFormOpen, table.isSavingEdit]).toEqual([false, false]);
+        expect(toasts).toEqual([]);
+    });
+
+    it("a refusal stays in the form and can be corrected", () => {
+        receive("onEditResult", { requestId: save(), error: "bad port" });
+        expect([table.isEditingFormOpen, table.isSavingEdit, table.editError]).toEqual([true, false, "bad port"]);
+        const second = save();
+        expect(table.editError).toBeNull();
+        receive("onEditResult", { requestId: second });
+        expect(table.isEditingFormOpen).toBe(false);
+    });
+
+    it("a late reply to a closed window neither closes the next one nor hides the refusal", () => {
+        const first = save();
+        table.closeEditingForm();
+        table.openEditingForm(proxy(2) as any);
+        receive("onEditResult", { requestId: first });
+        expect(table.isEditingFormOpen).toBe(true);
+        receive("onEditResult", { requestId: first, error: "bad port" });
+        expect([table.isEditingFormOpen, table.editError]).toEqual([true, null]);
+        expect(toasts).toEqual([{ type: "error", text: "bad port" }]);
+    });
+});

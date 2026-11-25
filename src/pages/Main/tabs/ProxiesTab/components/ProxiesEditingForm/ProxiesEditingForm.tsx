@@ -52,6 +52,7 @@ const EditingFormContent: FC = observer(() => {
     const proxySetup: ProxySetupInterface = parseProxyString(value);
 
     store.proxiesTable.resetEditingTestDisplay();
+    store.proxiesTable.setEditError(null);
     setProxyData(proxySetup);
   }
 
@@ -78,6 +79,7 @@ const EditingFormContent: FC = observer(() => {
         <div id="proxy-edit-format" className="proxy-data-example text-grey-medium">
           {t("proxyBlock.example")}
         </div>
+        {store.proxiesTable.editError && <p className="proxy-form-error" role="alert">{store.proxiesTable.editError}</p>}
         <Delimeter marginTop="26px" marginBottom="15px"></Delimeter>
       </div>
       <div className="proxy-table__container">
@@ -110,10 +112,11 @@ const EditingFormContent: FC = observer(() => {
             store.proxiesTable.closeEditingForm();
           }}
         ></Button>
-        <Button size="medium" text={t("common.buttons.save")} onClick={() => {
-          if (proxyData.host && proxyData.port && proxyData.password && proxyData.host) {
-            window.Main.proxies.edit(proxy.id, proxyData, { ...links, originalSteamAccountIds });
-            store.proxiesTable.closeEditingForm();
+        <Button size="medium" text={t("common.buttons.save")} isLoad={store.proxiesTable.isSavingEdit} onClick={() => {
+          if (proxyData.host && proxyData.port && proxyData.password) {
+            store.proxiesTable.saveEditing(proxyData, { ...links, originalSteamAccountIds });
+          } else {
+            store.proxiesTable.setEditError(t("proxies.creation.incomplete"));
           }
         }}></Button>
       </div>

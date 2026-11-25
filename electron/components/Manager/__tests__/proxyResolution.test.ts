@@ -17,6 +17,7 @@ import deleteListener from "../../SteamAccount/Listeners/steamAccountDeleteListe
 import proxiesRouter from "../../application/listenersRouters/proxiesListenersRouter";
 import application from "../../application/application";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
+import { t } from "../../../i18n";
 
 const proxy = { id: "p1", host: "proxy.test", port: "8080", username: "", password: "", deleted: false } as any;
 const params = () => ({ id: "a1", accountName: "test", maFile: {}, secondary: {}, changableSecondary: { steam: {} } } as any);
@@ -112,15 +113,38 @@ it("explicit EDIT_PROXY account-list removal still unlinks", async () => {
     await mockHandlers.EDIT_PROXY({ reply: jest.fn() }, { id: "p1", proxy: { host: "proxy2.test" }, links: { steamAccountIds: [], originalSteamAccountIds: ["a1"] } });
     expect(account.proxyState).toBe("none");
 });
-it("invalid proxy edit immediately blocks linked clients", async () => {
-    links("p1");
-    const account = new SteamAccount(params());
-    steamAccountManager.addNew(account);
+// SDA-64: раньше такая правка сперва затирала рабочий адрес и отключала привязанные аккаунты.
+it.each([{ host: "" }, { port: "80a" }, { port: "70000" }, { host: "bad host" }, { host: "other.test", port: "" }])("SDA-64 a rejected proxy edit %j changes nothing: storage, live route, browser, links", async patch => {
+    const account = addLinked("a1");
+    const { community, session } = account;
+    const browser = { close: jest.fn().mockResolvedValue(undefined) };
+    account.chrome.browser = browser as any;
+    const stored = ProxyStorage.GetById("p1");
+    const save = jest.spyOn(ProxyStorage, "Save");
     const event = { reply: jest.fn() };
-    await mockHandlers.EDIT_PROXY(event, { id: "p1", proxy: { host: "" }, links: { steamAccountIds: ["a1"] } });
-    expect(event.reply).toHaveBeenCalledWith("ERROR", expect.stringContaining("ProxyUnavailableError"));
-    expect(account.proxyState).toBe("missing");
+    await mockHandlers.EDIT_PROXY(event, { id: "p1", proxy: { ...patch, password: "new" }, requestId: "r1", links: { steamAccountIds: [], originalSteamAccountIds: ["a1"] } });
+    expect(event.reply.mock.calls).toEqual([["PROXY_EDIT_RESULT", { requestId: "r1", error: t("errors.smaFile.invalidProxyAddress") }]]);
+    expect(save).not.toHaveBeenCalled();
+    expect(ProxyStorage.GetById("p1")).toEqual(stored);
+    expect(proxyManager.getById("p1")!.params).toEqual(proxy);
+    expect(account.proxyState).toBe("ok");
+    expect(account.community).toBe(community);
+    expect(account.session).toBe(session);
+    expect(browser.close).not.toHaveBeenCalled();
     expect(LinksStorage.Get().steamAccounts.a1).toBe("p1");
+});
+it("SDA-64 a valid edit is acknowledged once; special characters in the password are kept", async () => {
+    const account = addLinked("a1");
+    const event = { reply: jest.fn() };
+    await mockHandlers.EDIT_PROXY(event, { id: "p1", proxy: { host: " proxy2.test ", port: "8081", username: "u@x", password: "p:a@s/s %#" }, requestId: "r1", links: { steamAccountIds: ["a1"], originalSteamAccountIds: ["a1"] } });
+    expect(event.reply.mock.calls).toEqual([["PROXY_EDIT_RESULT", { requestId: "r1" }]]);
+    expect(ProxyStorage.GetById("p1")).toMatchObject({ host: "proxy2.test", port: "8081", username: "u@x", password: "p:a@s/s %#" });
+    expect(account.proxyUrl()).toBe("http://u%40x:p%3Aa%40s%2Fs%20%25%23@proxy2.test:8081");
+});
+it("SDA-64 an edit without a request id (archive, restore) still reports to ERROR", async () => {
+    const event = { reply: jest.fn() };
+    await mockHandlers.EDIT_PROXY(event, { id: "gone", proxy: { deleted: true }, links: { steamAccountIds: [] } });
+    expect(event.reply.mock.calls).toEqual([["ERROR", expect.stringContaining("gone")]]);
 });
 it("reloading proxies blocks live accounts whose proxy disappeared from storage", () => {
     links("p1");

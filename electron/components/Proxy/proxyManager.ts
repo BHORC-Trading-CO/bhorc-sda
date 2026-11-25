@@ -7,6 +7,10 @@ import getProxyGeo, { ProxyGeo } from '../SteamAccount/Functions/getProxyGeo';
 import buildProxyUrl from './proxyUrl';
 import Manager from "../Manager/Manager";
 import application from "../application/application";
+import { sanitizeProxySetup } from "../Functions/sanitizeSmaFile";
+import { t } from "../../i18n";
+
+const SETUP_FIELDS = ["host", "port", "username", "password"] as const;
 
 export class ProxyManager {
     objects: Proxy[];
@@ -41,6 +45,19 @@ export class ProxyManager {
         } catch (err) {
             throw new Error(`Cant delete proxy: ${err}`);
         }
+    }
+    /**
+     * Правка, проверенная целиком — прокси, каким он станет после неё. Ничего не меняет и бросает до
+     * записи на диск (SDA-64): раньше неправильный порт сперва затирал рабочий адрес, отключал
+     * привязанные аккаунты и закрывал их браузеры, а отказ приходил уже после этого.
+     */
+    sanitizeEdit(id: string, newProxyData: { [K in keyof ProxyInterface]?: ProxyInterface[K] }) {
+        const object = this.getById(id);
+        if (!object) throw new Error(t("errors.proxyNotFound", { id }));
+        const changed = SETUP_FIELDS.filter(field => typeof newProxyData[field] !== "undefined");
+        if (!changed.length) return newProxyData;
+        const setup = sanitizeProxySetup({ ...object.params, ...newProxyData });
+        return { ...newProxyData, ...Object.fromEntries(changed.map(field => [field, setup[field]])) };
     }
     edit(id: string, newProxyData: { [K in keyof ProxyInterface]?: ProxyInterface[K] }) {
         try {

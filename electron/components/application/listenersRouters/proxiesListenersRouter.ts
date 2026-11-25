@@ -82,20 +82,25 @@ export default () => {
         }
         event.reply(ProxyChannels.PROXY_BULK_RESULT, { requestId: params.requestId, ...result });
     });
-    onTrusted('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds?: string[], originalSteamAccountIds?: string[] } }) => {
+    onTrusted('EDIT_PROXY', (event, params: { id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], profileIds?: string[], originalSteamAccountIds?: string[] }, requestId?: string }) => {
+        // Окно правки (requestId) ждёт ответа: закрывается после успеха, отказ показывает в форме.
+        const { requestId } = params;
         try {
             const archiveOnly = Object.keys(params.proxy).length === 1 && "deleted" in params.proxy;
+            const proxy = archiveOnly ? params.proxy : proxyManager.sanitizeEdit(params.id, params.proxy);
             const applyLinks = archiveOnly ? null : Manager.PlanProxyAccountLinks(
                 params.id, params.links.steamAccountIds, params.links.originalSteamAccountIds
             );
-            proxyManager.edit(params.id, params.proxy);
+            proxyManager.edit(params.id, proxy);
             if (applyLinks) {
                 Manager.RequireProxy(params.id);
                 applyLinks();
             }
             proxyManager.sendProxiesToFront();
+            if (requestId) event.reply(ProxyChannels.PROXY_EDIT_RESULT, { requestId });
         } catch (err) {
-            event.reply('ERROR', String(err));
+            if (requestId) event.reply(ProxyChannels.PROXY_EDIT_RESULT, { requestId, error: err instanceof Error ? err.message : String(err) });
+            else event.reply('ERROR', String(err));
         }
     });
     onTrusted('DELETE_PROXY', async (event, id: string) => {
