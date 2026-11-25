@@ -1,5 +1,6 @@
 // SDA-64: удаление аккаунта навсегда закрывает его браузер и отменяет запуск. Строка исчезает вместе
-// с кнопкой «Стоп», поэтому браузер без владельца уже не закрыть из приложения.
+// с кнопкой «Стоп», поэтому браузер без владельца уже не закрыть из приложения. И смена маршрута:
+// прямой браузер не должен пережить привязку прокси, даже если связь с ним пропала.
 jest.mock("../../application/application", () => ({ __esModule: true, default: {
     sendToMain: jest.fn(), images: { invalidateRoute: jest.fn(), removeAccount: jest.fn().mockResolvedValue(undefined) }
 } }));
@@ -14,6 +15,11 @@ import resolveBrowserPath from "../Chrome/resolveBrowserPath";
 import { ensureSecureDnsOff } from "../Chrome/secureDnsPref";
 import { BROWSER_CLOSE_TIMEOUT_MS, BROWSER_SHUTDOWN_MS, BrowserStartCancelledError } from "../Chrome/Chrome";
 import { setMainLanguage } from "../../../i18n";
+import application from "../../application/application";
+import Manager from "../../Manager/Manager";
+import proxyManager from "../../Proxy/proxyManager";
+import Proxy from "../../Proxy/Proxy";
+import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import startBrowser from "../Listeners/steamAccountStartBrowser";
 import deleteListener from "../Listeners/steamAccountDeleteListener";
 import SteamAccount from "../SteamAccount";
@@ -46,7 +52,8 @@ function makeBrowser(child: any, close: () => Promise<unknown>) {
         authenticate: async () => undefined, evaluateOnNewDocument: async () => undefined, setCookie: async () => undefined,
         goto: async () => undefined, close: async () => undefined, target: () => target, url: () => "about:blank",
     };
-    return { on: jest.fn(), newPage: jest.fn(async () => page), pages: async () => [page], targets: () => [target], close: jest.fn(close), process: () => child };
+    const listeners: Record<string, () => void> = {};
+    return { on: jest.fn((event: string, listener: () => void) => { listeners[event] = listener; }), disconnect: () => listeners.disconnected(), newPage: jest.fn(async () => page), pages: async () => [page], targets: () => [target], close: jest.fn(close), process: () => child };
 }
 async function running(child: any, close: () => Promise<unknown>) {
     const browser = makeBrowser(child, close);
@@ -193,4 +200,106 @@ it("a launch still waiting for its cookies never starts a browser", async () => 
     expect(isGone()).toBe(true);
     expect(launch).not.toHaveBeenCalled();
     expect(event.reply).not.toHaveBeenCalled();
+});
+
+it("a second Start does not hide the first: both pending launches are waited for", async () => {
+    const [first, second] = [makeProcess(), makeProcess()];
+    const browsers = [makeBrowser(first, async () => first.exit()), makeBrowser(second, async () => second.exit())];
+    const launched: (() => void)[] = [];
+    jest.spyOn(puppeteer, "launch").mockImplementation(() => new Promise(resolve => {
+        const browser = browsers[launched.length];
+        launched.push(() => resolve(browser as any));
+    }) as any);
+    const starts = [account.chrome.start()];
+    const cancelled = [expect(starts[0]).rejects.toBeInstanceOf(BrowserStartCancelledError)];
+    await settle();
+    starts.push(account.chrome.start());
+    cancelled.push(expect(starts[1]).rejects.toBeInstanceOf(BrowserStartCancelledError));
+    await settle();
+    expect(launched).toHaveLength(2);
+    const deletion = remove();
+    await settle();
+    launched[1]();
+    await settle();
+    expect(second.exitCode).toBe(0);
+    expect(isKept()).toBe(true);
+    launched[0]();
+    await Promise.all([deletion, ...cancelled]);
+    expect(first.exitCode).toBe(0);
+    expect(isGone()).toBe(true);
+});
+
+describe("the connection to the browser is lost while its process lives", () => {
+    const noticeSent = () => (application.sendToMain as jest.Mock).mock.calls.some(([channel]) => channel === SteamAccountChannels.BROWSER_ROUTE_CHANGED);
+    const linkProxy = async () => {
+        Manager.LinkProxyToSteamAccount("a1", "p1");
+        await settle();
+    };
+    beforeEach(() => {
+        proxyManager.objects = [new Proxy({ id: "p1", number: 1, host: "proxy.test", port: "8080", username: "", password: "", deleted: false })];
+        jest.spyOn(account, "startSession").mockResolvedValue(undefined);
+        (application.sendToMain as jest.Mock).mockClear();
+    });
+
+    it("deletion waits for the process, not for the connection", async () => {
+        const child = makeProcess(false);
+        const browser = await running(child, async () => undefined);
+        browser.disconnect();
+        expect([account.chrome.browser, account.chrome.workStatus]).toEqual([null, "notworking"]);
+        const deletion = remove();
+        await settle();
+        expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+        expect(isKept()).toBe(true);
+        child.exit();
+        await deletion;
+        expect(isGone()).toBe(true);
+    });
+
+    it("a direct browser does not survive direct -> proxy", async () => {
+        const child = makeProcess();
+        const browser = await running(child, async () => undefined);
+        browser.disconnect();
+        expect(account.chrome.isRunning).toBe(true);
+        await linkProxy();
+        expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+        expect(account.chrome.isRunning).toBe(false);
+        expect(noticeSent()).toBe(true);
+    });
+
+    it("a browser the operator closed is not killed while it finishes, and is no news after it has", async () => {
+        const child = makeProcess();
+        const browser = await running(child, async () => undefined);
+        browser.disconnect();
+        await account.chrome.stop();
+        expect(child.kill).not.toHaveBeenCalled();
+        child.exit();
+        expect(account.chrome.isRunning).toBe(false);
+        await linkProxy();
+        expect(noticeSent()).toBe(false);
+    });
+
+    it("a browser that is closing normally is not killed by another route change", async () => {
+        const child = makeProcess();
+        let closed!: () => void;
+        const browser = await running(child, () => new Promise<void>(resolve => { closed = () => { child.exit(); resolve(); }; }));
+        await linkProxy();
+        expect(browser.close).toHaveBeenCalledTimes(1);
+        Manager.LinkProxyToSteamAccount("a1", null);
+        await account.chrome.stop("routeChanged");
+        expect(child.kill).not.toHaveBeenCalled();
+        closed();
+        await settle();
+        expect(account.chrome.isRunning).toBe(false);
+    });
+
+    it("a process that survived its close counts as running again", async () => {
+        const child = makeProcess(false);
+        await running(child, () => Promise.reject(new Error("disconnected")));
+        await expect(account.chrome.stop()).rejects.toThrow("disconnected");
+        await settle();
+        expect(account.chrome.isRunning).toBe(true);
+        child.kill.mockClear();
+        await linkProxy();
+        expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+    });
 });

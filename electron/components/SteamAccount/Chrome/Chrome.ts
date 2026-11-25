@@ -110,9 +110,10 @@ export default class Chrome {
   private startAttempt: { reason?: StartCancelReason } | null = null;
   /** Аккаунт удаляется: новых запусков больше нет (SDA-64). */
   launchesBlocked = false;
-  /** Идущий puppeteer.launch и живые процессы браузера этого аккаунта — для shutdown (SDA-64). */
-  private launching: Promise<void> | null = null;
-  private processes = new Set<ChildProcess>();
+  /** Все идущие puppeteer.launch: новый Start прежний не вытесняет (SDA-64). */
+  private launches = new Set<Promise<void>>();
+  /** Процессы браузера этого аккаунта, пока живы; true — закрывается штатно (SDA-64). */
+  private processes = new Map<ChildProcess, boolean>();
   profileDir: string;
   params: SteamAccountInterface;
   browser: Browser | null;
@@ -540,7 +541,9 @@ export default class Chrome {
             ? { ignoreDefaultArgs: ["--disable-extensions"] }
             : {}),
         }));
-        this.launching = launch.then((browser) => this.trackProcess(browser), () => undefined);
+        const launching: Promise<void> = launch.then((browser) => this.trackProcess(browser), () => undefined)
+          .then(() => { this.launches.delete(launching); });
+        this.launches.add(launching);
         const launchedBrowser = await launch;
         if (attempt.reason) {
           await this.closeBrowserReleasingProfile(launchedBrowser);
@@ -793,8 +796,12 @@ export default class Chrome {
   }
   /** Закрывает браузер и до конца закрытия держит подготовку профиля (см. browserClosing). */
   private closeBrowserReleasingProfile(browser: Browser): Promise<void> {
+    const child = browser.process?.();
+    if (child && this.processes.has(child)) this.processes.set(child, true);
     const closing = this.closeBrowser(browser);
     const released: Promise<void> = Promise.all([this.browserClosing, closing.catch(() => undefined)]).then(() => {
+      // Закрыть не вышло, а процесс жив — снова считается работающим.
+      if (child && this.processes.has(child)) this.processes.set(child, false);
       if (this.browserClosing === released) this.browserClosing = null;
     });
     this.browserClosing = released;
@@ -806,6 +813,9 @@ export default class Chrome {
   async stop(reason: StartCancelReason = "stopped"): Promise<void> {
     this.cancelStart(reason);
     const browser = this.browser;
+    // Через связь (CDP) эти процессы уже не закрыть, а старый маршрут они помнят. В других случаях не
+    // трогаем: так выглядит и браузер, который человек только что закрыл и который дописывает профиль.
+    if (reason === "routeChanged") for (const child of this.lostProcesses()) child.kill("SIGKILL");
     this.browser = null;
     this.page = null;
     this.isOpen = false;
@@ -818,8 +828,17 @@ export default class Chrome {
   private trackProcess(browser: Browser) {
     const child = browser.process?.();
     if (!child || child.exitCode !== null || child.signalCode !== null) return;
-    this.processes.add(child);
+    this.processes.set(child, false);
     child.once("exit", () => this.processes.delete(child));
+  }
+  /** Живые процессы, связь с которыми пропала: окно может работать и дальше, старым маршрутом. */
+  private lostProcesses(): ChildProcess[] {
+    const current = this.browser?.process?.();
+    return Array.from(this.processes).filter(([child, closing]) => !closing && child !== current).map(([child]) => child);
+  }
+  /** Есть что останавливать: браузер открыт, запускается или его процесс ещё жив без связи (SDA-64). */
+  get isRunning(): boolean {
+    return this.workStatus !== "notworking" || this.browser !== null || this.lostProcesses().length > 0;
   }
   /**
    * Остановка с подтверждением — для удаления аккаунта (SDA-64): отменяет запуск, закрывает браузер и
@@ -830,14 +849,14 @@ export default class Chrome {
     const stopAndConfirm = async () => {
       const tracked = this.processes.size > 0;
       const closeError = await this.stop().then(() => null, (err) => err);
-      // Запуск, который отмена застала внутри puppeteer.launch, сам закроет открывшийся браузер.
-      await this.launching;
+      // Запуски, которые отмена застала внутри puppeteer.launch, сами закроют открывшийся браузер.
+      await Promise.all(this.launches);
       await this.browserClosing;
       // Срок вышел: аккаунт остался, и следующий запуск уже не наш.
       if (expired) return;
       // Ошибка закрытия ещё не значит, что процесс жив: решает его выход. Процесса не видно — верим ошибке.
       if (closeError && !tracked) throw closeError;
-      await Promise.all(Array.from(this.processes, (child) => new Promise<void>((resolve) => {
+      await Promise.all(Array.from(this.processes.keys(), (child) => new Promise<void>((resolve) => {
         child.once("exit", () => resolve());
         child.kill("SIGKILL");
       })));
