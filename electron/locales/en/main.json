@@ -48,7 +48,11 @@
     "secretKeyTooShort": "Invalid key. It must be at least 8 characters long",
     "totpNotAccepted": "Steam did not accept any TOTP code in 30 attempts",
     "profileUnrecognized": "Steam returned a profile page without the account name; profile data was not updated",
+    "sessionMissing": "there is no saved session. Use “Refresh session (log in again)”",
     "sessionExpired": "the session has expired. Use “Refresh session (log in again)”",
+    "loginTimedOut": "the sign-in did not finish in time (check the proxy)",
+    "staleOperation": "the proxy or the account changed while the data was loading",
+    "guardCodeRejected": "Steam did not accept the Guard code. Check that the maFile belongs to this account and is up to date",
     "balance": {
       "unexpectedPage": "Steam returned a page that is not the Community Market (an error or maintenance page?); the balance was not read",
       "walletMissing": "The Market page has no wallet data for this account",

@@ -121,10 +121,10 @@ describe("session start", () => {
         expect(init).not.toHaveBeenCalled();
         const event = { reply: jest.fn() } as unknown as Electron.IpcMainEvent;
         await editListener(event, { id: "a1", steamAccountParams: { deleted: false } });
-        await Promise.resolve();
+        await new Promise((resolve) => setImmediate(resolve));
         expect(init).toHaveBeenCalledTimes(1);
         expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR,
-            { id: "a1", err: "Error: session has expired" });
+            { id: "a1", err: "session has expired" });
         await editListener(event, { id: "a1", steamAccountParams: { deleted: true } });
         await editListener(event, { id: "a1", steamAccountParams: { profileName: "edited" } });
         expect(init).toHaveBeenCalledTimes(1);
@@ -132,7 +132,7 @@ describe("session start", () => {
 });
 
 describe("data refresh waits for the session", () => {
-    it("profile data is requested only after the session start has finished, even a failed one", async () => {
+    it("profile data is requested only after the session start has finished", async () => {
         const account = new SteamAccount(params("a1"));
         let finish!: (err?: Error) => void;
         jest.spyOn(account, "initSession").mockImplementation(() => new Promise<void>((resolve, reject) => {
@@ -146,8 +146,28 @@ describe("data refresh waits for the session", () => {
         const refreshed = account.getSecondary();
         await new Promise((resolve) => setImmediate(resolve));
         expect(mockGetAccountData).not.toHaveBeenCalled();
-        finish(new Error("proxy down"));
+        finish();
         await expect(refreshed).resolves.toBe(data);
+        expect(mockGetAccountData).toHaveBeenCalledTimes(1);
+    });
+
+    // SDA-61: без cookie запросы дали бы вторую, непонятную ошибку вместо причины
+    it("a failed session start without cookies fails the refresh with the login error", async () => {
+        const account = new SteamAccount(params("a1"));
+        jest.spyOn(account, "initSession").mockRejectedValue(new Error("proxy down"));
+        account.startSession().catch(() => undefined);
+        await expect(account.getSecondary()).rejects.toThrow("proxy down");
+        expect(mockGetAccountData).not.toHaveBeenCalled();
+    });
+
+    it("a failed session start with cookies of an earlier login still tries", async () => {
+        const account = new SteamAccount(params("a1"));
+        jest.spyOn(account, "initSession").mockRejectedValue(new Error("proxy down"));
+        jest.spyOn(account, "editParams").mockImplementation(() => undefined);
+        (account.community as any).steamID = { accountid: 1 };
+        mockGetAccountData.mockResolvedValue({ secondary: {}, changableSecondary: {} });
+        account.startSession().catch(() => undefined);
+        await account.getSecondary();
         expect(mockGetAccountData).toHaveBeenCalledTimes(1);
     });
 });

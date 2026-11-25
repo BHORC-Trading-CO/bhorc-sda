@@ -45,13 +45,16 @@ function isCommunityTransfer(url: unknown): url is string {
 export default function getCommunityWebCookies(
   refreshToken: string,
   steamID: string,
-  proxyUrl?: string | null
+  proxyUrl?: string | null,
+  // Бросает, если этот обмен больше не нужен (сменился прокси): проверяется перед каждым запросом
+  assertCurrent?: () => void
 ): Promise<string[]> {
   const req = proxyUrl
     ? boundedRequest({ proxy: proxyUrl, ...REQUEST_DEFAULTS })
     : boundedRequest(REQUEST_DEFAULTS);
 
   return new Promise<string[]>((resolve, reject) => {
+    assertCurrent?.();
     req.post(
       {
         url: "https://login.steampowered.com/jwt/finalizelogin",
@@ -77,6 +80,7 @@ export default function getCommunityWebCookies(
         const community = transfers.find((t) => isCommunityTransfer(t?.url));
         if (!community) return reject(new Error("no steamcommunity.com transfer in finalizelogin"));
 
+        try { assertCurrent?.(); } catch (err) { return reject(err); }
         req.post(
           {
             url: community.url,

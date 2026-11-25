@@ -47,6 +47,22 @@ it("transfer с другим путём: сбой не теряется", async 
     await expect(session.getWebCookies()).rejects.toBeTruthy();
 });
 
+it("прокси сменился между запросами: transfer не уходит и ошибка не теряется", async () => {
+    let current = true;
+    const { HttpClient } = jest.requireActual("steam-session/node_modules/@doctormckay/stdlib/http");
+    const urls: string[] = [];
+    jest.spyOn(HttpClient.prototype, "request").mockImplementation(async (...args: unknown[]) => {
+        urls.push((args[0] as { url: string }).url);
+        current = false;
+        return transfers("https://steamcommunity.com/login/settoken");
+    });
+    const session = createLoginSession("http://u:p@127.0.0.1:1", () => { if (!current) throw new Error("route changed"); });
+    session.refreshToken = token;
+    await expect(session.getWebCookies()).rejects.toBeTruthy();
+    expect(urls).toEqual(["https://login.steampowered.com/jwt/finalizelogin"]);
+    await expect(session.refreshAccessToken()).rejects.toThrow("route changed");
+});
+
 it("пустой список transfer завершается по сроку", async () => {
     LOGIN_DEADLINES.cookiesMs = 20;
     const { session } = sessionWith(() => transfers());

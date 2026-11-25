@@ -23,6 +23,19 @@ const ROUTE_CHANGE_BALANCE_DELAY_MS = 10 * 1000;
 // по всем аккаунтам Steam быстро отвечает 429 (см. SDA-38). Поэтому очередь: не больше трёх
 // аккаунтов одновременно, следующий — когда пришёл ответ (удачный или с ошибкой) по предыдущему.
 export const FULL_REFRESH_CONCURRENCY = 3;
+// Предохранитель: main отвечает на каждое обновление (все запросы ограничены по времени), но одно
+// потерянное не должно навсегда занять место в очереди
+const FULL_REFRESH_ITEM_TIMEOUT_MS = 10 * 60 * 1000;
+// Ошибки разных аккаунтов, пришедшие подряд, показываем одним сообщением (SDA-61): раньше
+// сообщения затирали друг друга, и из десятка упавших аккаунтов был виден последний.
+export const ERROR_SUMMARY_DELAY_MS = 1500;
+// Фоновые входы на старте падают пачками по мере очереди (тайм-аут прокси — 5 с): ждём, пока стихнет,
+// но не дольше минуты. Сообщение одно на все.
+export const BACKGROUND_SUMMARY_QUIET_MS = 8 * 1000;
+export const BACKGROUND_SUMMARY_MAX_MS = 60 * 1000;
+const ERROR_SUMMARY_NAMES = 5;
+
+type AccountErrorKind = "data" | "session";
 
 type BalanceLoad = { state: "loading" | "done" | "failed"; at: number; failures: number };
 
@@ -72,6 +85,20 @@ class SteamAccountsTableStore {
   fullRefreshPending: boolean;
   fullRefreshQueue: string[];
   fullRefreshInFlight: Set<string>;
+  // Идёт ли оно сейчас: кнопка крутится, второе нажатие не начинает всё заново
+  fullRefreshActive: boolean;
+  fullRefreshId: number;
+  // Номера последних запросов по аккаунтам (SDA-56): main возвращает номер в ответе, и поздний
+  // ответ прежнего запроса не снимает индикатор и не подменяет данные нового
+  requestSeq: number;
+  fullRequests: { [id: string]: number };
+  balanceRequests: { [id: string]: number };
+  accountErrors: { kind: AccountErrorKind; id: string; err: string }[];
+  accountErrorsTimer: ReturnType<typeof setTimeout> | null;
+  accountErrorsSince: number;
+  accountErrorsAt: number;
+  // Восстановлены из архива, ждут нового списка: после него обновляем их данные
+  restoredIds: Set<string>;
 
   constructor(root: Store) {
     this.root = root;
@@ -101,10 +128,22 @@ class SteamAccountsTableStore {
     this.fullRefreshPending = false;
     this.fullRefreshQueue = [];
     this.fullRefreshInFlight = new Set();
+    this.fullRefreshActive = false;
+    this.fullRefreshId = 0;
+    this.requestSeq = 0;
+    this.fullRequests = {};
+    this.balanceRequests = {};
+    this.accountErrors = [];
+    this.accountErrorsTimer = null;
+    this.accountErrorsSince = 0;
+    this.accountErrorsAt = 0;
+    this.restoredIds = new Set();
 
     makeAutoObservable(this, {
       balanceRetryTimers: false, routeReloadTimers: false,
       fullRefreshPending: false, fullRefreshQueue: false, fullRefreshInFlight: false,
+      requestSeq: false, fullRefreshId: false, fullRequests: false, balanceRequests: false,
+      accountErrors: false, accountErrorsTimer: false, accountErrorsSince: false, accountErrorsAt: false, restoredIds: false,
     });
 
     window.Main.steamAccounts.getTableFields();
@@ -112,26 +151,38 @@ class SteamAccountsTableStore {
     window.Main.steamAccounts.getTableOptions();
 
     window.Main.steamAccounts.onGetSecondary((event, data) => {
-      // Первым делом: если аккаунта уже нет в таблице, код ниже бросит, а очередь не должна встать
+      if (!isLatest(this.fullRequests, data)) return;
+      delete this.fullRequests[data.id];
       this.finishFullRefreshItem(data.id);
+      const account = this.steamAccounts[data.id];
+      // Аккаунт удалили, пока шло обновление
+      if (!account) return;
       runInAction(() => {
-        this.steamAccounts[data.id].getSecondaryError = null;
-        this.steamAccounts[data.id].isLoadSecondary = false;
-        this.steamAccounts[data.id].secondary = data.secondary;
+        account.getSecondaryError = null;
+        account.isLoadSecondary = false;
+        account.secondary = data.secondary;
       });
     });
     window.Main.steamAccounts.onGetSecondaryError((event, data) => {
+      if (!isLatest(this.fullRequests, data)) return;
+      delete this.fullRequests[data.id];
+      const account = this.steamAccounts[data.id];
+      if (account) {
+        runInAction(() => {
+          account.isLoadSecondary = false;
+          // Устаревший результат (сменился прокси) — не ошибка аккаунта
+          if (!data.stale) account.getSecondaryError = data.err;
+        });
+        if (!data.stale && !account.deleted) this.reportAccountError("data", data.id, data.err);
+      }
+      // Обновление не дошло до баланса: ответа с ним не будет, запись — на повтор
+      if (this.balanceLoads[data.id]?.state === "loading" && isLatest(this.balanceRequests, data)) {
+        // Отдельный запрос баланса, который это обновление заменило, мог оставить в ячейке спиннер
+        if (!data.stale) this.showBalanceError(data.id, data.err);
+        this.recordBalanceResult(data.id, true);
+      }
       // Ошибка одного аккаунта не останавливает очередь остальных
       this.finishFullRefreshItem(data.id);
-      store.windows.openMiniNotification({
-        type: "error",
-        text: i18n.t("accounts.errors.loadData", { error: data.err }),
-      });
-      runInAction(() => {
-        this.steamAccounts[data.id].isLoadSecondary = false;
-      });
-      // Обновление не дошло до баланса: ответа с ним не будет, запись — на повтор
-      if (this.balanceLoads[data.id]?.state === "loading") this.recordBalanceResult(data.id, true);
     });
     window.Main.steamAccounts.onGetBrowserStatus((event, data) => {
       console.log("get browser status", data);
@@ -143,36 +194,56 @@ class SteamAccountsTableStore {
       this.root.windows.openMiniNotification({ type: "info", text: message });
     });
     window.Main.steamAccounts.onGetChangableSecondary((event, data) => {
+      if (!isLatest(this.balanceRequests, data)) return;
       this.editChanableSecondaries(data.id, data.changableSecondary);
     });
     window.Main.steamAccounts.onGetChangableSecondaryError((event, data) => {
-      //this.writeChangableSecondariesError(data.id, String(data.err));
+      if (!isLatest(this.balanceRequests, data)) return;
+      // Причина (например, вход не удался) видна в ячейке; раньше она крутила спиннер
+      if (!data.stale) this.showBalanceError(data.id, data.err);
       // Ответа с балансом не будет: запись — на повтор
       this.recordBalanceResult(data.id, true);
+    });
+    window.Main.steamAccounts.onSessionState((event, data) => {
+      const account = this.steamAccounts[data.id];
+      if (account) runInAction(() => { account.sessionError = data.sessionError; });
     });
     window.Main.steamAccounts.onGetTableFields((event, fields) => {
       this.setFields(fields);
     });
     window.Main.steamAccounts.onRefreshSession((event, id) => {
       console.log(`steam account #${id} session has been refreshed`);
+      const account = this.steamAccounts[id];
+      if (!account) return;
       runInAction(() => {
-        this.steamAccounts[id].isLogining = false;
+        account.isLogining = false;
+        account.sessionError = null;
       });
       // Баланс приходит из того же обновления (одна загрузка /market/ на КТ, ТП и баланс, SDA-38):
       // отдельный loadChangableSecondaries скачал бы страницу второй раз.
       this.loadSecondaries(id);
     });
     window.Main.steamAccounts.onRefreshSessionError((event, data) => {
+      const account = this.steamAccounts[data.id];
+      // Аккаунт удалили или список ещё не пришёл: ошибку входа принесёт сам список (sessionError)
+      if (!account) return;
+      const background = !account.isLogining;
       runInAction(() => {
-        this.steamAccounts[data.id].isLogining = false;
+        account.isLogining = false;
       });
-      this.root.windows.openMiniNotification({
-        text: i18n.t("accounts.errors.refreshSession", {
-          number: this.steamAccounts[data.id].number,
-          error: data.err,
-        }),
-        type: "error",
-      });
+      // Вход отменён (сменился прокси): новый уже идёт, это не ошибка
+      if (!account.deleted && !data.stale) this.reportAccountError("session", data.id, data.err, background);
+    });
+    // Приходит прямо перед списком, который main перечитал по «Перезагрузить все данные»: очередь
+    // запускает именно он, а не случайный список (группа, правка, вкладка)
+    window.Main.steamAccounts.onRefreshStorage((event, { requestId, err }) => {
+      if (!this.fullRefreshActive || requestId !== this.fullRefreshId) return;
+      if (err === undefined) {
+        this.fullRefreshPending = true;
+        return;
+      }
+      this.finishFullRefresh();
+      this.root.windows.openMiniNotification({ type: "error", text: i18n.t("accounts.errors.reloadList", { error: err }) });
     });
     window.Main.steamAccounts.onGet((event, steamAccounts) => {
       runInAction(() => {
@@ -191,7 +262,20 @@ class SteamAccountsTableStore {
         this.fullRefreshPending = false;
         this.startFullRefresh();
       }
+      for (const id of Array.from(this.restoredIds)) {
+        const account = this.steamAccounts[id];
+        // Список, собранный ещё до восстановления: ждём следующий
+        if (account?.deleted) continue;
+        this.restoredIds.delete(id);
+        if (account) this.loadSecondaries(id);
+      }
       this.setActivePage(this.activePage);
+      // Удалённых ждать нечего: место в очереди обновления свободно
+      for (const id of Array.from(this.fullRefreshInFlight)) {
+        if (this.steamAccounts[id]) continue;
+        delete this.fullRequests[id];
+        this.finishFullRefreshItem(id);
+      }
     });
     window.Main.steamAccounts.onGetTableOptions((event, options) => {
       this.setPageSize(options.pageSize, false);
@@ -225,7 +309,7 @@ class SteamAccountsTableStore {
     func: (
       a: TableSteamAccountInterface,
       b: TableSteamAccountInterface
-    ) => 1 | -1
+    ) => number
   ) {
     const steamAccountsArray = Object.values(toJS(this.steamAccounts));
     steamAccountsArray.sort(func);
@@ -239,13 +323,16 @@ class SteamAccountsTableStore {
   // Кнопка «Перезагрузить все данные»: main перечитывает аккаунты и входит заново (архивные
   // пропускает), а когда придёт новый список — обновляем данные всех активных аккаунтов очередью.
   reloadAll() {
-    this.fullRefreshPending = true;
-    window.Main.steamAccounts.refresh();
+    if (this.fullRefreshActive) return;
+    this.fullRefreshActive = true;
+    this.fullRefreshId = ++this.requestSeq;
+    window.Main.steamAccounts.refresh(this.fullRefreshId);
   }
   // Сначала аккаунты текущей страницы, потом остальные активные. Архивные не обновляются.
   startFullRefresh() {
     const page = (this.getSteamAccountsByPages()[this.activePage - 1] || []).map((sa) => sa.id);
     const rest = Object.keys(this.steamAccounts).filter((id) => !page.includes(id));
+    this.fullRefreshActive = true;
     this.fullRefreshQueue = [...page, ...rest].filter((id) => this.steamAccounts[id] && !this.steamAccounts[id].deleted);
     // Баланс придёт с полным обновлением. Без пометки стартовый таймер onGet (через 3 с) запросил бы
     // /market/ всех ещё не загруженных аккаунтов разом, поверх очереди, и Steam отвечал 429.
@@ -257,16 +344,92 @@ class SteamAccountsTableStore {
     while (this.fullRefreshInFlight.size < FULL_REFRESH_CONCURRENCY && this.fullRefreshQueue.length > 0) {
       const id = this.fullRefreshQueue.shift()!;
       const account = this.steamAccounts[id];
-      if (!account || account.deleted) continue;
+      if (!account || account.deleted) {
+        // Архивирован или удалён, пока ждал очереди: запроса не будет, пометка «грузится» не нужна
+        this.forgetBalance(id);
+        continue;
+      }
       this.fullRefreshInFlight.add(id);
       this.loadSecondaries(id);
+      const run = this.fullRefreshId;
+      setTimeout(() => {
+        // Срок у места в очереди, а не у запроса: запрос строки мог быть заменён новым
+        if (this.fullRefreshId !== run || !this.fullRefreshInFlight.has(id)) return;
+        runInAction(() => {
+          delete this.fullRequests[id];
+          if (this.steamAccounts[id]) this.steamAccounts[id].isLoadSecondary = false;
+          if (this.balanceLoads[id]?.state === "loading") this.recordBalanceResult(id, true);
+          this.finishFullRefreshItem(id);
+        });
+      }, FULL_REFRESH_ITEM_TIMEOUT_MS);
     }
+    if (this.fullRefreshInFlight.size === 0) this.finishFullRefresh();
   }
   finishFullRefreshItem(id: string) {
     if (!this.fullRefreshInFlight.delete(id)) return;
     this.pumpFullRefresh();
   }
+  finishFullRefresh() {
+    this.fullRefreshActive = false;
+    this.fullRefreshPending = false;
+    this.flushAccountErrors();
+  }
+  // Ошибка одного аккаунта — сразу текстом, нескольких подряд — одной сводкой. Во время полного
+  // обновления сводка одна на всё обновление.
+  reportAccountError(kind: AccountErrorKind, id: string, err: string, background: boolean = false) {
+    const now = Date.now();
+    if (!this.accountErrors.length) this.accountErrorsSince = now;
+    this.accountErrors.push({ kind, id, err });
+    if (this.fullRefreshActive) return;
+    // Действие человека показываем сразу (вместе со всем накопленным), фоновое — когда стихнет
+    const wait = background
+      ? Math.max(0, Math.min(BACKGROUND_SUMMARY_QUIET_MS, this.accountErrorsSince + BACKGROUND_SUMMARY_MAX_MS - now))
+      : ERROR_SUMMARY_DELAY_MS;
+    if (this.accountErrorsTimer) {
+      if (!background && this.accountErrorsAt <= now + wait) return;
+      clearTimeout(this.accountErrorsTimer);
+    }
+    this.accountErrorsAt = now + wait;
+    this.accountErrorsTimer = setTimeout(() => this.flushAccountErrors(), wait);
+  }
+  flushAccountErrors() {
+    if (this.accountErrorsTimer) clearTimeout(this.accountErrorsTimer);
+    this.accountErrorsTimer = null;
+    // Полное обновление началось, пока ждали: всё войдёт в его сводку
+    if (this.fullRefreshActive) return;
+    // Вход не удался — данные тоже не загрузились: по каждому аккаунту называем одну причину
+    const byAccount = new Map<string, { kind: AccountErrorKind; id: string; err: string }>();
+    for (const item of this.accountErrors) {
+      if (!byAccount.has(item.id) || item.kind === "session") byAccount.set(item.id, item);
+    }
+    this.accountErrors = [];
+    const failed = Array.from(byAccount.values())
+      .filter((item) => this.steamAccounts[item.id] && !this.steamAccounts[item.id].deleted);
+    if (!failed.length) return;
+    const name = (id: string) => `#${this.steamAccounts[id].number} ${this.steamAccounts[id].accountName}`;
+    let text: string;
+    if (failed.length === 1) {
+      const [{ kind, id, err }] = failed;
+      text = i18n.t(kind === "session" ? "accounts.errors.refreshSession" : "accounts.errors.loadData", { account: name(id), error: err });
+    } else {
+      const sessionsOnly = failed.every((item) => item.kind === "session");
+      const names = failed.slice(0, ERROR_SUMMARY_NAMES).map((item) => name(item.id)).join(", ");
+      const more = failed.length - ERROR_SUMMARY_NAMES;
+      text = i18n.t(sessionsOnly ? "accounts.errors.refreshSessionMany" : "accounts.errors.loadDataMany", {
+        total: failed.length,
+        names: more > 0 ? `${names}, +${more}` : names,
+      });
+    }
+    this.root.windows.openMiniNotification({ type: "error", text });
+  }
+  restoreAccount(id: string) {
+    this.restoredIds.add(id);
+    window.Main.steamAccounts.edit(id, { deleted: false });
+    window.Main.steamAccounts.get();
+  }
   refreshSession(id: string) {
+    // Вход уже идёт: второе нажатие ничего не меняет
+    if (this.steamAccounts[id].isLogining) return;
     this.steamAccounts[id].isLogining = true;
     window.Main.steamAccounts.refreshSession(id);
   }
@@ -294,14 +457,18 @@ class SteamAccountsTableStore {
     }
     this.startBalanceLoad(id);
     if (this.changableSecondaries[id]) this.changableSecondaries[id].isLoad = false;
-    window.Main.steamAccounts.getChangableSecondary(id);
+    this.balanceRequests[id] = ++this.requestSeq;
+    window.Main.steamAccounts.getChangableSecondary(id, this.balanceRequests[id]);
   }
   loadSecondaries(id: string) {
     this.steamAccounts[id].isLoadSecondary = true;
     // Полное обновление приносит и баланс (одна загрузка /market/): пока оно в пути, отдельный
     // запрос баланса не нужен
     this.startBalanceLoad(id);
-    window.Main.steamAccounts.getSecondary(id);
+    const requestId = ++this.requestSeq;
+    this.fullRequests[id] = requestId;
+    this.balanceRequests[id] = requestId;
+    window.Main.steamAccounts.getSecondary(id, requestId);
   }
   startBalanceLoad(id: string) {
     this.clearBalanceRetry(id);
@@ -325,6 +492,15 @@ class SteamAccountsTableStore {
       delete this.balanceRetryTimers[id];
       this.loadChangableSecondaries(id);
     }, delay);
+  }
+  // Причина в ячейке баланса (прочерк, значок и подсказка)
+  showBalanceError(id: string, err: string) {
+    const shown = this.changableSecondaries[id];
+    if (!shown || this.routeReloadTimers[id] !== undefined) return;
+    this.changableSecondaries[id] = {
+      isLoad: true,
+      content: { ...shown.content, steam: { ...shown.content?.steam, error: err } },
+    } as typeof shown;
   }
   // Забыть запись и показанный ответ: без isLoad=false аккаунт с показанной ошибкой старого прокси
   // не подходил ни под переход на страницу, ни под повтор, и ошибка висела до ручного обновления
@@ -366,6 +542,7 @@ class SteamAccountsTableStore {
   }
   setSteamAccounts(steamAccounts: CompiledSteamAccountInterface[]) {
     try {
+      const previous = this.steamAccounts;
       this.steamAccounts = {};
       // Список пришёл заново в порядке хранилища: прежняя сортировка больше не действует
       this.sortedField = null;
@@ -378,10 +555,12 @@ class SteamAccountsTableStore {
           isSelected: false,
           authCode: "not loaded",
           getChangableSecondaryError: null,
-          getSecondaryError: null,
+          // Список приходит и посреди работы (вкладка, группа, импорт): индикаторы идущих запросов
+          // и прошлые ошибки строки остаются
+          getSecondaryError: previous[steamAccount.id]?.getSecondaryError ?? null,
           isLoadChangableSecondary: false,
-          isLoadSecondary: false,
-          isLogining: false,
+          isLoadSecondary: this.fullRequests[steamAccount.id] !== undefined,
+          isLogining: previous[steamAccount.id]?.isLogining ?? false,
         };
         if (!steamAccount.deleted) {
           tableSteamAccounts.push(tableSteamAccount);
@@ -393,6 +572,10 @@ class SteamAccountsTableStore {
         this.steamAccounts[i.id] = i;
       }
       for (let sa of tableSteamAccounts) {
+        // Ошибка этого запуска показана в ячейке; в списке лежит старый сохранённый баланс
+        // (и пока идёт повтор тоже)
+        const shown = this.changableSecondaries[sa.id];
+        if (this.balanceLoads[sa.id] && this.balanceLoads[sa.id].state !== "done" && shown?.content?.steam?.error) continue;
         this.changableSecondaries[sa.id] = {
           // Ответ на баланс в этом запуске уже был (удачный или с ошибкой): main сохранил его,
           // показываем без нового запроса. Повтор после ошибки — по правилам BALANCE_RETRY_*.
@@ -670,6 +853,11 @@ class SteamAccountsTableStore {
       avaliblePageSizes[avaliblePageSizes.length - 1];
     this.setPageSize(fitted, true);
   }
+}
+
+// Ответ на последний запрос аккаунта. Ответ без номера принимаем: сравнивать не с чем.
+function isLatest(requests: { [id: string]: number }, reply: { id: string; requestId?: number }) {
+  return reply.requestId === undefined || requests[reply.id] === reply.requestId;
 }
 
 // Маршрут аккаунта для сравнения: состояние прокси, его id и адрес с учётными данными

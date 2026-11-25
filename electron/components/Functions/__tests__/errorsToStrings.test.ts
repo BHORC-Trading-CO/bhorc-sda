@@ -61,7 +61,7 @@ describe("sendAccountsToFront", () => {
                 id: `a${n}`, number: n, accountName: `acc${n}`, deleted: false, secondary, maFile,
                 changableSecondary: { steam: { error: new Error("read ECONNRESET"), balance: null, currency: null } },
             };
-            return { params, getSmaFile: () => ({ accountName: params.accountName, secondary, maFile }) } as any;
+            return { params, sessionErrorText: () => null, getSmaFile: () => ({ accountName: params.accountName, secondary, maFile }) } as any;
         };
         manager.objects = [account(1), account(2), account(3)];
         manager.sendAccountsToFront();

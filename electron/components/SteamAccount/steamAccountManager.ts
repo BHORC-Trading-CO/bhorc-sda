@@ -16,6 +16,9 @@ export class SteamAccountManager {
 
     addNew(steamAccount: SteamAccount) {
         this.objects = [...this.objects, steamAccount];
+        // Новый объект ещё не входил: без этого подтверждения и баланс сразу после добавления
+        // отвечали «Not Logged In» до перезапуска (SDA-61)
+        steamAccount.startSessionInBackground();
     }
     sendAccountsToFront() {
         // Без объектов Error: в Electron 17 они ломают повторные ссылки IPC-сообщения (SDA-19).
@@ -26,7 +29,8 @@ export class SteamAccountManager {
         try {
             const index = this.objects.findIndex(obj => obj.params.id === id);
             if (index === -1) throw new Error(`#${id} - steam account is not exist`);
-            this.objects.splice(index, 1);
+            const [removed] = this.objects.splice(index, 1);
+            removed.invalidateOperations();
             SteamAccountStorage.Delete(id);
             try {
                 const thisAccount = SteamAccountStorage.GetById(id);
@@ -50,7 +54,8 @@ export class SteamAccountManager {
             throw new Error(`Cant edit steam account: ${err}`);
         }
     }
-    async load() {
+    /** reloadId — номер «Перезагрузить все данные» из окна: отметка уходит прямо перед новым списком. */
+    async load(reloadId?: number) {
         try {
             const objects = SteamAccountStorage.GetAll();
             const objectsArray = Object.values(objects);
@@ -64,18 +69,17 @@ export class SteamAccountManager {
                 const routeChanged = existing ? steamAccount.reloadParams(object) : false;
                 if (routeChanged || previousProxyId !== steamAccount.proxyId) application.images?.invalidateRoute(object.id);
                 // Архивные аккаунты startSession пропускает (SDA-59)
-                if (!routeChanged) steamAccount.startSession().catch(err => {
-                    application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id: steamAccount.params.id, err: String(err) });
-                });
+                if (!routeChanged) steamAccount.startSessionInBackground();
                 next.push(steamAccount);
             }
             for (const old of this.objects) {
                 if (next.includes(old)) continue;
-                old.session.cancelLoginAttempt?.();
+                old.invalidateOperations();
                 // Removed records must not leave an untracked live browser either.
                 old.chrome.stop().catch(err => application.sendToMain("ERROR", String(err)));
             }
             this.objects = next;
+            if (reloadId !== undefined) application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_STORAGE, { requestId: reloadId });
             this.sendAccountsToFront();
             // Только после успешной загрузки, когда archived/missing записи уже известны.
             await application.images?.pruneOrphans().catch(() => console.warn('Unable to prune image cache'));
@@ -113,7 +117,8 @@ export class SteamAccountManager {
             smaFile: object.getSmaFile(),
             ...linkedData,
             ...(object.proxyState === "missing" ? { proxy: null, proxyState: "missing" as const } : {}),
-            group: Manager.GetSteamAccountGroup(object.params.id)
+            group: Manager.GetSteamAccountGroup(object.params.id),
+            sessionError: object.sessionErrorText()
         }
        
         return compiledObject;

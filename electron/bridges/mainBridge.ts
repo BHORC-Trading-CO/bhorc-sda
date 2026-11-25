@@ -75,7 +75,7 @@ const steamAccounts = {
   onRefreshSession(listener: (event: IpcRendererEvent, id: string) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION, listener);
   },
-  onRefreshSessionError(listener: (event: IpcRendererEvent, data: { id: string, err: Error }) => void) {
+  onRefreshSessionError(listener: (event: IpcRendererEvent, data: { id: string, err: string, stale?: boolean }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, listener);
   },
   creationProcess: (steamAccount: SteamAccountSetupInterface, links: ProxySelection) => {
@@ -102,8 +102,12 @@ const steamAccounts = {
   onGet: (listener: (event: IpcRendererEvent, steamAccounts: CompiledSteamAccountInterface[]) => void) => {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET, listener);
   },
-  refresh: () => {
-    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_STORAGE);
+  // requestId возвращается отметкой прямо перед новым списком (SDA-61)
+  refresh: (requestId?: number) => {
+    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_STORAGE, requestId);
+  },
+  onRefreshStorage(listener: (event: IpcRendererEvent, data: { requestId: number, err?: string }) => void) {
+    ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_STORAGE, listener);
   },
   getTableFields: () => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_TABLE_FIELDS);
@@ -114,24 +118,26 @@ const steamAccounts = {
   saveTableFields(fields: Field[]) {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_SET_TABLE_FIELDS, fields);
   },
-  getChangableSecondary(id: string) {
-    console.log(id);
-    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY, id);
+  getChangableSecondary(id: string, requestId?: number) {
+    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY, id, requestId);
   },
-  onGetChangableSecondary(listener: (event: IpcRendererEvent, data: { changableSecondary: ChangableSecondaryInterface, id: string }) => void) {
+  onGetChangableSecondary(listener: (event: IpcRendererEvent, data: { changableSecondary: ChangableSecondaryInterface, id: string, requestId?: number }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY, listener);
   },
-  onGetChangableSecondaryError(listener: (event: IpcRendererEvent, data: { err: Error, id: string }) => void) {
+  onGetChangableSecondaryError(listener: (event: IpcRendererEvent, data: { err: string, id: string, stale?: boolean, requestId?: number }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY_ERROR, listener);
   },
-  getSecondary(id: string) {
-    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY, id);
+  getSecondary(id: string, requestId?: number) {
+    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY, id, requestId);
   },
-  onGetSecondary(listener: (event: IpcRendererEvent, data: { id: string, secondary: SecondaryInterface }) => void) {
+  onGetSecondary(listener: (event: IpcRendererEvent, data: { id: string, secondary: SecondaryInterface, requestId?: number }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY, listener);
   },
-  onGetSecondaryError(listener: (event: IpcRendererEvent, data: { id: string, err: string }) => void) {
+  onGetSecondaryError(listener: (event: IpcRendererEvent, data: { id: string, err: string, stale?: boolean, requestId?: number }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY_ERROR, listener);
+  },
+  onSessionState(listener: (event: IpcRendererEvent, data: { id: string, sessionError: string | null }) => void) {
+    ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_SESSION_STATE, listener);
   },
   sendFamilyPin: (pin: string) => {
     ipcRenderer.send('ENTER_FAMILY_PIN', pin);

@@ -26,6 +26,7 @@
     "noAccountsSelected": "Не вибрано жодного акаунта",
     "openDataFolder": "Відкрити теку з даними акаунтів. Усі дані зберігаються у файлі config.json",
     "reloadAll": "Перезавантажити всі дані",
+    "reloadAllActive": "Оновлюємо всі акаунти…",
     "startTyping": "Почніть вводити...",
     "irreversible": "Цю дію неможливо буде скасувати",
     "error": "Помилка",
@@ -208,6 +209,8 @@
         "confirmations": "Підтвердження Steam Guard",
         "refreshProfile": "Оновити дані профілю (зокрема статуси)",
         "refreshSession": "Оновити сесію (увійти знову)",
+        "refreshSessionNeeded": "Увійдіть знову: {{error}}",
+        "refreshProfileFailed": "Оновлення не вдалося: {{error}}",
         "saveMaFile": "Зберегти maFile як",
         "exportSmaFile": "Експорт даних акаунта (smaFile)",
         "focusBrowser": "Вивести браузер на передній план",
@@ -247,8 +250,11 @@
       "accept_other": "Видалити {{count}} акаунта"
     },
     "errors": {
-      "loadData": "Помилка отримання даних акаунта: {{error}}",
-      "refreshSession": "Не вдалося оновити сесію акаунта #{{number}}: {{error}}",
+      "loadData": "Не вдалося оновити дані акаунта {{account}}: {{error}}",
+      "reloadList": "Не вдалося перечитати акаунти: {{error}}",
+      "loadDataMany": "Не оновились акаунти ({{total}}): {{names}}. Причина — у рядку кожного акаунта",
+      "refreshSession": "Не вдалося увійти в акаунт {{account}}: {{error}}",
+      "refreshSessionMany": "Не вдалося увійти в акаунти ({{total}}): {{names}}. Причина — у рядку кожного акаунта",
       "editNotFound": "Не вдалося змінити дані акаунта: #{{id}} - такого акаунта не існує"
     },
     "form": {

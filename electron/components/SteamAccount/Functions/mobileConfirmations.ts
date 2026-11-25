@@ -10,7 +10,7 @@ type FailureKind = 'steam' | 'http' | 'auth' | 'route' | 'throttled' | 'unknown'
 
 const MAX_MESSAGE_LENGTH = 300;
 // Errors raised by our own code (proxy gone, route changed): their text is ours and safe to show.
-const OWN_ERROR_CODES = new Set(['PROXY_UNAVAILABLE', 'CONFIRMATION_ROUTE_CHANGED']);
+const OWN_ERROR_CODES = new Set(['PROXY_UNAVAILABLE', 'CONFIRMATION_ROUTE_CHANGED', 'SESSION_EXPIRED', 'STALE_OPERATION', 'LOGIN_TIMED_OUT']);
 
 /**
  * What may be shown in the confirmations window.

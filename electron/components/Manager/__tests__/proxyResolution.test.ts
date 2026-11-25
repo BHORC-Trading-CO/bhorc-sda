@@ -291,10 +291,10 @@ it("F6 relinking missing to ok reinitializes and reports failures as strings", a
     const account = addLinked("a1", "gone");
     const init = jest.spyOn(account, "initSession").mockRejectedValue(new Error("cookie failure"));
     Manager.LinkProxyToSteamAccount("a1", "p1");
-    await Promise.resolve();
+    await new Promise(resolve => setImmediate(resolve));
     expect(init).toHaveBeenCalledTimes(1);
     expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR,
-        { id: "a1", err: "Error: cookie failure" });
+        { id: "a1", err: "cookie failure" });
 });
 it.each(["link", "unlink", "delete", "endpoint", "credentials"])("F4 route transition %s stops the running browser", async transition => {
     const account = addLinked("a1", transition === "link" ? null : "p1");

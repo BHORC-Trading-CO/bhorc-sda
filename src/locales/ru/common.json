@@ -26,6 +26,7 @@
     "noAccountsSelected": "Не выбрано ни одного аккаунта",
     "openDataFolder": "Открыть папку с данными от аккаунтов. Все данные хранятся в файле config.json",
     "reloadAll": "Перезагрузить все данные",
+    "reloadAllActive": "Обновляем все аккаунты…",
     "startTyping": "Начните вводить...",
     "irreversible": "Это действие невозможно будет отменить",
     "error": "Ошибка",
@@ -208,6 +209,8 @@
         "confirmations": "Steam Guard подтверждения",
         "refreshProfile": "Обновить данные профиля (в том числе и статусы)",
         "refreshSession": "Обновить сессию (перелогиниться)",
+        "refreshSessionNeeded": "Войдите заново: {{error}}",
+        "refreshProfileFailed": "Обновление не удалось: {{error}}",
         "saveMaFile": "Сохранить maFile как",
         "exportSmaFile": "Экспорт данных аккаунта (smaFile)",
         "focusBrowser": "Поднять браузер наверх",
@@ -247,8 +250,11 @@
       "accept_other": "Удалить {{count}} аккаунта"
     },
     "errors": {
-      "loadData": "Ошибка получения данных аккаунта: {{error}}",
-      "refreshSession": "Не удалось обновить сессию аккаунта #{{number}}: {{error}}",
+      "loadData": "Не удалось обновить данные аккаунта {{account}}: {{error}}",
+      "reloadList": "Не удалось перечитать аккаунты: {{error}}",
+      "loadDataMany": "Не обновились аккаунты ({{total}}): {{names}}. Причина — в строке каждого аккаунта",
+      "refreshSession": "Не удалось войти в аккаунт {{account}}: {{error}}",
+      "refreshSessionMany": "Не удалось войти в аккаунты ({{total}}): {{names}}. Причина — в строке каждого аккаунта",
       "editNotFound": "Не получилось поменять данные аккаунта: #{{id}} - такого аккаунта не существует"
     },
     "form": {

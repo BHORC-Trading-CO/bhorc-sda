@@ -11,7 +11,7 @@ export const LOGIN_DEADLINES = { requestMs: 60_000, cookiesMs: 120_000 };
  *    getWebCookies) ушёл бы с реального IP вместе с токеном — такие адреса не открываем;
  *  - сбой одного transfer или пустой их список оставляют getWebCookies висеть навсегда.
  */
-export default function createLoginSession(proxyUrl: string | null | undefined): LoginSession {
+export default function createLoginSession(proxyUrl: string | null | undefined, assertCurrent?: () => void): LoginSession {
     const session = proxyUrl
         ? new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxyUrl })
         : new LoginSession(EAuthTokenPlatformType.MobileApp);
@@ -25,6 +25,12 @@ export default function createLoginSession(proxyUrl: string | null | undefined):
             // и не API: исключение из него steam-session теряет и ждёт вечно.
             const refused = { statusCode: 400, headers: {} };
             const isTransfer = !/^https:\/\/(api|login)\.steampowered\.com\//i.test(options.url) || /\/login\/settoken/i.test(options.url);
+            // Прокси аккаунта сменился: остальные запросы входа старым маршрутом не идут (SDA-61).
+            // Исключение из transfer steam-session теряет, поэтому там — обычный отказ.
+            try { assertCurrent?.(); } catch (err) {
+                if (isTransfer) return refused;
+                throw err;
+            }
             if (!/^https:\/\//i.test(options.url)) {
                 return refused;
             }

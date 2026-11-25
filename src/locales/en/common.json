@@ -26,6 +26,7 @@
     "noAccountsSelected": "No accounts selected",
     "openDataFolder": "Open the account data folder. All data is stored in config.json",
     "reloadAll": "Reload all data",
+    "reloadAllActive": "Refreshing all accounts…",
     "startTyping": "Start typing...",
     "irreversible": "This action cannot be undone",
     "error": "Error",
@@ -204,6 +205,8 @@
         "confirmations": "Steam Guard confirmations",
         "refreshProfile": "Refresh profile data (including statuses)",
         "refreshSession": "Refresh session (log in again)",
+        "refreshSessionNeeded": "Sign in again: {{error}}",
+        "refreshProfileFailed": "Refresh failed: {{error}}",
         "saveMaFile": "Save maFile as",
         "exportSmaFile": "Export account data (smaFile)",
         "focusBrowser": "Bring the browser to front",
@@ -239,8 +242,11 @@
       "accept_other": "Delete {{count}} accounts"
     },
     "errors": {
-      "loadData": "Failed to load account data: {{error}}",
-      "refreshSession": "Could not refresh the session of account #{{number}}: {{error}}",
+      "loadData": "Could not refresh the data of {{account}}: {{error}}",
+      "reloadList": "Could not reload the accounts: {{error}}",
+      "loadDataMany": "Could not refresh {{total}} accounts: {{names}}. The reason is in the row of each account",
+      "refreshSession": "Could not sign in to {{account}}: {{error}}",
+      "refreshSessionMany": "Could not sign in to {{total}} accounts: {{names}}. The reason is in the row of each account",
       "editNotFound": "Could not change account data: #{{id}} - no such account"
     },
     "form": {

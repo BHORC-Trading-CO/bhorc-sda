@@ -74,8 +74,9 @@ const SteamAccountsPanel = observer(() => {
                 />
                 <ToolbarIconButton
                     icon="refresh"
-                    motion="spin"
-                    label={t("common.reloadAll")}
+                    motion={table.fullRefreshActive ? "spinAlways" : "spin"}
+                    isActive={table.fullRefreshActive}
+                    label={t(table.fullRefreshActive ? "common.reloadAllActive" : "common.reloadAll")}
                     testId="refresh-all"
                     onClick={() => {
                         table.reloadAll();

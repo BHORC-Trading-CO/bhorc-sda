@@ -368,13 +368,15 @@ const CellJSX: FC<{
             color="grey"
             hoverColor="light-grey"
             view="icon"
-            className="row-action"
+            className={`row-action${steamAccount.getSecondaryError ? " row-action--warn" : ""}`}
             icon="refresh"
             iconMotion="spin"
             onClick={() => {
               store.steamAccountsTable.loadSecondaries(steamAccount.id);
             }}
-            altText={t("accounts.table.actions.refreshProfile")}
+            altText={steamAccount.getSecondaryError
+              ? t("accounts.table.actions.refreshProfileFailed", { error: steamAccount.getSecondaryError })
+              : t("accounts.table.actions.refreshProfile")}
           />
           <Button
             disabled={steamAccount.deleted}
@@ -383,12 +385,14 @@ const CellJSX: FC<{
             color="grey"
             hoverColor="light-grey"
             view="icon"
-            className="row-action"
+            className={`row-action${steamAccount.sessionError ? " row-action--warn" : ""}`}
             icon="logIn"
             onClick={() => {
               store.steamAccountsTable.refreshSession(steamAccount.id);
             }}
-            altText={t("accounts.table.actions.refreshSession")}
+            altText={steamAccount.sessionError
+              ? t("accounts.table.actions.refreshSessionNeeded", { error: steamAccount.sessionError })
+              : t("accounts.table.actions.refreshSession")}
           />
           <Button
             disabled={steamAccount.deleted}
@@ -692,12 +696,7 @@ const CellJSX: FC<{
             testId="row-restore"
             icon="archiveRestore"
             onClick={() => {
-              //store.steamAccountsTable.editSteamAccount(steamAccount.id, { deleted: false });
-              window.Main.steamAccounts.edit(
-                steamAccount.id,
-                { deleted: false }
-              );
-              window.Main.steamAccounts.get();
+              store.steamAccountsTable.restoreAccount(steamAccount.id);
             }}
             altText={t("accounts.table.actions.restore")}
           />
