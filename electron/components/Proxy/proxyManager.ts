@@ -5,7 +5,7 @@ import CompiledProxyInterface from '../../interfaces/Proxy/CompiledProxyInterfac
 import ProxySetupInterface from '../../interfaces/Proxy/ProxySetupInterface';
 import getProxyGeo, { ProxyGeo } from '../SteamAccount/Functions/getProxyGeo';
 import buildProxyUrl from './proxyUrl';
-import Manager from "../Manager/Manager";
+import Manager, { ProxyLinksPlan } from "../Manager/Manager";
 import application from "../application/application";
 import { sanitizeProxySetup } from "../Functions/sanitizeSmaFile";
 import { t } from "../../i18n";
@@ -55,11 +55,11 @@ export class ProxyManager {
         const object = this.getById(id);
         if (!object) throw new Error(t("errors.proxyNotFound", { id }));
         const changed = SETUP_FIELDS.filter(field => typeof newProxyData[field] !== "undefined");
-        if (!changed.length) return newProxyData;
         const setup = sanitizeProxySetup({ ...object.params, ...newProxyData });
         return { ...newProxyData, ...Object.fromEntries(changed.map(field => [field, setup[field]])) };
     }
-    edit(id: string, newProxyData: { [K in keyof ProxyInterface]?: ProxyInterface[K] }) {
+    /** plan — смена привязок вместе с правкой: сохраняется той же записью, клиенты перестраиваются после неё. */
+    edit(id: string, newProxyData: { [K in keyof ProxyInterface]?: ProxyInterface[K] }, plan: ProxyLinksPlan | null = null) {
         try {
             const object = this.objects.find(object => object.params.id === id);
             if (!object) throw new Error(`#${id} - proxy is not exist`);
@@ -67,8 +67,8 @@ export class ProxyManager {
             if (typeof newProxyData.host !== 'undefined' || typeof newProxyData.port !== 'undefined') {
                 newProxyData = { ...newProxyData, timezone: "", countryCode: "" };
             }
-            object.editParams(newProxyData);
-            Manager.RefreshProxyAccounts(id);
+            object.editParams(newProxyData, plan?.links);
+            Manager.RefreshProxyAccounts(id, plan?.changed);
         } catch (err) {
             throw new Error(`Cant edit proxy: ${err}`);
         }

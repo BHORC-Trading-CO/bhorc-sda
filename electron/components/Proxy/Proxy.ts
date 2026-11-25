@@ -3,6 +3,7 @@ import RequestPromise from "../Request/Request";
 import { v4 as uuidv4 } from 'uuid';
 import ProxyStorage from "../newStorage/ProxyStorage";
 import ProxySetupInterface from "../../interfaces/Proxy/ProxySetupInterface";
+import LinksInterface from "../../interfaces/Links/LinksInterface";
 import { ProxyTestResult } from "../../interfaces/Proxy/ProxyResults";
 import proxyManager from "./proxyManager";
 import { sanitizeProxySetup } from "../Functions/sanitizeSmaFile";
@@ -14,13 +15,14 @@ class Proxy {
         this.params = proxy;
     }
 
-    editParams(newParams: { [K in keyof ProxyInterface]?: ProxyInterface[K] }) {
+    /** Сначала диск: не сохранённая правка не должна менять маршрут в памяти (SDA-64). */
+    editParams(newParams: { [K in keyof ProxyInterface]?: ProxyInterface[K] }, links?: LinksInterface) {
+        ProxyStorage.EditData(this.params.id, newParams, links);
         for (var i in this.params) {
             if (typeof (newParams[i]) !== 'undefined') {
                 this.params[i] = newParams[i];
             }
         }
-        ProxyStorage.EditData(this.params.id, newParams);
     }
     test(): Promise<ProxyTestResult> {
         return Proxy.Test(this.params);

@@ -64,8 +64,8 @@ export default () => {
         try {
             const proxyData = Proxy.Generate(params.proxy);
             const proxyObject = new Proxy(proxyData);
-            proxyManager.addNew(proxyObject);
             ProxyStorage.Save(proxyData.id, proxyData);
+            proxyManager.addNew(proxyObject);
             for (var steamAccountId of params.links.steamAccountIds) {
                 Manager.LinkProxyToSteamAccount(steamAccountId, proxyData.id);
             }
@@ -89,14 +89,10 @@ export default () => {
         try {
             const archiveOnly = Object.keys(params.proxy).length === 1 && "deleted" in params.proxy;
             const proxy = archiveOnly ? params.proxy : proxyManager.sanitizeEdit(params.id, params.proxy);
-            const applyLinks = archiveOnly ? null : Manager.PlanProxyAccountLinks(
+            const plan = archiveOnly ? null : Manager.PlanProxyAccountLinks(
                 params.id, params.links.steamAccountIds, params.links.originalSteamAccountIds
             );
-            proxyManager.edit(params.id, proxy);
-            if (applyLinks) {
-                Manager.RequireProxy(params.id);
-                applyLinks();
-            }
+            proxyManager.edit(params.id, proxy, plan);
             proxyManager.sendProxiesToFront();
             if (requestId) event.reply(ProxyChannels.PROXY_EDIT_RESULT, { requestId });
         } catch (err) {

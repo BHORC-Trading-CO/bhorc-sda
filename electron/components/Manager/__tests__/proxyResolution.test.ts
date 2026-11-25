@@ -19,6 +19,7 @@ import application from "../../application/application";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import { t } from "../../../i18n";
 
+const Store = require("electron-store");
 const proxy = { id: "p1", host: "proxy.test", port: "8080", username: "", password: "", deleted: false } as any;
 const params = () => ({ id: "a1", accountName: "test", maFile: {}, secondary: {}, changableSecondary: { steam: {} } } as any);
 const links = (id?: string | null) => LinksStorage.Save({ steamAccounts: id === undefined ? {} : { a1: id }, profiles: {}, groups: {} });
@@ -252,7 +253,7 @@ it("F3 validates every requested id before changing endpoint or links", async ()
 it("F3 snapshot diff preserves accounts linked after the form opened", async () => {
     const removed = addLinked("a1"), retained = addLinked("a2"), late = addLinked("late");
     const oldCommunity = retained.community;
-    const save = jest.spyOn(LinksStorage, "Save");
+    const save = jest.spyOn(Store.prototype, "set");
     await mockHandlers.EDIT_PROXY({ reply: jest.fn() }, { id: "p1", proxy: {}, links: {
         steamAccountIds: ["a2"], originalSteamAccountIds: ["a1", "a2"]
     } });
@@ -262,29 +263,49 @@ it("F3 snapshot diff preserves accounts linked after the form opened", async () 
     expect(removed.proxyState).toBe("none");
     expect(late.proxyState).toBe("ok");
 });
-it("F3 a failed link save changes no account to direct", async () => {
-    const a1 = addLinked("a1"), a2 = addLinked("a2");
-    jest.spyOn(LinksStorage, "Save").mockImplementationOnce(() => { throw new Error("write failed"); });
+// SDA-64: адрес и привязки — одна запись; сбой записи не меняет ничего: ни память, ни клиентов, ни браузер.
+it.each([
+    ["endpoint and links", { host: "other.test", password: "new" }, ["a2", "a3"]],
+    ["links only", {}, ["a2", "a3"]],
+    ["endpoint only", { host: "other.test", password: "new" }, ["a1", "a2"]],
+])("F3 a failed write of %s changes nothing", async (_name, patch, steamAccountIds) => {
+    const accounts = [addLinked("a1"), addLinked("a2"), addLinked("a3", null)];
+    const before = accounts.map(account => ({ url: account.proxyUrl(), session: account.session, community: account.community }));
+    accounts[1].chrome.browser = { close: jest.fn() } as any;
+    const write = jest.spyOn(Store.prototype, "set").mockImplementationOnce(() => { throw new Error("write failed"); });
     const event = { reply: jest.fn() };
-    await mockHandlers.EDIT_PROXY(event, { id: "p1", proxy: {}, links: {
-        steamAccountIds: ["a2"], originalSteamAccountIds: ["a1", "a2"]
-    } });
-    expect(event.reply).toHaveBeenCalledWith("ERROR", expect.stringContaining("write failed"));
-    expect(LinksStorage.Get().steamAccounts).toEqual({ a1: "p1", a2: "p1" });
-    expect([a1.proxyState, a2.proxyState]).toEqual(["ok", "ok"]);
+    await mockHandlers.EDIT_PROXY(event, { id: "p1", proxy: patch, requestId: "r1", links: { steamAccountIds, originalSteamAccountIds: ["a1", "a2"] } });
+    expect(event.reply.mock.calls).toEqual([["PROXY_EDIT_RESULT", { requestId: "r1", error: expect.stringContaining("write failed") }]]);
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(proxyManager.getById("p1")!.params).toEqual(proxy);
+    expect(ProxyStorage.GetById("p1")).toEqual(proxy);
+    expect(LinksStorage.Get().steamAccounts).toEqual({ a1: "p1", a2: "p1", a3: null });
+    expect(accounts.map(account => ({ url: account.proxyUrl(), session: account.session, community: account.community }))).toEqual(before);
+    accounts.forEach((account, i) => expect(account.community).toBe(before[i].community));
+    expect(accounts[1].chrome.browser!.close).not.toHaveBeenCalled();
 });
-it("F3 one client failure blocks it and still refreshes the other committed additions", () => {
-    const a1 = addLinked("a1", null), a2 = addLinked("a2", null);
+it("F3 endpoint and links are one write and reach every affected account", async () => {
+    const [a1, a2, a3] = [addLinked("a1"), addLinked("a2"), addLinked("a3", null)];
+    const write = jest.spyOn(Store.prototype, "set");
+    const event = { reply: jest.fn() };
+    await mockHandlers.EDIT_PROXY(event, { id: "p1", proxy: { host: "other.test" }, requestId: "r1", links: { steamAccountIds: ["a2", "a3"], originalSteamAccountIds: ["a1", "a2"] } });
+    expect(event.reply.mock.calls).toEqual([["PROXY_EDIT_RESULT", { requestId: "r1" }]]);
+    expect(write).toHaveBeenCalledTimes(1);
+    expect([a1.proxyUrl(), a2.proxyUrl(), a3.proxyUrl()]).toEqual([null, "http://:@other.test:8080", "http://:@other.test:8080"]);
+});
+it("F3 one client failure blocks it and still refreshes the other committed changes", () => {
+    const a1 = addLinked("a1", null), a2 = addLinked("a2", null), removed = addLinked("a3");
     jest.spyOn(a1, "setProxy").mockImplementationOnce(() => { throw new Error("rebuild failed"); });
-    const apply = Manager.PlanProxyAccountLinks("p1", ["a1", "a2"], []);
-    expect(apply).toThrow("rebuild failed");
-    expect(LinksStorage.Get().steamAccounts).toEqual({ a1: "p1", a2: "p1" });
+    const plan = Manager.PlanProxyAccountLinks("p1", ["a1", "a2"], ["a3"]);
+    expect(() => proxyManager.edit("p1", {}, plan)).toThrow("rebuild failed");
+    expect(LinksStorage.Get().steamAccounts).toEqual({ a1: "p1", a2: "p1", a3: null });
     expect(a1.proxyState).toBe("missing");
     expect(a2.proxyState).toBe("ok");
+    expect(removed.proxyState).toBe("none");
 });
 it("F3 no snapshot grants additions only, never implicit removals", () => {
     addLinked("a1");
-    Manager.PlanProxyAccountLinks("p1", [])();
+    expect(Manager.PlanProxyAccountLinks("p1", [])).toBeNull();
     expect(LinksStorage.Get().steamAccounts.a1).toBe("p1");
 });
 it("F6 refresh/reload keeps session identity, cookies and in-flight login on an unchanged route", () => {
