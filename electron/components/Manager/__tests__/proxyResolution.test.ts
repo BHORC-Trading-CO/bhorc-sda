@@ -432,10 +432,11 @@ it('archive preserves the image cache; permanent delete and its IPC handler awai
     const deletion = deleteListener(event as any, 'a1');
     const finished = jest.fn();
     deletion.then(finished);
+    // Сначала подтверждается остановка браузера (SDA-64).
+    await new Promise(resolve => setImmediate(resolve));
     expect(steamAccountManager.getById('a1')).toBeNull();
     expect(remove).toHaveBeenCalledWith('a1');
     expect(application.sendToMain).toHaveBeenCalledWith(SteamAccountChannels.STEAM_ACCOUNT_GET, []);
-    await Promise.resolve();
     expect(finished).not.toHaveBeenCalled();
     release();
     await deletion;

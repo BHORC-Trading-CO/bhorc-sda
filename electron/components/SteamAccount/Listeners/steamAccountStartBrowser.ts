@@ -12,8 +12,6 @@ export default async (event: IpcMainEvent, id: string) => {
         const cookies = steamAccount.params.useSteamCookies ? await steamAccount.getBrowserCookies() : [];
         // Без прокси гео не определяем — браузер стартует с системной TZ/локалью.
         const geo = steamAccount.proxy ? await proxyManager.getProxyGeo(steamAccount.proxy.id) : null;
-        // Пока получали cookie и гео, аккаунт могли удалить навсегда: браузер остался бы без владельца (SDA-64).
-        if (steamAccountManager.getById(id) !== steamAccount) return;
         steamAccount.chrome.start(cookies, geo).catch((err) => {
             if (err instanceof BrowserStartCancelledError) return;
             console.log(`#${id} - ошибка запуска браузера: ${err}`);

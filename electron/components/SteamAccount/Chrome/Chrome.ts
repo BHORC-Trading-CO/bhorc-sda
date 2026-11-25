@@ -1,5 +1,7 @@
 import downloadImage from "../../someFuncs/downloadImage";
 import sanitizeAvatarUrl from "../../Functions/sanitizeAvatarUrl";
+import withDeadline from "../../Functions/withDeadline";
+import type { ChildProcess } from "child_process";
 import fs from "fs/promises";
 import puppeteerDefault, { Browser, Page, Target } from "puppeteer";
 import puppeteer from "puppeteer-extra";
@@ -39,6 +41,8 @@ export class BrowserStartCancelledError extends Error {
   }
 }
 export const BROWSER_CLOSE_TIMEOUT_MS = 3000;
+/** Сколько ждать, пока браузер удаляемого аккаунта завершится (SDA-64, см. shutdown). */
+export const BROWSER_SHUTDOWN_MS = 10000;
 /** Сколько ждать аватар при создании профиля: он не должен держать запуск браузера. */
 export const AVATAR_TIMEOUT_MS = 10000;
 /**
@@ -104,6 +108,11 @@ function tabUrl(tab: Page): string {
 
 export default class Chrome {
   private startAttempt: { reason?: StartCancelReason } | null = null;
+  /** Аккаунт удаляется: новых запусков больше нет (SDA-64). */
+  launchesBlocked = false;
+  /** Идущий puppeteer.launch и живые процессы браузера этого аккаунта — для shutdown (SDA-64). */
+  private launching: Promise<void> | null = null;
+  private processes = new Set<ChildProcess>();
   profileDir: string;
   params: SteamAccountInterface;
   browser: Browser | null;
@@ -483,6 +492,7 @@ export default class Chrome {
     });
   }
   start(webCookies: string[] = [], geo?: ProxyGeo | null): Promise<void> {
+    if (this.launchesBlocked) return Promise.reject(new BrowserStartCancelledError("stopped"));
     if (this.browser) return Promise.resolve();
     this.cancelStart("superseded");
     const attempt: { reason?: StartCancelReason } = {};
@@ -518,7 +528,7 @@ export default class Chrome {
         // То же значение настройки, что и для подготовки профиля. Не previousTabsMayReturn: в запасном
         // режиме (папки сеанса не удалось убрать) Chromium не просим восстанавливать.
         const args = this.generateChromeFlags(restoreTabs);
-        const launchedBrowser = await puppeteer.launch({
+        const launch = Promise.resolve(puppeteer.launch({
           userDataDir: this.profileDir,
           headless: false,
           executablePath,
@@ -529,7 +539,9 @@ export default class Chrome {
           ...(args.some((arg) => arg.startsWith("--load-extension="))
             ? { ignoreDefaultArgs: ["--disable-extensions"] }
             : {}),
-        });
+        }));
+        this.launching = launch.then((browser) => this.trackProcess(browser), () => undefined);
+        const launchedBrowser = await launch;
         if (attempt.reason) {
           await this.closeBrowserReleasingProfile(launchedBrowser);
           assertCurrent();
@@ -802,6 +814,38 @@ export default class Chrome {
       status: this.workStatus, id: this.params.id,
     });
     if (browser) await this.closeBrowserReleasingProfile(browser);
+  }
+  private trackProcess(browser: Browser) {
+    const child = browser.process?.();
+    if (!child || child.exitCode !== null || child.signalCode !== null) return;
+    this.processes.add(child);
+    child.once("exit", () => this.processes.delete(child));
+  }
+  /**
+   * Остановка с подтверждением — для удаления аккаунта (SDA-64): отменяет запуск, закрывает браузер и
+   * ждёт, пока процесс действительно завершится. Реджектится, если за срок этого не случилось.
+   */
+  shutdown(timeoutMs: number = BROWSER_SHUTDOWN_MS): Promise<void> {
+    let expired = false;
+    const stopAndConfirm = async () => {
+      const tracked = this.processes.size > 0;
+      const closeError = await this.stop().then(() => null, (err) => err);
+      // Запуск, который отмена застала внутри puppeteer.launch, сам закроет открывшийся браузер.
+      await this.launching;
+      await this.browserClosing;
+      // Срок вышел: аккаунт остался, и следующий запуск уже не наш.
+      if (expired) return;
+      // Ошибка закрытия ещё не значит, что процесс жив: решает его выход. Процесса не видно — верим ошибке.
+      if (closeError && !tracked) throw closeError;
+      await Promise.all(Array.from(this.processes, (child) => new Promise<void>((resolve) => {
+        child.once("exit", () => resolve());
+        child.kill("SIGKILL");
+      })));
+    };
+    return withDeadline(stopAndConfirm(), timeoutMs, () => {
+      expired = true;
+      return new Error(t("errors.browserNotStopped"));
+    });
   }
   addSteamCookies(webCookies: string[] = []): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {

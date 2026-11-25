@@ -24,14 +24,20 @@ export class SteamAccountManager {
     }
     async delete(id: string) {
         try {
-            const index = this.objects.findIndex(obj => obj.params.id === id);
-            if (index === -1) throw new Error(`#${id} - steam account is not exist`);
-            // Вместе со строкой исчезнет и кнопка «Стоп» (SDA-64): отменяем идущий запуск и закрываем
-            // браузер. Ошибка закрытия удалению не мешает: процесс при ней уже убит (closeBrowser).
-            const browserStopped = this.objects[index].chrome.stop()
-                .catch(err => console.log(`account ${id}: browser did not close cleanly: ${err}`));
-            this.objects.splice(index, 1);
-            SteamAccountStorage.Delete(id);
+            const removed = this.getById(id);
+            if (!removed) throw new Error(`#${id} - steam account is not exist`);
+            // Вместе со строкой исчезнет и кнопка «Стоп» (SDA-64): сначала браузер, и только когда его
+            // процесс завершился — запись. Не остановился или запись не удалилась — аккаунт остаётся.
+            if (removed.chrome.launchesBlocked) return;
+            removed.chrome.launchesBlocked = true;
+            try {
+                await removed.chrome.shutdown();
+                SteamAccountStorage.Delete(id);
+            } catch (err) {
+                removed.chrome.launchesBlocked = false;
+                throw err;
+            }
+            this.objects = this.objects.filter(obj => obj !== removed);
             try {
                 const thisAccount = SteamAccountStorage.GetById(id);
             } catch (err){
@@ -40,7 +46,7 @@ export class SteamAccountManager {
             const cleanup = application.images?.removeAccount(id);
             // Удалённая запись исчезает из UI даже при ошибке очистки кеша.
             try { this.sendAccountsToFront(); }
-            finally { await Promise.all([cleanup, browserStopped]); }
+            finally { await cleanup; }
         } catch (err) {
             throw new Error(`Cant delete steam account: ${err}`);
         }
