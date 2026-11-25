@@ -40,8 +40,8 @@ export default function finalizeAddAuthenticator(params: {
         },
     };
     const req = proxyUrl
-        ? boundedRequest({ proxy: proxyUrl, ...defaults })
-        : boundedRequest(defaults);
+        ? boundedRequest({ proxy: proxyUrl, ...defaults }, { wholeRequest: false })
+        : boundedRequest(defaults, { wholeRequest: false });
 
     const now = () => Math.floor(Date.now() / 1000);
     let offset = Number(serverTime) - now();
