@@ -1,4 +1,4 @@
-import request from "request";
+import boundedRequest from "../../Request/boundedRequest";
 
 export interface ProxyGeo {
   /** IANA-таймзона, напр. "Europe/Kiev" */
@@ -39,7 +39,7 @@ export function acceptLanguageFor(locale: string): string {
  * При любой ошибке возвращает null-поля — вызывающий код оставляет системные значения.
  */
 export default function getProxyGeo(proxyUrl?: string | null): Promise<ProxyGeo> {
-  const req = proxyUrl ? request.defaults({ proxy: proxyUrl, timeout: 8000 }) : request;
+  const req = boundedRequest(proxyUrl ? { proxy: proxyUrl, timeout: 8000 } : { timeout: 8000 });
   return new Promise((resolve) => {
     req.get(
       { url: "https://ipwho.is/", json: true },

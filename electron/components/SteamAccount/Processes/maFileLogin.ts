@@ -14,7 +14,7 @@ import CreationStepType from '../../../interfaces/SteamAccount/CreationStepType'
 import ProxySetupInterface from "../../../interfaces/Proxy/ProxySetupInterface";
 import buildProxyUrl from "../../Proxy/proxyUrl";
 import applyCommunityCookies from "../Functions/applyCommunityCookies";
-import request from "request";
+import boundedRequest from "../../Request/boundedRequest";
 import askFamilyPin from "../../application/askInfo/askFamilyPin";
 import { EAuthSessionGuardType, EAuthTokenPlatformType, LoginSession } from "steam-session";
 import askMailCode from "../../application/askInfo/askMailCode";
@@ -33,7 +33,7 @@ export default async function maFileLogin(steamAccountParams: SteamAccountSetupI
             httpProxy: proxyUrl ? proxyUrl : undefined
         });
         const community = new SteamCommunity({
-            request: proxyUrl ? request.defaults({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS }) : request.defaults({ headers: STEAM_WEB_HEADERS }),
+            request: proxyUrl ? boundedRequest({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS }) : boundedRequest({ headers: STEAM_WEB_HEADERS }),
             userAgent: STEAM_MOBILE_USER_AGENT
         });
 

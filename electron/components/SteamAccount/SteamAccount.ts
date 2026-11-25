@@ -17,6 +17,7 @@ import ProxyUnavailableError from "../Proxy/ProxyUnavailableError";
 import { blockedAgent, blockedSession } from "../Proxy/blockedTransport";
 import { ProxyState } from "../../interfaces/Proxy/ProxyState";
 import request from "request";
+import boundedRequest from "../Request/boundedRequest";
 import Manager from "../Manager/Manager";
 import askFamilyPin from "../application/askInfo/askFamilyPin";
 import Chrome from './Chrome/Chrome';
@@ -190,8 +191,8 @@ class SteamAccount {
         }
         const proxyUrl = this.proxyUrl();
         const req = proxyUrl
-            ? request.defaults({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS })
-            : request.defaults({ headers: STEAM_WEB_HEADERS });
+            ? boundedRequest({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS })
+            : boundedRequest({ headers: STEAM_WEB_HEADERS });
         return new SteamCommunity({ request: req, userAgent: STEAM_MOBILE_USER_AGENT });
     }
     reloadParams(params: SteamAccountInterface) {

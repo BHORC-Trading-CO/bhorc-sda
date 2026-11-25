@@ -1,4 +1,4 @@
-import request from "request";
+import boundedRequest from "../../Request/boundedRequest";
 import { randomBytes } from "crypto";
 import { STEAM_MOBILE_USER_AGENT, STEAM_ACCEPT_ENCODING } from "./steamUserAgent";
 
@@ -32,14 +32,24 @@ interface TransferInfo {
   params: { [key: string]: any };
 }
 
+// Только HTTPS на сам steamcommunity.com: по этому адресу уходит токен сессии
+function isCommunityTransfer(url: unknown): url is string {
+  try {
+    const { protocol, hostname } = new URL(String(url));
+    return protocol === "https:" && hostname === "steamcommunity.com";
+  } catch {
+    return false;
+  }
+}
+
 export default function getCommunityWebCookies(
   refreshToken: string,
   steamID: string,
   proxyUrl?: string | null
 ): Promise<string[]> {
   const req = proxyUrl
-    ? request.defaults({ proxy: proxyUrl, ...REQUEST_DEFAULTS })
-    : request.defaults(REQUEST_DEFAULTS);
+    ? boundedRequest({ proxy: proxyUrl, ...REQUEST_DEFAULTS })
+    : boundedRequest(REQUEST_DEFAULTS);
 
   return new Promise<string[]>((resolve, reject) => {
     req.post(
@@ -60,9 +70,11 @@ export default function getCommunityWebCookies(
         } catch (e) {
           return reject(new Error(`finalizelogin: malformed response`));
         }
+        // Исключение в этом колбэке не реджектит промис: вход завис бы навсегда (SDA-60)
+        if (!json || typeof json !== "object") return reject(new Error(`finalizelogin: malformed response`));
         if (json.error) return reject(new Error(`finalizelogin error ${json.error}`));
-        const transfers: TransferInfo[] = json.transfer_info || [];
-        const community = transfers.find((t) => /steamcommunity\.com/i.test(t.url));
+        const transfers: TransferInfo[] = Array.isArray(json.transfer_info) ? json.transfer_info : [];
+        const community = transfers.find((t) => isCommunityTransfer(t?.url));
         if (!community) return reject(new Error("no steamcommunity.com transfer in finalizelogin"));
 
         req.post(

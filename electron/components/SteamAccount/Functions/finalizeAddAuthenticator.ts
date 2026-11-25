@@ -1,4 +1,4 @@
-import request from "request";
+import boundedRequest from "../../Request/boundedRequest";
 import SteamTotp from "steam-totp";
 import { STEAM_MOBILE_USER_AGENT, STEAM_ACCEPT_ENCODING } from "./steamUserAgent";
 import { t } from "../../../i18n";
@@ -40,8 +40,8 @@ export default function finalizeAddAuthenticator(params: {
         },
     };
     const req = proxyUrl
-        ? request.defaults({ proxy: proxyUrl, ...defaults })
-        : request.defaults(defaults);
+        ? boundedRequest({ proxy: proxyUrl, ...defaults })
+        : boundedRequest(defaults);
 
     const now = () => Math.floor(Date.now() / 1000);
     let offset = Number(serverTime) - now();

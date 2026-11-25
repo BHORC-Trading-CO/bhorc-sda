@@ -15,7 +15,7 @@ import buildProxyUrl from "../../Proxy/proxyUrl";
 import applyCommunityCookies from "../Functions/applyCommunityCookies";
 import finalizeAddAuthenticator from "../Functions/finalizeAddAuthenticator";
 import savePendingAuthenticator from "../Functions/savePendingAuthenticator";
-import request from "request";
+import boundedRequest from "../../Request/boundedRequest";
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import SteamAccountSetupInterface from "../../../interfaces/SteamAccount/SteamAccountSetupInterface";
 import {
@@ -47,8 +47,8 @@ export default async function setupGuard(
     // напрямую с реального IP (осознанный выбор пользователя).
     const session = new LoginSession(EAuthTokenPlatformType.MobileApp, { httpProxy: proxyUrl ? proxyUrl : undefined });
     const communityRequest = proxyUrl
-      ? request.defaults({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS })
-      : request.defaults({ headers: STEAM_WEB_HEADERS });
+      ? boundedRequest({ proxy: proxyUrl, headers: STEAM_WEB_HEADERS })
+      : boundedRequest({ headers: STEAM_WEB_HEADERS });
     const community = new SteamCommunity({ request: communityRequest, userAgent: STEAM_MOBILE_USER_AGENT });
     const EResult = SteamCommunity.EResult;
 
