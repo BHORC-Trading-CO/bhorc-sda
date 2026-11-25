@@ -8,6 +8,7 @@ jest.mock("steam-session", () => {
         LoginSession: class extends EventEmitter {
             accessToken = "fake-access";
             refreshToken = "fake-refresh";
+            cancelLoginAttempt() {}
             steamID = { getSteamID64: () => "76561198000000001", toString: () => "76561198000000001" };
             async startWithCredentials() {
                 queueMicrotask(() => this.emit(...mockLoginEvent));
@@ -22,7 +23,6 @@ jest.mock("steamcommunity", () => Object.assign(jest.fn(() => ({
     enableTwoFactor: (cb: Function) => cb(null, mockRaw)
 })), { EResult: { OK: 1 } }));
 jest.mock("../../../application/application", () => ({ __esModule: true, default: { sendToMain: jest.fn() } }));
-jest.mock("../../../application/trustedIpc", () => ({ onTrusted: jest.fn() }));
 jest.mock("../../Functions/applyCommunityCookies", () => ({ __esModule: true, default: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("../../Functions/savePendingAuthenticator", () => ({
     __esModule: true, default: jest.fn(() => { mockOrder.push("backup"); return "/fake/backup.json"; })

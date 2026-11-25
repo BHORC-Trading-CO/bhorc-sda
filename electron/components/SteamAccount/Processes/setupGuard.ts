@@ -1,5 +1,4 @@
 import SteamTotp from "steam-totp";
-import { onTrusted } from "../../application/trustedIpc";
 import SteamCommunity from "steamcommunity";
 import CreationStepType from "../../../interfaces/SteamAccount/CreationStepType";
 import MaFileInterface from "../../../interfaces/SteamAccount/MaFileInterface";
@@ -22,10 +21,8 @@ import { EAuthSessionGuardType } from "steam-session";
 import createLoginSession from "../../Proxy/loginSession";
 import { STEAM_MOBILE_USER_AGENT, STEAM_WEB_HEADERS } from "../Functions/steamUserAgent";
 import { writeUnredacted } from "../../Functions/redactSecrets";
+import { t } from "../../../i18n";
 
-type AbortChannelType =
-  | SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT
-  | SteamAccountChannels.GUARD_SETUP_PROCESS_ABORT;
 type StepType =
   | SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_STEP
   | SteamAccountChannels.GUARD_SETUP_PROCESS_STEP;
@@ -40,7 +37,8 @@ export default async function setupGuard(
     useSteamCookies?: boolean;
   },
   proxy?: ProxySetupInterface | null,
-  onRecovery?: (revocationCode: string, steamId: string) => void
+  onRecovery?: (revocationCode: string, steamId: string) => void,
+  signal?: AbortSignal
 ): Promise<SmaFileInterface> {
     const proxyUrl = buildProxyUrl(proxy);
   return new Promise(async (resolve, reject) => {
@@ -53,19 +51,30 @@ export default async function setupGuard(
     const community = new SteamCommunity({ request: communityRequest, userAgent: STEAM_MOBILE_USER_AGENT });
     const EResult = SteamCommunity.EResult;
 
-    onTrusted("ABORT_SETUP_GUARD", () => {
-      reject("abort");
-    });
-
     const nextStep = (step: CreationStepType) => {
-      application.sendToMain(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, step);
+      // Шаги отменённого запуска не попадают в следующий мастер (SDA-63)
+      if (!signal?.aborted) application.sendToMain(SteamAccountChannels.GUARD_SETUP_PROCESS_STEP, step);
     };
 
     const doLogin = (
       accountName: string,
       password: string
     ): Promise<MaFileInterface> => {
-      return new Promise<MaFileInterface>((resolve, reject) => {
+      return new Promise<MaFileInterface>((resolve, rejectLogin) => {
+        const reject = (err: unknown) => {
+          session.cancelLoginAttempt();
+          rejectLogin(err);
+        };
+        // Отмена (SDA-63) останавливает мастер до запроса AddAuthenticator. С его отправки Steam мог
+        // выдать секреты: ответ дожидаемся и сохраняем, а отмену проверяем перед следующими шагами.
+        let enrolling = false;
+        signal?.addEventListener("abort", () => {
+          if (!enrolling) reject("abort");
+        });
+        // Все завершающие события — до входа: timeout раньше оставлял мастер крутиться, а error без
+        // слушателя бросался мимо промиса.
+        session.on("error", reject);
+        session.on("timeout", () => reject(new Error(t("errors.steamLoginTimeout"))));
         nextStep("loginByPassword");
         // Сбой или срок опроса входа приходит событием, а не ошибкой startWithCredentials:
         // без слушателей мастер крутился бы вечно (SDA-60)
@@ -77,6 +86,8 @@ export default async function setupGuard(
             password
           })
           .then(async ({ actionRequired, validActions }) => {
+            // Библиотека начинает опрос заново, даже если её отменили до ответа Steam
+            if (signal?.aborted) return reject("abort");
             if (actionRequired) {
               if (validActions) {
                 const emailPromt = validActions
@@ -103,7 +114,8 @@ export default async function setupGuard(
                     nextStep("askEmailCode");
                     const code = await askMailCode(
                       uuidv4(),
-                      steamAccountParams.accountName
+                      steamAccountParams.accountName,
+                      signal
                     );
                     nextStep("tryEmailCode");
                     try {
@@ -117,6 +129,7 @@ export default async function setupGuard(
                     }
                   };
                   await promtEmailCode();
+                  if (signal?.aborted) return reject("abort");
                 } else {
                   return reject(
                     `Failed to log in, action required: ${validActions}`
@@ -139,9 +152,11 @@ export default async function setupGuard(
           community.loggedIn((error, loggedIn, familyView) => {
             // reject, а не throw: throw из колбэка request'а не реджектит промис,
             // а улетает необработанным исключением — процесс подключения guard'а зависал.
+            if (signal?.aborted) return reject("abort");
             if (error) return reject(error);
             if (!loggedIn) return reject(new Error("Not logged in"));
             if (familyView) return reject(new Error("Family view"));
+            enrolling = true;
             //@ts-ignore
             community.setMobileAppAccessToken(session.accessToken);
             community.enableTwoFactor(async (err, response) => {
@@ -193,11 +208,15 @@ export default async function setupGuard(
               );
 
               const promtActivationCode = async () => {
+                // Секреты уже сохранены: отмена закрывает окно кода и не даёт завершить подключение.
+                // После отправки кода отменять поздно: Steam мог его принять.
                 nextStep("askSmsCode");
                 const code = await askSmsCode(
                   uuidv4(),
-                  steamAccountParams.accountName
+                  steamAccountParams.accountName,
+                  signal
                 );
+                if (signal?.aborted) throw "abort";
                 nextStep("trySmsCode");
                 try {
                   await finalizeAddAuthenticator({

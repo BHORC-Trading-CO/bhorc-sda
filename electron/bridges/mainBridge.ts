@@ -320,7 +320,7 @@ const guardConnection = {
     ipcRenderer.on(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT, listener);
   },
   abortSetup: () => {
-    ipcRenderer.send('ABORT_SETUP_GUARD');
+    ipcRenderer.send(SteamAccountChannels.GUARD_SETUP_PROCESS_ABORT);
   },
   getAuthCode: (shared_secret: string) => {
     return SteamTotp.getAuthCode(shared_secret);
