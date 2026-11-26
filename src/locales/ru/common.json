@@ -26,13 +26,18 @@
     "noAccountsSelected": "Не выбрано ни одного аккаунта",
     "openDataFolder": "Открыть папку с данными от аккаунтов. Все данные хранятся в файле config.json",
     "reloadAll": "Перезагрузить все данные",
+    "reloadAllActive": "Обновляем все аккаунты…",
     "startTyping": "Начните вводить...",
     "irreversible": "Это действие невозможно будет отменить",
     "error": "Ошибка",
     "errorTitle": "Ошибка 😒",
     "unknownStep": "Неизвестный шаг: {{step}}",
     "canCloseWindow": "Можно закрыть окно",
-    "inDevelopment": "В разработке"
+    "inDevelopment": "В разработке",
+    "crash": {
+      "text": "Не удалось показать это окно.",
+      "reload": "Перезагрузить окно"
+    }
   },
   "prompt": {
     "cancel": "Отмена",
@@ -208,6 +213,8 @@
         "confirmations": "Steam Guard подтверждения",
         "refreshProfile": "Обновить данные профиля (в том числе и статусы)",
         "refreshSession": "Обновить сессию (перелогиниться)",
+        "refreshSessionNeeded": "Войдите заново: {{error}}",
+        "refreshProfileFailed": "Обновление не удалось: {{error}}",
         "saveMaFile": "Сохранить maFile как",
         "exportSmaFile": "Экспорт данных аккаунта (smaFile)",
         "focusBrowser": "Поднять браузер наверх",
@@ -247,9 +254,13 @@
       "accept_other": "Удалить {{count}} аккаунта"
     },
     "errors": {
-      "loadData": "Ошибка получения данных аккаунта: {{error}}",
-      "refreshSession": "Не удалось обновить сессию аккаунта #{{number}}: {{error}}",
-      "editNotFound": "Не получилось поменять данные аккаунта: #{{id}} - такого аккаунта не существует"
+      "loadData": "Не удалось обновить данные аккаунта {{account}}: {{error}}",
+      "reloadList": "Не удалось перечитать аккаунты: {{error}}",
+      "loadDataMany": "Не обновились аккаунты ({{total}}): {{names}}. Причина — в строке каждого аккаунта",
+      "refreshSession": "Не удалось войти в аккаунт {{account}}: {{error}}",
+      "refreshSessionMany": "Не удалось войти в аккаунты ({{total}}): {{names}}. Причина — в строке каждого аккаунта",
+      "editNotFound": "Не получилось поменять данные аккаунта: #{{id}} - такого аккаунта не существует",
+      "export": "Не удалось экспортировать аккаунт: {{error}}"
     },
     "form": {
       "accountSection": "Аккаунт Steam",
@@ -264,7 +275,8 @@
       "showPassword": "Показать пароль",
       "hidePassword": "Скрыть пароль",
       "useSteamCookies": "Использовать куки Steam в браузере (автологин)",
-      "maFileNameMismatch": "Имя аккаунта Steam в мафайле не совпадает с заданным выше!"
+      "maFileNameMismatch": "Имя аккаунта Steam в мафайле не совпадает с заданным выше!",
+      "pinInvalid": "PIN-код — ровно 4 цифры"
     },
     "editing": {
       "title": "Редактирование Steam аккаунта #{{number}} {{name}}"
@@ -331,7 +343,8 @@
       "skippedFiles": "Пропущено файлов: {{count}}. {{details}}",
       "view": "Посмотреть",
       "pickProxy": "Выбрать прокси",
-      "remove": "Убрать из списка"
+      "remove": "Убрать из списка",
+      "routeRequired": "Выберите прокси или «Без прокси» для: {{names}}. Прокси этих аккаунтов больше не существует"
     }
   },
   "maFile": {
@@ -475,9 +488,20 @@
       "title": "Массовое добавление прокси",
       "example": "Один прокси на строку. Пример: Login:Password@1.1.1.1:7777",
       "empty": "Поле пустое!",
+      "rejected_one": "{{count}} строка не добавлена. Она осталась в поле, её можно исправить.",
+      "rejected_few": "{{count}} строки не добавлены. Они остались в поле, их можно исправить.",
+      "rejected_many": "{{count}} строк не добавлено. Они остались в поле, их можно исправить.",
+      "rejected_other": "{{count}} строки не добавлено. Они остались в поле, их можно исправить.",
       "result": "Добавлено: {{added}}, пропущено невалидных: {{invalid}}, дубликатов: {{duplicates}}",
       "label": "Список прокси",
       "placeholder": "Login:Password@1.1.1.1:7777\nLogin:Password@2.2.2.2:7777"
+    },
+    "reject": {
+      "format": "Это не строка прокси. Форматы: login:password@host:port, host:port:login:password, host:port или http://login:password@host:port",
+      "scheme": "Поддерживаются только HTTP-прокси (http://)",
+      "ambiguous": "Строку можно прочитать двояко. Запишите её как http://login:password@host:port",
+      "address": "Неправильный хост или порт",
+      "storage": "Не удалось сохранить"
     },
     "creation": {
       "title": "Создание новых прокси",
@@ -487,17 +511,25 @@
       "title": "Изменить прокси (#{{number}}) {{host}}:{{port}}"
     },
     "test": {
-      "editingWorking": "Прокси работает",
-      "editingNotWorking": "Прокси НЕ работает",
-      "working": "Прокси #{{number}} {{host}}:{{port}} работает",
-      "notWorking": "Прокси #{{number}} {{host}}:{{port}} НЕ работает",
+      "working": "Прокси {{name}} работает",
+      "notWorking": "Прокси {{name}} НЕ работает",
+      "steamStatus": "Прокси {{name}} работает, но Steam ответил {{code}}",
       "workingRich": "Прокси #{{number}} {{host}}:{{port}} <b>работает</b>",
       "notWorkingRich": "Прокси #{{number}} {{host}}:{{port}} <b>НЕ РАБОТАЕТ</b>",
       "column": "Проверка",
       "pending": "Тест…",
       "untested": "Без теста",
       "ok": "Работает",
-      "failed": "Сбой"
+      "failed": "Сбой",
+      "steamCode": "Steam: {{code}}",
+      "steamHint": "Прокси работает, но Steam ответил {{code}}",
+      "summary": {
+        "title": "Прокси проверены",
+        "working": "работают: {{number}}",
+        "refused": "работают, но Steam отказал: {{number}} ({{list}})",
+        "failed": "не работают: {{number}} ({{list}})",
+        "skipped": "без результата: {{number}} (уже проверяются, изменены или удалены)"
+      }
     },
     "errors": {
       "notFound": "Прокси #{{id}} не существует",

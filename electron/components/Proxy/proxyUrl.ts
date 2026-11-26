@@ -10,15 +10,26 @@
  * запрос ушёл бы не туда (или мимо прокси).
  */
 import ProxyUnavailableError from "./ProxyUnavailableError";
+import { canonicalProxyHost, isProxyPort } from "../Functions/proxyAddress";
+
+/**
+ * Адрес сохранённого прокси для сетевых клиентов и для --proxy-server браузера (SDA-64). Запись с host,
+ * который не имя и не IP (старая или правленная вручную), не работает вовсе, а не уходит в Chromium как
+ * правило. IDN, сохранённый раньше буквами, — то же имя: читаем его в punycode.
+ */
+export function proxyEndpoint(proxy: { id?: string; host: string; port: string | number }): { host: string; port: string } {
+    const host = canonicalProxyHost(String(proxy.host ?? "").trim());
+    const port = String(proxy.port ?? "").trim();
+    if (!host || !isProxyPort(port)) throw new ProxyUnavailableError(proxy.id);
+    return { host, port };
+}
 
 export default function proxyUrl(
     proxy?: { id?: string; host: string; port: string | number; username: string; password: string } | null
 ): string | null {
     if (proxy == null) return null;
-    if (!proxy.host?.trim() || !String(proxy.port ?? "").trim() || !Number(proxy.port)) {
-        throw new ProxyUnavailableError(proxy.id);
-    }
+    const { host, port } = proxyEndpoint(proxy);
     const user = encodeURIComponent(proxy.username || "");
     const pass = encodeURIComponent(proxy.password || "");
-    return `http://${user}:${pass}@${proxy.host}:${proxy.port}`;
+    return `http://${user}:${pass}@${host}:${port}`;
 }

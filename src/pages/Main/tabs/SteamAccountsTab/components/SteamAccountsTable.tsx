@@ -12,9 +12,10 @@ import Button from "../../../../../globalComponents/Button/Button";
 import Password from "../../../../../globalComponents/Password/Password";
 import { observer, useLocalObservable } from "mobx-react";
 import TableSteamAccountInterface from "../../../../../../electron/interfaces/SteamAccount/TableSteamAccountInterface";
-import convertMaFileToStr from "../../../../../../electron/components/Functions/converMaFileToStr";
+import exportAccountFile from "./exportAccountFile";
 import { getSteamID64 } from "../../../../../../electron/components/Functions/steamAccountSearch";
 import { formatRegistrationDate, isRegistrationDate } from "../../../../../../electron/components/Functions/registrationDate";
+import { compareBalances } from "../../../../../store/SteamAccountsTableStore/SteamAccountsTableStore";
 import { useTranslation } from "react-i18next";
 import EmptyState, { TableWithEmptyState } from "../../../../../globalComponents/EmptyState/EmptyState";
 import GuardCode from "./GuardCode/GuardCode";
@@ -90,16 +91,7 @@ const SteamAccountsTable: FC<{ fields: Field[] }> = observer(({ fields }) => {
             });
           case AvalibleTypes.steamAccountBalance:
             return store.steamAccountsTable.sortSteamAccounts((a, b) =>
-              direction === "UP"
-                ? a.changableSecondary.steam.balance! <
-                  b.changableSecondary.steam.balance!
-                  ? 1
-                  : -1
-                : a.changableSecondary.steam.balance! >
-                  b.changableSecondary.steam.balance!
-                ? 1
-                : -1
-            );
+              compareBalances(store.steamAccountsTable.balanceOf(a.id), store.steamAccountsTable.balanceOf(b.id), direction));
           // Статусы трёхзначные (SDA-31): «неизвестно» (null) сортируется между false и true
           case AvalibleTypes.ktState:
           case AvalibleTypes.tpState:
@@ -247,6 +239,7 @@ const generateLine = (
   steamAccount: TableSteamAccountInterface
 ): Line => {
   const line: Line = {
+    id: steamAccount.id,
     cells: [],
     deleted: steamAccount.deleted,
     selected: steamAccount.isSelected,
@@ -288,7 +281,8 @@ const Avatar: FC<{ accountId: string, url?: string, routeKey: string }> = ({ acc
 };
 
 // Аватар 28 px с чипом уровня Steam (макет main-v2: .ava em). Колонка уровня остаётся как была.
-const AccountAvatar: FC<{ steamAccount: TableSteamAccountInterface }> = ({ steamAccount }) => {
+// observer: строка живая, и её поля читаются здесь, а не в ячейке (SDA-65)
+const AccountAvatar: FC<{ steamAccount: TableSteamAccountInterface }> = observer(({ steamAccount }) => {
   const { t } = useTranslation();
   if (steamAccount.isLoadSecondary) {
     return (
@@ -307,7 +301,7 @@ const AccountAvatar: FC<{ steamAccount: TableSteamAccountInterface }> = ({ steam
       {hasLevel ? <span className="account-avatar__level" aria-hidden="true">{level}</span> : null}
     </span>
   );
-};
+});
 
 // Загрузка в ячейке: крутящаяся иконка lucide вместо react-loading-icons
 const Loading: FC = () => (
@@ -368,13 +362,15 @@ const CellJSX: FC<{
             color="grey"
             hoverColor="light-grey"
             view="icon"
-            className="row-action"
+            className={`row-action${steamAccount.getSecondaryError ? " row-action--warn" : ""}`}
             icon="refresh"
             iconMotion="spin"
             onClick={() => {
               store.steamAccountsTable.loadSecondaries(steamAccount.id);
             }}
-            altText={t("accounts.table.actions.refreshProfile")}
+            altText={steamAccount.getSecondaryError
+              ? t("accounts.table.actions.refreshProfileFailed", { error: steamAccount.getSecondaryError })
+              : t("accounts.table.actions.refreshProfile")}
           />
           <Button
             disabled={steamAccount.deleted}
@@ -383,12 +379,14 @@ const CellJSX: FC<{
             color="grey"
             hoverColor="light-grey"
             view="icon"
-            className="row-action"
+            className={`row-action${steamAccount.sessionError ? " row-action--warn" : ""}`}
             icon="logIn"
             onClick={() => {
               store.steamAccountsTable.refreshSession(steamAccount.id);
             }}
-            altText={t("accounts.table.actions.refreshSession")}
+            altText={steamAccount.sessionError
+              ? t("accounts.table.actions.refreshSessionNeeded", { error: steamAccount.sessionError })
+              : t("accounts.table.actions.refreshSession")}
           />
           <Button
             disabled={steamAccount.deleted}
@@ -398,26 +396,9 @@ const CellJSX: FC<{
             view="icon"
             className="row-action"
             icon="file"
-            onClick={() => {
-              const el = document.getElementById(
-                `exportMaFile${steamAccount.id}`
-              );
-              el?.click();
-            }}
+            onClick={() => exportAccountFile(steamAccount.id, "maFile")}
             altText={t("accounts.table.actions.saveMaFile")}
           />
-
-          <a
-            style={{ display: "none" }}
-            id={`exportMaFile${steamAccount.id}`}
-            href={
-              "data:text/json;charset=utf-8," +
-              encodeURIComponent(
-                convertMaFileToStr(steamAccount.smaFile.maFile)
-              )
-            }
-            download={`${steamAccount.maFile.Session.SteamID}.maFile`}
-          ></a>
         </div>
       );
     // Три состояния: OK / проблема / неизвестно (SDA-31), см. AccountStatusBadges
@@ -468,7 +449,10 @@ const CellJSX: FC<{
           {steamAccount.deleted ? (
             ""
           ) : (
-            <GuardCode code={store.steamAccountsTable.authCodes[steamAccount.id]} />
+            <GuardCode
+              code={store.steamAccountsTable.authCodes[steamAccount.id]}
+              getCode={() => store.steamAccountsTable.freshAuthCode(steamAccount.id)}
+            />
           )}
         </>
       );
@@ -574,36 +558,9 @@ const CellJSX: FC<{
             className="row-action"
             testId="row-export"
             icon="download"
-            onClick={() => {
-              const el = document.getElementById(
-                `exportSmaFile${steamAccount.id}`
-              );
-              el?.click();
-            }}
+            onClick={() => exportAccountFile(steamAccount.id, "smaFile")}
             altText={t("accounts.table.actions.exportSmaFile")}
           />
-          <a
-            style={{ display: "none" }}
-            id={`exportSmaFile${steamAccount.id}`}
-            href={
-              "data:text/json;charset=utf-8," +
-              encodeURIComponent(
-                JSON.stringify({
-                  ...steamAccount.smaFile,
-                  // round-trip: вкладываем привязанный прокси (только setup-поля, без локальных id/number/deleted)
-                  proxy: steamAccount.proxy
-                    ? {
-                        host: steamAccount.proxy.host,
-                        port: steamAccount.proxy.port,
-                        username: steamAccount.proxy.username,
-                        password: steamAccount.proxy.password,
-                      }
-                    : undefined,
-                })
-              )
-            }
-            download={`${steamAccount.accountName}.smaFile`}
-          ></a>
         </div>
       );
     case AvalibleTypes.startButton:
@@ -692,12 +649,7 @@ const CellJSX: FC<{
             testId="row-restore"
             icon="archiveRestore"
             onClick={() => {
-              //store.steamAccountsTable.editSteamAccount(steamAccount.id, { deleted: false });
-              window.Main.steamAccounts.edit(
-                steamAccount.id,
-                { deleted: false }
-              );
-              window.Main.steamAccounts.get();
+              store.steamAccountsTable.restoreAccount(steamAccount.id);
             }}
             altText={t("accounts.table.actions.restore")}
           />

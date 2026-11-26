@@ -25,6 +25,8 @@
     },
     "browserRouteChanged": "The proxy route changed. Affected account browsers were stopped; start them again to use the new route.",
     "browserCloseTimeout": "The browser did not close in time. Its process was forcibly stopped.",
+    "browserNoWindow": "The browser is running but has no open window. Stop it and start it again.",
+    "browserNotStopped": "The account was not deleted: its browser could not be stopped. Close the browser and try again.",
     "proxyUnavailable": "Proxy #{{id}} is unavailable. Connections are blocked. Choose another proxy or explicitly select No proxy in Edit account.",
     "steamAccountNotFound": "Steam account #{{id}} does not exist",
     "proxyNotFound": "Proxy #{{id}} does not exist",
@@ -35,7 +37,6 @@
     "guardSetup": "Failed to set up Steam Guard: {{error}}",
     "importAccount": "Steam account import failed: {{error}}",
     "importRejected": "Accounts not imported: {{total}}. {{details}}",
-    "proxiesRejected": "Proxies not added: {{total}}. {{details}}",
     "saveSession": "Failed to save the session: {{error}}",
     "openDataFolder": "Failed to open the data folder {{path}}: {{error}}",
     "wrongPin": "Wrong PIN",
@@ -48,7 +49,11 @@
     "secretKeyTooShort": "Invalid key. It must be at least 8 characters long",
     "totpNotAccepted": "Steam did not accept any TOTP code in 30 attempts",
     "profileUnrecognized": "Steam returned a profile page without the account name; profile data was not updated",
+    "accountBeingDeleted": "the account is being deleted",
+    "sessionMissing": "there is no saved session. Use “Refresh session (log in again)”",
     "sessionExpired": "the session has expired. Use “Refresh session (log in again)”",
+    "loginTimedOut": "the sign-in did not finish in time (check the proxy)",
+    "staleOperation": "the proxy or the account changed while the data was loading",
     "balance": {
       "unexpectedPage": "Steam returned a page that is not the Community Market (an error or maintenance page?); the balance was not read",
       "walletMissing": "The Market page has no wallet data for this account",
@@ -109,6 +114,28 @@
     "appSettings": {
       "invalid": "Settings were not saved: unexpected values.",
       "loginItem": "Could not change system startup: {{error}}"
-    }
+    },
+    "identity": {
+      "login": "The maFile belongs to another account: login {{login}}, maFile {{maFile}}",
+      "steamId": "The maFile or its session belongs to another account than {{login}}: different SteamIDs {{ids}}",
+      "unproven": "The maFile has no account name, and Steam did not confirm that it belongs to {{login}}"
+    },
+    "importRouteRequired": "the account had a proxy that no longer exists; choose a proxy or “No proxy”",
+    "guardCodeRejected": "Steam rejected the Guard code: the maFile does not match this account, or the computer clock is wrong",
+    "steamLoginTimeout": "Steam sign-in timed out",
+    "guard": {
+      "tooLate": "Too late to abort: Steam Guard is already connected to {{login}}, and the account has been added.",
+      "aborted": "Connecting Steam Guard to {{login}} was aborted after Steam had issued its secrets ({{error}}).",
+      "outcomeUnknown": "Steam's answer was lost ({{error}}). Steam Guard may already be enabled on {{login}}: check it in the Steam settings of the account before trying again.",
+      "notSaved": "Steam Guard is connected to {{login}}, but the account could not be saved here: {{error}}.",
+      "revocationCode": "Revocation code: {{code}}. Write it down: Steam issues it once.",
+      "backupSaved": "The secrets are saved in {{file}}",
+      "backupNotSaved": "The secrets could not be saved to disk.",
+      "noAnswer": "no answer from Steam for too long",
+      "lateSuccess": "Steam answered late: Steam Guard is connected to {{login}}, and the account has been added.",
+      "unresolved": "Connecting Steam Guard to {{login}} is not finished yet: Steam has not answered the previous request. Wait for the answer, or restart the app and check Steam Guard in the Steam settings of the account.",
+      "incomplete": "Steam sent an incomplete set of secrets; Steam Guard has not been enabled"
+    },
+    "guardSecretMissing": "The maFile has no shared_secret: it cannot sign in"
   }
 }

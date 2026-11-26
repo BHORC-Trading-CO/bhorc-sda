@@ -57,6 +57,11 @@
   color: var(--sda-success);
 }
 
+.proxy-test-control--warning .proxy-test-state {
+  background: var(--sda-warning-bg);
+  color: var(--sda-warning);
+}
+
 .proxy-test-control--danger .proxy-test-state {
   background: var(--sda-danger-bg);
   color: var(--sda-danger);

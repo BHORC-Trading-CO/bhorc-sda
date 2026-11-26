@@ -30,6 +30,16 @@ it("get replies with the saved settings and what this system supports", () => {
     ]);
 });
 
+it("get rereads the system login item before it answers", () => {
+    const order: string[] = [];
+    const refresh = jest.spyOn(backgroundMode, "refreshLoginItem").mockImplementation(() => { order.push("refresh"); });
+    const view = jest.spyOn(backgroundMode, "view").mockImplementation(() => { order.push("view"); return {} as any; });
+    appSettingsGetListener(makeEvent());
+    expect(order).toEqual(["refresh", "view"]);
+    refresh.mockRestore();
+    view.mockRestore();
+});
+
 it("save merges one switch and replies with the full state", () => {
     const event = makeEvent();
     appSettingsSaveListener(event, { key: "closeToTray", value: true });

@@ -10,15 +10,15 @@ import { useTranslation } from 'react-i18next';
 
 const ProxiesFooter: FC = observer(() => {
     const { t } = useTranslation();
-    const proxies = store.proxiesTable.getProxies().filter(p => !p.deleted || store.proxiesTable.showDeleted);
+    const proxies = store.proxiesTable.getVisibleProxies();
     const proxiesByPage = store.proxiesTable.getProxiesByPages();
-    const selectedProxies = proxies.filter(p => p.isSelected);
+    const selectedProxies = store.proxiesTable.getSelectedProxies();
 
     return (
         <>
             <div className="footer">
                 <div className="footer__accounts-number">
-                    <TablePageSwitcher numberOfElements={proxies.length} numberOfPages={proxiesByPage.length} options={{ avalible: [5, 10, 15, 20, 40, 100] }} pageSize={store.proxiesTable.pageSize} activePageNumber={store.proxiesTable.activePage} onChangeActivePage={(activePage) => {
+                    <TablePageSwitcher numberOfElements={proxies.length} numberOfPages={proxiesByPage.length} options={{ avalible: [5, 10, 15, 20, 40, 100] }} pageSize={store.proxiesTable.pageSize} activePageNumber={store.proxiesTable.currentPage} onChangeActivePage={(activePage) => {
                         store.proxiesTable.setActivePage(activePage);
                     }}
                         onChangePageSize={(newPageSize) => {
@@ -36,8 +36,7 @@ const ProxiesFooter: FC = observer(() => {
                         type="button"
                         className="button button--view-default button--size-large button--grey button--hoverColor-grey footer__button proxy-test-selected"
                         onClick={() => {
-                            const selectedProxies = store.proxiesTable.getProxies().filter(p => p.isSelected && !p.deleted);
-                            if (selectedProxies.length === 0) return;
+                            if (store.proxiesTable.getSelectedProxies().length === 0) return;
                             store.proxiesTable.testSelected();
                         }}
                     >
@@ -55,7 +54,7 @@ const ProxiesFooter: FC = observer(() => {
                         icon="trash"
                         text={t("common.buttons.delete")}
                         onClick={() => {
-                            const selectedProxies = store.proxiesTable.getProxies().filter(p => p.isSelected);
+                            const selectedProxies = store.proxiesTable.getSelectedProxies();
                             if (selectedProxies.length === 0) return;
                             store.windows.prompt({
                                 type: 'question',

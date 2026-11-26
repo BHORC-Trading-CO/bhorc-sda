@@ -44,7 +44,8 @@ class EditingFormStore {
     open(steamAccount: TableSteamAccountInterface) {
         this.isOpen = true;
         this.changes = {};
-        this.content.steamAccount = steamAccount;
+        // Копия: строка таблицы живая, а окно правит свои данные
+        this.content.steamAccount = { ...steamAccount };
         this.content.proxy.savedId = steamAccount.proxyId;
         this.content.proxy.new = { host: '', port: '', username: '', password: '' };
         if (steamAccount.proxyState !== "none") {

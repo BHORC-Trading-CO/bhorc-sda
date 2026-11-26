@@ -189,7 +189,10 @@ export function parseMemberSince(xml: unknown, now: Date = new Date()): string |
     const lower = monthName.toLowerCase();
     const month = MONTHS.findIndex((name) => name === lower || (lower.length >= 3 && name.startsWith(lower)));
     if (month < 0) return null;
-    const value = `${year ?? now.getFullYear()}-${String(month + 1).padStart(2, "0")}-${day.padStart(2, "0")}`;
+    const value = `${year ?? now.getUTCFullYear()}-${String(month + 1).padStart(2, "0")}-${day.padStart(2, "0")}`;
+    // Без года Steam пишет дату «этого года» в UTC (cookie часового пояса). В новогоднюю ночь местный год
+    // уже другой, и дата на год вперёд проходила бы проверку, а сохранённую больше не перепроверяют (SDA-61).
+    if (!year && Date.parse(value) > now.getTime()) return null;
     return isRegistrationDate(value, now.getTime()) ? value : null;
 }
 

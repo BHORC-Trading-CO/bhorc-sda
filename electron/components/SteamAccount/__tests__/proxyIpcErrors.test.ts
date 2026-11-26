@@ -38,7 +38,7 @@ it.each(["superseded", "stopped", "routeChanged"] as const)("R2 N2 %s start canc
     jest.spyOn(account.chrome, "start").mockRejectedValueOnce(new BrowserStartCancelledError(reason));
     const event = { reply: jest.fn() };
     await start(event as any, "a1");
-    expect(event.reply).not.toHaveBeenCalled();
+    expect(event.reply).not.toHaveBeenCalledWith("ERROR", expect.anything());
 });
 it("F9 browser route error crosses ERROR as a string", async () => {
     steamAccountManager.addNew(new SteamAccount({ id: "a1", maFile: {}, secondary: {} } as any));

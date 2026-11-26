@@ -2,6 +2,7 @@ import SteamAccountInterface from "../../interfaces/SteamAccount/SteamAccountInt
 import SteamAccount from "./SteamAccount";
 import CompiledSteamAccountInterface from "../../interfaces/SteamAccount/CompiledSteamAccountInterface";
 import SteamAccountStorage from "../newStorage/SteamAccountStorage";
+import LinksStorage from "../newStorage/LinksStorage";
 import Manager from "../Manager/Manager";
 import application from "../application/application";
 import SteamAccountChannels from "../../interfaces/IpcChannels/SteamAccountChannels";
@@ -16,6 +17,9 @@ export class SteamAccountManager {
 
     addNew(steamAccount: SteamAccount) {
         this.objects = [...this.objects, steamAccount];
+        // Новый объект ещё не входил: без этого подтверждения и баланс сразу после добавления
+        // отвечали «Not Logged In» до перезапуска (SDA-61)
+        steamAccount.startSessionInBackground();
     }
     sendAccountsToFront() {
         // Без объектов Error: в Electron 17 они ломают повторные ссылки IPC-сообщения (SDA-19).
@@ -24,10 +28,23 @@ export class SteamAccountManager {
     }
     async delete(id: string) {
         try {
-            const index = this.objects.findIndex(obj => obj.params.id === id);
-            if (index === -1) throw new Error(`#${id} - steam account is not exist`);
-            this.objects.splice(index, 1);
-            SteamAccountStorage.Delete(id);
+            const removed = this.getById(id);
+            if (!removed) throw new Error(`#${id} - steam account is not exist`);
+            // Вместе со строкой исчезнет и кнопка «Стоп» (SDA-64): сначала браузер, и только когда его
+            // процесс завершился — запись. Не остановился или запись не удалилась — аккаунт остаётся.
+            if (removed.chrome.launchesBlocked) return;
+            removed.chrome.launchesBlocked = true;
+            try {
+                await removed.chrome.shutdown();
+                // Пока ждали, список могли перечитать, и под этим id уже другой объект
+                if (this.getById(id) !== removed) throw new Error(`#${id} - steam account has been reloaded`);
+                SteamAccountStorage.Delete(id);
+            } catch (err) {
+                removed.chrome.launchesBlocked = false;
+                throw err;
+            }
+            this.objects = this.objects.filter(obj => obj !== removed);
+            removed.invalidateOperations();
             try {
                 const thisAccount = SteamAccountStorage.GetById(id);
             } catch (err){
@@ -50,7 +67,8 @@ export class SteamAccountManager {
             throw new Error(`Cant edit steam account: ${err}`);
         }
     }
-    async load() {
+    /** reloadId — номер «Перезагрузить все данные» из окна: отметка уходит прямо перед новым списком. */
+    async load(reloadId?: number) {
         try {
             const objects = SteamAccountStorage.GetAll();
             const objectsArray = Object.values(objects);
@@ -64,18 +82,19 @@ export class SteamAccountManager {
                 const routeChanged = existing ? steamAccount.reloadParams(object) : false;
                 if (routeChanged || previousProxyId !== steamAccount.proxyId) application.images?.invalidateRoute(object.id);
                 // Архивные аккаунты startSession пропускает (SDA-59)
-                if (!routeChanged) steamAccount.startSession().catch(err => {
-                    application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id: steamAccount.params.id, err: String(err) });
-                });
+                if (!routeChanged) steamAccount.startSessionInBackground();
                 next.push(steamAccount);
             }
             for (const old of this.objects) {
                 if (next.includes(old)) continue;
-                old.session.cancelLoginAttempt?.();
+                old.invalidateOperations();
+                // Подготовка браузера (cookie, гео) могла ещё идти: запуск без строки в таблице не остановить
+                old.chrome.launchesBlocked = true;
                 // Removed records must not leave an untracked live browser either.
                 old.chrome.stop().catch(err => application.sendToMain("ERROR", String(err)));
             }
             this.objects = next;
+            if (reloadId !== undefined) application.sendToMain(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_STORAGE, { requestId: reloadId });
             this.sendAccountsToFront();
             // Только после успешной загрузки, когда archived/missing записи уже известны.
             await application.images?.pruneOrphans().catch(() => console.warn('Unable to prune image cache'));
@@ -86,8 +105,10 @@ export class SteamAccountManager {
     getCompiledObjects() {
         const startTime = new Date();
         const compiledObjects: CompiledSteamAccountInterface[] = [];
+        // Один снимок связей на весь список (SDA-65): раньше файл читался дважды на каждый аккаунт
+        const links = LinksStorage.Get();
         for (var obj of this.objects) {
-            const compiledObject = SteamAccountManager.CompileObject(obj);
+            const compiledObject = SteamAccountManager.CompileObject(obj, links);
             compiledObjects.push(compiledObject);
         }
         const endTime = new Date();
@@ -105,15 +126,16 @@ export class SteamAccountManager {
         if (objects.length === 0) return null;
         return objects[0];
     }
-    static CompileObject(object: SteamAccount) {
-        const linkedData = Manager.GetSteamAccountLinkedData(object.params.id);
+    static CompileObject(object: SteamAccount, links = LinksStorage.Get()) {
+        const linkedData = Manager.GetSteamAccountLinkedData(object.params.id, links);
 
         const compiledObject: CompiledSteamAccountInterface = {
             ...object.params,
             smaFile: object.getSmaFile(),
             ...linkedData,
             ...(object.proxyState === "missing" ? { proxy: null, proxyState: "missing" as const } : {}),
-            group: Manager.GetSteamAccountGroup(object.params.id)
+            group: Manager.GetSteamAccountGroup(object.params.id, links),
+            sessionError: object.sessionErrorText()
         }
        
         return compiledObject;

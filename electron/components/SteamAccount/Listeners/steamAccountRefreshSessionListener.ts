@@ -1,6 +1,7 @@
 import SteamAccountChannels from "../../../interfaces/IpcChannels/SteamAccountChannels";
 import steamAccountManager from "../steamAccountManager";
 import { t } from "../../../i18n";
+import { errorText, isStaleOperation } from "../Functions/accountErrors";
 
 export default async (event: Electron.IpcMainEvent, id: string) => {
     try {
@@ -9,6 +10,6 @@ export default async (event: Electron.IpcMainEvent, id: string) => {
         await steamAccount.loginByPassword();
         event.reply(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION, id);
     } catch (err) {
-        event.reply(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id, err: String(err) });
+        event.reply(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, { id, err: errorText(err), stale: isStaleOperation(err) });
     }
 }

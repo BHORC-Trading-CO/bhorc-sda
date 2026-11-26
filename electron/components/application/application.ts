@@ -47,7 +47,7 @@ class Application {
     // Второй запуск поднимает и окно, спрятанное в трей (SDA-35); запуск с --hidden — нет.
     const isPrimary = ensureSingleInstance(app, (_event, argv) => backgroundMode.onSecondLaunch(argv));
     if (!isPrimary) return;
-    backgroundMode.install(process.argv);
+    backgroundMode.install(process.argv, () => this.openMainWindow());
     app.on("ready", async () => {
       if (!areDataPathsPinned(app.getPath("userData"), getCreatedStorePaths())) {
         // Хранилище открыто не там, поэтому язык из него не читаем и не сохраняем — только язык системы.
@@ -64,11 +64,16 @@ class Application {
       languageListeners();
       // После языка: подписи меню трея. Без значка в трее окно показывается всегда.
       const { startHidden } = backgroundMode.prepareStartup(process.argv);
-      this.windowsManager.createMain(!startHidden);
-      backgroundMode.attachMainWindow(this.windowsManager.mainWindow!);
+      this.openMainWindow(!startHidden);
       //this.decrypt(cb);
       this.secondStage(cb);
     });
+  }
+
+  /** Главное окно: при старте и заново, если его закрыли, а приложение осталось в Dock (SDA-64). */
+  openMainWindow(show = true) {
+    this.windowsManager.createMain(show);
+    backgroundMode.attachMainWindow(this.windowsManager.mainWindow!);
   }
 
   decrypt(cb: () => void) {

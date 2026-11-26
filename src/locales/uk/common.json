@@ -26,13 +26,18 @@
     "noAccountsSelected": "Не вибрано жодного акаунта",
     "openDataFolder": "Відкрити теку з даними акаунтів. Усі дані зберігаються у файлі config.json",
     "reloadAll": "Перезавантажити всі дані",
+    "reloadAllActive": "Оновлюємо всі акаунти…",
     "startTyping": "Почніть вводити...",
     "irreversible": "Цю дію неможливо буде скасувати",
     "error": "Помилка",
     "errorTitle": "Помилка 😒",
     "unknownStep": "Невідомий крок: {{step}}",
     "canCloseWindow": "Можна закрити вікно",
-    "inDevelopment": "У розробці"
+    "inDevelopment": "У розробці",
+    "crash": {
+      "text": "Не вдалося показати це вікно.",
+      "reload": "Перезавантажити вікно"
+    }
   },
   "prompt": {
     "cancel": "Скасувати",
@@ -208,6 +213,8 @@
         "confirmations": "Підтвердження Steam Guard",
         "refreshProfile": "Оновити дані профілю (зокрема статуси)",
         "refreshSession": "Оновити сесію (увійти знову)",
+        "refreshSessionNeeded": "Увійдіть знову: {{error}}",
+        "refreshProfileFailed": "Оновлення не вдалося: {{error}}",
         "saveMaFile": "Зберегти maFile як",
         "exportSmaFile": "Експорт даних акаунта (smaFile)",
         "focusBrowser": "Вивести браузер на передній план",
@@ -247,9 +254,13 @@
       "accept_other": "Видалити {{count}} акаунта"
     },
     "errors": {
-      "loadData": "Помилка отримання даних акаунта: {{error}}",
-      "refreshSession": "Не вдалося оновити сесію акаунта #{{number}}: {{error}}",
-      "editNotFound": "Не вдалося змінити дані акаунта: #{{id}} - такого акаунта не існує"
+      "loadData": "Не вдалося оновити дані акаунта {{account}}: {{error}}",
+      "reloadList": "Не вдалося перечитати акаунти: {{error}}",
+      "loadDataMany": "Не оновились акаунти ({{total}}): {{names}}. Причина — у рядку кожного акаунта",
+      "refreshSession": "Не вдалося увійти в акаунт {{account}}: {{error}}",
+      "refreshSessionMany": "Не вдалося увійти в акаунти ({{total}}): {{names}}. Причина — у рядку кожного акаунта",
+      "editNotFound": "Не вдалося змінити дані акаунта: #{{id}} - такого акаунта не існує",
+      "export": "Не вдалося експортувати акаунт: {{error}}"
     },
     "form": {
       "accountSection": "Акаунт Steam",
@@ -264,7 +275,8 @@
       "showPassword": "Показати пароль",
       "hidePassword": "Сховати пароль",
       "useSteamCookies": "Використовувати cookie Steam у браузері (автовхід)",
-      "maFileNameMismatch": "Ім’я акаунта Steam у maFile не збігається з указаним вище!"
+      "maFileNameMismatch": "Ім’я акаунта Steam у maFile не збігається з указаним вище!",
+      "pinInvalid": "PIN-код — рівно 4 цифри"
     },
     "editing": {
       "title": "Редагування акаунта Steam #{{number}} {{name}}"
@@ -331,7 +343,8 @@
       "skippedFiles": "Пропущено файлів: {{count}}. {{details}}",
       "view": "Переглянути",
       "pickProxy": "Вибрати проксі",
-      "remove": "Прибрати зі списку"
+      "remove": "Прибрати зі списку",
+      "routeRequired": "Виберіть проксі або «Без проксі» для: {{names}}. Проксі цих акаунтів більше не існує"
     }
   },
   "maFile": {
@@ -475,9 +488,20 @@
       "title": "Масове додавання проксі",
       "example": "Один проксі на рядок. Приклад: Login:Password@1.1.1.1:7777",
       "empty": "Поле порожнє!",
+      "rejected_one": "{{count}} рядок не додано. Він залишився в полі, щоб його можна було виправити.",
+      "rejected_few": "{{count}} рядки не додано. Вони залишилися в полі, щоб їх можна було виправити.",
+      "rejected_many": "{{count}} рядків не додано. Вони залишилися в полі, щоб їх можна було виправити.",
+      "rejected_other": "{{count}} рядка не додано. Вони залишилися в полі, щоб їх можна було виправити.",
       "result": "Додано: {{added}}, пропущено некоректних: {{invalid}}, дублікатів: {{duplicates}}",
       "label": "Список проксі",
       "placeholder": "Login:Password@1.1.1.1:7777\nLogin:Password@2.2.2.2:7777"
+    },
+    "reject": {
+      "format": "Це не рядок проксі. Формати: login:password@host:port, host:port:login:password, host:port або http://login:password@host:port",
+      "scheme": "Підтримуються лише HTTP-проксі (http://)",
+      "ambiguous": "Рядок можна прочитати двояко. Запишіть його як http://login:password@host:port",
+      "address": "Неправильний хост або порт",
+      "storage": "Не вдалося зберегти"
     },
     "creation": {
       "title": "Створення нових проксі",
@@ -487,17 +511,25 @@
       "title": "Змінити проксі (#{{number}}) {{host}}:{{port}}"
     },
     "test": {
-      "editingWorking": "Проксі працює",
-      "editingNotWorking": "Проксі НЕ працює",
-      "working": "Проксі #{{number}} {{host}}:{{port}} працює",
-      "notWorking": "Проксі #{{number}} {{host}}:{{port}} НЕ працює",
+      "working": "Проксі {{name}} працює",
+      "notWorking": "Проксі {{name}} НЕ працює",
+      "steamStatus": "Проксі {{name}} працює, але Steam відповів {{code}}",
       "workingRich": "Проксі #{{number}} {{host}}:{{port}} <b>працює</b>",
       "notWorkingRich": "Проксі #{{number}} {{host}}:{{port}} <b>НЕ ПРАЦЮЄ</b>",
       "column": "Перевірка",
       "pending": "Тест…",
       "untested": "Без тесту",
       "ok": "Працює",
-      "failed": "Збій"
+      "failed": "Збій",
+      "steamCode": "Steam: {{code}}",
+      "steamHint": "Проксі працює, але Steam відповів {{code}}",
+      "summary": {
+        "title": "Проксі перевірено",
+        "working": "працюють: {{number}}",
+        "refused": "працюють, але Steam відмовив: {{number}} ({{list}})",
+        "failed": "не працюють: {{number}} ({{list}})",
+        "skipped": "без результату: {{number}} (вже перевіряються, змінені або видалені)"
+      }
     },
     "errors": {
       "notFound": "Проксі #{{id}} не існує",

@@ -219,6 +219,8 @@ describe("one account refresh", () => {
         expect(parseMemberSince(xml(" <![CDATA[ March 4, 2012 ]]> "), now)).toBe("2012-03-04");
         // the current year is left out by Steam
         expect(parseMemberSince(xml("November 2"), now)).toBe("2026-11-02");
+        // SDA-61: New Year's night east of Greenwich — Steam still writes "this year" in UTC
+        expect(parseMemberSince(xml("January 1"), new Date(Date.UTC(2026, 11, 31, 22, 30)))).toBe("2026-01-01");
         // garbage, impossible and future dates are unknown, not a guess
         for (const text of ["", "0", "Mar 2012", "February 30, 2012", "Smarch 4, 2012", "4. März 2012", "January 1, 2002", "December 30"]) {
             expect(parseMemberSince(xml(text), now)).toBeNull();

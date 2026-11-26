@@ -1,3 +1,4 @@
+import { proxyIdentity } from "../Functions/proxyAddress";
 import ProxyStorage from "../newStorage/ProxyStorage";
 import Proxy from "./Proxy";
 import ProxyInterface from "../../interfaces/Proxy/ProxyInterface";
@@ -5,8 +6,12 @@ import CompiledProxyInterface from '../../interfaces/Proxy/CompiledProxyInterfac
 import ProxySetupInterface from '../../interfaces/Proxy/ProxySetupInterface';
 import getProxyGeo, { ProxyGeo } from '../SteamAccount/Functions/getProxyGeo';
 import buildProxyUrl from './proxyUrl';
-import Manager from "../Manager/Manager";
+import Manager, { ProxyLinksPlan } from "../Manager/Manager";
 import application from "../application/application";
+import { sanitizeProxySetup } from "../Functions/sanitizeSmaFile";
+import { t } from "../../i18n";
+
+const SETUP_FIELDS = ["host", "port", "username", "password"] as const;
 
 export class ProxyManager {
     objects: Proxy[];
@@ -42,7 +47,20 @@ export class ProxyManager {
             throw new Error(`Cant delete proxy: ${err}`);
         }
     }
-    edit(id: string, newProxyData: { [K in keyof ProxyInterface]?: ProxyInterface[K] }) {
+    /**
+     * Правка, проверенная целиком — прокси, каким он станет после неё. Ничего не меняет и бросает до
+     * записи на диск (SDA-64): раньше неправильный порт сперва затирал рабочий адрес, отключал
+     * привязанные аккаунты и закрывал их браузеры, а отказ приходил уже после этого.
+     */
+    sanitizeEdit(id: string, newProxyData: { [K in keyof ProxyInterface]?: ProxyInterface[K] }) {
+        const object = this.getById(id);
+        if (!object) throw new Error(t("errors.proxyNotFound", { id }));
+        const changed = SETUP_FIELDS.filter(field => typeof newProxyData[field] !== "undefined");
+        const setup = sanitizeProxySetup({ ...object.params, ...newProxyData });
+        return { ...newProxyData, ...Object.fromEntries(changed.map(field => [field, setup[field]])) };
+    }
+    /** plan — смена привязок вместе с правкой: сохраняется той же записью, клиенты перестраиваются после неё. */
+    edit(id: string, newProxyData: { [K in keyof ProxyInterface]?: ProxyInterface[K] }, plan: ProxyLinksPlan | null = null) {
         try {
             const object = this.objects.find(object => object.params.id === id);
             if (!object) throw new Error(`#${id} - proxy is not exist`);
@@ -50,8 +68,8 @@ export class ProxyManager {
             if (typeof newProxyData.host !== 'undefined' || typeof newProxyData.port !== 'undefined') {
                 newProxyData = { ...newProxyData, timezone: "", countryCode: "" };
             }
-            object.editParams(newProxyData);
-            Manager.RefreshProxyAccounts(id);
+            object.editParams(newProxyData, plan?.links);
+            Manager.RefreshProxyAccounts(id, plan?.changed);
         } catch (err) {
             throw new Error(`Cant edit proxy: ${err}`);
         }
@@ -111,13 +129,11 @@ export class ProxyManager {
         if (objects.length === 0) return null;
         return objects[0];
     }
-    /** Находит активный (не удалённый) прокси по host:port или создаёт новый. Возвращает прокси. */
+    /** Находит активный (не удалённый) прокси с теми же адресом, логином и паролем или создаёт новый.
+     *  На общем шлюзе логин выбирает выходной IP, поэтому другие логин или пароль — другой прокси (SDA-62). */
     getOrCreateBySetup(setup: ProxySetupInterface) {
-        const existing = this.objects.find(p =>
-            !p.params.deleted &&
-            p.params.host === setup.host &&
-            String(p.params.port) === String(setup.port)
-        );
+        const wanted = proxyIdentity(setup);
+        const existing = this.objects.find(p => !p.params.deleted && proxyIdentity(p.params) === wanted);
         if (existing) return existing;
 
         const proxyData = Proxy.Generate(setup);

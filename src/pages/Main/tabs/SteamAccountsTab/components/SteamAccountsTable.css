@@ -171,6 +171,10 @@
     flex-shrink: 0;
 }
 
+/* Последний вход или обновление аккаунта не удались, причина — в подсказке (SDA-61) */
+.list--steamAccounts .button.row-action.row-action--warn:not(:disabled) {
+  color: var(--sda-warning);
+}
 .list--steamAccounts .button.row-action:hover:not(:disabled) {
     background: var(--sda-surface-3);
 }

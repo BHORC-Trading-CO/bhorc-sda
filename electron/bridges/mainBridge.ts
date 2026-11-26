@@ -11,6 +11,7 @@ import SmaFileInterface from '../interfaces/SteamAccount/SmaFileInterface';
 import CreationStepType from '../interfaces/SteamAccount/CreationStepType';
 import GuardSetupResultInterface from '../interfaces/SteamAccount/GuardSetupResultInterface';
 import ProxySetupInterface from '../interfaces/Proxy/ProxySetupInterface';
+import { ProxyBulkResult, ProxyEditReply, ProxyTestReply } from '../interfaces/Proxy/ProxyResults';
 import ChangableSecondaryInterface from '../interfaces/SteamAccount/ChangableSecondaryInterface';
 import SecondaryInterface from '../interfaces/SteamAccount/SecondaryInterface';
 import SteamAccountChannels from '../interfaces/IpcChannels/SteamAccountChannels';
@@ -26,6 +27,7 @@ import { AppSettingsError, AppSettingsPatch, AppSettingsView } from '../interfac
 import { exposeLanguageApi } from './languageBridge';
 import ImageChannels from '../interfaces/IpcChannels/ImageChannels';
 import { requestImage } from './imageBridge';
+import { ExportedFile } from '../interfaces/SteamAccount/ExportedFile';
 
 const SteamTotp = require('steam-totp');
 
@@ -75,7 +77,7 @@ const steamAccounts = {
   onRefreshSession(listener: (event: IpcRendererEvent, id: string) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION, listener);
   },
-  onRefreshSessionError(listener: (event: IpcRendererEvent, data: { id: string, err: Error }) => void) {
+  onRefreshSessionError(listener: (event: IpcRendererEvent, data: { id: string, err: string, stale?: boolean }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_SESSION_ERROR, listener);
   },
   creationProcess: (steamAccount: SteamAccountSetupInterface, links: ProxySelection) => {
@@ -90,8 +92,12 @@ const steamAccounts = {
   edit: (id: string, steamAccountParams: { [K in keyof TableSteamAccountInterface]?: TableSteamAccountInterface[K] }, links?: { proxyId: null | string }) => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_EDIT, { id, steamAccountParams, links });
   },
-  import: (accounts: { smaFile: SmaFileInterface, links: { proxyId: null | string } }[]) => {
+  import: (accounts: { smaFile: SmaFileInterface, links: { proxyId: null | string, noProxy?: boolean } }[]) => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_IMPORT, accounts);
+  },
+  /** Файл экспорта собирает main из живого аккаунта; ответ приходит этим же вызовом */
+  exportFile: (id: string, kind: 'maFile' | 'smaFile'): Promise<ExportedFile> => {
+    return ipcRenderer.invoke(SteamAccountChannels.STEAM_ACCOUNT_EXPORT, { id, kind });
   },
   delete: (id: string) => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_DELETE, id);
@@ -102,8 +108,12 @@ const steamAccounts = {
   onGet: (listener: (event: IpcRendererEvent, steamAccounts: CompiledSteamAccountInterface[]) => void) => {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET, listener);
   },
-  refresh: () => {
-    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_STORAGE);
+  // requestId возвращается отметкой прямо перед новым списком (SDA-61)
+  refresh: (requestId?: number) => {
+    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_STORAGE, requestId);
+  },
+  onRefreshStorage(listener: (event: IpcRendererEvent, data: { requestId: number, err?: string }) => void) {
+    ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_REFRESH_STORAGE, listener);
   },
   getTableFields: () => {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_TABLE_FIELDS);
@@ -114,30 +124,32 @@ const steamAccounts = {
   saveTableFields(fields: Field[]) {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_SET_TABLE_FIELDS, fields);
   },
-  getChangableSecondary(id: string) {
-    console.log(id);
-    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY, id);
+  getChangableSecondary(id: string, requestId?: number) {
+    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY, id, requestId);
   },
-  onGetChangableSecondary(listener: (event: IpcRendererEvent, data: { changableSecondary: ChangableSecondaryInterface, id: string }) => void) {
+  onGetChangableSecondary(listener: (event: IpcRendererEvent, data: { changableSecondary: ChangableSecondaryInterface, id: string, requestId?: number }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY, listener);
   },
-  onGetChangableSecondaryError(listener: (event: IpcRendererEvent, data: { err: Error, id: string }) => void) {
+  onGetChangableSecondaryError(listener: (event: IpcRendererEvent, data: { err: string, id: string, stale?: boolean, requestId?: number }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET_CHANGABLE_SECONDARY_ERROR, listener);
   },
-  getSecondary(id: string) {
-    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY, id);
+  getSecondary(id: string, requestId?: number) {
+    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY, id, requestId);
   },
-  onGetSecondary(listener: (event: IpcRendererEvent, data: { id: string, secondary: SecondaryInterface }) => void) {
+  onGetSecondary(listener: (event: IpcRendererEvent, data: { id: string, secondary: SecondaryInterface, requestId?: number }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY, listener);
   },
-  onGetSecondaryError(listener: (event: IpcRendererEvent, data: { id: string, err: string }) => void) {
+  onGetSecondaryError(listener: (event: IpcRendererEvent, data: { id: string, err: string, stale?: boolean, requestId?: number }) => void) {
     ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY_ERROR, listener);
+  },
+  onSessionState(listener: (event: IpcRendererEvent, data: { id: string, sessionError: string | null }) => void) {
+    ipcRenderer.on(SteamAccountChannels.STEAM_ACCOUNT_SESSION_STATE, listener);
   },
   sendFamilyPin: (pin: string) => {
     ipcRenderer.send('ENTER_FAMILY_PIN', pin);
   },
   abortCreation() {
-    ipcRenderer.send('ABORT_LOGIN_BY_MAFILE');
+    ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS_ABORT);
   },
   getTableOptions() {
     ipcRenderer.send(SteamAccountChannels.STEAM_ACCOUNT_GET_TABLE_OPTIONS);
@@ -158,12 +170,19 @@ const proxies = {
   new: (proxy: ProxySetupInterface, links: { steamAccountIds: string[] }) => {
     ipcRenderer.send('NEW_PROXY', { proxy, links });
   },
-  /** Массовое добавление прокси (bulk) */
-  bulkNew: (proxies: ProxySetupInterface[]) => {
-    ipcRenderer.send('NEW_PROXIES', proxies);
+  /** Массовое добавление прокси (bulk): строки разбирает main, итог приходит в onBulkResult */
+  bulkNew: (text: string, requestId: string) => {
+    ipcRenderer.send('NEW_PROXIES', { requestId, text });
   },
-  edit: (id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], originalSteamAccountIds?: string[] }) => {
-    ipcRenderer.send('EDIT_PROXY', { id, proxy, links });
+  onBulkResult: (listener: (event: IpcRendererEvent, result: ProxyBulkResult & { requestId: string }) => void) => {
+    ipcRenderer.on(ProxyChannels.PROXY_BULK_RESULT, listener);
+  },
+  edit: (id: string, proxy: { [K in keyof TableProxyInterface]?: TableProxyInterface[K] }, links: { steamAccountIds: string[], originalSteamAccountIds?: string[] }, requestId?: string) => {
+    ipcRenderer.send('EDIT_PROXY', { id, proxy, links, requestId });
+  },
+  /** Итог правки, отправленной с requestId (окно правки) */
+  onEditResult: (listener: (event: IpcRendererEvent, result: ProxyEditReply) => void) => {
+    ipcRenderer.on(ProxyChannels.PROXY_EDIT_RESULT, listener);
   },
   delete: (id: string) => {
     ipcRenderer.send('DELETE_PROXY', id);
@@ -190,13 +209,14 @@ const proxies = {
   saveTableFields(fields: Field[]) {
     ipcRenderer.send('SAVE_PROXIES_TABLE_FIELDS', fields);
   },
-  test(id: string) {
-    ipcRenderer.send('TEST_PROXY', id);
+  test(id: string, requestId: string) {
+    ipcRenderer.send('TEST_PROXY', { requestId, id });
   },
-  testByParams(proxy: ProxySetupInterface) {
-    ipcRenderer.send('TEST_PROXY_BY_PARAMS', proxy);
+  testByParams(proxy: ProxySetupInterface, requestId: string) {
+    ipcRenderer.send('TEST_PROXY_BY_PARAMS', { requestId, proxy });
   },
-  onTest(listener: (event: IpcRendererEvent, params: { id: string, testResult: boolean }) => void) {
+  /** Итог проверки: один на каждый test / testByParams, со своим requestId */
+  onTest(listener: (event: IpcRendererEvent, reply: ProxyTestReply) => void) {
     ipcRenderer.on('TEST_PROXY', listener);
   },
   getTableOptions() {
@@ -299,7 +319,7 @@ const window = {
 }
 
 const guardConnection = {
-  setup(params: { accountName: string, password: string }, links: ProxySelection) {
+  setup(params: { accountName: string, password: string, profileName?: string, mail?: string, mailPassword?: string, useSteamCookies?: boolean }, links: ProxySelection) {
     ipcRenderer.send(SteamAccountChannels.GUARD_SETUP_PROCESS, { ...params, links });
   },
   onSetupError: (listener: (event: IpcRendererEvent, error: string) => void) => {
@@ -315,7 +335,7 @@ const guardConnection = {
     ipcRenderer.on(SteamAccountChannels.GUARD_SETUP_PROCESS_RESULT, listener);
   },
   abortSetup: () => {
-    ipcRenderer.send('ABORT_SETUP_GUARD');
+    ipcRenderer.send(SteamAccountChannels.GUARD_SETUP_PROCESS_ABORT);
   },
   getAuthCode: (shared_secret: string) => {
     return SteamTotp.getAuthCode(shared_secret);

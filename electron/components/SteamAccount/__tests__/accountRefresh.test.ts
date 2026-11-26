@@ -33,7 +33,7 @@ describe("main: profile refresh listener", () => {
         (steamAccountManager.getById as jest.Mock).mockReturnValue({ getSecondary: jest.fn().mockRejectedValue(new Error("fixture failure")) });
         const reply = jest.fn();
         await getSecondaryListener({ reply } as unknown as Electron.IpcMainEvent, "id-1");
-        expect(reply.mock.calls).toEqual([[SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY_ERROR, { id: "id-1", err: "Error: fixture failure" }]]);
+        expect(reply.mock.calls).toEqual([[SteamAccountChannels.STEAM_ACCOUNT_GET_SECONDARY_ERROR, { id: "id-1", err: "fixture failure", stale: false, requestId: undefined }]]);
     });
 });
 
@@ -62,7 +62,7 @@ describe("renderer: table store", () => {
     it("after a session refresh asks only for the full refresh, not for the balance separately", () => {
         const table = storeWithAccount();
         listener("onRefreshSession")({}, "id-1");
-        expect(methods.getSecondary).toHaveBeenCalledWith("id-1");
+        expect(methods.getSecondary).toHaveBeenCalledWith("id-1", expect.any(Number));
         expect(methods.getChangableSecondary).toBeUndefined();
         expect(table.steamAccounts["id-1"].isLoadSecondary).toBe(true);
     });
@@ -256,7 +256,7 @@ describe("renderer: table store", () => {
         expect(table.changableSecondaries.a).toEqual({ isLoad: true, content: fresh });
         jest.advanceTimersByTime(60 * 60 * 1000);
         expect(balanceCalls()).toEqual(["a"]);
-        expect(methods.getSecondary.mock.calls).toEqual([["a"]]);
+        expect(methods.getSecondary.mock.calls.map((call) => call[0])).toEqual(["a"]);
     });
 
     // Review r3: with the balance column hidden the scheduled reload is skipped (nothing loads a
@@ -305,7 +305,7 @@ describe("renderer: table store", () => {
         listener("onGetChangableSecondary")({}, { id: "a", changableSecondary: data.changableSecondary });
         runInAction(() => { table.steamAccounts.a.isLogining = true; });
         listener("onRefreshSession")({}, "a");
-        expect(methods.getSecondary.mock.calls).toEqual([["a"]]);
+        expect(methods.getSecondary.mock.calls.map((call) => call[0])).toEqual(["a"]);
         // The sweep and page switches do not add a balance-only download while the refresh is running
         listener("onGet")({}, accounts(["a"]));
         jest.advanceTimersByTime(3000);
@@ -325,6 +325,11 @@ describe("renderer: table store", () => {
             ...accounts(["a", "b", "c", "d", "e"]),
             ...accounts(["x"], { deleted: true }),
         ];
+        // main marks its reload right before the list it read for it (SDA-61)
+        const emitReloadedList = () => {
+            listener("onRefreshStorage")({}, { requestId: methods.refresh.mock.calls[methods.refresh.mock.calls.length - 1][0] });
+            listener("onGet")({}, list());
+        };
 
         it("asks main to reload and refreshes nothing until the new list arrives", () => {
             const table = startedStore(["a"]);
@@ -336,7 +341,7 @@ describe("renderer: table store", () => {
         it("refreshes active accounts three at a time; an error does not stop the rest; archived are skipped", () => {
             const table = startedStore(["a"]);
             table.reloadAll();
-            listener("onGet")({}, list());
+            emitReloadedList();
             expect(secondaryCalls()).toEqual(["a", "b", "c"]);
             expect(table.steamAccounts.a.isLoadSecondary).toBe(true);
             fail("b");
@@ -355,7 +360,7 @@ describe("renderer: table store", () => {
             const table = startedStore(["a"]);
             const before = balanceCalls().length;
             table.reloadAll();
-            listener("onGet")({}, list());
+            emitReloadedList();
             jest.advanceTimersByTime(3000);
             expect(balanceCalls().length).toBe(before);
             expect(secondaryCalls()).toEqual(["a", "b", "c"]);
@@ -367,14 +372,14 @@ describe("renderer: table store", () => {
             listener("onGet")({}, list());
             table.setActivePage(2);
             table.reloadAll();
-            listener("onGet")({}, list());
+            emitReloadedList();
             expect(secondaryCalls()).toEqual(["c", "d", "a"]);
         });
 
         it("answers to a row refresh do not start extra queue items, and a later list alone starts nothing", () => {
             const table = startedStore(["a"]);
             table.reloadAll();
-            listener("onGet")({}, list());
+            emitReloadedList();
             answer("x"); // archived row answered its own refresh button
             expect(secondaryCalls()).toEqual(["a", "b", "c"]);
             listener("onGet")({}, list());
@@ -384,9 +389,9 @@ describe("renderer: table store", () => {
         it("an answer for an account gone from the table does not stall the queue", () => {
             const table = startedStore(["a"]);
             table.reloadAll();
-            listener("onGet")({}, list());
+            emitReloadedList();
             runInAction(() => { delete table.steamAccounts.a; });
-            expect(() => answer("a")).toThrow();
+            expect(() => answer("a")).not.toThrow();
             expect(secondaryCalls()).toEqual(["a", "b", "c", "d"]);
         });
     });

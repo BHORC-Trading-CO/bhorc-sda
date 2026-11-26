@@ -3,6 +3,42 @@
 All notable changes to BHORC SDA. Versions follow the installers published on
 [GitHub Releases](https://github.com/BHORC-Trading-CO/bhorc-sda/releases).
 
+## Unreleased
+
+### Added
+- Registration date column in the accounts table.
+- A failed sign-in or refresh is visible in the row: the button turns amber and names the reason. The same failure of several accounts gives one message with their numbers and logins.
+- "Reload all data" shows that it is running and ignores a second click.
+- Proxy tests tell "works, but Steam answered 429 or 403" apart from "does not work"; a test of many proxies ends with one summary.
+- Proxies can be pasted as `host:port`, `host:port:user:pass`, `user:pass@host:port` and `http://user:pass@host:port`; a rejected line stays in the field with the reason.
+- `.smaFile` carries the mail, the mail password and the cookie choice, and marks an account whose proxy is missing.
+
+### Changed
+- Sign-ins and data loads go through queues. At startup the app used to sign in to every account and download the market page for every account at once.
+- A sign-in that failed, for example because the proxy was down at startup, is retried on the next refresh. New and imported accounts sign in right away.
+- "Reload all data" skips archived accounts and refreshes the data of the active ones.
+- Bulk actions affect only the selected rows you can see. Selection and sorting survive a new account list.
+- On import the proxy chosen in the preview wins over the one in the file.
+- Closing the main window on Windows with other windows open closes the app when "keep running in the tray" is off; a second launch always shows the main window.
+
+### Fixed
+- A proxy that accepts the connection and stays silent no longer leaves rows, the confirmations window, the account browser and "Reload all data" waiting forever.
+- Changing or deleting a proxy in the middle of a refresh, a sign-in or a browser start no longer lets the rest go through the old proxy, and its result is not saved as fresh.
+- The confirmations window right after startup, import or account creation answered "Not Logged In"; it could also stay empty when its data came before the page was ready.
+- Reloading, searching and selecting with many accounts: a search keystroke with 136 accounts took about 0.3 s, now about 0.05 s (Windows, CI machine). Guard-code timers no longer pile up, and codes are right after the computer sleeps.
+- An imported account without a session made the main window blank on every start; one account without a secret left the others without Guard codes.
+- "Add account" could save another account's maFile under the typed login. A maFile with an expired session is now added by password.
+- An export right after an edit saved the old password, maFile or session.
+- "Abort" in the add-account and Guard wizards did not abort; a failed sign-in or a closed code window left them waiting. An account whose Guard has just been enabled is saved before its profile is loaded.
+- A proxy edit with a wrong address replaced the working one before it was refused. A password with ":" was cut on bulk import.
+- Deleting an account left its browser running without a Stop button.
+- "Focus" opened a blank tab. The launch-at-startup switch did not notice that Windows had turned it off.
+- A restored account could share its number with another one, and the revealed password could move to another row when the order changed.
+
+### Security and privacy
+- A plain `http://` address in Steam's sign-in answer is not opened: the sign-in library would have sent it past the proxy, together with the token.
+- A proxy host is accepted only as a DNS name, an IPv4 address or a bracketed IPv6 address. Other text could be read by the account browser as a rule that sends HTTPS traffic directly; a stored proxy with such a host counts as missing.
+
 ## 1.1.0 (first public release)
 
 Changes are listed against the internal 1.0.5 build (Trademanager).

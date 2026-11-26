@@ -10,6 +10,13 @@ import buildProxyUrl from "../Proxy/proxyUrl";
 import ProxyInterface from "../../interfaces/Proxy/ProxyInterface";
 import ProxySelection from "../../interfaces/Proxy/ProxySelection";
 import { ProxyState } from "../../interfaces/Proxy/ProxyState";
+import LinksInterface from "../../interfaces/Links/LinksInterface";
+
+/** Будущие привязки аккаунтов и кого они меняют; на диск их пишет тот, кто применяет план. */
+export interface ProxyLinksPlan {
+    links: LinksInterface;
+    changed: string[];
+}
 
 class Manager {
     static ResolveProxy(proxyId?: string | null): { proxy: ProxyInterface | null; proxyState: ProxyState; proxyId: string | null } {
@@ -25,8 +32,9 @@ class Manager {
         }
         return { proxy, proxyState: "missing", proxyId };
     }
-    static GetSteamAccountLinkedData(steamAccountId: string) {
-        return Manager.ResolveProxy(LinksStorage.Get().steamAccounts[steamAccountId]);
+    // links передают, когда аккаунтов много: каждый LinksStorage.Get() читает и разбирает весь config.json
+    static GetSteamAccountLinkedData(steamAccountId: string, links = LinksStorage.Get()) {
+        return Manager.ResolveProxy(links.steamAccounts[steamAccountId]);
     }
     /** For form selections: an unresolved selection is never an implicit opt-out. */
     static RequireProxy(proxyId?: string | null) {
@@ -41,7 +49,7 @@ class Manager {
         if (proxyMode === "savedProxy" && proxyId && !newProxy) return Manager.RequireProxy(proxyId);
         throw new ProxyUnavailableError(proxyId);
     }
-    static PlanProxyAccountLinks(proxyId: string, requested: string[], original: string[] = []) {
+    static PlanProxyAccountLinks(proxyId: string, requested: string[], original: string[] = []): ProxyLinksPlan | null {
         // A form snapshot distinguishes deliberate removals from later links.
         for (const id of [...requested, ...original]) {
             if (!steamAccountManager.getById(id)) throw new Error(`steam account #${id} is not exist`);
@@ -56,11 +64,7 @@ class Manager {
             if (!original.includes(id)) next.steamAccounts[id] = proxyId;
         }
         const changed = Object.keys(next.steamAccounts).filter(id => next.steamAccounts[id] !== links.steamAccounts[id]);
-        return () => {
-            if (!changed.length) return;
-            LinksStorage.Save(next);
-            Manager.RefreshAccountProxies(changed);
-        };
+        return changed.length ? { links: next, changed } : null;
     }
     static GetProxyLinkedData(proxyId: string) {
         const links = LinksStorage.Get();
@@ -86,9 +90,11 @@ class Manager {
     static RefreshAllAccountProxies() {
         Manager.RefreshAccountProxies(steamAccountManager.objects.map(account => account.params.id));
     }
-    static RefreshProxyAccounts(proxyId: string) {
+    /** Аккаунты прокси и, если привязки менялись вместе с ним, отвязанные от него. */
+    static RefreshProxyAccounts(proxyId: string, changed: string[] = []) {
         const links = LinksStorage.Get();
-        Manager.RefreshAccountProxies(Object.keys(links.steamAccounts).filter(id => links.steamAccounts[id] === proxyId));
+        const linked = Object.keys(links.steamAccounts).filter(id => links.steamAccounts[id] === proxyId);
+        Manager.RefreshAccountProxies(Array.from(new Set([...linked, ...changed])));
     }
     private static RefreshAccountProxies(ids: string[]) {
         const errors: string[] = [];
@@ -132,8 +138,7 @@ class Manager {
     // --- Группы аккаунтов (одна группа на аккаунт, хранится в links.groups) ---
 
     // Группа аккаунта или null. Аналог GetSteamAccountLinkedData для прокси.
-    static GetSteamAccountGroup(steamAccountId: string) {
-        const links = LinksStorage.Get();
+    static GetSteamAccountGroup(steamAccountId: string, links = LinksStorage.Get()) {
         const groupId = links.groups[steamAccountId];
         if (!groupId) return null;
         const group = groupManager.getById(groupId);
@@ -145,7 +150,8 @@ class Manager {
         const links = LinksStorage.Get();
         const ids: string[] = [];
         for (var saId of Object.keys(links.groups)) {
-            if (links.groups[saId] === groupId) ids.push(saId);
+            // Связь удалённого навсегда аккаунта остаётся в файле: в счётчике группы его быть не должно
+            if (links.groups[saId] === groupId && steamAccountManager.getById(saId)) ids.push(saId);
         }
         return ids;
     }

@@ -5,6 +5,7 @@ import store from "../../../../../../store/store";
 import readFile from "../../../../../../globalComponents/SomeFuncs/readFile";
 import MaFileInterface from "../../../../../../../electron/interfaces/SteamAccount/MaFileInterface";
 import MaFile from "../../../../../../globalComponents/MaFile/MaFile";
+import { getSteamID64 } from "../../../../../../../electron/components/Functions/steamAccountSearch";
 import "./MaFileImport.css";
 import { useTranslation } from "react-i18next";
 
@@ -59,13 +60,9 @@ const MaFileImport: FC<{ currentMaFile: MaFileInterface | null, onChange: (newMa
                     if (files) {
                         readFile(files[0])
                             .then((maFile: MaFileInterface) => {
-                                if (maFile.Session) {
-                                    const steamid: any = maFile.Session.SteamID;
-                                    if (typeof (steamid) != 'string') {
-                                        maFile.Session.SteamID = String(steamid.c[0]) + String(steamid.c[1]);
-                                    }
-                                }
-
+                                // Число SteamID приводим к строке; без SteamID файл тоже годится (SDA-62)
+                                const steamId = getSteamID64(maFile);
+                                if (steamId) maFile.Session.SteamID = steamId;
 
                                 onChange(maFile);
                             })

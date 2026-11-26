@@ -8,7 +8,9 @@ import getField from './Fields/getField';
 import { FieldsTable } from './fieldTitle';
 
 export interface Cell { type: AvalibleTypes, jsx: JSX.Element };
-export interface Line { cells: Cell[], deleted: boolean, selected?: boolean };
+/** id — чья это строка. Без него React переносил бы состояние ячеек (показанный пароль) на другую запись,
+ *  которая после сортировки или нового списка оказалась на том же месте (SDA-65). */
+export interface Line { id?: string, cells: Cell[], deleted: boolean, selected?: boolean };
 export interface TableDataInterface {
     fields: Field[],
     fieldsTable: FieldsTable,
@@ -70,7 +72,7 @@ const Table: FC<TableDataInterface> = (props) => {
                         </div>
                         {
                             lines.map((line, index) => {
-                                return <Element key={index} line={line} />
+                                return <Element key={line.id ?? index} line={line} />
                             })
                         }
                     </div>

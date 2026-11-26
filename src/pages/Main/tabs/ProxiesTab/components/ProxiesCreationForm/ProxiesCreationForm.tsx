@@ -7,7 +7,7 @@ import Button from "../../../../../../globalComponents/Button/Button";
 import ProxyItem from "../ProxyItem/ProxyItem";
 import "./ProxiesCreationForm.css";
 import ProxySetupInterface from '../../../../../../../electron/interfaces/Proxy/ProxySetupInterface';
-import parseProxyString from "../Funcs/parseProxyString";
+import parseProxyString, { parseProxy } from "../Funcs/parseProxyString";
 import { useTranslation } from "react-i18next";
 
 const ProxiesCreationForm: FC = observer(() => {
@@ -35,6 +35,7 @@ export const CreationFormContent: FC = () => {
     host: "",
     port: ""
   });
+  const [value, setValue] = useState("");
   const [links, setLinks] = useState<{ steamAccountIds: string[] }>({
     steamAccountIds: []
   });
@@ -57,6 +58,7 @@ export const CreationFormContent: FC = () => {
           onChange={(e) => {
             const value = e.target.value;
             const proxyData = parseProxyString(value);
+            setValue(value);
             store.proxiesTable.resetEditingTestDisplay();
             setProxy(proxyData);
           }}
@@ -101,13 +103,13 @@ export const CreationFormContent: FC = () => {
         ></Button>
         <Button size="medium" text={t("common.buttons.save")} onClick={() => {
           console.log(links);
-          if (proxy.host && proxy.port && proxy.username && proxy.password) {
+          if (proxy.host && proxy.port) {
             window.Main.proxies.new(proxy, links);
             store.proxiesTable.closeCreationForm();
           } else {
             store.windows.openMiniNotification({
               type: "error",
-              text: t("proxies.creation.incomplete")
+              text: t(value.trim() ? `proxies.reject.${parseProxy(value).reason}` : "proxies.creation.incomplete")
             });
           }
         }}></Button>

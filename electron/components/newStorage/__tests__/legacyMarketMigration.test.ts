@@ -238,6 +238,9 @@ describe("Импорт и экспорт старых файлов", () => {
             maFile: cleanedAccount().maFile,
             familyViewPin: legacy.familyViewPin,
             useSteamCookies: legacy.useSteamCookies,
+            // Почта — часть копии (SDA-62): импорт её принимает
+            mail: legacy.mail,
+            mailPassword: legacy.mailPassword,
         });
         expect(JSON.stringify(account.params)).not.toMatch(/tmApiKey|marketApiKey|old-tm-key/);
         expect(account.params.changableSecondary).not.toHaveProperty("market");

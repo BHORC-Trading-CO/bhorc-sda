@@ -26,13 +26,18 @@
     "noAccountsSelected": "No accounts selected",
     "openDataFolder": "Open the account data folder. All data is stored in config.json",
     "reloadAll": "Reload all data",
+    "reloadAllActive": "Refreshing all accounts…",
     "startTyping": "Start typing...",
     "irreversible": "This action cannot be undone",
     "error": "Error",
     "errorTitle": "Error 😒",
     "unknownStep": "Unknown step: {{step}}",
     "canCloseWindow": "You can close the window",
-    "inDevelopment": "In development"
+    "inDevelopment": "In development",
+    "crash": {
+      "text": "This window could not be displayed.",
+      "reload": "Reload the window"
+    }
   },
   "prompt": {
     "cancel": "Cancel",
@@ -204,6 +209,8 @@
         "confirmations": "Steam Guard confirmations",
         "refreshProfile": "Refresh profile data (including statuses)",
         "refreshSession": "Refresh session (log in again)",
+        "refreshSessionNeeded": "Sign in again: {{error}}",
+        "refreshProfileFailed": "Refresh failed: {{error}}",
         "saveMaFile": "Save maFile as",
         "exportSmaFile": "Export account data (smaFile)",
         "focusBrowser": "Bring the browser to front",
@@ -239,9 +246,13 @@
       "accept_other": "Delete {{count}} accounts"
     },
     "errors": {
-      "loadData": "Failed to load account data: {{error}}",
-      "refreshSession": "Could not refresh the session of account #{{number}}: {{error}}",
-      "editNotFound": "Could not change account data: #{{id}} - no such account"
+      "loadData": "Could not refresh the data of {{account}}: {{error}}",
+      "reloadList": "Could not reload the accounts: {{error}}",
+      "loadDataMany": "Could not refresh {{total}} accounts: {{names}}. The reason is in the row of each account",
+      "refreshSession": "Could not sign in to {{account}}: {{error}}",
+      "refreshSessionMany": "Could not sign in to {{total}} accounts: {{names}}. The reason is in the row of each account",
+      "editNotFound": "Could not change account data: #{{id}} - no such account",
+      "export": "Could not export the account: {{error}}"
     },
     "form": {
       "accountSection": "Steam account",
@@ -256,7 +267,8 @@
       "showPassword": "Show password",
       "hidePassword": "Hide password",
       "useSteamCookies": "Use Steam cookies in the browser (auto login)",
-      "maFileNameMismatch": "The Steam account name in the maFile does not match the one entered above!"
+      "maFileNameMismatch": "The Steam account name in the maFile does not match the one entered above!",
+      "pinInvalid": "The PIN must be exactly 4 digits"
     },
     "editing": {
       "title": "Edit Steam account #{{number}} {{name}}"
@@ -321,7 +333,8 @@
       "skippedFiles": "Files skipped: {{count}}. {{details}}",
       "view": "View",
       "pickProxy": "Pick a proxy",
-      "remove": "Remove from the list"
+      "remove": "Remove from the list",
+      "routeRequired": "Choose a proxy or “No proxy” for: {{names}}. These accounts had a proxy that no longer exists"
     }
   },
   "maFile": {
@@ -459,9 +472,18 @@
       "title": "Add proxies in bulk",
       "example": "One proxy per line. Example: Login:Password@1.1.1.1:7777",
       "empty": "The field is empty!",
+      "rejected_one": "{{count}} line was not added. It is left in the field so you can fix it.",
+      "rejected_other": "{{count}} lines were not added. They are left in the field so you can fix them.",
       "result": "Added: {{added}}, invalid skipped: {{invalid}}, duplicates: {{duplicates}}",
       "label": "Proxy list",
       "placeholder": "Login:Password@1.1.1.1:7777\nLogin:Password@2.2.2.2:7777"
+    },
+    "reject": {
+      "format": "Not a proxy line. Use login:password@host:port, host:port:login:password, host:port or http://login:password@host:port",
+      "scheme": "Only HTTP proxies are supported (http://)",
+      "ambiguous": "The line can be read in two ways. Write it as http://login:password@host:port",
+      "address": "Invalid host or port",
+      "storage": "Could not be saved"
     },
     "creation": {
       "title": "New proxies",
@@ -471,17 +493,25 @@
       "title": "Edit proxy (#{{number}}) {{host}}:{{port}}"
     },
     "test": {
-      "editingWorking": "Proxy works",
-      "editingNotWorking": "Proxy does NOT work",
-      "working": "Proxy #{{number}} {{host}}:{{port}} works",
-      "notWorking": "Proxy #{{number}} {{host}}:{{port}} does NOT work",
+      "working": "Proxy {{name}} works",
+      "notWorking": "Proxy {{name}} does NOT work",
+      "steamStatus": "Proxy {{name}} works, but Steam answered {{code}}",
       "workingRich": "Proxy #{{number}} {{host}}:{{port}} <b>works</b>",
       "notWorkingRich": "Proxy #{{number}} {{host}}:{{port}} <b>DOES NOT WORK</b>",
       "column": "Test",
       "pending": "Testing…",
       "untested": "Untested",
       "ok": "Works",
-      "failed": "Failed"
+      "failed": "Failed",
+      "steamCode": "Steam: {{code}}",
+      "steamHint": "The proxy works, but Steam answered {{code}}",
+      "summary": {
+        "title": "Proxies tested",
+        "working": "working: {{number}}",
+        "refused": "working, but Steam refused: {{number}} ({{list}})",
+        "failed": "failed: {{number}} ({{list}})",
+        "skipped": "no result: {{number}} (already being tested, changed or deleted)"
+      }
     },
     "errors": {
       "notFound": "Proxy #{{id}} does not exist",

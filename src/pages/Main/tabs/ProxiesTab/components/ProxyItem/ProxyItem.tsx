@@ -64,7 +64,7 @@ const ProxyItem = observer((props: {
             {linkedAccounts || '—'}
           </span>
         </div>
-        <div className="proxy-item-cell proxy-item-test"><ProxyTestButton isWorking={isCurrentTest ? store.proxiesTable.editingTestResult : undefined} isTesting={store.proxiesTable.isTestingEditingProxy} onClick={() => {
+        <div className="proxy-item-cell proxy-item-test"><ProxyTestButton isWorking={isCurrentTest ? store.proxiesTable.editingTestResult : undefined} failure={store.proxiesTable.editingTestFailure} isTesting={store.proxiesTable.isTestingEditingProxy} onClick={() => {
           store.proxiesTable.testEditingProxy(proxyData);
         }} /></div>
       </div>

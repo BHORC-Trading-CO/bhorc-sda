@@ -1,9 +1,10 @@
-import { onTrusted } from '../trustedIpc';
+import { handleTrusted, onTrusted } from '../trustedIpc';
 import SteamAccountChannels from '../../../interfaces/IpcChannels/SteamAccountChannels';
 import steamAccountCreationProcess from '../../SteamAccount/Listeners/steamAccountCreateProcessListener';
 import getAuthCode from '../../SteamAccount/Functions/getAuthCode';
 import steamAccountEditListener from '../../SteamAccount/Listeners/steamAccountEditListener';
 import steamAccountImportListener from '../../SteamAccount/Listeners/steamAccountImportListener';
+import steamAccountExportListener from '../../SteamAccount/Listeners/steamAccountExportListener';
 import guardSetupProcessListener from '../../SteamAccount/Listeners/guardSetupProcessListener';
 import steamAccountDeleteListener from '../../SteamAccount/Listeners/steamAccountDeleteListener';
 import steamAccountGetListener from '../../SteamAccount/Listeners/steamAccountGetListener';
@@ -32,6 +33,7 @@ export default () => {
     onTrusted(SteamAccountChannels.STEAM_ACCOUNT_GET_TABLE_FIELDS, steamAccountGetTableFieldsListener);
     onTrusted(SteamAccountChannels.STEAM_ACCOUNT_SET_TABLE_FIELDS, steamAccountSetTableFieldsListener);
     onTrusted(SteamAccountChannels.STEAM_ACCOUNT_IMPORT, steamAccountImportListener);
+    handleTrusted(SteamAccountChannels.STEAM_ACCOUNT_EXPORT, steamAccountExportListener);
     onTrusted(SteamAccountChannels.STEAM_ACCOUNT_CREATE_PROCESS, steamAccountCreationProcess);
     onTrusted(SteamAccountChannels.STEAM_ACCOUNT_EDIT, steamAccountEditListener);
     onTrusted(SteamAccountChannels.STEAM_ACCOUNT_DELETE, steamAccountDeleteListener);

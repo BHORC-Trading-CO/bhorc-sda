@@ -29,9 +29,7 @@ const AssignFormContent: FC = observer(() => {
   const [newName, setNewName] = useState("");
   const { t } = useTranslation();
 
-  const selectedAccounts = Object.values(
-    store.steamAccountsTable.getSteamAccounts()
-  ).filter((a) => a.isSelected && !a.deleted);
+  const selectedAccounts = store.steamAccountsTable.selectedAccounts;
   const groups = store.groups.getGroups();
 
   const apply = () => {

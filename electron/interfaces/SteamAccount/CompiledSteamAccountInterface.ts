@@ -10,6 +10,8 @@ interface CompiledSteamAccountInterface extends SteamAccountInterface {
     proxyId: string | null;
     group: GroupInterface | null;
     smaFile: SmaFileInterface;
+    /** Последний вход не удался (SDA-61); null — вошли или входа ещё не было */
+    sessionError?: string | null;
 }
 
 export default CompiledSteamAccountInterface;
